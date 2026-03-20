@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# This script runs when an AI session starts.
+# It teaches the agent how to use the Skills library by injecting the meta-skill.
+
+set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$DIR")"
+META_SKILL_PATH="$PROJECT_ROOT/skills/using-skills/SKILL.md"
+
+if [ -f "$META_SKILL_PATH" ]; then
+    echo "<skill_system_instruction>"
+    echo "You are running within the Open Kit AI Software Factory framework."
+    echo "Below are the rules for how you must discover and invoke your skills."
+    echo ""
+    cat "$META_SKILL_PATH"
+    echo "</skill_system_instruction>"
+fi
