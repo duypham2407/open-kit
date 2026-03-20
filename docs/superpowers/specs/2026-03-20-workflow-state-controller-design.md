@@ -1,8 +1,6 @@
 # Workflow State Controller Design
 
-> Historical background note: this controller design predates the current hard-split workflow. Until `.opencode/workflow-state.js` is updated, the stage and approval details in this document are not the canonical workflow contract.
-
-> Approved design for adding a lightweight CLI controller that manages `.opencode/workflow-state.json` safely and consistently.
+> Historical background note: this controller design predates the current hard-split workflow. The current runtime contract now supports the hard-split model, but this document remains useful as controller-design background.
 
 ## Goal
 
@@ -10,30 +8,27 @@ Provide a small, explicit control surface for reading, validating, and updating 
 
 ## Why This Exists
 
-OpenKit now has a documented workflow state contract, but state transitions are still updated manually. That leaves room for drift between:
+OpenKit uses a documented workflow state contract, and the controller exists to make that file-backed operating system practical instead of purely descriptive.
+
+The controller reduces drift between:
 
 - `.opencode/workflow-state.json`
 - artifact files under `docs/`
 - approval gate rules
 - stage ownership rules
+- issue routing rules
 
-The controller exists to make the file-backed operating system practical, not just documented.
+## Current Direction
 
-## Selected Approach
+The runtime now follows the hard-split workflow contract:
 
-Implement a single CLI utility under `.opencode/` that reads and writes `.opencode/workflow-state.json`.
+- `Quick Task` lane
+- `Full Delivery` lane
+- mode-aware stages
+- mode-aware approvals
+- explicit quick-to-full escalation
 
-The CLI should:
-
-1. Load the current state file.
-2. Validate transitions against the documented schema and approval rules.
-3. Apply narrowly scoped updates.
-4. Write formatted JSON back to disk.
-5. Return clear human-readable errors when a transition is invalid.
-
-This keeps orchestration explicit and inspectable while avoiding a heavier runtime service.
-
-The first version may rely on Node.js because the repository already uses a `.opencode/package.json` runtime area. If that dependency becomes part of the supported kit surface, it must be documented in `AGENTS.md` and `context/core/project-config.md`.
+This document preserves the original intent of the controller while updating the command surface examples to match the current runtime behavior.
 
 ## Non-Goals
 
@@ -44,159 +39,116 @@ The first version may rely on Node.js because the repository already uses a `.op
 
 ## CLI Surface
 
-The initial controller should support these commands:
+The workflow-state controller supports these commands:
 
 ### `show`
 
 Print the current workflow state in a readable form.
 
-The CLI should also support an alternate state path for verification scenarios, either through an optional `--state <path>` flag or an environment variable such as `OPENKIT_WORKFLOW_STATE`.
-
-The first version should treat `--state <path>` as the primary documented mechanism. `OPENKIT_WORKFLOW_STATE` is optional convenience support in v1. If both are present, `--state <path>` takes precedence.
-
 ### `validate`
 
-Check that the current state file satisfies:
+Check that the current state file satisfies the documented hard-split schema:
 
 - required top-level fields
-- required identifiers such as `feature_id` and `feature_slug`
-- known `current_stage` values
-- known `status` values
-- stage-owner alignment
-- gate shape validity
-- issue objects matching the required schema in `context/core/issue-routing.md`
-- `retry_count` presence and numeric shape
-- `updated_at` presence
+- valid `mode`
+- valid mode-specific `current_stage`
+- valid stage-owner alignment
+- valid mode-specific approvals
+- valid artifact shape including `task_card`
+- valid issue objects
+- retry and escalation metadata shape
 
-### `start-feature`
+### `start-task`
 
-Initialize a feature in state using provided identifiers.
+Initialize work in the chosen mode.
 
 Expected inputs:
 
+- `mode`
 - `feature_id`
 - `feature_slug`
+- `mode_reason`
 
 Expected effects:
 
-- set `current_stage` to `intake`
+- set `mode`
+- set `mode_reason`
+- set `current_stage` to `quick_intake` or `full_intake`
 - set `status` to `in_progress`
 - set `current_owner` to `MasterOrchestrator`
 - clear artifacts and issues
-- reset approvals so every gate entry becomes `{ status: "pending", approved_by: null, approved_at: null, notes: null }`
-- set `retry_count` to `0`
-- set `updated_at` to the current operation timestamp
+- initialize mode-appropriate approvals
+- reset `retry_count`
+- clear escalation metadata
+
+### `start-feature`
+
+Compatibility shortcut retained for older flows.
+
+Expected behavior:
+
+- initialize a `Full Delivery` task
+- set `mode = full`
+- set `current_stage = full_intake`
+- provide a compatibility `mode_reason`
 
 ### `advance-stage`
 
-Move to the next workflow stage.
-
-Expected inputs:
-
-- `to`
+Move to the next stage within the active mode.
 
 Rules:
 
-- transition must be forward-only within the canonical stage sequence
+- transition must be forward-only within the active lane
 - if a gate protects the transition, that gate must already be `approved`
 - `current_owner` must change to the default owner of the new stage
-- `status` should remain `in_progress` unless the new stage is `done`, in which case it becomes `done`
-- `updated_at` must be refreshed
-
-CLI shape for the first version should be positional and consistent with the examples:
-
-```bash
-node .opencode/workflow-state.js advance-stage <stage>
-```
+- `status` becomes `done` only when the new stage is `quick_done` or `full_done`
 
 ### `set-approval`
 
-Set one approval gate.
+Set one approval gate for the active mode.
 
-Expected inputs:
+Rules:
 
-- `gate`
-- `status`
-- optional `approved_by`
-- optional `approved_at`
-- optional `notes`
-
-Expected effects:
-
-- update the selected gate only
-- refresh `updated_at`
+- quick mode accepts `quick_verified`
+- full mode accepts the full approval chain only
 
 ### `link-artifact`
 
 Attach one artifact path to state.
 
-Expected inputs:
+Supported kinds:
 
-- `kind` (`brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`)
-- `path`
-
-Rules:
-
-- the file should exist before linking
-- refresh `updated_at`
-- when `kind` is `adr`, append to the `artifacts.adr` array instead of replacing a scalar field
+- `task_card`
+- `brief`
+- `spec`
+- `architecture`
+- `plan`
+- `qa_report`
+- `adr`
 
 ### `record-issue`
 
-Append a QA or workflow issue to the `issues` array.
-
-Expected inputs:
-
-- `issue_id`
-- `title`
-- `type`
-- `severity`
-- `rooted_in`
-- `recommended_owner`
-- `evidence`
-- `artifact_refs`
-
-Expected effects:
-
-- append a new issue object to `issues`
-- set `status` to `blocked` when the issue represents a failed QA or workflow blocker
-- refresh `updated_at`
+Append an issue to the `issues` array using the documented issue schema.
 
 ### `clear-issues`
 
-Clear issues after routing or resolution when explicitly requested.
-
-Expected effects:
-
-- empty the `issues` array
-- reset `status` to `in_progress` when work is still active, or keep `done` if the workflow is already complete
-- refresh `updated_at`
+Clear recorded issues after explicit resolution or rerouting.
 
 ### `route-rework`
 
-Route a failed QA outcome or workflow issue back to the correct working stage.
+Route failed QA or workflow findings based on active mode.
 
-Expected inputs:
+Quick mode:
 
-- `issue_type` (`bug`, `design_flaw`, `requirement_gap`)
-- optional `repeat_failed_fix` (`true` | `false`), default `false`
+- `bug` -> `quick_build`
+- `design_flaw` -> escalate to `full_intake`
+- `requirement_gap` -> escalate to `full_intake`
 
-Rules:
+Full mode:
 
-- `bug` routes to `implementation` with owner `FullstackAgent`
-- `design_flaw` routes to `architecture` with owner `ArchitectAgent` in the first version
-- `requirement_gap` routes to `spec` with owner `BAAgent`
-- increment `retry_count` only when `repeat_failed_fix` is `true`
-- set `status` to `in_progress`
-- refresh `updated_at`
-
-This command is required so the controller can model the documented QA feedback loop instead of only happy-path forward movement.
-
-This explicit flag keeps the first version deterministic without requiring hidden issue-history state beyond the documented schema.
-
-In the first version, escalation signaling should also be explicit: the caller provides the retry context, and the controller reports when `retry_count` has reached the documented threshold of `3`. The controller should not attempt to infer issue-family history from cleared issues.
-
-Reaching the threshold should return a clear warning or escalation message to the caller, but it does not need to hard-block routing in v1.
+- `bug` -> `full_implementation`
+- `design_flaw` -> `full_architecture`
+- `requirement_gap` -> `full_spec`
 
 ## Source Of Truth For Validation
 
@@ -207,138 +159,35 @@ The controller should validate against repository docs rather than inventing beh
 - `context/core/issue-routing.md`
 - `context/core/workflow.md`
 
-In implementation, the first version may encode the rules directly in code, but those rules must match the docs above.
-
-## Data Model Decisions
-
-### Stage Sequence
-
-Canonical sequence:
-
-`intake -> brief -> spec -> architecture -> plan -> implementation -> qa -> done`
-
-This is the canonical forward sequence. Rework transitions are exceptions driven by `route-rework` after issues are recorded.
-
-### Stage Owner Mapping
-
-- `intake` -> `MasterOrchestrator`
-- `brief` -> `PMAgent`
-- `spec` -> `BAAgent`
-- `architecture` -> `ArchitectAgent`
-- `plan` -> `TechLeadAgent`
-- `implementation` -> `FullstackAgent`
-- `qa` -> `QAAgent`
-- `done` -> `MasterOrchestrator`
-
-### Gate Mapping
-
-- `brief -> spec` requires `pm_to_ba`
-- `spec -> architecture` requires `ba_to_architect`
-- `architecture -> plan` requires `architect_to_tech_lead`
-- `plan -> implementation` requires `tech_lead_to_fullstack`
-- `implementation -> qa` requires `fullstack_to_qa`
-- `qa -> done` requires `qa_to_done`
-
-No approval gate is required to move into `brief` from `intake`.
-
-### Approval Reset Shape
-
-`start-feature` must recreate every documented gate entry using the canonical pending shape:
-
-`{ status: "pending", approved_by: null, approved_at: null, notes: null }`
-
-### QA Failure Routing
-
-When QA fails, the controller must support routing work backward without inventing new stages.
-
-- `bug` -> `implementation`
-- `design_flaw` -> `architecture`
-- `requirement_gap` -> `spec`
-
-After rework is complete, the workflow may advance forward again through the normal stage sequence.
-
-### Issue Ownership Validation
-
-The first version should validate `recommended_owner` conservatively:
-
-- `bug` -> `FullstackAgent`
-- `requirement_gap` -> `BAAgent`
-- `design_flaw` -> `ArchitectAgent` or `TechLeadAgent`
-
-## Error Handling
-
-The controller should fail loudly and specifically.
-
-Examples:
-
-- unknown stage value
-- attempt to skip a stage
-- missing approval gate for the requested transition
-- artifact path does not exist
-- malformed state JSON
-- missing required `updated_at`
-- missing required `retry_count`
-
-Errors should describe both what failed and what the caller should fix.
-
-## File Layout
-
-Recommended implementation files:
-
-- `.opencode/workflow-state.js` — CLI entry point
-- `.opencode/lib/workflow-state-controller.js` — state update logic
-- `.opencode/lib/workflow-state-rules.js` — canonical stage/gate/owner constants
-
-If this is too heavy for the first pass, the logic may start in one file and split only when needed.
-
-## Integration Points
-
-The controller should be easy to invoke from:
-
-- future command wrappers
-- hook scripts
-- manual terminal usage
-- agent instructions that need explicit state transitions
-
-Example intended usage:
+## Example Usage
 
 ```bash
 node .opencode/workflow-state.js validate
-node .opencode/workflow-state.js start-feature FEATURE-002 login-flow
-node .opencode/workflow-state.js link-artifact brief docs/briefs/2026-03-20-login-flow.md
-node .opencode/workflow-state.js set-approval pm_to_ba approved user 2026-03-20 "Brief approved"
-node .opencode/workflow-state.js advance-stage brief
-node .opencode/workflow-state.js record-issue ISSUE-001 "Missing validation" bug medium implementation FullstackAgent "Spec compliance failed in QA" docs/qa/2026-03-20-task-intake-dashboard.md
-node .opencode/workflow-state.js route-rework bug
+node .opencode/workflow-state.js start-task quick TASK-002 copy-fix "Scoped copy-only change"
+node .opencode/workflow-state.js link-artifact task_card docs/tasks/2026-03-21-copy-fix.md
+node .opencode/workflow-state.js advance-stage quick_build
+node .opencode/workflow-state.js advance-stage quick_verify
+node .opencode/workflow-state.js set-approval quick_verified approved system 2026-03-21 "QA Lite passed"
+node .opencode/workflow-state.js advance-stage quick_done
+```
+
+```bash
+node .opencode/workflow-state.js start-task full FEATURE-002 login-flow "Feature-sized workflow with multiple handoffs"
+node .opencode/workflow-state.js set-approval pm_to_ba approved user 2026-03-21 "Brief approved"
+node .opencode/workflow-state.js advance-stage full_brief
+node .opencode/workflow-state.js route-rework requirement_gap
 ```
 
 ## Testing Strategy
 
-This repository does not yet define a repo-native test runner for application code, so validation should be lightweight and explicit.
+This repository still does not define a repo-native test runner for application code, so controller verification should stay lightweight and explicit.
 
-Initial verification path:
+Current verification path:
 
-- run the CLI against the current state file
-- verify JSON remains parseable
-- verify expected failures for invalid transitions
-- verify valid transitions update the correct fields only
-- verify QA-failure routing updates stage, owner, status, and retry count correctly
-
-## Trade-Offs
-
-### Benefits
-
-- Makes the operating system executable, not only documented
-- Reduces state drift
-- Makes resume behavior more trustworthy
-- Keeps orchestration visible and file-backed
-
-### Costs
-
-- Adds small maintenance surface in `.opencode/`
-- Requires docs and code to stay aligned
-- Needs careful guardrails to avoid over-automation
+- run controller unit tests for mode-aware state behavior
+- validate the checked-in `.opencode/workflow-state.json`
+- smoke-test CLI commands on temporary state files
 
 ## Decision
 
-Build a small CLI workflow-state controller as the first executable orchestration component of OpenKit.
+Keep the workflow-state controller small, file-backed, and explicit, while aligning its command surface with OpenKit's hard-split workflow model.

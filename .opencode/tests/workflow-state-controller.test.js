@@ -9,6 +9,7 @@ const {
   linkArtifact,
   routeRework,
   setApproval,
+  startFeature,
   startTask,
   validateState,
 } = require("../lib/workflow-state-controller")
@@ -111,4 +112,41 @@ test("routeRework keeps full-mode bugs in full implementation", () => {
   assert.equal(result.state.current_stage, "full_implementation")
   assert.equal(result.state.current_owner, "FullstackAgent")
   assert.equal(result.state.retry_count, 1)
+})
+
+test("quick mode rejects full-delivery approvals", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-127", "bad-gate", "Quick workflow gate validation", statePath)
+
+  assert.throws(
+    () => setApproval("pm_to_ba", "approved", "user", "2026-03-21", "Wrong gate", statePath),
+    /mode 'quick'/,
+  )
+})
+
+test("quick mode rejects skipping stages", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-128", "skip-stage", "Quick stage ordering", statePath)
+
+  assert.throws(() => advanceStage("quick_verify", statePath), /immediate next stage 'quick_build'/)
+})
+
+test("full mode rejects quick stages", () => {
+  const statePath = createTempStateFile()
+
+  startTask("full", "FEATURE-201", "wrong-lane-stage", "Full workflow stage validation", statePath)
+
+  assert.throws(() => advanceStage("quick_build", statePath), /does not belong to mode 'full'/)
+})
+
+test("compatibility startFeature initializes full mode", () => {
+  const statePath = createTempStateFile()
+
+  const result = startFeature("FEATURE-202", "compat-start", statePath)
+
+  assert.equal(result.state.mode, "full")
+  assert.equal(result.state.current_stage, "full_intake")
+  assert.match(result.state.mode_reason, /legacy start-feature command/)
 })

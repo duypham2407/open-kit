@@ -8,6 +8,7 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$DIR")"
 META_SKILL_PATH="$PROJECT_ROOT/skills/using-skills/SKILL.md"
+STATE_PATH="$PROJECT_ROOT/.opencode/workflow-state.json"
 
 if [ -f "$META_SKILL_PATH" ]; then
     echo "<skill_system_instruction>"
@@ -16,4 +17,40 @@ if [ -f "$META_SKILL_PATH" ]; then
     echo ""
     cat "$META_SKILL_PATH"
     echo "</skill_system_instruction>"
+fi
+
+if [ -f "$STATE_PATH" ]; then
+    python3 - "$STATE_PATH" <<'PY'
+import json
+import sys
+
+state_path = sys.argv[1]
+
+try:
+    with open(state_path, "r", encoding="utf-8") as fh:
+        state = json.load(fh)
+except Exception:
+    sys.exit(0)
+
+mode = state.get("mode")
+stage = state.get("current_stage")
+status = state.get("status")
+owner = state.get("current_owner")
+feature_id = state.get("feature_id")
+feature_slug = state.get("feature_slug")
+
+if not all([mode, stage, status, owner]):
+    sys.exit(0)
+
+print("<workflow_resume_hint>")
+print("OpenKit workflow resume context detected.")
+print(f"mode: {mode}")
+print(f"stage: {stage}")
+print(f"status: {status}")
+print(f"owner: {owner}")
+if feature_id and feature_slug:
+    print(f"work item: {feature_id} ({feature_slug})")
+print("Before continuing: read AGENTS.md, context/navigation.md, .opencode/workflow-state.json, then load mode-appropriate artifact context from context/core/session-resume.md.")
+print("</workflow_resume_hint>")
+PY
 fi
