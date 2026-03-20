@@ -25,7 +25,12 @@ Dùng skill `skills/brainstorming/SKILL.md` để:
 Sau khi brainstorming xong, viết Product Brief vào:
 `docs/briefs/YYYY-MM-DD-<feature-slug>.md`
 
+Ưu tiên bắt đầu từ `docs/templates/product-brief-template.md` để output có schema ổn định.
+
 **Cấu trúc Product Brief:**
+
+Giữ nguyên frontmatter từ template; phần dưới chỉ là body shape tham khảo.
+
 ```markdown
 # Product Brief: [Tên Tính năng]
 

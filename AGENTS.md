@@ -18,14 +18,20 @@ The kit is structured into several core directories:
 - `agents/`: Definitions for the 7 team roles (Master, PM, BA, Architect, Tech Lead, Fullstack, QA).
 - `skills/`: Composable workflow procedures (TDD, brainstorming, planning, debugging).
 - `commands/`: User-facing triggers (`/brainstorm`, `/write-plan`, `/execute-plan`).
-- `context/`: Shared intelligence (`navigation.md`, `code-quality.md`, `workflow.md`).
+- `context/`: Shared intelligence (`navigation.md`, `core/code-quality.md`, `core/workflow.md`).
 - `hooks/`: Session bootstrap integration (`session-start`).
 - `.opencode/`: Configuration for the OpenCode environment.
+- `docs/templates/`: Source-of-truth templates for workflow artifacts.
+- `docs/examples/`: End-to-end golden path examples.
+- `docs/governance/`: Naming, severity, ADR, and definition-of-done policy.
+- `docs/operations/`: Observability and execution logging guidance.
 
 - The original workflow vision is at `docs/ai_software_factory_agents.md`.
-- No repo-native build command is currently defined.
-- No repo-native lint command is currently defined.
-- No repo-native test command is currently defined.
+- `.opencode/opencode.json` is now present as the runtime manifest for this kit.
+- `.opencode/workflow-state.json` is now present as the persisted workflow state file.
+- No repo-native build command is currently defined for application code.
+- No repo-native lint command is currently defined for application code.
+- No repo-native test command is currently defined for application code.
 - No `.cursorrules` file was found.
 - No `.cursor/rules/` directory was found.
 - No `.github/copilot-instructions.md` file was found.
@@ -48,19 +54,21 @@ Use the following order when deciding what is authoritative:
 
 1. Direct user instructions in the current session
 2. Root `AGENTS.md`
-3. `docs/ai_software_factory_agents.md` for current workflow intent
-4. `docs/superpowers/specs/2026-03-20-agents-guidance-design.md` for why this guide is structured this way
-5. Repository files that actually exist in the working tree
+3. `context/core/workflow.md` for the current workflow contract
+4. `docs/ai_software_factory_agents.md` for original workflow intent and background
+5. `docs/superpowers/specs/2026-03-20-openkit-operating-system-design.md` for the current operating-system direction
+6. Repository files that actually exist in the working tree
 
 If guidance conflicts with repository state, trust the repository state and update documentation instead of inventing missing pieces.
 
 ## Repo Navigation Guidance
 
-- Start by reading `AGENTS.md` and then the specific document or code file you need to change.
+- Start by reading `AGENTS.md`, then `context/navigation.md`, then the specific document or code file you need to change.
 - Treat `docs/` as the current center of gravity for repository knowledge.
 - Verify file existence before referencing paths in plans or instructions.
 - Prefer small, targeted edits over broad speculative restructuring.
 - When new top-level areas are introduced, add them to this guide.
+- If a task is resumable, read `.opencode/workflow-state.json` before proposing next actions.
 
 Because the repository is still minimal, agents should explain assumptions plainly and avoid acting as if hidden infrastructure exists.
 
@@ -68,15 +76,15 @@ Because the repository is still minimal, agents should explain assumptions plain
 
 Current state:
 
-- No repository-native build command is currently defined.
-- No repository-native lint command is currently defined.
-- No repository-native test command is currently defined.
-- No single canonical package manager or language toolchain has been established.
+- No repository-native build command is currently defined for application code.
+- No repository-native lint command is currently defined for application code.
+- No repository-native test command is currently defined for application code.
+- No single canonical package manager or language toolchain has been established for future generated applications.
 
 Rules for agents:
 
 - Do not claim that `npm`, `pnpm`, `bun`, `yarn`, `pytest`, `cargo`, `go test`, or similar commands are available unless supporting files are added.
-- When introducing tooling in the future, document the actual command in this file at the same time.
+- When introducing tooling in the future, document the actual command in this file and in `context/core/project-config.md` at the same time.
 - If validation is not possible because tooling does not exist yet, say so explicitly in your report.
 
 Future patterns to adopt once tooling exists:
@@ -88,6 +96,24 @@ Future patterns to adopt once tooling exists:
 - Rust example only: `cargo test`
 
 These are illustrative patterns, not current repository commands.
+
+## Workflow Artifacts And State
+
+The operating system layer is file-backed and should stay explicit.
+
+- Runtime manifest: `.opencode/opencode.json`
+- Persisted workflow state: `.opencode/workflow-state.json`
+- Artifact templates: `docs/templates/`
+- Golden path examples: `docs/examples/`
+
+Required artifact outputs by stage:
+
+- PM -> `docs/briefs/YYYY-MM-DD-<feature>.md`
+- BA -> `docs/specs/YYYY-MM-DD-<feature>.md`
+- Architect -> `docs/architecture/YYYY-MM-DD-<feature>.md`
+- Tech Lead -> `docs/plans/YYYY-MM-DD-<feature>.md`
+- QA -> `docs/qa/YYYY-MM-DD-<feature>.md`
+- Architect decisions -> `docs/adr/YYYY-MM-DD-<decision>.md`
 
 ## Single-Test Guidance
 

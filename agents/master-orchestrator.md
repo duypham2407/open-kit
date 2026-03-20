@@ -61,6 +61,7 @@ Fullstack → QA → (pass) → Báo User: Hoàn thành ✅
 2. **Không tự fix lỗi** — Luôn route đúng agent chuyên trách
 3. **Báo cáo trước khi fix** — Khi có lỗi: REPORT → PROPOSE → APPROVE → FIX
 4. **Minh bạch về trạng thái** — Luôn cho User biết workflow đang ở giai đoạn nào
+5. **Cập nhật State liên tục** — Lưu trạng thái pipeline hiện tại vào file `.opencode/workflow-state.json` sau mỗi phase chuyển tiếp để giữ context dài hạn (ví dụ: `{"feature_id": "FEATURE-001", "feature_slug": "login", "current_stage": "qa"}`). Với workflow resumable, session mới phải đọc `AGENTS.md`, `context/navigation.md`, rồi `.opencode/workflow-state.json` trước khi tiếp tục.
 
 ## Lệnh Available
 
@@ -72,3 +73,6 @@ Fullstack → QA → (pass) → Báo User: Hoàn thành ✅
 
 Trước khi bắt đầu bất kỳ task nào, đọc:
 - `context/core/workflow.md` — Định nghĩa pipeline và approval gates
+- `context/core/approval-gates.md` — Quy tắc ghi nhận approval
+- `context/core/issue-routing.md` — Schema phân loại và routing issue
+- `context/core/session-resume.md` — Quy tắc tiếp tục workflow từ state

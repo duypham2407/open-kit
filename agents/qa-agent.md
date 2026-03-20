@@ -49,9 +49,9 @@ Review code dựa trên `context/core/code-quality.md`:
 
 ### Bước 3: Chạy Tests
 
+Tham chiếu `context/core/project-config.md` để lấy lệnh chạy test chuẩn của dự án cũng như config linter/build.
 ```bash
-# Chạy tất cả tests liên quan
-# (Lệnh cụ thể tùy vào stack của dự án)
+# Chạy tất cả tests liên quan dùng lệnh được định nghĩa
 ```
 
 Verify:
@@ -70,6 +70,8 @@ Dựa trên edge cases trong Spec, verify từng trường hợp:
 
 Với mỗi vấn đề tìm thấy, phân loại:
 
+Tham chiếu thêm `context/core/issue-routing.md` để ghi đầy đủ schema issue, severity, rooted-in và recommended owner.
+
 | Loại | Định nghĩa | Ví dụ |
 |------|-----------|-------|
 | **Bug** | Code không hoạt động đúng theo spec | Test fail, runtime error |
@@ -79,6 +81,8 @@ Với mỗi vấn đề tìm thấy, phân loại:
 ### Bước 6: Viết QA Report
 
 Lưu vào `docs/qa/YYYY-MM-DD-<feature-slug>.md`:
+
+Giữ nguyên frontmatter từ template; phần dưới chỉ là body shape tham khảo.
 
 ```markdown
 # QA Report: [Tên Tính năng]

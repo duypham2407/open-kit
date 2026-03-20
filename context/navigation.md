@@ -8,8 +8,13 @@ This file is the entry point for context discovery. Agents should read this firs
 context/
 ├── navigation.md          ← You are here
 ├── core/
+│   ├── approval-gates.md  ← Approval recording rules
 │   ├── code-quality.md    ← Coding standards (all agents)
-│   └── workflow.md        ← 7-agent pipeline, feedback loops, approval gates
+│   ├── issue-routing.md   ← QA classification and routing
+│   ├── project-config.md  ← Current command reality
+│   ├── session-resume.md  ← New-session resume protocol
+│   ├── workflow-state-schema.md ← Canonical workflow-state fields and enums
+│   └── workflow.md        ← 7-agent pipeline and handoff model
 ```
 
 ## Discovery Rules
@@ -18,10 +23,15 @@ context/
 |-----------|-----------|
 | Any implementation | `core/code-quality.md` |
 | Understanding team workflow | `core/workflow.md` |
+| Recording approvals | `core/approval-gates.md` |
+| Routing QA issues | `core/issue-routing.md` |
+| Resuming a session | `core/session-resume.md` |
+| Updating workflow state | `core/workflow-state-schema.md` |
 | Starting a new feature | Both |
 
 ## Priority
 
 - **Critical**: `core/code-quality.md` before any code generation
 - **High**: `core/workflow.md` before any agent delegation
+- **High**: `core/session-resume.md` before continuing an in-flight feature
 - **Medium**: Task-specific context discovered through agent instructions

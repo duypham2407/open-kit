@@ -41,10 +41,12 @@ Nếu có vấn đề → báo cáo cho Architect Agent để chỉnh sửa trư
 Dùng skill `skills/writing-plans/SKILL.md` để viết plan vào:
 `docs/plans/YYYY-MM-DD-<feature-slug>.md`
 
+Plan phải tương thích với templates trong `docs/templates/` để handoff sang Fullstack Agent được ổn định.
+
 **Yêu cầu của Implementation Plan:**
 
 - Mỗi task hoàn thành trong 2-5 phút
-- Mỗi task có: đường dẫn file chính xác, code đầy đủ, lệnh test cụ thể
+- Mỗi task có: đường dẫn file chính xác, code đầy đủ, và lệnh validation cụ thể nếu repo đã định nghĩa; nếu chưa có, ghi rõ validation path is not yet available
 - Tuân thủ TDD: test trước, implement sau
 - Commit thường xuyên
 

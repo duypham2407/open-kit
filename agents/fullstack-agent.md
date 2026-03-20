@@ -33,7 +33,9 @@ Nhận **Implementation Plan** từ Tech Lead Agent tại `docs/plans/YYYY-MM-DD
 1. Đọc Implementation Plan đầy đủ
 2. Đọc `context/core/code-quality.md`
 3. Đọc `context/core/workflow.md`
-4. Xác định tất cả tasks và dependencies
+4. Đọc `context/core/project-config.md` để lấy các lệnh test/build định nghĩa
+5. Nếu đang resume workflow, đọc `context/core/session-resume.md`
+6. Xác định tất cả tasks và dependencies
 
 ### Bước 2: Dùng Subagent-Driven-Development
 

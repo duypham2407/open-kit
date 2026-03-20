@@ -1,0 +1,56 @@
+{
+  "feature_id": null,
+  "feature_slug": null,
+  "current_stage": "intake",
+  "status": "idle",
+  "current_owner": "MasterOrchestrator",
+  "artifacts": {
+    "brief": null,
+    "spec": null,
+    "architecture": null,
+    "plan": null,
+    "qa_report": null,
+    "adr": []
+  },
+  "approvals": {
+    "pm_to_ba": {
+      "status": "pending",
+      "approved_by": null,
+      "approved_at": null,
+      "notes": null
+    },
+    "ba_to_architect": {
+      "status": "pending",
+      "approved_by": null,
+      "approved_at": null,
+      "notes": null
+    },
+    "architect_to_tech_lead": {
+      "status": "pending",
+      "approved_by": null,
+      "approved_at": null,
+      "notes": null
+    },
+    "tech_lead_to_fullstack": {
+      "status": "pending",
+      "approved_by": null,
+      "approved_at": null,
+      "notes": null
+    },
+    "fullstack_to_qa": {
+      "status": "pending",
+      "approved_by": null,
+      "approved_at": null,
+      "notes": null
+    },
+    "qa_to_done": {
+      "status": "pending",
+      "approved_by": null,
+      "approved_at": null,
+      "notes": null
+    }
+  },
+  "issues": [],
+  "retry_count": 0,
+  "updated_at": null
+}

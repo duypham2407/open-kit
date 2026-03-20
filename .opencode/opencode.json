@@ -2,5 +2,52 @@
   "model": "anthropic/claude-sonnet-4-5",
   "agents_dir": "agents",
   "skills_dir": "skills",
-  "commands_dir": "commands"
+  "commands_dir": "commands",
+  "kit": {
+    "name": "OpenKit AI Software Factory",
+    "version": "0.1.0",
+    "entryAgent": "MasterOrchestrator"
+  },
+  "hooks": {
+    "config": "hooks/hooks.json"
+  },
+  "state": {
+    "file": ".opencode/workflow-state.json"
+  },
+  "agents": {
+    "root": "agents",
+    "primary": "agents/master-orchestrator.md",
+    "teamRoles": [
+      "agents/master-orchestrator.md",
+      "agents/pm-agent.md",
+      "agents/ba-agent.md",
+      "agents/architect-agent.md",
+      "agents/tech-lead-agent.md",
+      "agents/fullstack-agent.md",
+      "agents/qa-agent.md"
+    ],
+    "helpers": [
+      "agents/code-reviewer.md"
+    ]
+  },
+  "skills": {
+    "root": "skills"
+  },
+  "commands": {
+    "root": "commands",
+    "available": [
+      "commands/brainstorm.md",
+      "commands/write-plan.md",
+      "commands/execute-plan.md"
+    ]
+  },
+  "artifacts": {
+    "briefs": "docs/briefs",
+    "specs": "docs/specs",
+    "architecture": "docs/architecture",
+    "plans": "docs/plans",
+    "qa": "docs/qa",
+    "adr": "docs/adr",
+    "examples": "docs/examples"
+  }
 }

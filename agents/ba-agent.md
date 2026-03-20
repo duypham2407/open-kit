@@ -53,6 +53,10 @@ Với mỗi tính năng, liệt kê:
 
 Lưu vào `docs/specs/YYYY-MM-DD-<feature-slug>.md`:
 
+Ưu tiên bắt đầu từ `docs/templates/spec-template.md` để handoff sang Architect Agent ổn định.
+
+Giữ nguyên frontmatter từ template; phần dưới chỉ là body shape tham khảo.
+
 ```markdown
 # Spec: [Tên Tính năng]
 

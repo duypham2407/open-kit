@@ -14,7 +14,7 @@ description: "RED-GREEN-REFACTOR cycle. Enforces strictly writing failing tests 
 ### Bước 1: RED (Viết Test Thất Bại)
 1. Chọn một task nhỏ từ Implementation Plan.
 2. Viết **một** test case cho behavior kiện đó.
-3. Chạy test runner cụ thể cho ngôn ngữ/framework đang dùng.
+3. Chạy test runner cụ thể cho ngôn ngữ/framework đang dùng, nhưng chỉ khi repository đã định nghĩa command đó. Nếu chưa có command chuẩn, dừng lại và báo missing validation path thay vì tự đoán.
 4. **Validation Bắt Buộc**: Test PHẢI fail. Không chỉ fail, mà phải fail đúng lý do (ví dụ: `ReferenceError: function is not defined`, hoặc `Expected true but got false`).
    - Nếu test pass ngay lập tức → Test sai, xóa đi viết lại.
 

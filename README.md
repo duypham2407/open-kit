@@ -1,6 +1,6 @@
 # OpenKit — AI Software Factory
 
-OpenKit is a framework that turns your AI coding assistant (like OpenCode) into a structured, 7-role software development team. It enforces workflow discipline, Test-Driven Development (TDD), and systematic problem-solving using composable skills.
+OpenKit is a framework that turns your AI coding assistant (like OpenCode) into a structured, 7-role software development team. It combines OpenAgentsControl-style orchestration concepts with superpowers-style workflow discipline using explicit artifacts, approval gates, and resumable workflow state.
 
 ## The 7-Role Team
 
@@ -29,15 +29,34 @@ Agents use a library of **Skills** (standard operating procedures) to accomplish
 ## Context System
 
 Context is loaded dynamically based on the current phase, anchored by `context/navigation.md`. Critical contexts include:
-- `core/code-quality.md`: The repo's coding standards.
-- `core/workflow.md`: The rules of engagement between agents.
+- `context/core/code-quality.md`: The repo's coding standards.
+- `context/core/workflow.md`: The primary 7-agent workflow.
+- `context/core/approval-gates.md`: Approval recording rules for stage transitions.
+- `context/core/issue-routing.md`: QA issue classification and ownership routing.
+- `context/core/session-resume.md`: Resume protocol for fresh sessions.
 
 ## Installation
 
 This kit is designed to work natively with OpenCode.
 
-1. Ensure the `.opencode/opencode.json` is present in your project root.
-2. The `hooks/session-start` script runs automatically on session start, loading the `using-skills` meta-skill into the agent's context.
+1. Ensure `.opencode/opencode.json` is present in the project root.
+2. Ensure `.opencode/workflow-state.json` is present so sessions can resume from explicit state.
+3. The `hooks/session-start` script runs automatically on session start, loading the `using-skills` meta-skill into the agent's context.
+
+The default manifest currently carries a starter model value inherited from the existing repo setup. Treat that as a default, not as a statement that the kit only supports one model.
+
+## Artifact Model
+
+Each major stage produces an artifact under `docs/`:
+
+- `docs/briefs/`: PM product briefs
+- `docs/specs/`: BA specs
+- `docs/architecture/`: Architect design docs
+- `docs/plans/`: Tech Lead implementation plans
+- `docs/qa/`: QA reports
+- `docs/adr/`: architecture decision records
+
+Templates live in `docs/templates/` and a golden path example lives in `docs/examples/`.
 
 ## Usage
 
@@ -47,3 +66,7 @@ You can trigger specific workflows using the following commands:
 - `/execute-plan` — Start building the plan using TDD.
 
 Just type your request in normal language, and the Master Orchestrator will guide you through the pipeline.
+
+## Current Validation Reality
+
+This repository does not yet define a repo-native build, lint, or test command for application code. Agents must not invent stack-specific commands unless the repository later adopts them and documents them in `AGENTS.md` and `context/core/project-config.md`.

@@ -42,6 +42,10 @@ Với mỗi phương án, trình bày:
 
 Sau khi User chọn phương án, lưu vào `docs/architecture/YYYY-MM-DD-<feature-slug>.md`:
 
+Ưu tiên bắt đầu từ `docs/templates/architecture-template.md` để fields quan trọng không bị thiếu.
+
+Giữ nguyên frontmatter từ template; phần dưới chỉ là body shape tham khảo.
+
 ```markdown
 # Architecture: [Tên Tính năng]
 
