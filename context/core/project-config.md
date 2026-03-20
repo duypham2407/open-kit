@@ -15,6 +15,17 @@ This file defines the current execution reality for the repository. Agents must 
 - The session-start hook script lives in `hooks/session-start`.
 - The OpenCode kit manifest lives in `.opencode/opencode.json`.
 - The persisted workflow state lives in `.opencode/workflow-state.json`.
+- The workflow-state CLI lives at `.opencode/workflow-state.js`.
+
+### Workflow-State Utility Commands
+
+These are repo-native workflow commands, not application build/lint/test commands:
+
+- `node .opencode/workflow-state.js show`
+- `node .opencode/workflow-state.js validate`
+- `node .opencode/workflow-state.js advance-stage <stage>`
+- `node .opencode/workflow-state.js set-approval <gate> <status> [approved_by] [approved_at] [notes]`
+- `node .opencode/workflow-state.js route-rework <issue_type> [repeat_failed_fix]`
 
 ## Future Update Rule
 

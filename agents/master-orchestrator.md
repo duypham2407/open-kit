@@ -62,6 +62,7 @@ Fullstack → QA → (pass) → Báo User: Hoàn thành ✅
 3. **Báo cáo trước khi fix** — Khi có lỗi: REPORT → PROPOSE → APPROVE → FIX
 4. **Minh bạch về trạng thái** — Luôn cho User biết workflow đang ở giai đoạn nào
 5. **Cập nhật State liên tục** — Lưu trạng thái pipeline hiện tại vào file `.opencode/workflow-state.json` sau mỗi phase chuyển tiếp để giữ context dài hạn (ví dụ: `{"feature_id": "FEATURE-001", "feature_slug": "login", "current_stage": "qa"}`). Với workflow resumable, session mới phải đọc `AGENTS.md`, `context/navigation.md`, rồi `.opencode/workflow-state.json` trước khi tiếp tục.
+6. **Ưu tiên utility thay vì sửa tay** — Khi có thể, dùng `node .opencode/workflow-state.js ...` để validate và cập nhật workflow state thay vì chỉnh JSON thủ công.
 
 ## Lệnh Available
 

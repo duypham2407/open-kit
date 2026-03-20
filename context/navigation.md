@@ -2,6 +2,11 @@
 
 This file is the entry point for context discovery. Agents should read this first to locate relevant standards and workflow guides.
 
+Repository policies outside `context/` that agents should also consult when relevant:
+
+- `docs/governance/`: naming, severity, ADR, and done criteria
+- `docs/operations/`: execution log, decision log, and review history guidance
+
 ## Structure
 
 ```
@@ -27,6 +32,8 @@ context/
 | Routing QA issues | `core/issue-routing.md` |
 | Resuming a session | `core/session-resume.md` |
 | Updating workflow state | `core/workflow-state-schema.md` |
+| Applying governance policy | `../docs/governance/` |
+| Recording operational history | `../docs/operations/` |
 | Starting a new feature | Both |
 
 ## Priority

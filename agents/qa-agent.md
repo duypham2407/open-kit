@@ -82,6 +82,7 @@ Tham chiếu thêm `context/core/issue-routing.md` để ghi đầy đủ schema
 
 Lưu vào `docs/qa/YYYY-MM-DD-<feature-slug>.md`:
 
+Ưu tiên bắt đầu từ `docs/templates/qa-report-template.md`.
 Giữ nguyên frontmatter từ template; phần dưới chỉ là body shape tham khảo.
 
 ```markdown

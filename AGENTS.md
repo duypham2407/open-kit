@@ -15,7 +15,7 @@ Treat that direction as a planned target, not as an already implemented stack.
 This repository implements the **OpenKit AI Software Factory**, a framework that orchestrates AI agents into a 7-role software development team.
 
 The kit is structured into several core directories:
-- `agents/`: Definitions for the 7 team roles (Master, PM, BA, Architect, Tech Lead, Fullstack, QA).
+- `agents/`: Definitions for the 7 team roles (Master, PM, BA, Architect, Tech Lead, Fullstack, QA) plus helper subagents such as `code-reviewer.md`.
 - `skills/`: Composable workflow procedures (TDD, brainstorming, planning, debugging).
 - `commands/`: User-facing triggers (`/brainstorm`, `/write-plan`, `/execute-plan`).
 - `context/`: Shared intelligence (`navigation.md`, `core/code-quality.md`, `core/workflow.md`).
@@ -80,6 +80,7 @@ Current state:
 - No repository-native lint command is currently defined for application code.
 - No repository-native test command is currently defined for application code.
 - No single canonical package manager or language toolchain has been established for future generated applications.
+- Node.js is now a documented runtime dependency for the workflow-state utility only, not for future application code by default.
 
 Rules for agents:
 
@@ -103,6 +104,7 @@ The operating system layer is file-backed and should stay explicit.
 
 - Runtime manifest: `.opencode/opencode.json`
 - Persisted workflow state: `.opencode/workflow-state.json`
+- Workflow-state CLI: `node .opencode/workflow-state.js ...`
 - Artifact templates: `docs/templates/`
 - Golden path examples: `docs/examples/`
 
@@ -151,6 +153,7 @@ Adapt the workflow in `docs/ai_software_factory_agents.md` to the repository's c
 - Use feedback loops. Implementation is not complete until validation has run or the lack of validation tooling has been called out clearly.
 - Do not skip review or validation because a task looks simple.
 - Route issues by type: requirement gaps need clarification, design issues need design changes, and bugs need implementation fixes.
+- Do not create commits unless the user explicitly asks for them, even if agent-level instructions mention frequent commit opportunities.
 
 In a minimal repository, one agent may perform several roles. Preserve the role boundaries conceptually even when one worker executes multiple steps.
 

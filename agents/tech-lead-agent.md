@@ -42,6 +42,7 @@ Dùng skill `skills/writing-plans/SKILL.md` để viết plan vào:
 `docs/plans/YYYY-MM-DD-<feature-slug>.md`
 
 Plan phải tương thích với templates trong `docs/templates/` để handoff sang Fullstack Agent được ổn định.
+Ưu tiên bắt đầu từ `docs/templates/implementation-plan-template.md`.
 
 **Yêu cầu của Implementation Plan:**
 

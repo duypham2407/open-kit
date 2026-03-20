@@ -4,7 +4,7 @@ OpenKit is a framework that turns your AI coding assistant (like OpenCode) into 
 
 ## The 7-Role Team
 
-The kit defines 7 distinct agent roles, managed by a Central Orchestrator:
+The kit defines 7 distinct team roles. The Master Orchestrator is one of those roles and also coordinates the rest of the pipeline:
 
 1. **Master Orchestrator**: Routes tasks and classifications.
 2. **PM Agent**: Defines product goals and priorities.
@@ -66,6 +66,21 @@ You can trigger specific workflows using the following commands:
 - `/execute-plan` — Start building the plan using TDD.
 
 Just type your request in normal language, and the Master Orchestrator will guide you through the pipeline.
+
+Helpful wayfinding docs:
+
+- `context/navigation.md` for context discovery
+- `docs/examples/README.md` for the golden path walkthrough
+- `docs/briefs/README.md`, `docs/specs/README.md`, `docs/architecture/README.md`, `docs/plans/README.md`, `docs/qa/README.md`, and `docs/adr/README.md` for artifact-specific guidance
+- `docs/governance/README.md` and `docs/operations/README.md` for policy and operational support
+
+Workflow-state utility commands:
+
+- `node .opencode/workflow-state.js show`
+- `node .opencode/workflow-state.js validate`
+- `node .opencode/workflow-state.js advance-stage <stage>`
+- `node .opencode/workflow-state.js set-approval <gate> <status> ...`
+- `node .opencode/workflow-state.js route-rework <issue_type> [repeat_failed_fix]`
 
 ## Current Validation Reality
 

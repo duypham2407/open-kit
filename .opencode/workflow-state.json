@@ -1,56 +1,56 @@
 {
-  "feature_id": null,
-  "feature_slug": null,
-  "current_stage": "intake",
-  "status": "idle",
+  "feature_id": "FEATURE-001",
+  "feature_slug": "task-intake-dashboard",
+  "current_stage": "done",
+  "status": "done",
   "current_owner": "MasterOrchestrator",
   "artifacts": {
-    "brief": null,
-    "spec": null,
-    "architecture": null,
-    "plan": null,
-    "qa_report": null,
+    "brief": "docs/briefs/2026-03-20-task-intake-dashboard.md",
+    "spec": "docs/specs/2026-03-20-task-intake-dashboard.md",
+    "architecture": "docs/architecture/2026-03-20-task-intake-dashboard.md",
+    "plan": "docs/plans/2026-03-20-task-intake-dashboard.md",
+    "qa_report": "docs/qa/2026-03-20-task-intake-dashboard.md",
     "adr": []
   },
   "approvals": {
     "pm_to_ba": {
-      "status": "pending",
-      "approved_by": null,
-      "approved_at": null,
-      "notes": null
+      "status": "approved",
+      "approved_by": "user",
+      "approved_at": "2026-03-20",
+      "notes": "Golden path brief approved"
     },
     "ba_to_architect": {
-      "status": "pending",
-      "approved_by": null,
-      "approved_at": null,
-      "notes": null
+      "status": "approved",
+      "approved_by": "user",
+      "approved_at": "2026-03-20",
+      "notes": "Golden path spec approved"
     },
     "architect_to_tech_lead": {
-      "status": "pending",
-      "approved_by": null,
-      "approved_at": null,
-      "notes": null
+      "status": "approved",
+      "approved_by": "user",
+      "approved_at": "2026-03-20",
+      "notes": "Golden path architecture approved"
     },
     "tech_lead_to_fullstack": {
-      "status": "pending",
-      "approved_by": null,
-      "approved_at": null,
-      "notes": null
+      "status": "approved",
+      "approved_by": "user",
+      "approved_at": "2026-03-20",
+      "notes": "Golden path plan approved"
     },
     "fullstack_to_qa": {
-      "status": "pending",
-      "approved_by": null,
-      "approved_at": null,
-      "notes": null
+      "status": "approved",
+      "approved_by": "system",
+      "approved_at": "2026-03-20",
+      "notes": "Documentation-only golden path prepared for QA"
     },
     "qa_to_done": {
-      "status": "pending",
-      "approved_by": null,
-      "approved_at": null,
-      "notes": null
+      "status": "approved",
+      "approved_by": "user",
+      "approved_at": "2026-03-20",
+      "notes": "Golden path QA report passed"
     }
   },
   "issues": [],
   "retry_count": 0,
-  "updated_at": null
+  "updated_at": "2026-03-20"
 }
