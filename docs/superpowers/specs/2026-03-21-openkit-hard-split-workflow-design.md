@@ -241,7 +241,7 @@ Validation rule:
 ### Full Delivery routing
 
 - `bug` -> `full_implementation`
-- `design_flaw` -> `full_architecture` or `full_plan`
+- `design_flaw` -> `full_architecture`
 - `requirement_gap` -> `full_spec`
 
 This keeps quick mode operationally simple and prevents it from turning into an undocumented version of the full pipeline.

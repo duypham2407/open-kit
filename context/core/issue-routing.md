@@ -22,7 +22,7 @@ Each issue should record:
 | Type | Default Owner |
 | --- | --- |
 | `bug` | `FullstackAgent` |
-| `design_flaw` | `ArchitectAgent` or `TechLeadAgent` |
+| `design_flaw` | `ArchitectAgent` |
 | `requirement_gap` | `BAAgent` |
 
 ## Routing By Mode
@@ -42,7 +42,7 @@ Quick mode must not absorb design or requirements work. When either appears, qui
 | Type | Route to | Expected action |
 | --- | --- | --- |
 | `bug` | `full_implementation` / `FullstackAgent` | Fix implementation and return to QA |
-| `design_flaw` | `full_architecture` or `full_plan` / `ArchitectAgent` or `TechLeadAgent` | Repair design or implementation approach |
+| `design_flaw` | `full_architecture` / `ArchitectAgent` | Repair the design or escalate implementation concerns through architecture review |
 | `requirement_gap` | `full_spec` / `BAAgent` | Clarify or repair requirements |
 
 ## Retry And Escalation

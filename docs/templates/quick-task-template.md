@@ -23,7 +23,7 @@ approval_gate: quick_verified
 ## Verification Path
 
 ## Touched Files
-- 
+-
 
 ## Verification Result
 

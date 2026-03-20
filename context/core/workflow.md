@@ -107,7 +107,7 @@ Fullstack → QA Lite → (pass) → quick_done
 ```
 Fullstack → QA → (pass) → full_done
                 → (bug) → full_implementation
-                → (design flaw) → full_architecture or full_plan
+                → (design flaw) → full_architecture
                 → (requirement gap) → full_spec
 ```
 
