@@ -19,7 +19,7 @@ context/
 │   ├── project-config.md  ← Current command reality
 │   ├── session-resume.md  ← New-session resume protocol
 │   ├── workflow-state-schema.md ← Canonical workflow-state fields and enums
-│   └── workflow.md        ← 7-agent pipeline and handoff model
+│   └── workflow.md        ← Hard-split Quick Task and Full Delivery contract
 ```
 
 ## Discovery Rules

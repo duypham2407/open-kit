@@ -1,5 +1,7 @@
 # AI Software Factory - Agent Roles & Workflow
 
+> Historical reference only. This document captures the original single-pipeline workflow vision. The current repository workflow contract is the hard-split model in `context/core/workflow.md` and `docs/superpowers/specs/2026-03-21-openkit-hard-split-workflow-design.md`.
+
 ## Overview
 
 This system is designed as a multi-agent software development pipeline

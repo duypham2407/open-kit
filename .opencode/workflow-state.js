@@ -9,6 +9,7 @@ const {
   setApproval,
   showState,
   startFeature,
+  startTask,
   validateState,
 } = require("./lib/workflow-state-controller")
 
@@ -17,6 +18,7 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] show
   node .opencode/workflow-state.js [--state <path>] validate
   node .opencode/workflow-state.js [--state <path>] start-feature <feature_id> <feature_slug>
+  node .opencode/workflow-state.js [--state <path>] start-task <mode> <feature_id> <feature_slug> <mode_reason>
   node .opencode/workflow-state.js [--state <path>] advance-stage <stage>
   node .opencode/workflow-state.js [--state <path>] set-approval <gate> <status> [approved_by] [approved_at] [notes]
   node .opencode/workflow-state.js [--state <path>] link-artifact <kind> <path>
@@ -72,6 +74,11 @@ async function main() {
     case "start-feature":
       result = startFeature(rest[0], rest[1], statePath)
       console.log(`Started feature ${rest[0]} (${rest[1]})`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "start-task":
+      result = startTask(rest[0], rest[1], rest[2], rest.slice(3).join(" "), statePath)
+      console.log(`Started ${result.state.mode} task ${rest[1]} (${rest[2]})`)
       console.log(`State file: ${result.statePath}`)
       return
     case "advance-stage":

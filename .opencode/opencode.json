@@ -36,12 +36,16 @@
   "commands": {
     "root": "commands",
     "available": [
+      "commands/task.md",
+      "commands/quick-task.md",
+      "commands/delivery.md",
       "commands/brainstorm.md",
       "commands/write-plan.md",
       "commands/execute-plan.md"
     ]
   },
   "artifacts": {
+    "tasks": "docs/tasks",
     "briefs": "docs/briefs",
     "specs": "docs/specs",
     "architecture": "docs/architecture",

@@ -1,5 +1,7 @@
 # Workflow State Controller Design
 
+> Historical background note: this controller design predates the current hard-split workflow. Until `.opencode/workflow-state.js` is updated, the stage and approval details in this document are not the canonical workflow contract.
+
 > Approved design for adding a lightweight CLI controller that manages `.opencode/workflow-state.json` safely and consistently.
 
 ## Goal

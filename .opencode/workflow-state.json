@@ -1,10 +1,13 @@
 {
   "feature_id": "FEATURE-001",
   "feature_slug": "task-intake-dashboard",
-  "current_stage": "done",
+  "mode": "full",
+  "mode_reason": "Feature-sized workflow example with full artifact chain and approvals",
+  "current_stage": "full_done",
   "status": "done",
   "current_owner": "MasterOrchestrator",
   "artifacts": {
+    "task_card": null,
     "brief": "docs/briefs/2026-03-20-task-intake-dashboard.md",
     "spec": "docs/specs/2026-03-20-task-intake-dashboard.md",
     "architecture": "docs/architecture/2026-03-20-task-intake-dashboard.md",
@@ -52,5 +55,7 @@
   },
   "issues": [],
   "retry_count": 0,
+  "escalated_from": null,
+  "escalation_reason": null,
   "updated_at": "2026-03-20"
 }

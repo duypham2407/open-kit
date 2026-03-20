@@ -1,5 +1,7 @@
 # OpenKit Operating System Design
 
+> Historical background note: this design predates the current hard-split workflow. For current workflow semantics, use `docs/superpowers/specs/2026-03-21-openkit-hard-split-workflow-design.md` and `context/core/workflow.md`.
+
 > Approved implementation direction for evolving OpenKit from a documentation-first kit into a stateful agent team operating system.
 
 ## Goal

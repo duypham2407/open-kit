@@ -6,9 +6,13 @@ feature_id: FEATURE-001
 feature_slug: task-intake-dashboard
 owner: PMAgent
 approval_gate: pm_to_ba
+mode: full
+example_type: full_delivery_golden_path
 ---
 
 # Product Brief: Task Intake Dashboard
+
+This file is part of the full-delivery golden-path example.
 
 ## Goal
 

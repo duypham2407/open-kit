@@ -2,20 +2,23 @@ const fs = require("fs")
 const path = require("path")
 
 const {
-  APPROVAL_GATES,
   ARTIFACT_KINDS,
   ESCALATION_RETRY_THRESHOLD,
   ISSUE_SEVERITIES,
   ISSUE_TYPES,
+  MODE_VALUES,
   RECOMMENDED_OWNERS,
-  REWORK_ROUTING,
   ROOTED_IN_VALUES,
   STAGE_OWNERS,
   STAGE_SEQUENCE,
   STATUS_VALUES,
   createEmptyApprovals,
   createEmptyArtifacts,
+  getApprovalGatesForMode,
+  getInitialStageForMode,
+  getModeForStage,
   getNextStage,
+  getReworkRoute,
   getTransitionGate,
 } = require("./workflow-state-rules")
 
@@ -83,6 +86,12 @@ function ensureString(value, label) {
   }
 }
 
+function ensureNullableString(value, label) {
+  if (value !== null && typeof value !== "string") {
+    fail(`${label} must be a string or null`)
+  }
+}
+
 function ensureKnown(value, allowedValues, label) {
   if (!allowedValues.includes(value)) {
     fail(`${label} must be one of: ${allowedValues.join(", ")}`)
@@ -96,7 +105,11 @@ function ensureGateShape(gateName, gateValue) {
       fail(`approvals.${gateName}.${key} is required`)
     }
   }
+
   ensureKnown(gateValue.status, ["pending", "approved", "rejected"], `approvals.${gateName}.status`)
+  ensureNullableString(gateValue.approved_by, `approvals.${gateName}.approved_by`)
+  ensureNullableString(gateValue.approved_at, `approvals.${gateName}.approved_at`)
+  ensureNullableString(gateValue.notes, `approvals.${gateName}.notes`)
 }
 
 function ensureIssueShape(issue, index) {
@@ -133,7 +146,45 @@ function ensureIssueShape(issue, index) {
   if (typeof issue.artifact_refs === "string") {
     issue.artifact_refs = [issue.artifact_refs]
   }
+
   ensureArray(issue.artifact_refs, `issues[${index}].artifact_refs`)
+}
+
+function validateArtifacts(artifacts) {
+  ensureObject(artifacts, "artifacts")
+  for (const key of ["task_card", "brief", "spec", "architecture", "plan", "qa_report", "adr"]) {
+    if (!(key in artifacts)) {
+      fail(`artifacts.${key} is required`)
+    }
+  }
+
+  ensureNullableString(artifacts.task_card, "artifacts.task_card")
+  ensureNullableString(artifacts.brief, "artifacts.brief")
+  ensureNullableString(artifacts.spec, "artifacts.spec")
+  ensureNullableString(artifacts.architecture, "artifacts.architecture")
+  ensureNullableString(artifacts.plan, "artifacts.plan")
+  ensureNullableString(artifacts.qa_report, "artifacts.qa_report")
+  ensureArray(artifacts.adr, "artifacts.adr")
+}
+
+function validateApprovals(mode, approvals) {
+  ensureObject(approvals, "approvals")
+
+  const requiredGates = getApprovalGatesForMode(mode)
+  const approvalKeys = Object.keys(approvals)
+
+  for (const gate of requiredGates) {
+    if (!(gate in approvals)) {
+      fail(`approvals.${gate} is required for mode '${mode}'`)
+    }
+    ensureGateShape(gate, approvals[gate])
+  }
+
+  for (const gate of approvalKeys) {
+    if (!requiredGates.includes(gate)) {
+      fail(`approvals.${gate} is not valid for mode '${mode}'`)
+    }
+  }
 }
 
 function validateStateObject(state, options = {}) {
@@ -142,6 +193,8 @@ function validateStateObject(state, options = {}) {
   for (const key of [
     "feature_id",
     "feature_slug",
+    "mode",
+    "mode_reason",
     "current_stage",
     "status",
     "current_owner",
@@ -149,6 +202,8 @@ function validateStateObject(state, options = {}) {
     "approvals",
     "issues",
     "retry_count",
+    "escalated_from",
+    "escalation_reason",
     "updated_at",
   ]) {
     if (!(key in state)) {
@@ -164,8 +219,15 @@ function validateStateObject(state, options = {}) {
     ensureString(state.feature_slug, "feature_slug")
   }
 
+  ensureKnown(state.mode, MODE_VALUES, "mode")
+  ensureString(state.mode_reason, "mode_reason")
   ensureKnown(state.current_stage, STAGE_SEQUENCE, "current_stage")
   ensureKnown(state.status, STATUS_VALUES, "status")
+
+  const stageMode = getModeForStage(state.current_stage)
+  if (stageMode !== state.mode) {
+    fail(`current_stage '${state.current_stage}' does not belong to mode '${state.mode}'`)
+  }
 
   if (options.strictOwner !== false) {
     const expectedOwner = STAGE_OWNERS[state.current_stage]
@@ -174,21 +236,8 @@ function validateStateObject(state, options = {}) {
     }
   }
 
-  ensureObject(state.artifacts, "artifacts")
-  for (const key of ["brief", "spec", "architecture", "plan", "qa_report", "adr"]) {
-    if (!(key in state.artifacts)) {
-      fail(`artifacts.${key} is required`)
-    }
-  }
-  ensureArray(state.artifacts.adr, "artifacts.adr")
-
-  ensureObject(state.approvals, "approvals")
-  for (const gate of APPROVAL_GATES) {
-    if (!(gate in state.approvals)) {
-      fail(`approvals.${gate} is required`)
-    }
-    ensureGateShape(gate, state.approvals[gate])
-  }
+  validateArtifacts(state.artifacts)
+  validateApprovals(state.mode, state.approvals)
 
   ensureArray(state.issues, "issues")
   state.issues.forEach((issue, index) => ensureIssueShape(issue, index))
@@ -197,8 +246,19 @@ function validateStateObject(state, options = {}) {
     fail("retry_count must be a non-negative number")
   }
 
-  if (state.updated_at !== null && typeof state.updated_at !== "string") {
-    fail("updated_at must be a string or null")
+  if (state.escalated_from !== null) {
+    ensureKnown(state.escalated_from, ["quick"], "escalated_from")
+  }
+
+  ensureNullableString(state.escalation_reason, "escalation_reason")
+  ensureNullableString(state.updated_at, "updated_at")
+
+  if (state.escalated_from === null && state.escalation_reason !== null) {
+    fail("escalation_reason must be null when escalated_from is null")
+  }
+
+  if (state.escalated_from === "quick" && state.mode !== "full") {
+    fail("mode must be 'full' when escalated_from is 'quick'")
   }
 
   return state
@@ -226,29 +286,48 @@ function validateState(customStatePath) {
   return { statePath, state }
 }
 
-function startFeature(featureId, featureSlug, customStatePath) {
+function startTask(mode, featureId, featureSlug, modeReason, customStatePath) {
+  ensureKnown(mode, MODE_VALUES, "mode")
   ensureString(featureId, "feature_id")
   ensureString(featureSlug, "feature_slug")
+  ensureString(modeReason, "mode_reason")
 
   return mutate(customStatePath, (state) => {
+    const initialStage = getInitialStageForMode(mode)
     state.feature_id = featureId
     state.feature_slug = featureSlug
-    state.current_stage = "intake"
+    state.mode = mode
+    state.mode_reason = modeReason
+    state.current_stage = initialStage
     state.status = "in_progress"
-    state.current_owner = STAGE_OWNERS.intake
+    state.current_owner = STAGE_OWNERS[initialStage]
     state.artifacts = createEmptyArtifacts()
-    state.approvals = createEmptyApprovals()
+    state.approvals = createEmptyApprovals(mode)
     state.issues = []
     state.retry_count = 0
+    state.escalated_from = null
+    state.escalation_reason = null
     return state
   })
 }
 
+function startFeature(featureId, featureSlug, customStatePath) {
+  return startTask(
+    "full",
+    featureId,
+    featureSlug,
+    "Started with legacy start-feature command; defaulting to Full Delivery mode",
+    customStatePath,
+  )
+}
+
 function setApproval(gate, status, approvedBy, approvedAt, notes, customStatePath) {
-  ensureKnown(gate, APPROVAL_GATES, "gate")
   ensureKnown(status, ["pending", "approved", "rejected"], "status")
 
   return mutate(customStatePath, (state) => {
+    const allowedGates = getApprovalGatesForMode(state.mode)
+    ensureKnown(gate, allowedGates, `gate for mode '${state.mode}'`)
+
     state.approvals[gate] = {
       status,
       approved_by: approvedBy ?? null,
@@ -263,7 +342,11 @@ function advanceStage(targetStage, customStatePath) {
   ensureKnown(targetStage, STAGE_SEQUENCE, "target stage")
 
   return mutate(customStatePath, (state) => {
-    const nextStage = getNextStage(state.current_stage)
+    if (getModeForStage(targetStage) !== state.mode) {
+      fail(`target stage '${targetStage}' does not belong to mode '${state.mode}'`)
+    }
+
+    const nextStage = getNextStage(state.mode, state.current_stage)
     if (!nextStage) {
       fail(`Stage '${state.current_stage}' cannot advance further`)
     }
@@ -272,14 +355,14 @@ function advanceStage(targetStage, customStatePath) {
       fail(`advance-stage only allows the immediate next stage '${nextStage}', not '${targetStage}'`)
     }
 
-    const requiredGate = getTransitionGate(state.current_stage, targetStage)
+    const requiredGate = getTransitionGate(state.mode, state.current_stage, targetStage)
     if (requiredGate && state.approvals[requiredGate].status !== "approved") {
       fail(`Cannot advance from '${state.current_stage}' to '${targetStage}' until gate '${requiredGate}' is approved`)
     }
 
     state.current_stage = targetStage
     state.current_owner = STAGE_OWNERS[targetStage]
-    state.status = targetStage === "done" ? "done" : "in_progress"
+    state.status = targetStage.endsWith("_done") ? "done" : "in_progress"
     return state
   })
 }
@@ -322,7 +405,7 @@ function recordIssue(issue, customStatePath) {
 function clearIssues(customStatePath) {
   return mutate(customStatePath, (state) => {
     state.issues = []
-    if (state.current_stage !== "done") {
+    if (!state.current_stage.endsWith("_done")) {
       state.status = "in_progress"
     }
     return state
@@ -331,15 +414,35 @@ function clearIssues(customStatePath) {
 
 function routeRework(issueType, repeatFailedFix, customStatePath) {
   ensureKnown(issueType, ISSUE_TYPES, "issue_type")
-  const route = REWORK_ROUTING[issueType]
 
   return mutate(customStatePath, (state) => {
-    state.current_stage = route.stage
-    state.current_owner = route.owner
-    state.status = "in_progress"
+    const route = getReworkRoute(state.mode, issueType)
+    if (!route) {
+      fail(`No rework route exists for issue type '${issueType}' in mode '${state.mode}'`)
+    }
+
+    if (route.escalate) {
+      state.mode = route.mode
+      state.mode_reason = `Promoted from quick mode after '${issueType}' QA finding`
+      state.current_stage = route.stage
+      state.current_owner = route.owner
+      state.status = "in_progress"
+      state.approvals = createEmptyApprovals("full")
+      state.escalated_from = "quick"
+      state.escalation_reason = `Quick task escalated to Full Delivery because QA reported '${issueType}'`
+    } else {
+      state.current_stage = route.stage
+      state.current_owner = route.owner
+      state.status = "in_progress"
+    }
+
     if (repeatFailedFix) {
       state.retry_count += 1
+      if (state.retry_count >= ESCALATION_RETRY_THRESHOLD) {
+        state.status = "blocked"
+      }
     }
+
     return state
   })
 }
@@ -347,14 +450,15 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 module.exports = {
   advanceStage,
   clearIssues,
-  readState,
   linkArtifact,
+  readState,
   recordIssue,
   resolveStatePath,
   routeRework,
   setApproval,
   showState,
   startFeature,
+  startTask,
   validateState,
   validateStateObject,
   writeState,

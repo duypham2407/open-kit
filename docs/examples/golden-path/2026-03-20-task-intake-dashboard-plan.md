@@ -7,9 +7,13 @@ feature_slug: task-intake-dashboard
 source_architecture: docs/examples/golden-path/2026-03-20-task-intake-dashboard-architecture.md
 owner: TechLeadAgent
 approval_gate: tech_lead_to_fullstack
+mode: full
+example_type: full_delivery_golden_path
 ---
 
 # Implementation Plan: Task Intake Dashboard
+
+This file is part of the full-delivery golden-path example.
 
 ## Tasks
 

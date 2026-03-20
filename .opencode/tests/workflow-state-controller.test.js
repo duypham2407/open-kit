@@ -1,0 +1,114 @@
+const test = require("node:test")
+const assert = require("node:assert/strict")
+const fs = require("fs")
+const os = require("os")
+const path = require("path")
+
+const {
+  advanceStage,
+  linkArtifact,
+  routeRework,
+  setApproval,
+  startTask,
+  validateState,
+} = require("../lib/workflow-state-controller")
+
+function makeTempDir() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), "openkit-workflow-state-"))
+}
+
+function loadFixtureState() {
+  const fixturePath = path.resolve(__dirname, "../workflow-state.json")
+  return JSON.parse(fs.readFileSync(fixturePath, "utf8"))
+}
+
+function createTempStateFile() {
+  const dir = makeTempDir()
+  const statePath = path.join(dir, "workflow-state.json")
+  fs.writeFileSync(statePath, `${JSON.stringify(loadFixtureState(), null, 2)}\n`, "utf8")
+  return statePath
+}
+
+test("validateState accepts the shipped hard-split example state", () => {
+  const statePath = path.resolve(__dirname, "../workflow-state.json")
+  const result = validateState(statePath)
+
+  assert.equal(result.state.mode, "full")
+  assert.equal(result.state.current_stage, "full_done")
+})
+
+test("startTask initializes quick mode with quick-only approvals", () => {
+  const statePath = createTempStateFile()
+  const result = startTask("quick", "TASK-123", "update-copy", "Scoped text change", statePath)
+
+  assert.equal(result.state.mode, "quick")
+  assert.equal(result.state.mode_reason, "Scoped text change")
+  assert.equal(result.state.current_stage, "quick_intake")
+  assert.equal(result.state.current_owner, "MasterOrchestrator")
+  assert.deepEqual(Object.keys(result.state.approvals), ["quick_verified"])
+  assert.equal(result.state.artifacts.task_card, null)
+  assert.equal(result.state.escalated_from, null)
+  assert.equal(result.state.escalation_reason, null)
+})
+
+test("quick_done requires quick_verified approval", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-124", "verify-copy", "Copy verification task", statePath)
+  advanceStage("quick_build", statePath)
+  advanceStage("quick_verify", statePath)
+
+  assert.throws(() => advanceStage("quick_done", statePath), /quick_verified/)
+
+  setApproval("quick_verified", "approved", "system", "2026-03-21", "QA Lite passed", statePath)
+  const result = advanceStage("quick_done", statePath)
+
+  assert.equal(result.state.current_stage, "quick_done")
+  assert.equal(result.state.status, "done")
+})
+
+test("linkArtifact supports quick task cards", () => {
+  const statePath = createTempStateFile()
+  const dir = makeTempDir()
+  const taskCardPath = path.join(dir, "2026-03-21-update-copy.md")
+
+  fs.writeFileSync(taskCardPath, "# Quick Task\n", "utf8")
+  startTask("quick", "TASK-125", "task-card", "Quick task artifact link", statePath)
+
+  const result = linkArtifact("task_card", taskCardPath, statePath)
+
+  assert.equal(result.state.artifacts.task_card, taskCardPath)
+})
+
+test("routeRework escalates quick design flaws into full delivery", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-126", "needs-spec", "Started as a quick task", statePath)
+  const result = routeRework("design_flaw", false, statePath)
+
+  assert.equal(result.state.mode, "full")
+  assert.equal(result.state.current_stage, "full_intake")
+  assert.equal(result.state.current_owner, "MasterOrchestrator")
+  assert.equal(result.state.escalated_from, "quick")
+  assert.match(result.state.escalation_reason, /design_flaw/)
+  assert.deepEqual(Object.keys(result.state.approvals), [
+    "pm_to_ba",
+    "ba_to_architect",
+    "architect_to_tech_lead",
+    "tech_lead_to_fullstack",
+    "fullstack_to_qa",
+    "qa_to_done",
+  ])
+})
+
+test("routeRework keeps full-mode bugs in full implementation", () => {
+  const statePath = createTempStateFile()
+
+  startTask("full", "FEATURE-200", "dashboard-v2", "Feature-sized workflow", statePath)
+  const result = routeRework("bug", true, statePath)
+
+  assert.equal(result.state.mode, "full")
+  assert.equal(result.state.current_stage, "full_implementation")
+  assert.equal(result.state.current_owner, "FullstackAgent")
+  assert.equal(result.state.retry_count, 1)
+})

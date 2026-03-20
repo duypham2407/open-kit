@@ -7,9 +7,13 @@ feature_slug: task-intake-dashboard
 source_brief: docs/examples/golden-path/2026-03-20-task-intake-dashboard-brief.md
 owner: BAAgent
 approval_gate: ba_to_architect
+mode: full
+example_type: full_delivery_golden_path
 ---
 
 # Spec: Task Intake Dashboard
+
+This file is part of the full-delivery golden-path example.
 
 ## User Stories
 
