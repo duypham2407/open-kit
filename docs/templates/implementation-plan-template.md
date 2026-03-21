@@ -13,7 +13,11 @@ approval_gate: tech_lead_to_fullstack
 
 ## Goal
 
+- State the implementation outcome this plan must deliver.
+
 ## Dependencies
+
+- List the upstream brief, spec, architecture, commands, or runtime constraints that matter.
 
 ## Tasks
 

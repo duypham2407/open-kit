@@ -31,7 +31,7 @@ Directional artifacts for approved future work:
 - `docs/architecture/2026-03-21-openkit-evolution-direction.md`
 - `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
 
-Read those FEATURE-002 artifacts when you need the approved roadmap that led to the live Quick Task+ activation and runtime hardening work. Use `context/core/workflow.md` and companion core docs when you need the current live contract.
+Read those FEATURE-002 artifacts when you need roadmap rationale or historical context for workflow evolution and runtime hardening. Use `context/core/workflow.md` when you need the current live workflow semantics, and use the companion core docs only for their local operational details.
 
 ## Discovery Rules
 
@@ -45,12 +45,14 @@ Read those FEATURE-002 artifacts when you need the approved roadmap that led to 
 | Updating workflow state | `core/workflow-state-schema.md` |
 | Applying governance policy | `../docs/governance/` |
 | Recording operational history | `../docs/operations/` |
-| Starting a new feature | `core/workflow.md` and FEATURE-002 direction artifacts |
+| Starting a new feature | `core/workflow.md` |
 
 ## Current Vs Future Reading Rule
 
-- `context/core/workflow.md`, `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, and `context/core/workflow-state-schema.md` define the live operational contract
-- the FEATURE-002 brief, spec, architecture, and ADR define the approved roadmap that informed the current live quick-lane contract
+- `context/core/workflow.md` is the canonical live workflow-semantics document
+- `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, `context/core/project-config.md`, and `context/core/workflow-state-schema.md` define local operational details and must stay aligned with `context/core/workflow.md`
+- the FEATURE-002 brief, spec, architecture, and ADR define approved roadmap and historical context for the current live quick-lane contract
+- consult FEATURE-002 direction artifacts when the task is about workflow evolution, runtime hardening, or roadmap intent rather than normal feature execution
 - do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Full Delivery`, `quick`, and `full`
 
 ## Priority

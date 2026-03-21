@@ -12,6 +12,7 @@ const {
   recordIssue,
   routeRework,
   runDoctor,
+  scaffoldAndLinkArtifact,
   setApproval,
   showState,
   syncInstallManifest,
@@ -35,6 +36,7 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] advance-stage <stage>
   node .opencode/workflow-state.js [--state <path>] set-approval <gate> <status> [approved_by] [approved_at] [notes]
   node .opencode/workflow-state.js [--state <path>] link-artifact <kind> <path>
+  node .opencode/workflow-state.js [--state <path>] scaffold-artifact <task_card|plan> <slug>
   node .opencode/workflow-state.js [--state <path>] record-issue <issue_id> <title> <type> <severity> <rooted_in> <recommended_owner> <evidence> <artifact_refs>
   node .opencode/workflow-state.js [--state <path>] clear-issues
   node .opencode/workflow-state.js [--state <path>] route-rework <issue_type> [repeat_failed_fix=true|false]`)
@@ -183,6 +185,11 @@ async function main() {
     case "link-artifact":
       result = linkArtifact(rest[0], rest[1], statePath)
       console.log(`Linked artifact '${rest[0]}' -> '${rest[1]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "scaffold-artifact":
+      result = scaffoldAndLinkArtifact(rest[0], rest[1], statePath)
+      console.log(`Created artifact '${rest[0]}' at '${result.artifactPath}'`)
       console.log(`State file: ${result.statePath}`)
       return
     case "record-issue":

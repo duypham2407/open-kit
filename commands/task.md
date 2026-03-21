@@ -2,36 +2,31 @@
 description: "Default entry command. Lets MasterOrchestrator classify work into Quick Task or Full Delivery."
 ---
 
-# Lệnh: `/task`
+# Command: `/task`
 
-Khi User gõ `/task [mô_tả]`, `MasterOrchestrator` phải:
+Use `/task` when the user wants the default entrypoint and expects `MasterOrchestrator` to choose the lane.
 
-1. Đọc `AGENTS.md`, `context/navigation.md`, `context/core/workflow.md`, và `.opencode/workflow-state.json` nếu đang resumable.
-2. Tóm tắt mục tiêu, phạm vi, và rủi ro của yêu cầu.
-3. Phân loại lane:
-   - `Quick Task` theo live Quick Task+ semantics nếu task là small-to-medium nhưng vẫn bounded, low-risk, và không cần quyết định thiết kế
-   - `Full Delivery` nếu task có ambiguity, nhiều subsystem lỏng liên quan, hoặc cần artifact chain đầy đủ
-4. Ghi `mode` và `mode_reason` vào workflow state.
-5. Nếu là quick mode:
-     - khởi tạo `quick_intake`
-     - tạo quick intake brief gồm goal, scope, acceptance bullets, risk note, verification path
-     - advance sang `quick_plan`
-     - ghi bounded mini-plan/checklist ngắn trong quick plan state hoặc task card nếu traceability hữu ích
-     - advance sang `quick_build` khi quick plan đã đủ để implementation bắt đầu
-     - chỉ tạo task card nhẹ khi traceability thực sự hữu ích
-     - route sang `FullstackAgent`
-6. Nếu là full mode:
-    - khởi tạo `full_intake`
-    - route sang `PMAgent` để bắt đầu full-delivery chain chuẩn
+## Preconditions
 
-Hard triggers phải route sang `Full Delivery` ngay từ `/task`:
+- A user request exists with enough information to summarize the initial goal, scope, and risk
+- If the workflow is resuming, the current workflow state must be readable before rerouting
 
-- design hoặc requirements chưa rõ
-- cần quyết định architecture hoặc trade-off mới
-- contract-sensitive change như API, schema, auth, billing, permission, hoặc security
-- phạm vi chạm nhiều subsystem lỏng liên quan
-- verification path không còn ngắn và cục bộ
+## Canonical docs to load
 
-`/task` là default classifier. Live contract hiện tại là quick lane với Quick Task+ semantics và full lane với Full Delivery semantics. `Quick Task+` không phải command mới hay mode mới.
+- `AGENTS.md`
+- `context/navigation.md`
+- `context/core/workflow.md`
+- `.opencode/workflow-state.json` when resuming
 
-Mục tiêu của `/task` là giảm friction cho daily use nhưng vẫn giữ lane selection rõ ràng.
+## Expected action
+
+- `MasterOrchestrator` chooses `quick` or `full` using the canonical workflow rules
+- Record `mode` and `mode_reason` in workflow state
+- If the task enters the quick lane, initialize quick intake context and continue through the canonical quick stage chain
+- If the task enters the full lane, initialize `full_intake` and route to the PM agent
+
+## Rejection or escalation behavior
+
+- If the request is ambiguous but still complete enough to open work safely, route it to `Full Delivery` per `context/core/workflow.md`
+- If the request is too incomplete to open even `full_intake`, stop at intake and ask for clarification instead of guessing
+- If the quick lane is not appropriate under `context/core/workflow.md`, route directly to the full lane

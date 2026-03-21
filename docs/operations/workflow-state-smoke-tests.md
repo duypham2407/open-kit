@@ -33,7 +33,24 @@ Run:
 node --test ".opencode/tests/session-start-hook.test.js"
 ```
 
-This verifies that the session-start hook emits a mode-aware `workflow_resume_hint` when state exists.
+This verifies that the session-start hook emits a mode-aware `workflow_resume_hint` when state exists, plus the canonical startup command hints used for status inspection.
+
+If the JSON helper used by `session-start` is unavailable, expect a degraded runtime-status block instead of a hard failure. In that case, resume hints may be suppressed until the helper works again.
+
+### Contract-consistency tests
+
+Run:
+
+```bash
+node --test ".opencode/tests/workflow-contract-consistency.test.js"
+```
+
+This covers:
+
+- declared command and agent surfaces exist where the manifest says they do
+- workflow contract and workflow-state schema files are present
+- schema/runtime parity checks for mode enums, stage names, artifact slots, and approval keys
+- `doctor` surfacing contract-consistency failures when those invariants drift
 
 ### Runtime CLI tests
 
@@ -66,6 +83,7 @@ Expected outcome:
 
 - `status` prints the active runtime summary using the current state file, including the active profile plus registry and install-manifest paths
 - `doctor` reports repository runtime checks instead of application-tooling health
+- `doctor` includes contract-consistency checks for declared runtime surfaces and schema alignment
 - `doctor` exits successfully only when required OpenKit runtime files are present
 
 ### Profile inspection

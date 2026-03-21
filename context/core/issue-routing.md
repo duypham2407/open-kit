@@ -2,6 +2,8 @@
 
 This file defines how QA findings are classified and routed.
 
+For the canonical workflow contract, including lane semantics, stage order, escalation policy, and artifact expectations, use `context/core/workflow.md`.
+
 Classification is shared across both workflow modes, but routing behavior depends on the active mode in `.opencode/workflow-state.json`.
 
 ## Required Issue Schema
@@ -37,7 +39,7 @@ Each issue should record:
 
 Quick mode must not absorb design or requirements work. When either appears, quick execution stops and the work is promoted to the full lane.
 
-With FEATURE-003 live, quick work now includes an explicit `quick_plan` stage, but that stronger quick lane does not relax the design/requirements guardrail.
+With the stronger quick-lane semantics now live, quick work includes an explicit `quick_plan` stage, but that stronger quick lane does not relax the design/requirements guardrail.
 
 ### Full Delivery routing
 

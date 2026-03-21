@@ -13,7 +13,11 @@ approval_gate: quick_verified
 
 ## Goal
 
+- State the smallest useful outcome this quick task must achieve.
+
 ## Scope
+
+- List the files, surfaces, or boundaries this task is allowed to touch.
 
 ## Acceptance Bullets
 - [ ]
@@ -21,6 +25,8 @@ approval_gate: quick_verified
 ## Risk Note
 
 ## Verification Path
+
+- Record the real command or manual check that will be used.
 
 ## Touched Files
 -

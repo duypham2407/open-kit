@@ -2,6 +2,8 @@
 
 Use this file when continuing work that may have started in a previous session.
 
+For the canonical workflow contract, including lane semantics, stage order, escalation policy, approvals, and artifact expectations, use `context/core/workflow.md`.
+
 ## Required Read Order
 
 1. `AGENTS.md` for repository-wide rules and current-state guardrails
@@ -39,7 +41,7 @@ If `mode` is `full`:
 - If `escalated_from` is `quick`, resume from the current full-delivery stage, not from the abandoned quick stage.
 - Use `.opencode/workflow-state.js show` or `.opencode/workflow-state.js validate` when explicit state inspection helps resume work.
 
-The current one-way escalation behavior remains unchanged in FEATURE-003.
+The current one-way escalation behavior remains unchanged in the live contract.
 
 ## Status Values
 

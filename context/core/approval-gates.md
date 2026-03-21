@@ -2,6 +2,8 @@
 
 This file defines how stage transitions are recorded and approved.
 
+For the canonical workflow contract, including lane semantics, stage order, and artifact expectations, use `context/core/workflow.md`.
+
 Approval behavior is mode-aware. `Quick Task` and `Full Delivery` do not share the same gate set.
 
 ## Gate States
@@ -34,7 +36,7 @@ Transition rule:
 
 - `quick_verify -> quick_done` requires `quick_verified = approved`
 
-`quick_plan` does not add a second quick approval gate in FEATURE-003. It is a required planning stage, but quick-mode completion still depends on `quick_verified` after QA Lite passes.
+`quick_plan` does not add a second quick approval gate. It is a required planning stage, but quick-mode completion still depends on `quick_verified` after QA Lite passes.
 
 ## Full Delivery Gates
 
@@ -68,4 +70,4 @@ When quick work escalates to full delivery:
 - record the escalation metadata in state
 - initialize the full-delivery approval chain with pending values
 
-This escalation behavior remains unchanged in FEATURE-003.
+This escalation behavior remains unchanged in the current live contract.

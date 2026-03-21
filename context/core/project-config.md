@@ -2,13 +2,15 @@
 
 This file defines the current execution reality for the repository. Agents must use documented commands when they exist and explicitly report when they do not.
 
+For the canonical workflow contract, including lane semantics, stage order, escalation policy, approvals, and artifact expectations, use `context/core/workflow.md`.
+
 ## Current State
 
 - There is no repo-native build command for generated application code yet.
 - There is no repo-native lint command for generated application code yet.
 - There is no repo-native test command for generated application code yet.
 - There is no single canonical package manager or language toolchain for future applications yet.
-- OpenKit now documents a hard-split workflow with `Quick Task` and `Full Delivery` lanes.
+- OpenKit uses the hard-split workflow documented in `context/core/workflow.md`; keep tooling and command guidance here aligned with that live contract instead of re-stating lane policy in full.
 - The persisted workflow state file uses a mode-aware schema and `.opencode/workflow-state.js` supports that hard-split workflow model.
 
 ## Commands That Do Exist
@@ -24,19 +26,33 @@ This file defines the current execution reality for the repository. Agents must 
 
 These are repository workflow commands, not application build/lint/test commands:
 
+- `node .opencode/workflow-state.js status`
+- `node .opencode/workflow-state.js doctor`
+- `node .opencode/workflow-state.js version`
+- `node .opencode/workflow-state.js profiles`
+- `node .opencode/workflow-state.js show-profile <name>`
+- `node .opencode/workflow-state.js sync-install-manifest <name>`
 - `node .opencode/workflow-state.js show`
 - `node .opencode/workflow-state.js validate`
+- `node .opencode/workflow-state.js start-feature <feature_id> <feature_slug>`
 - `node .opencode/workflow-state.js start-task <mode> <feature_id> <feature_slug> <mode_reason>`
 - `node .opencode/workflow-state.js advance-stage <stage>`
 - `node .opencode/workflow-state.js set-approval <gate> <status> [approved_by] [approved_at] [notes]`
 - `node .opencode/workflow-state.js link-artifact <kind> <path>`
+- `node .opencode/workflow-state.js scaffold-artifact <task_card|plan> <slug>`
+- `node .opencode/workflow-state.js record-issue <issue_id> <title> <type> <severity> <rooted_in> <recommended_owner> <evidence> <artifact_refs>`
+- `node .opencode/workflow-state.js clear-issues`
 - `node .opencode/workflow-state.js route-rework <issue_type> [repeat_failed_fix]`
 
 Current workflow-state behavior:
 
 - The CLI understands the hard-split workflow model.
+- `status`, `doctor`, `version`, `profiles`, `show-profile`, and `sync-install-manifest` are part of the current runtime inspection surface.
 - `start-feature` remains available as a compatibility shortcut and initializes `Full Delivery` mode.
 - `start-task` is the preferred explicit entrypoint for new mode-aware state.
+- `scaffold-artifact` is a narrow helper for creating and linking `task_card` and `plan` artifacts from checked-in templates.
+- `task_card` scaffolding requires `quick` mode and is intentionally allowed as optional traceability in the quick lane.
+- `plan` scaffolding requires `full` mode, `full_plan`, and a linked architecture artifact.
 
 ## Validation Reality By Mode
 

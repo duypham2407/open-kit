@@ -2,6 +2,8 @@
 
 This file defines the canonical fields and enums for `.opencode/workflow-state.json`.
 
+For the canonical workflow contract, including lane semantics, stage order, escalation policy, approvals, and quick-lane artifact expectations, use `context/core/workflow.md`.
+
 The schema is mode-aware and uses separate stage names for `Quick Task` and `Full Delivery`.
 
 ## Required Top-Level Fields
@@ -29,7 +31,7 @@ The schema is mode-aware and uses separate stage names for `Quick Task` and `Ful
 Guardrail:
 
 - do not add a `quick_plus` or similar third mode without a separate explicit schema and runtime change
-- references to `Quick Task+` describe future semantics for `quick`, not a new enum
+- references to `Quick Task+` describe the live successor semantics of `quick`, not a new enum
 
 ## `current_stage` Values
 
@@ -91,7 +93,7 @@ Guardrail:
 
 Usage by mode:
 
-- `Quick Task` may use only `task_card` and leave the full-delivery artifact fields as `null`
+- `Quick Task` may use `task_card`, leaves `brief`, `spec`, `architecture`, `plan`, and `qa_report` as `null`, and keeps `adr` as an empty array; the required `quick_plan` stage is workflow state, not a separate artifact slot
 - `Full Delivery` uses `brief`, `spec`, `architecture`, `plan`, `qa_report`, and optional `adr`, while `task_card` stays `null`
 
 Do not assume additional quick-lane artifact keys until they are explicitly added to the runtime schema and supporting code.

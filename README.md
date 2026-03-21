@@ -31,7 +31,7 @@ The full-delivery lane uses 7 distinct team roles:
 6. **Fullstack Agent**: Implements approved work.
 7. **QA Agent**: Validates implementation and classifies issues.
 
-Quick tasks use a smaller contract: `MasterOrchestrator -> quick_plan -> FullstackAgent -> QAAgent (QA Lite) -> Done`.
+Quick tasks use the canonical `quick_*` stage chain defined in `context/core/workflow.md`, with the `QA Agent` operating in `QA Lite` mode.
 
 ## Workflow & Skills
 
@@ -54,21 +54,33 @@ Context is loaded dynamically based on the current phase, anchored by `context/n
 - `context/core/issue-routing.md`: QA issue classification and ownership routing.
 - `context/core/session-resume.md`: Resume protocol for fresh sessions.
 
-Directional artifacts for the next phase live in:
+Directional and historical artifacts for the next phase live in:
 
 - `docs/briefs/2026-03-21-openkit-evolution-direction.md`
 - `docs/specs/2026-03-21-openkit-improvement-analysis.md`
 - `docs/architecture/2026-03-21-openkit-evolution-direction.md`
 - `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
 
-## Installation
+## Maintainer Startup
 
-This kit is designed to work natively with OpenCode.
+Use this flow when you want to inspect or resume the checked-in OpenKit runtime honestly, without assuming any broader installer or app stack.
 
 1. Ensure `.opencode/opencode.json` is present in the project root.
 2. Ensure `.opencode/workflow-state.json` is present so sessions can resume from explicit state.
-3. The `hooks/session-start` script runs automatically on session start, emits an OpenKit runtime status block, and loads the `using-skills` meta-skill into the agent's context when that skill file exists.
-4. Use `node .opencode/workflow-state.js status` to inspect the current runtime summary and `node .opencode/workflow-state.js doctor` to check whether key runtime files are present.
+3. In the OpenCode runtime configured by this repository, `hooks/session-start` is intended to run at session start, emit an OpenKit runtime status block, print `status`, `doctor`, and `show` command hints, and load the repo-local `using-skills` meta-skill into the agent's context when that skill file exists.
+4. When workflow state is present, the session-start hook also prints a canonical resume hint that points back to `AGENTS.md`, `context/navigation.md`, `context/core/workflow.md`, `.opencode/workflow-state.json`, and `context/core/session-resume.md`.
+5. Use `node .opencode/workflow-state.js status` to inspect the current runtime summary and `node .opencode/workflow-state.js doctor` to check whether key runtime files and contract-alignment checks pass.
+
+If the session-start JSON helper is unavailable, the hook degrades gracefully: runtime status still prints, but manifest-derived details and resume hints may be reduced until the helper works again.
+
+Practical maintainer flow:
+
+```bash
+node .opencode/workflow-state.js status
+node .opencode/workflow-state.js doctor
+node .opencode/workflow-state.js show
+node --test ".opencode/tests/*.test.js"
+```
 
 The default manifest currently carries a starter model value inherited from the existing repo setup. Treat that as a default, not as a statement that the kit only supports one model.
 
@@ -121,7 +133,7 @@ Quick-task artifact:
 
 - `docs/tasks/`: lightweight quick-task cards when traceability beyond workflow state is useful
 
-The live quick lane now includes a first-class `quick_plan` stage for bounded planning. Task cards remain optional rather than mandatory.
+The live quick lane includes a first-class `quick_plan` stage for bounded planning. Task cards remain optional rather than mandatory. For the canonical quick-lane contract, including stage order, escalation, approvals, and artifact expectations, use `context/core/workflow.md`.
 
 Full-delivery artifacts:
 
@@ -147,7 +159,7 @@ You can trigger workflows with the following commands:
 
 You can also type your request in normal language, and `MasterOrchestrator` will choose the appropriate lane.
 
-The command surface above is the current live interface. FEATURE-003 does not rename `/quick-task` or add a third lane command.
+The command surface above is the current live interface. The live contract does not rename `/quick-task` or add a third lane command.
 
 Helpful wayfinding docs:
 
@@ -166,16 +178,20 @@ Workflow-state utility commands:
 - `node .opencode/workflow-state.js advance-stage <stage>`
 - `node .opencode/workflow-state.js set-approval <gate> <status> ...`
 - `node .opencode/workflow-state.js link-artifact <kind> <path>`
+- `node .opencode/workflow-state.js scaffold-artifact <task_card|plan> <slug>`
 - `node .opencode/workflow-state.js route-rework <issue_type> [repeat_failed_fix]`
 
 Operational guidance:
 
 - `status` prints the project root, kit metadata, state file path, active mode, stage, workflow status, owner, and work item when present.
-- `doctor` reports repository runtime checks such as the registry, install manifest, workflow-state file, workflow-state CLI, hooks config, and session-start hook.
+- `doctor` reports repository runtime checks such as the registry, install manifest, workflow-state file, workflow-state CLI, hooks config, session-start hook, and lightweight contract-consistency checks for declared runtime surfaces and schema alignment.
 - `profiles` lists the local registry profiles known to this repository and marks the repository default with `*`.
 - `show-profile <name>` prints the profile name, whether it is the repository default, and the component categories referenced by that profile.
 - `sync-install-manifest <name>` rewrites `.opencode/install-manifest.json` so its recorded active profile matches the named registry profile.
-- the session-start hook prints a `<openkit_runtime_status>` block with `status` and `doctor` command hints, then prints a `<workflow_resume_hint>` block when workflow state contains resumable context.
+- `scaffold-artifact <task_card|plan> <slug>` creates a narrow repo-native draft from a checked-in template and links it into the active workflow state when the target slot is still empty.
+- `task_card` scaffolding is available only in `quick` mode and is intentionally allowed as optional traceability anywhere in the quick lane.
+- `plan` scaffolding is available only in `full` mode at `full_plan`, and it requires a linked architecture artifact before the draft is created.
+- the session-start hook prints a `<openkit_runtime_status>` block with `status`, `doctor`, and `show` command hints, then prints a `<workflow_resume_hint>` block with canonical resume-reading guidance when workflow state contains resumable context.
 
 ## Safe Extension
 
@@ -191,12 +207,12 @@ If an extension changes runtime behavior, profile semantics, or the long-term sh
 
 ## Approved Direction
 
-FEATURE-002 records two follow-on priorities:
+FEATURE-002 records the roadmap and rationale behind the contract that is already live today:
 
-- evolve the current quick lane toward `Quick Task+` semantics while keeping the two-lane model intact
+- continue refining the current quick lane after the `Quick Task+` successor semantics activation while keeping the two-lane model intact
 - harden runtime behavior with stronger bootstrap guidance, operational discoverability, and workflow-level verification
 
-Until those implementation tasks land, rely on the current workflow contract and runtime surfaces that exist in the repository today.
+Rely on the current workflow contract and runtime surfaces that exist in the repository today. Treat these artifacts as roadmap context, not as overrides for `context/core/workflow.md` or the implemented runtime.
 
 ## Current Validation Reality
 

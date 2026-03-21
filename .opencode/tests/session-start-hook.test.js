@@ -72,6 +72,14 @@ function writeMetaSkill(projectRoot) {
   fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# using-skills\n", "utf8")
 }
 
+function writeFailingPythonShim(projectRoot) {
+  const binDir = path.join(projectRoot, "bin")
+  const shimPath = path.join(binDir, "python3-shim")
+  fs.mkdirSync(binDir, { recursive: true })
+  fs.writeFileSync(shimPath, "#!/usr/bin/env bash\nexit 1\n", { encoding: "utf8", mode: 0o755 })
+  return shimPath
+}
+
 test("session-start emits mode-aware resume hint for quick tasks", () => {
   const projectRoot = makeTempProject()
 
@@ -161,4 +169,62 @@ test("session-start reports loaded startup skill when meta-skill exists", () => 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /startup skill: loaded/)
   assert.match(result.stdout, /<skill_system_instruction>/)
+})
+
+test("session-start prints canonical resume guidance and inspection commands", () => {
+  const projectRoot = makeTempProject()
+
+  writeManifest(projectRoot)
+  writeState(
+    projectRoot,
+    makeQuickState({
+      feature_id: "TASK-503",
+      feature_slug: "canonical-resume-guidance",
+      current_stage: "quick_build",
+      current_owner: "FullstackAgent",
+    }),
+  )
+
+  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+    cwd: projectRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      OPENKIT_PROJECT_ROOT: projectRoot,
+      OPENKIT_SESSION_START_NO_SKILL: "1",
+      OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
+    },
+  })
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /help: node \.opencode\/workflow-state\.js status/)
+  assert.match(result.stdout, /doctor: node \.opencode\/workflow-state\.js doctor/)
+  assert.match(result.stdout, /show: node \.opencode\/workflow-state\.js show/)
+  assert.match(result.stdout, /Read first: AGENTS\.md -> context\/navigation\.md -> context\/core\/workflow\.md -> \.opencode\/workflow-state\.json/)
+  assert.match(result.stdout, /Then load resume guidance from context\/core\/session-resume\.md\./)
+})
+
+test("session-start degrades gracefully when the JSON helper fails", () => {
+  const projectRoot = makeTempProject()
+
+  writeManifest(projectRoot)
+  writeState(projectRoot, makeQuickState())
+  const pythonShim = writeFailingPythonShim(projectRoot)
+
+  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+    cwd: projectRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      OPENKIT_PROJECT_ROOT: projectRoot,
+      OPENKIT_SESSION_START_NO_SKILL: "1",
+      OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
+      OPENKIT_PYTHON_BIN: pythonShim,
+    },
+  })
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /<openkit_runtime_status>/)
+  assert.match(result.stdout, /json helper: degraded/)
+  assert.doesNotMatch(result.stdout, /<workflow_resume_hint>/)
 })

@@ -10,13 +10,15 @@ PROJECT_ROOT="${OPENKIT_PROJECT_ROOT:-$(dirname "$DIR")}"
 META_SKILL_PATH="$PROJECT_ROOT/skills/using-skills/SKILL.md"
 STATE_PATH="${OPENKIT_WORKFLOW_STATE:-$PROJECT_ROOT/.opencode/workflow-state.json}"
 MANIFEST_PATH="$PROJECT_ROOT/.opencode/opencode.json"
+PYTHON_BIN="${OPENKIT_PYTHON_BIN:-python3}"
 
 KIT_NAME="OpenKit AI Software Factory"
 KIT_VERSION="unknown"
 ENTRY_AGENT="unknown"
+JSON_HELPER_STATUS="ok"
 
-if [ -f "$MANIFEST_PATH" ]; then
-    readarray -t KIT_INFO < <(python3 - "$MANIFEST_PATH" <<'PY'
+if [ -f "$MANIFEST_PATH" ] && command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+    readarray -t KIT_INFO < <("$PYTHON_BIN" - "$MANIFEST_PATH" <<'PY' || true
 import json
 import sys
 
@@ -38,7 +40,11 @@ PY
         KIT_NAME="${KIT_INFO[0]}"
         KIT_VERSION="${KIT_INFO[1]}"
         ENTRY_AGENT="${KIT_INFO[2]}"
+    else
+        JSON_HELPER_STATUS="degraded"
     fi
+elif [ -f "$MANIFEST_PATH" ]; then
+    JSON_HELPER_STATUS="degraded"
 fi
 
 if [ -n "${OPENKIT_SESSION_START_NO_SKILL:-}" ]; then
@@ -54,8 +60,10 @@ echo "kit: $KIT_NAME v$KIT_VERSION"
 echo "entry agent: $ENTRY_AGENT"
 echo "state file: $STATE_PATH"
 echo "startup skill: $SKILL_STATUS"
+echo "json helper: $JSON_HELPER_STATUS"
 echo "help: node .opencode/workflow-state.js status"
 echo "doctor: node .opencode/workflow-state.js doctor"
+echo "show: node .opencode/workflow-state.js show"
 echo "</openkit_runtime_status>"
 
 if [ -z "${OPENKIT_SESSION_START_NO_SKILL:-}" ] && [ -f "$META_SKILL_PATH" ]; then
@@ -67,8 +75,8 @@ if [ -z "${OPENKIT_SESSION_START_NO_SKILL:-}" ] && [ -f "$META_SKILL_PATH" ]; th
     echo "</skill_system_instruction>"
 fi
 
-if [ -f "$STATE_PATH" ]; then
-    python3 - "$STATE_PATH" <<'PY'
+if [ -f "$STATE_PATH" ] && [ "$JSON_HELPER_STATUS" = "ok" ] && command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+    "$PYTHON_BIN" - "$STATE_PATH" <<'PY' || true
 import json
 import sys
 
@@ -98,7 +106,8 @@ print(f"status: {status}")
 print(f"owner: {owner}")
 if feature_id and feature_slug:
     print(f"work item: {feature_id} ({feature_slug})")
-print("Before continuing: read AGENTS.md, context/navigation.md, .opencode/workflow-state.json, then load mode-appropriate artifact context from context/core/session-resume.md.")
+print("Read first: AGENTS.md -> context/navigation.md -> context/core/workflow.md -> .opencode/workflow-state.json")
+print("Then load resume guidance from context/core/session-resume.md.")
 print("</workflow_resume_hint>")
 PY
 fi

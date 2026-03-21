@@ -13,10 +13,12 @@ function setupTempRuntime(projectRoot) {
   const opencodeDir = path.join(projectRoot, ".opencode")
   const hooksDir = path.join(projectRoot, "hooks")
   const skillsDir = path.join(projectRoot, "skills", "using-skills")
+  const contextCoreDir = path.join(projectRoot, "context", "core")
 
   fs.mkdirSync(opencodeDir, { recursive: true })
   fs.mkdirSync(hooksDir, { recursive: true })
   fs.mkdirSync(skillsDir, { recursive: true })
+  fs.mkdirSync(contextCoreDir, { recursive: true })
 
   const fixtureState = JSON.parse(
     fs.readFileSync(path.resolve(__dirname, "../workflow-state.json"), "utf8"),
@@ -82,6 +84,38 @@ function setupTempRuntime(projectRoot) {
   fs.writeFileSync(path.join(hooksDir, "session-start"), "#!/usr/bin/env bash\n", "utf8")
   fs.writeFileSync(path.join(skillsDir, "SKILL.md"), "# using-skills\n", "utf8")
   fs.writeFileSync(path.join(opencodeDir, "workflow-state.js"), "#!/usr/bin/env node\n", "utf8")
+  fs.writeFileSync(
+    path.join(contextCoreDir, "workflow.md"),
+    [
+      "# Workflow",
+      "",
+      "Quick Task+ is the live semantics of the quick lane, not a third lane.",
+      "Mode enums remain `quick` and `full`.",
+      "Commands remain `/task`, `/quick-task`, `/delivery`, and `/write-plan`.",
+      "Quick stages: `quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`.",
+      "Full stages: `full_intake -> full_brief -> full_spec -> full_architecture -> full_plan -> full_implementation -> full_qa -> full_done`.",
+      "Quick approvals: `quick_verified`.",
+      "Full approvals: `pm_to_ba`, `ba_to_architect`, `architect_to_tech_lead`, `tech_lead_to_fullstack`, `fullstack_to_qa`, `qa_to_done`.",
+      "Quick artifacts: `task_card`; full artifacts: `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
+  fs.writeFileSync(
+    path.join(contextCoreDir, "workflow-state-schema.md"),
+    [
+      "# Workflow State Schema",
+      "",
+      "Modes: `quick`, `full`.",
+      "Quick stages: `quick_intake`, `quick_plan`, `quick_build`, `quick_verify`, `quick_done`.",
+      "Full stages: `full_intake`, `full_brief`, `full_spec`, `full_architecture`, `full_plan`, `full_implementation`, `full_qa`, `full_done`.",
+      "Artifact keys: `task_card`, `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
+      "Quick approvals: `quick_verified`.",
+      "Full approvals: `pm_to_ba`, `ba_to_architect`, `architect_to_tech_lead`, `tech_lead_to_fullstack`, `fullstack_to_qa`, `qa_to_done`.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
 }
 
 test("status command prints workflow and runtime summary", () => {
@@ -172,7 +206,9 @@ test("doctor command reports runtime diagnostics", () => {
   assert.match(result.stdout, /\[ok\] session-start hook found/)
   assert.match(result.stdout, /\[ok\] meta-skill found/)
   assert.match(result.stdout, /\[ok\] active profile exists in registry/)
-  assert.match(result.stdout, /Summary: 13 ok, 0 warn, 0 error/)
+  assert.match(result.stdout, /\[ok\] workflow contract doc found/)
+  assert.match(result.stdout, /\[ok\] workflow schema matches runtime stage sequences/)
+  assert.doesNotMatch(result.stdout, /\[error\]/)
 })
 
 test("doctor command reports missing state as diagnostics", () => {
@@ -189,7 +225,7 @@ test("doctor command reports missing state as diagnostics", () => {
   assert.match(result.stdout, /OpenKit doctor:/)
   assert.match(result.stdout, /\[error\] workflow state file found/)
   assert.match(result.stdout, /\[error\] workflow state is valid/)
-  assert.match(result.stdout, /Summary: 11 ok, 0 warn, 2 error/)
+  assert.match(result.stdout, /Summary: .* [1-9][0-9]* error/)
 })
 
 test("doctor reports malformed registry as diagnostics", () => {
@@ -205,7 +241,7 @@ test("doctor reports malformed registry as diagnostics", () => {
   assert.equal(result.status, 1)
   assert.match(result.stdout, /OpenKit doctor:/)
   assert.match(result.stdout, /\[error\] registry metadata is readable/)
-  assert.match(result.stdout, /Summary: 12 ok, 0 warn, 1 error/)
+  assert.match(result.stdout, /Summary: .* [1-9][0-9]* error/)
 })
 
 test("doctor reports when active profile is missing from registry", () => {

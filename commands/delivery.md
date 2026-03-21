@@ -2,28 +2,32 @@
 description: "Starts the Full Delivery lane for feature work and higher-risk changes."
 ---
 
-# Lệnh: `/delivery`
+# Command: `/delivery`
 
-Khi User gõ `/delivery [mô_tả]`, `MasterOrchestrator` phải:
+Use `/delivery` when work needs the full lane from the start or when quick work has already escalated.
 
-1. Đọc `AGENTS.md`, `context/navigation.md`, `context/core/workflow.md`, và `.opencode/workflow-state.json` nếu đang resumable.
-2. Khởi tạo `full_intake`.
-3. Ghi `mode = full` và `mode_reason` vào workflow state.
-4. Bắt đầu full-delivery lane:
-   - `PMAgent` tạo brief
-   - `BAAgent` tạo spec
-   - `ArchitectAgent` tạo architecture
-   - `TechLeadAgent` tạo implementation plan
-   - `FullstackAgent` implement
-   - `QAAgent` validate
-5. Áp dụng full approval chain trước khi advance qua các stage chính.
+## Preconditions
 
-`/delivery` là đường vào rõ ràng cho heavy lane. Dùng lệnh này khi:
+- The request satisfies one or more full-lane triggers in `context/core/workflow.md`
+- If this is resumed work, escalation context or the current full stage must be read from workflow state before continuing
 
-- task không còn bounded trong quick lane
-- cần product/spec/design/architecture treatment
-- có contract-sensitive change như API, schema, auth, billing, permission, hoặc security
-- phạm vi chạm nhiều subsystem lỏng liên quan
-- quick work đã bị escalate vì `requirement_gap` hoặc `design_flaw`, hoặc vì phát sinh scope expansion hay verification gap làm vượt quick boundary
+## Canonical docs to load
 
-Lệnh này giữ nguyên hard split với quick lane và khớp với `/task`: khi đã vào full mode, entry point luôn bắt đầu bằng `PMAgent`, rồi đi theo full-delivery chain chuẩn.
+- `AGENTS.md`
+- `context/navigation.md`
+- `context/core/workflow.md`
+- `context/core/approval-gates.md`
+- `.opencode/workflow-state.json` when resuming
+
+## Expected action
+
+- `MasterOrchestrator` records `mode = full` and `mode_reason`
+- Initialize `full_intake`
+- Route to the PM agent to begin the full-delivery chain defined in `context/core/workflow.md`
+- Track approval gates in workflow state before each stage advance
+
+## Rejection or escalation behavior
+
+- If the command is entered from an active quick context, preserve escalation metadata while moving into `full_intake`
+- If required full-mode context is missing or state is contradictory, stop at intake and report the mismatch instead of skipping a stage
+- Do not create a new lane, new stage, or alternate full-entry chain outside the canonical workflow doc

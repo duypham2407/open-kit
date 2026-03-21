@@ -21,6 +21,8 @@ const {
   getReworkRoute,
   getTransitionGate,
 } = require("./workflow-state-rules")
+const { getContractConsistencyReport: buildContractConsistencyReport } = require("./contract-consistency")
+const { SUPPORTED_SCAFFOLDS, scaffoldArtifact } = require("./artifact-scaffolder")
 
 function fail(message) {
   const error = new Error(message)
@@ -535,6 +537,9 @@ function runDoctor(customStatePath) {
     },
   ]
 
+  const contractReport = buildContractConsistencyReport({ projectRoot, manifest })
+  checks.push(...contractReport.checks)
+
   const summary = checks.reduce(
     (counts, check) => {
       if (check.ok) {
@@ -552,6 +557,14 @@ function runDoctor(customStatePath) {
     checks,
     summary,
   }
+}
+
+function getContractConsistencyReport(customStatePath) {
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const manifest = readJsonIfExists(manifestPath)
+
+  return buildContractConsistencyReport({ projectRoot, manifest })
 }
 
 function validateState(customStatePath) {
@@ -645,7 +658,10 @@ function linkArtifact(kind, artifactPath, customStatePath) {
   ensureKnown(kind, ARTIFACT_KINDS, "artifact kind")
   ensureString(artifactPath, "artifact path")
 
-  const resolvedArtifactPath = path.resolve(artifactPath)
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const resolvedArtifactPath = path.isAbsolute(artifactPath)
+    ? artifactPath
+    : path.resolve(projectRoot, artifactPath)
   if (!fs.existsSync(resolvedArtifactPath)) {
     fail(`Artifact path does not exist: '${artifactPath}'`)
   }
@@ -661,6 +677,80 @@ function linkArtifact(kind, artifactPath, customStatePath) {
     state.artifacts[kind] = artifactPath
     return state
   })
+}
+
+function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
+  ensureString(kind, "artifact kind")
+  ensureString(slug, "artifact slug")
+
+  if (!SUPPORTED_SCAFFOLDS[kind]) {
+    fail(`Unsupported scaffold kind '${kind}'`)
+  }
+
+  const { statePath, state } = readState(customStatePath)
+  validateStateObject(state)
+
+  if (kind !== "adr" && state.artifacts[kind] !== null) {
+    fail(`Artifact already linked for artifact kind '${kind}'`)
+  }
+
+  if (kind === "task_card" && state.mode !== "quick") {
+    fail(`Artifact scaffold kind 'task_card' requires quick mode`)
+  }
+
+  if (kind === "plan") {
+    if (state.mode !== "full") {
+      fail(`Artifact scaffold kind 'plan' requires full mode`)
+    }
+
+    if (state.current_stage !== "full_plan") {
+      fail(`Artifact scaffold kind 'plan' requires current stage 'full_plan'`)
+    }
+
+    if (typeof state.artifacts.architecture !== "string" || state.artifacts.architecture.length === 0) {
+      fail(`Artifact scaffold kind 'plan' requires a linked architecture artifact`)
+    }
+  }
+
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const featureId = state.feature_id
+  const featureSlug = state.feature_slug
+
+  if (typeof featureId !== "string" || featureId.length === 0) {
+    fail("feature_id must be set before scaffolding an artifact")
+  }
+
+  if (typeof featureSlug !== "string" || featureSlug.length === 0) {
+    fail("feature_slug must be set before scaffolding an artifact")
+  }
+
+  const scaffoldResult = scaffoldArtifact({
+    projectRoot,
+    kind,
+    slug,
+    featureId,
+    featureSlug,
+    sourceArchitecture: kind === "plan" ? state.artifacts.architecture : null,
+  })
+
+  try {
+    if (typeof options.beforeLink === "function") {
+      options.beforeLink(scaffoldResult)
+    }
+
+    const next = linkArtifact(kind, scaffoldResult.artifactPath, statePath)
+
+    return {
+      ...next,
+      artifactPath: scaffoldResult.artifactPath,
+    }
+  } catch (error) {
+    const createdPath = path.join(projectRoot, scaffoldResult.artifactPath)
+    if (fs.existsSync(createdPath)) {
+      fs.rmSync(createdPath)
+    }
+    throw error
+  }
 }
 
 function recordIssue(issue, customStatePath) {
@@ -725,6 +815,7 @@ module.exports = {
   advanceStage,
   clearIssues,
   ESCALATION_RETRY_THRESHOLD,
+  getContractConsistencyReport,
   getInstallManifest,
   getProfile,
   getRegistry,
@@ -737,6 +828,7 @@ module.exports = {
   resolveStatePath,
   routeRework,
   runDoctor,
+  scaffoldAndLinkArtifact,
   setApproval,
   showState,
   syncInstallManifest,

@@ -1,10 +1,10 @@
 # Team Workflow — Open Kit
 
-Defines the current hard-split workflow contract for OpenKit.
+Defines the canonical live workflow contract for OpenKit.
 
-Use this file together with `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, and `context/core/workflow-state-schema.md`.
+Use this file as the source of truth for workflow semantics. Companion docs such as `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, `context/core/project-config.md`, and `context/core/workflow-state-schema.md` must align to it and should focus on their local concerns.
 
-FEATURE-003 activates `Quick Task+` as the live successor semantics of the existing quick lane while preserving the two-lane model and the `quick` / `full` mode enums.
+The current live contract uses `Quick Task+` successor semantics for the existing quick lane while preserving the two-lane model and the `quick` / `full` mode enums.
 
 ## Workflow Lanes
 
@@ -22,10 +22,11 @@ Terminology guardrail:
 - current runtime mode enums remain `quick` and `full`
 - current command names remain unchanged unless a separate explicit implementation changes them
 - use `MasterOrchestrator` for the role name and `QA Lite` for the lighter quick-lane verification pass
+- in narrative prose, prefer human-readable role labels such as `Master Orchestrator`, `QA Agent`, and `Tech Lead Agent`; use exact runtime identifiers only when naming owners, files, commands, or schema values
 
 ## Contract Alignment Status
 
-FEATURE-003 makes the stronger quick-lane semantics live. Companion workflow docs and runtime state are expected to align on the same active quick contract in this phase.
+The stronger quick-lane semantics are live in the current contract. Companion workflow docs and runtime state are expected to align on the same active quick contract in this phase.
 
 ## Quick Task Lane
 
@@ -40,9 +41,11 @@ User Request
     ↓
     MasterOrchestrator    ← classify task, define quick scope
     ↓
-Fullstack Agent       ← implement the smallest safe change
+    quick_plan            ← bounded checklist and verification setup
     ↓
-    QAAgent               ← QA Lite verification
+    Fullstack Agent       ← implement the smallest safe change
+    ↓
+    QA Agent              ← QA Lite verification
     ↓
     MasterOrchestrator    ← close or reroute
 ```
@@ -61,8 +64,8 @@ Quick mode expectations:
 Live Quick Task+ expectations:
 
 - the quick lane can handle bounded small-to-medium work, not only the tiniest localized changes
-- `quick_plan` is a first-class quick stage for checklist-oriented planning and verification setup
-- optional task cards remain allowed when traceability helps, but are still not mandatory for every quick task
+- `quick_plan` is a required quick stage for checklist-oriented planning and verification setup
+- optional task cards remain allowed when traceability helps, but are not mandatory for every quick task
 
 ## Full Delivery Lane
 
@@ -155,6 +158,7 @@ Approval requirements are mode-specific.
 
 - `quick_verified` is the only required gate
 - the original user request is treated as implicit approval to begin unless the task is ambiguous or risky
+- `quick_plan` is required before `quick_build`, but it does not introduce a second approval gate
 
 ### Full Delivery
 
@@ -175,6 +179,11 @@ Approval state should be recorded in `.opencode/workflow-state.json` before adva
 - source code changes
 - bounded quick-plan/checklist state in `quick_plan`
 - concise QA Lite evidence in workflow communication and state
+
+Quick-task artifact rule:
+
+- `quick_plan` is mandatory as a workflow stage
+- `docs/tasks/...` remains optional as a documentation artifact
 
 ### Full Delivery
 
