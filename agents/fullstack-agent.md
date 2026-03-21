@@ -63,6 +63,8 @@ You are the implementation specialist for OpenKit. `context/core/workflow.md` de
 
 - Implement against the approved plan instead of rewriting the workflow contract locally
 - Break work along the task boundaries in the plan and keep traceability between code changes, verification, and plan items
+- When a full-delivery task board exists, treat the feature as stage-owned by `FullstackAgent` while one task is locally owned by its `primary_owner`
+- Use task-board commands only for the task you own; do not implicitly reassign another owner's task or advance the feature stage yourself
 - If the repository has suitable validation tooling, apply TDD and task-by-task verification from the plan; otherwise report the missing validation path clearly in the evidence
 
 ### Stop and reroute conditions
@@ -75,6 +77,6 @@ You are the implementation specialist for OpenKit. `context/core/workflow.md` de
 ### Expected output to full QA
 
 - implementation complete against approved plan scope
-- changed files and plan items covered
+- changed files, plan items covered, and task ids covered when task-board execution is in use
 - real verification evidence, including a missing-tooling note when applicable
 - open risks, deferred items, or assumptions that QA and the orchestrator need to see

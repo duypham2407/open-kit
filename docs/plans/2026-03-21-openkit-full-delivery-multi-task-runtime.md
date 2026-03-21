@@ -259,15 +259,14 @@ Expected:
 
 Add CLI tests for:
 - `list-tasks <work_item_id>`
-- `create-task <work_item_id> <task_id> <title> <kind>`
-- `show-task <work_item_id> <task_id>`
-- `claim-task <work_item_id> <task_id> <owner>`
-- `release-task <work_item_id> <task_id>`
-- `reassign-task <work_item_id> <task_id> <owner>`
-- `assign-qa-owner <work_item_id> <task_id> <owner>`
+- `create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`
+- `claim-task <work_item_id> <task_id> <owner> <requested_by>`
+- `release-task <work_item_id> <task_id> <requested_by>`
+- `reassign-task <work_item_id> <task_id> <owner> <requested_by>`
+- `assign-qa-owner <work_item_id> <task_id> <owner> <requested_by>`
 - `set-task-status <work_item_id> <task_id> <status>`
-- `add-task-dependency <work_item_id> <task_id> <depends_on_task_id>`
-- `add-task-finding <work_item_id> <task_id> <finding_id> <summary> <severity> <evidence>`
+
+Do not add CLI tests for unimplemented commands such as `show-task`, `add-task-dependency`, `add-task-finding`, or `summarize-work-item` in this slice unless the runtime adds them first.
 
 - [ ] **Step 2: Implement the smallest useful controller helpers for each CLI action**
 
@@ -289,7 +288,6 @@ Ensure runtime rejects:
 - [ ] **Step 4: Add aggregate inspection commands**
 
 Extend the CLI with:
-- `summarize-work-item <work_item_id>`
 - `validate-work-item-board <work_item_id>`
 
 Keep output concise and operator-readable.

@@ -1,0 +1,13 @@
+{
+  "active_work_item_id": "feature-001",
+  "work_items": [
+    {
+      "work_item_id": "feature-001",
+      "feature_id": "FEATURE-001",
+      "feature_slug": "task-intake-dashboard",
+      "mode": "full",
+      "status": "done",
+      "state_path": ".opencode/work-items/feature-001/state.json"
+    }
+  ]
+}

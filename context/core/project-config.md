@@ -11,14 +11,15 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - There is no repo-native test command for generated application code yet.
 - There is no single canonical package manager or language toolchain for future applications yet.
 - OpenKit uses the hard-split workflow documented in `context/core/workflow.md`; keep tooling and command guidance here aligned with that live contract instead of re-stating lane policy in full.
-- The persisted workflow state file uses a mode-aware schema and `.opencode/workflow-state.js` supports that hard-split workflow model.
+- The active compatibility mirror uses a mode-aware schema and `.opencode/workflow-state.js` supports that hard-split workflow model.
 
 ## Commands That Do Exist
 
 - Session hook configuration lives in `hooks/hooks.json`.
 - The session-start hook script lives in `hooks/session-start`.
 - The OpenCode kit manifest lives in `.opencode/opencode.json`.
-- The persisted workflow state lives in `.opencode/workflow-state.json`.
+- The active compatibility mirror lives in `.opencode/workflow-state.json`.
+- The managed work-item backing store lives in `.opencode/work-items/`.
 - The workflow-state CLI lives at `.opencode/workflow-state.js`.
 - Workflow command contracts live under `commands/`.
 
@@ -36,10 +37,22 @@ These are repository workflow commands, not application build/lint/test commands
 - `node .opencode/workflow-state.js validate`
 - `node .opencode/workflow-state.js start-feature <feature_id> <feature_slug>`
 - `node .opencode/workflow-state.js start-task <mode> <feature_id> <feature_slug> <mode_reason>`
+- `node .opencode/workflow-state.js create-work-item <mode> <feature_id> <feature_slug> <mode_reason>`
+- `node .opencode/workflow-state.js list-work-items`
+- `node .opencode/workflow-state.js show-work-item <work_item_id>`
+- `node .opencode/workflow-state.js activate-work-item <work_item_id>`
 - `node .opencode/workflow-state.js advance-stage <stage>`
 - `node .opencode/workflow-state.js set-approval <gate> <status> [approved_by] [approved_at] [notes]`
 - `node .opencode/workflow-state.js link-artifact <kind> <path>`
 - `node .opencode/workflow-state.js scaffold-artifact <task_card|plan> <slug>`
+- `node .opencode/workflow-state.js list-tasks <work_item_id>`
+- `node .opencode/workflow-state.js create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`
+- `node .opencode/workflow-state.js claim-task <work_item_id> <task_id> <owner> <requested_by>`
+- `node .opencode/workflow-state.js release-task <work_item_id> <task_id> <requested_by>`
+- `node .opencode/workflow-state.js reassign-task <work_item_id> <task_id> <owner> <requested_by>`
+- `node .opencode/workflow-state.js assign-qa-owner <work_item_id> <task_id> <qa_owner> <requested_by>`
+- `node .opencode/workflow-state.js set-task-status <work_item_id> <task_id> <status>`
+- `node .opencode/workflow-state.js validate-work-item-board <work_item_id>`
 - `node .opencode/workflow-state.js record-issue <issue_id> <title> <type> <severity> <rooted_in> <recommended_owner> <evidence> <artifact_refs>`
 - `node .opencode/workflow-state.js clear-issues`
 - `node .opencode/workflow-state.js route-rework <issue_type> [repeat_failed_fix]`
@@ -50,9 +63,13 @@ Current workflow-state behavior:
 - `status`, `doctor`, `version`, `profiles`, `show-profile`, and `sync-install-manifest` are part of the current runtime inspection surface.
 - `start-feature` remains available as a compatibility shortcut and initializes `Full Delivery` mode.
 - `start-task` is the preferred explicit entrypoint for new mode-aware state.
+- `create-work-item`, `list-work-items`, `show-work-item`, and `activate-work-item` are the live work-item coordination commands.
+- `list-tasks`, `create-task`, `claim-task`, `release-task`, `reassign-task`, `assign-qa-owner`, `set-task-status`, and `validate-work-item-board` are the live full-delivery task-board commands.
 - `scaffold-artifact` is a narrow helper for creating and linking `task_card` and `plan` artifacts from checked-in templates.
 - `task_card` scaffolding requires `quick` mode and is intentionally allowed as optional traceability in the quick lane.
 - `plan` scaffolding requires `full` mode, `full_plan`, and a linked architecture artifact.
+- `doctor` now checks active-work-item pointer integrity, compatibility-mirror alignment, and task-board validity when the active full-delivery stage depends on a task board.
+- Task-board support is bounded: only full-delivery work items may use it, and it does not imply unrestricted parallel safety outside the validated command surface.
 
 ## Validation Reality By Mode
 

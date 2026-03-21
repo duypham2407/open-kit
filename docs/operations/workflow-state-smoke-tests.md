@@ -69,6 +69,7 @@ This covers:
 - `sync-install-manifest` behavior for local manifest updates
 - non-zero `doctor` exit behavior when required runtime files are missing
 - quick-lane stage behavior such as `quick_plan` when live contract changes land in runtime tests
+- work-item and task-board summaries in `status` and `doctor` output when full-delivery parallel state is active
 
 ## Manual CLI Smoke Tests
 
@@ -84,7 +85,21 @@ Expected outcome:
 - `status` prints the active runtime summary using the current state file, including the active profile plus registry and install-manifest paths
 - `doctor` reports repository runtime checks instead of application-tooling health
 - `doctor` includes contract-consistency checks for declared runtime surfaces and schema alignment
+- `doctor` also checks active work-item pointer resolution, compatibility-mirror alignment, and task-board validity when the active full-delivery stage depends on task-board state
 - `doctor` exits successfully only when required OpenKit runtime files are present
+
+### Managed work-item inspection
+
+```bash
+node .opencode/workflow-state.js list-work-items
+node .opencode/workflow-state.js show-work-item feature-001
+```
+
+Expected outcome:
+
+- `list-work-items` prints `Active work item:` and marks the active item with `*`
+- `show-work-item feature-001` prints `Work item: feature-001`
+- `show-work-item feature-001` prints the work item's mode, stage, and status
 
 ### Profile inspection
 
@@ -132,6 +147,7 @@ Expected outcome:
 
 ```bash
 node .opencode/workflow-state.js start-task quick TASK-900 copy-fix "Scoped text change"
+node .opencode/workflow-state.js advance-stage quick_plan
 node .opencode/workflow-state.js advance-stage quick_build
 node .opencode/workflow-state.js advance-stage quick_verify
 node .opencode/workflow-state.js set-approval quick_verified approved system 2026-03-21 "QA Lite passed"
@@ -174,9 +190,25 @@ Expected outcome:
 - `current_stage = full_implementation`
 - `retry_count = 1`
 
+### Full-delivery task-board inspection
+
+```bash
+node .opencode/workflow-state.js start-task full FEATURE-910 board-check "Board setup"
+node .opencode/workflow-state.js create-task feature-910 TASK-910-A "Implement diagnostics" implementation
+node .opencode/workflow-state.js list-tasks feature-910
+node .opencode/workflow-state.js validate-work-item-board feature-910
+```
+
+Expected outcome:
+
+- `create-task` initializes the task board for the new full-delivery work item
+- `list-tasks feature-910` prints `Tasks for feature-910:` followed by task rows
+- `validate-work-item-board feature-910` prints `Task board is valid for work item 'feature-910'`
+
 ## Notes
 
 - Prefer using a temporary state file when running manual smoke tests so the checked-in `.opencode/workflow-state.json` remains stable.
+- For task-aware smoke tests, prefer a temporary project copy rooted around `.opencode/workflow-state.json` so the compatibility mirror, work-item store, and install manifest can be exercised together.
 - Be deliberate when running `sync-install-manifest` because it updates the install manifest associated with the resolved project root, not the `--state` file itself. If that root is this repository, the checked-in `.opencode/install-manifest.json` will change.
 - If workflow rules change, update this file alongside the tests and the workflow-state CLI docs.
 - If session-start output changes, update this file, `README.md`, and any example docs that describe bootstrap behavior in the same change.

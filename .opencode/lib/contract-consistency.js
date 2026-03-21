@@ -17,6 +17,15 @@ function matchesAnyPattern(text, patterns) {
   return patterns.some((pattern) => pattern.test(text))
 }
 
+function normalizeText(text) {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, " ")
+}
+
+function includesAllTerms(text, terms) {
+  const normalized = normalizeText(text)
+  return terms.every((term) => normalized.includes(normalizeText(term).trim()))
+}
+
 function readTextIfExists(filePath) {
   if (!fs.existsSync(filePath)) {
     return null
@@ -43,9 +52,29 @@ function makeCheck(label, ok) {
 function getContractConsistencyReport({ projectRoot, manifest }) {
   const workflowPath = path.join(projectRoot, "context", "core", "workflow.md")
   const schemaPath = path.join(projectRoot, "context", "core", "workflow-state-schema.md")
+  const sessionResumePath = path.join(projectRoot, "context", "core", "session-resume.md")
+  const fullDeliverySpecPath = path.join(
+    projectRoot,
+    "docs",
+    "specs",
+    "2026-03-21-openkit-full-delivery-multi-task-runtime.md",
+  )
+  const fullDeliveryPlanPath = path.join(
+    projectRoot,
+    "docs",
+    "plans",
+    "2026-03-21-openkit-full-delivery-multi-task-runtime.md",
+  )
   const workflowText = readTextIfExists(workflowPath)
   const schemaText = readTextIfExists(schemaPath)
+  const sessionResumeText = readTextIfExists(sessionResumePath) ?? ""
+  const fullDeliverySpecText = readTextIfExists(fullDeliverySpecPath) ?? ""
+  const fullDeliveryPlanText = readTextIfExists(fullDeliveryPlanPath) ?? ""
   const surfacePaths = getManifestSurfacePaths(projectRoot, manifest)
+  const taskBoardContractText = [workflowText, sessionResumeText, fullDeliverySpecText, fullDeliveryPlanText]
+    .filter(Boolean)
+    .join("\n")
+  const compatibilityText = [schemaText, fullDeliverySpecText, fullDeliveryPlanText].filter(Boolean).join("\n")
 
   const allStageNames = [...QUICK_STAGE_SEQUENCE, ...FULL_STAGE_SEQUENCE]
   const allApprovalGates = [...MODE_APPROVAL_GATES.quick, ...MODE_APPROVAL_GATES.full]
@@ -86,6 +115,26 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
         ]),
     ),
     makeCheck(
+      "workflow contract keeps quick lane free of task boards",
+      includesAllTerms(taskBoardContractText, ["quick", "task", "board"]) &&
+        matchesAnyPattern(taskBoardContractText, [
+          /quick[^\n.]{0,120}(free of|without|must stay free of|must not carry|no) [^\n.]{0,80}task board/i,
+          /task board[^\n.]{0,120}(not allowed|forbidden|disallowed|full[- ]delivery only)[^\n.]{0,80}quick/i,
+          /quick[^\n.]{0,120}execution[- ]task[- ]board/i,
+          /do not invent a quick task board/i,
+        ]),
+    ),
+    makeCheck(
+      "workflow contract states full delivery owns execution task boards",
+      includesAllTerms(taskBoardContractText, ["full", "task", "board"]) &&
+        matchesAnyPattern(taskBoardContractText, [
+          /(full delivery|full mode|full work)[^\n.]{0,120}(owns|uses|carries|gains|has|contains|belong)[^\n.]{0,80}task board/i,
+          /task board[^\n.]{0,120}(full delivery|full mode|full work)[^\n.]{0,80}(only|owns|belong)/i,
+          /execution task boards? belong only to full delivery/i,
+          /only `?full delivery`? work items gain an execution[- ]task board/i,
+        ]),
+    ),
+    makeCheck(
       "workflow schema matches runtime mode enums",
       listExistingMarkdownLiterals(schemaText, MODE_VALUES).length === MODE_VALUES.length,
     ),
@@ -100,6 +149,17 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
     makeCheck(
       "workflow schema matches runtime approval keys",
       listExistingMarkdownLiterals(schemaText, allApprovalGates).length === allApprovalGates.length,
+    ),
+    makeCheck(
+      "workflow schema documents compatibility mirror behavior",
+      includesAllTerms(compatibilityText, ["work item"]) &&
+        matchesAnyPattern(compatibilityText, [
+          /(compatibility|mirrored|mirror)[^\n.]{0,120}(state file|workflow state|repo root)/i,
+          /(state file|workflow state|repo root)[^\n.]{0,120}(compatibility|mirrored|mirror)/i,
+          /mirrored compatibility surface/i,
+          /compatibility mirror/i,
+          /compatibility rule/i,
+        ]),
     ),
   )
 

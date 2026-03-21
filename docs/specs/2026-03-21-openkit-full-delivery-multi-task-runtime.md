@@ -372,11 +372,11 @@ The repository must not pretend that the old single-state model disappeared unti
 
 ## Command Surface Direction
 
-Expected new commands should follow the existing CLI shape:
+Current implemented commands follow the existing CLI shape:
 
 `node .opencode/workflow-state.js <command> ...`
 
-### Concrete direction for phase 1
+### Implemented phase-1 command surface
 
 Work-item commands:
 
@@ -388,21 +388,19 @@ Work-item commands:
 Full-delivery task-board commands:
 
 - `list-tasks <work_item_id>`
-- `create-task <work_item_id> <task_id> <title> <kind>`
-- `show-task <work_item_id> <task_id>`
-- `claim-task <work_item_id> <task_id> <owner>`
-- `release-task <work_item_id> <task_id>`
-- `assign-qa-owner <work_item_id> <task_id> <owner>`
+- `create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`
+- `claim-task <work_item_id> <task_id> <owner> <requested_by>`
+- `release-task <work_item_id> <task_id> <requested_by>`
+- `reassign-task <work_item_id> <task_id> <owner> <requested_by>`
+- `assign-qa-owner <work_item_id> <task_id> <owner> <requested_by>`
 - `set-task-status <work_item_id> <task_id> <status>`
-- `add-task-dependency <work_item_id> <task_id> <depends_on_task_id>`
 
 Aggregate and validation commands:
 
-- `summarize-work-item <work_item_id>`
 - `validate-work-item-board <work_item_id>`
 - existing `status`, `show`, and `doctor` should become multi-item aware
 
-These names may still be refined during implementation planning, but the runtime must stay additive and CLI-oriented rather than introducing a separate orchestration surface first.
+Commands such as `show-task`, `add-task-dependency`, and `summarize-work-item` remain future-facing ideas only until `.opencode/workflow-state.js` implements them. The runtime must stay additive and CLI-oriented rather than introducing a separate orchestration surface first.
 
 ## Validation Requirements
 

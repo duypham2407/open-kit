@@ -111,6 +111,8 @@ function setupTempRuntime(projectRoot) {
       "Quick Task+ is the live semantics of the quick lane, not a third lane.",
       "Mode enums remain `quick` and `full`.",
       "Commands remain `/task`, `/quick-task`, `/delivery`, and `/write-plan`.",
+      "Do not invent a quick task board; quick work stays task-board free.",
+      "Full Delivery owns the execution task board when one exists.",
       "Quick stages: `quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`.",
       "Full stages: `full_intake -> full_brief -> full_spec -> full_architecture -> full_plan -> full_implementation -> full_qa -> full_done`.",
       "Quick approvals: `quick_verified`.",
@@ -131,6 +133,7 @@ function setupTempRuntime(projectRoot) {
       "Artifact keys: `task_card`, `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
       "Quick approvals: `quick_verified`.",
       "Full approvals: `pm_to_ba`, `ba_to_architect`, `architect_to_tech_lead`, `tech_lead_to_fullstack`, `fullstack_to_qa`, `qa_to_done`.",
+      "Compatibility mirror behavior remains active for the current work item.",
       "",
     ].join("\n"),
     "utf8",
@@ -196,6 +199,140 @@ test("doctor reports contract consistency failures for schema/runtime parity mis
   assert.ok(
     report.checks.some(
       (check) => check.label === "workflow schema matches runtime stage sequences" && check.ok === false,
+    ),
+  )
+})
+
+test("doctor reports contract consistency failures when quick/task-board separation language drifts", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+  fs.writeFileSync(
+    path.join(projectRoot, "context", "core", "workflow.md"),
+    [
+      "# Workflow",
+      "",
+      "Quick Task+ is the live semantics of the quick lane, not a third lane.",
+      "Mode enums remain `quick` and `full`.",
+      "Commands remain `/task`, `/quick-task`, `/delivery`, and `/write-plan`.",
+      "Quick stages: `quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`.",
+      "Full stages: `full_intake -> full_brief -> full_spec -> full_architecture -> full_plan -> full_implementation -> full_qa -> full_done`.",
+      "Quick approvals: `quick_verified`.",
+      "Full approvals: `pm_to_ba`, `ba_to_architect`, `architect_to_tech_lead`, `tech_lead_to_fullstack`, `fullstack_to_qa`, `qa_to_done`.",
+      "Quick artifacts: `task_card`; full artifacts: `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
+
+  const report = runDoctor(path.join(projectRoot, ".opencode", "workflow-state.json"))
+
+  assert.ok(report.summary.error > 0)
+  assert.ok(
+    report.checks.some(
+      (check) => check.label === "workflow contract keeps quick lane free of task boards" && check.ok === false,
+    ),
+  )
+  assert.ok(
+    report.checks.some(
+      (check) => check.label === "workflow contract states full delivery owns execution task boards" && check.ok === false,
+    ),
+  )
+})
+
+test("contract consistency accepts equivalent quick/task-board guardrail wording", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  fs.writeFileSync(
+    path.join(projectRoot, "context", "core", "workflow.md"),
+    [
+      "# Workflow",
+      "",
+      "Quick Task+ remains the active quick semantics and is not a third operating mode.",
+      "Runtime modes stay `quick` and `full`.",
+      "Execution task boards belong only to Full Delivery work items.",
+      "Quick work must stay free of execution-task-board state.",
+      "Quick stages: `quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`.",
+      "Full stages: `full_intake -> full_brief -> full_spec -> full_architecture -> full_plan -> full_implementation -> full_qa -> full_done`.",
+      "Quick approvals: `quick_verified`.",
+      "Full approvals: `pm_to_ba`, `ba_to_architect`, `architect_to_tech_lead`, `tech_lead_to_fullstack`, `fullstack_to_qa`, `qa_to_done`.",
+      "Quick artifacts: `task_card`; full artifacts: `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
+
+  const report = runDoctor(path.join(projectRoot, ".opencode", "workflow-state.json"))
+
+  assert.equal(report.summary.error, 0)
+  assert.ok(
+    report.checks.some(
+      (check) => check.label === "workflow contract keeps quick lane free of task boards" && check.ok === true,
+    ),
+  )
+  assert.ok(
+    report.checks.some(
+      (check) => check.label === "workflow contract states full delivery owns execution task boards" && check.ok === true,
+    ),
+  )
+})
+
+test("contract consistency accepts equivalent compatibility mirror wording", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  fs.writeFileSync(
+    path.join(projectRoot, "context", "core", "workflow-state-schema.md"),
+    [
+      "# Workflow State Schema",
+      "",
+      "Modes: `quick`, `full`.",
+      "Quick stages: `quick_intake`, `quick_plan`, `quick_build`, `quick_verify`, `quick_done`.",
+      "Full stages: `full_intake`, `full_brief`, `full_spec`, `full_architecture`, `full_plan`, `full_implementation`, `full_qa`, `full_done`.",
+      "Artifact keys: `task_card`, `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
+      "Quick approvals: `quick_verified`.",
+      "Full approvals: `pm_to_ba`, `ba_to_architect`, `architect_to_tech_lead`, `tech_lead_to_fullstack`, `fullstack_to_qa`, `qa_to_done`.",
+      "The active work item still writes through the repo-root state file as a mirrored compatibility surface.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
+
+  const report = runDoctor(path.join(projectRoot, ".opencode", "workflow-state.json"))
+
+  assert.equal(report.summary.error, 0)
+  assert.ok(
+    report.checks.some(
+      (check) => check.label === "workflow schema documents compatibility mirror behavior" && check.ok === true,
+    ),
+  )
+})
+
+test("doctor reports contract consistency failures when schema omits compatibility mirror behavior", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+  fs.writeFileSync(
+    path.join(projectRoot, "context", "core", "workflow-state-schema.md"),
+    [
+      "# Workflow State Schema",
+      "",
+      "Modes: `quick`, `full`.",
+      "Quick stages: `quick_intake`, `quick_plan`, `quick_build`, `quick_verify`, `quick_done`.",
+      "Full stages: `full_intake`, `full_brief`, `full_spec`, `full_architecture`, `full_plan`, `full_implementation`, `full_qa`, `full_done`.",
+      "Artifact keys: `task_card`, `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
+      "Quick approvals: `quick_verified`.",
+      "Full approvals: `pm_to_ba`, `ba_to_architect`, `architect_to_tech_lead`, `tech_lead_to_fullstack`, `fullstack_to_qa`, `qa_to_done`.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
+
+  const report = runDoctor(path.join(projectRoot, ".opencode", "workflow-state.json"))
+
+  assert.ok(report.summary.error > 0)
+  assert.ok(
+    report.checks.some(
+      (check) => check.label === "workflow schema documents compatibility mirror behavior" && check.ok === false,
     ),
   )
 })

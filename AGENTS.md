@@ -40,7 +40,8 @@ Current repository facts:
 - FEATURE-002 direction artifacts explain the roadmap and rationale behind the current contract, but they do not override live runtime behavior or the current core workflow docs
 - The original single-pipeline workflow vision remains at `docs/ai_software_factory_agents.md` as historical background only
 - `.opencode/opencode.json` is present as the runtime manifest for this kit
-- `.opencode/workflow-state.json` is present as the persisted workflow state file
+- `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item
+- `.opencode/work-items/` is present as the internal per-item workflow backing store for managed runtime state
 - `.opencode/workflow-state.js` now supports the hard-split mode-aware workflow state contract
 - No repo-native build command is currently defined for application code
 - No repo-native lint command is currently defined for application code
@@ -101,7 +102,7 @@ If guidance conflicts with repository state, trust the repository state and upda
 - Verify file existence before referencing paths in plans or instructions
 - Prefer small, targeted edits over broad speculative restructuring
 - When new top-level areas are introduced, add them to this guide
-- If a task is resumable, read `.opencode/workflow-state.json` before proposing next actions
+- If a task is resumable, read `.opencode/workflow-state.json` as the active compatibility mirror, then inspect `.opencode/work-items/` when task-aware full-delivery context is relevant
 - When resuming workflow, determine `mode` first, then load the mode-appropriate artifact context
 
 Because the repository is still minimal, agents should explain assumptions plainly and avoid acting as if hidden infrastructure exists.
@@ -139,7 +140,8 @@ These are illustrative patterns, not current repository commands.
 The operating system layer is file-backed and should stay explicit.
 
 - Runtime manifest: `.opencode/opencode.json`
-- Persisted workflow state: `.opencode/workflow-state.json`
+- Active compatibility mirror: `.opencode/workflow-state.json`
+- Per-item backing store: `.opencode/work-items/`
 - Workflow-state CLI: `node .opencode/workflow-state.js ...`
 - Artifact templates: `docs/templates/`
 - Workflow examples: `docs/examples/`
@@ -153,12 +155,14 @@ Required artifact outputs by mode:
 - Full Delivery / Tech Lead -> `docs/plans/YYYY-MM-DD-<feature>.md`
 - Full Delivery / QA -> `docs/qa/YYYY-MM-DD-<feature>.md`
 - Architect decisions -> `docs/adr/YYYY-MM-DD-<decision>.md`
+- Full Delivery execution task board -> `.opencode/work-items/<work_item_id>/tasks.json` when the implemented runtime creates one
 
 Quick lane note:
 
 - `Quick Task+` successor semantics are live in the current `quick` lane
 - `quick_plan` is a required quick stage
 - task cards remain optional unless a later implemented change makes them mandatory
+- quick mode still has no task board; execution task boards belong only to full-delivery work items
 
 ## Single-Test Guidance
 
@@ -195,9 +199,11 @@ Use `context/core/workflow.md` as the canonical workflow reference and adapt it 
 - Treat `Quick Task+` as the live successor semantics of the existing quick lane, not as permission to invent a third mode, rename commands, or change enums unless the repository explicitly does so
 - Plan before coding. Even quick tasks need a clear objective, acceptance bullets, and validation path
 - Keep responsibilities explicit. Quick mode follows the canonical `quick_*` stage chain in `context/core/workflow.md`, with the `QA Agent` operating in `QA Lite`; full mode uses the broader delivery team
+- In the implemented full runtime, feature-level ownership still follows the stage owner while task-level ownership may be distributed through the full-delivery execution task board
 - Use feedback loops. Implementation is not complete until validation has run or the lack of validation tooling has been called out clearly
 - Do not skip review or validation because a task looks simple
 - Route issues by type and by mode: quick bugs loop within quick mode, but quick design or requirement issues must escalate to full delivery
+- Treat parallel support conservatively: only rely on task-board coordination, active-work-item switching, and task-level owner commands that the checked-in runtime actually enforces
 - Do not create commits unless the user explicitly asks for them, even if agent-level instructions mention frequent commit opportunities
 
 In a minimal repository, one agent may perform several roles. Preserve the role boundaries conceptually even when one worker executes multiple steps.

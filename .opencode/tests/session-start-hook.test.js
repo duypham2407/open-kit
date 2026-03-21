@@ -66,6 +66,48 @@ function writeManifest(projectRoot) {
   )
 }
 
+function writeWorkItemBoard(projectRoot, workItemId, board) {
+  const boardPath = path.join(projectRoot, ".opencode", "work-items", workItemId, "tasks.json")
+  fs.mkdirSync(path.dirname(boardPath), { recursive: true })
+  fs.writeFileSync(boardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
+}
+
+function makeFullState(overrides = {}) {
+  return {
+    feature_id: "FEATURE-700",
+    feature_slug: "parallel-runtime-rollout",
+    mode: "full",
+    mode_reason: "Feature-sized task board rollout",
+    current_stage: "full_implementation",
+    status: "in_progress",
+    current_owner: "FullstackAgent",
+    artifacts: {
+      task_card: null,
+      brief: "docs/briefs/2026-03-21-parallel-runtime-rollout.md",
+      spec: "docs/specs/2026-03-21-parallel-runtime-rollout.md",
+      architecture: "docs/architecture/2026-03-21-parallel-runtime-rollout.md",
+      plan: "docs/plans/2026-03-21-parallel-runtime-rollout.md",
+      qa_report: null,
+      adr: [],
+    },
+    approvals: {
+      pm_to_ba: { status: "approved", approved_by: "BAAgent", approved_at: "2026-03-21", notes: "ok" },
+      ba_to_architect: { status: "approved", approved_by: "ArchitectAgent", approved_at: "2026-03-21", notes: "ok" },
+      architect_to_tech_lead: { status: "approved", approved_by: "TechLeadAgent", approved_at: "2026-03-21", notes: "ok" },
+      tech_lead_to_fullstack: { status: "approved", approved_by: "FullstackAgent", approved_at: "2026-03-21", notes: "ok" },
+      fullstack_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
+      qa_to_done: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    },
+    issues: [],
+    retry_count: 0,
+    escalated_from: null,
+    escalation_reason: null,
+    updated_at: "2026-03-21T00:00:00.000Z",
+    work_item_id: "feature-700",
+    ...overrides,
+  }
+}
+
 function writeMetaSkill(projectRoot) {
   const skillDir = path.join(projectRoot, "skills", "using-skills")
   fs.mkdirSync(skillDir, { recursive: true })
@@ -227,4 +269,73 @@ test("session-start degrades gracefully when the JSON helper fails", () => {
   assert.match(result.stdout, /<openkit_runtime_status>/)
   assert.match(result.stdout, /json helper: degraded/)
   assert.doesNotMatch(result.stdout, /<workflow_resume_hint>/)
+})
+
+test("session-start emits task-aware resume hint for active full-delivery work", () => {
+  const projectRoot = makeTempProject()
+
+  writeManifest(projectRoot)
+  writeState(projectRoot, makeFullState())
+  writeWorkItemBoard(projectRoot, "feature-700", {
+    mode: "full",
+    current_stage: "full_implementation",
+    tasks: [
+      {
+        task_id: "TASK-700-A",
+        title: "Implement diagnostics",
+        summary: "Task-aware summaries",
+        kind: "implementation",
+        status: "in_progress",
+        primary_owner: "Dev-A",
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: [],
+        plan_refs: ["docs/plans/2026-03-21-parallel-runtime-rollout.md"],
+        branch_or_worktree: ".worktrees/parallel-agent-rollout/task-700-a",
+        created_by: "TechLeadAgent",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+      {
+        task_id: "TASK-700-B",
+        title: "QA diagnostics",
+        summary: "QA active task",
+        kind: "qa",
+        status: "qa_in_progress",
+        primary_owner: "Dev-B",
+        qa_owner: "QA-Agent",
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: [],
+        plan_refs: ["docs/plans/2026-03-21-parallel-runtime-rollout.md"],
+        branch_or_worktree: ".worktrees/parallel-agent-rollout/task-700-b",
+        created_by: "TechLeadAgent",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+  })
+
+  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+    cwd: projectRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      OPENKIT_PROJECT_ROOT: projectRoot,
+      OPENKIT_SESSION_START_NO_SKILL: "1",
+      OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
+    },
+  })
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /<workflow_resume_hint>/)
+  assert.match(result.stdout, /mode: full/)
+  assert.match(result.stdout, /stage: full_implementation/)
+  assert.match(result.stdout, /work item: FEATURE-700 \(parallel-runtime-rollout\)/)
+  assert.match(result.stdout, /active work item id: feature-700/)
+  assert.match(result.stdout, /task board: 2 tasks \| ready 0 \| active 2/)
+  assert.match(result.stdout, /active tasks: TASK-700-A \(in_progress, primary: Dev-A\); TASK-700-B \(qa_in_progress, qa: QA-Agent\)/)
+  assert.match(result.stdout, /Parallel task support is not yet assumed safe by this hook; confirm with `node \.opencode\/workflow-state\.js doctor` before relying on it\./)
 })

@@ -23,7 +23,9 @@ function loadFixtureState() {
 
 function createTempStateFile() {
   const dir = makeTempDir()
-  const statePath = path.join(dir, "workflow-state.json")
+  const opencodeDir = path.join(dir, ".opencode")
+  fs.mkdirSync(opencodeDir, { recursive: true })
+  const statePath = path.join(opencodeDir, "workflow-state.json")
   fs.writeFileSync(statePath, `${JSON.stringify(loadFixtureState(), null, 2)}\n`, "utf8")
   return statePath
 }

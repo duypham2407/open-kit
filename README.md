@@ -1,6 +1,6 @@
 # OpenKit — AI Software Factory
 
-OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines OpenAgentsControl-style orchestration concepts with superpowers-style workflow discipline using explicit artifacts, approval gates, and resumable workflow state.
+OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines OpenAgentsControl-style orchestration concepts with superpowers-style workflow discipline using explicit artifacts, approval gates, resumable workflow state, and a bounded full-delivery task runtime.
 
 The repository currently runs on the live `Quick Task+` successor semantics for the `quick` lane together with the `Full Delivery` lane. The system still has only two live modes: `quick` and `full`.
 
@@ -11,7 +11,14 @@ OpenKit now uses a hard split between two lanes:
 1. **Quick Task**: For narrow, low-risk daily tasks that should move fast.
 2. **Full Delivery**: For feature work and higher-risk changes that benefit from the full multi-role team flow.
 
-`MasterOrchestrator` chooses the lane, records the decision in workflow state, and routes the work.
+The Master Orchestrator chooses the lane, records the decision in workflow state, and routes the work.
+
+Parallel-runtime guardrails now implemented:
+
+- only `Full Delivery` work items can carry an execution task board
+- quick mode still has no task board and no task-level ownership model
+- `.opencode/workflow-state.json` is now the active external compatibility mirror for the active work item, while `.opencode/work-items/` is the internal managed backing store
+- safe parallel support is limited to the checked-in commands and validations; do not assume broader multi-agent safety than the runtime currently enforces
 
 Live quick-lane guardrails:
 
@@ -66,10 +73,11 @@ Directional and historical artifacts for the next phase live in:
 Use this flow when you want to inspect or resume the checked-in OpenKit runtime honestly, without assuming any broader installer or app stack.
 
 1. Ensure `.opencode/opencode.json` is present in the project root.
-2. Ensure `.opencode/workflow-state.json` is present so sessions can resume from explicit state.
-3. In the OpenCode runtime configured by this repository, `hooks/session-start` is intended to run at session start, emit an OpenKit runtime status block, print `status`, `doctor`, and `show` command hints, and load the repo-local `using-skills` meta-skill into the agent's context when that skill file exists.
-4. When workflow state is present, the session-start hook also prints a canonical resume hint that points back to `AGENTS.md`, `context/navigation.md`, `context/core/workflow.md`, `.opencode/workflow-state.json`, and `context/core/session-resume.md`.
-5. Use `node .opencode/workflow-state.js status` to inspect the current runtime summary and `node .opencode/workflow-state.js doctor` to check whether key runtime files and contract-alignment checks pass.
+2. Ensure `.opencode/workflow-state.json` is present as the active compatibility mirror for the current work item.
+3. Ensure `.opencode/work-items/` is present when you need task-aware full-delivery resume or work-item inspection.
+4. In the OpenCode runtime configured by this repository, `hooks/session-start` is intended to run at session start, emit an OpenKit runtime status block, print `status`, `doctor`, and `show` command hints, and load the repo-local `using-skills` meta-skill into the agent's context when that skill file exists.
+5. When workflow state is present, the session-start hook also prints a canonical resume hint that points back to `AGENTS.md`, `context/navigation.md`, `context/core/workflow.md`, `.opencode/workflow-state.json`, and `context/core/session-resume.md`, plus active work-item and task-board summary when available.
+6. Use `node .opencode/workflow-state.js status` to inspect the current runtime summary and `node .opencode/workflow-state.js doctor` to check whether key runtime files, work-item mirror alignment, and contract-alignment checks pass.
 
 If the session-start JSON helper is unavailable, the hook degrades gracefully: runtime status still prints, but manifest-derived details and resume hints may be reduced until the helper works again.
 
@@ -78,6 +86,7 @@ Practical maintainer flow:
 ```bash
 node .opencode/workflow-state.js status
 node .opencode/workflow-state.js doctor
+node .opencode/workflow-state.js list-work-items
 node .opencode/workflow-state.js show
 node --test ".opencode/tests/*.test.js"
 ```
@@ -157,9 +166,32 @@ You can trigger workflows with the following commands:
 - `/write-plan` — Full-delivery only; convert Spec and Architecture into an Implementation Plan
 - `/execute-plan` — Full-delivery only; start building the approved plan
 
-You can also type your request in normal language, and `MasterOrchestrator` will choose the appropriate lane.
+You can also type your request in normal language, and the Master Orchestrator will choose the appropriate lane.
 
 The command surface above is the current live interface. The live contract does not rename `/quick-task` or add a third lane command.
+
+## Daily Operator Path
+
+For normal day-to-day use, keep the operator loop short:
+
+1. Run `node .opencode/workflow-state.js status` to see whether work is already in progress.
+2. Run `node .opencode/workflow-state.js doctor` if the runtime looks off or you are entering a repo for the first time.
+3. Start with `/task` unless you already know the work must be `Quick Task` or `Full Delivery`.
+4. Use `node .opencode/workflow-state.js show` when you need the current state object or linked artifact paths.
+5. Use `node .opencode/workflow-state.js validate` before trusting a resumed or manually edited workflow state.
+
+This is the current live operator surface: `status`, `doctor`, `show`, `validate`, and the work-item/task-board inspection commands documented below. Treat those as bounded runtime helpers, not as evidence that arbitrary parallel execution support is safe.
+
+## Command Selection Matrix
+
+| If you want to... | Use | Notes |
+| --- | --- | --- |
+| let the system choose the lane | `/task` | default entrypoint for most requests |
+| force bounded daily work into the quick lane | `/quick-task` | only when quick-lane criteria already fit |
+| start feature or higher-risk work in the full lane | `/delivery` | use when the work clearly needs briefs, specs, architecture, or a plan |
+| refine product or design direction before planning | `/brainstorm` | full-delivery only; follow the brainstorming skill |
+| turn approved full-delivery artifacts into an implementation plan | `/write-plan` | full-delivery only; points to the planning skill and templates |
+| execute an approved implementation plan | `/execute-plan` | full-delivery only; follow the plan and report the real validation path |
 
 Helpful wayfinding docs:
 
@@ -168,30 +200,77 @@ Helpful wayfinding docs:
 - `docs/briefs/README.md`, `docs/specs/README.md`, `docs/architecture/README.md`, `docs/plans/README.md`, `docs/qa/README.md`, and `docs/adr/README.md` for artifact-specific guidance
 - `docs/governance/README.md` and `docs/operations/README.md` for policy and operational support
 
-Workflow-state utility commands:
+## Operator Entry Points
+
+Normal operator entrypoints in this repository are:
+
+- slash commands such as `/task`, `/quick-task`, `/delivery`, `/brainstorm`, `/write-plan`, and `/execute-plan`
+- `node .opencode/workflow-state.js status`
+- `node .opencode/workflow-state.js doctor`
+- `node .opencode/workflow-state.js show`
+- `node .opencode/workflow-state.js validate`
+- `node .opencode/workflow-state.js list-work-items`
+- `node .opencode/workflow-state.js show-work-item <work_item_id>`
+- `node .opencode/workflow-state.js list-tasks <work_item_id>` when the active full-delivery item uses a task board
+
+Use those first for day-to-day work, state inspection, and resume checks.
+
+## Workflow-State Utility Commands
+
+Operator-facing inspection commands:
 
 - `node .opencode/workflow-state.js status`
 - `node .opencode/workflow-state.js doctor`
 - `node .opencode/workflow-state.js show`
 - `node .opencode/workflow-state.js validate`
+- `node .opencode/workflow-state.js list-work-items`
+- `node .opencode/workflow-state.js show-work-item <work_item_id>`
+- `node .opencode/workflow-state.js list-tasks <work_item_id>`
+- `node .opencode/workflow-state.js validate-work-item-board <work_item_id>`
+
+Lower-level workflow-state mutation commands:
+
 - `node .opencode/workflow-state.js start-task <mode> <feature_id> <feature_slug> <mode_reason>`
+- `node .opencode/workflow-state.js create-work-item <mode> <feature_id> <feature_slug> <mode_reason>`
+- `node .opencode/workflow-state.js activate-work-item <work_item_id>`
 - `node .opencode/workflow-state.js advance-stage <stage>`
 - `node .opencode/workflow-state.js set-approval <gate> <status> ...`
 - `node .opencode/workflow-state.js link-artifact <kind> <path>`
 - `node .opencode/workflow-state.js scaffold-artifact <task_card|plan> <slug>`
+- `node .opencode/workflow-state.js create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`
+- `node .opencode/workflow-state.js claim-task <work_item_id> <task_id> <owner> <requested_by>`
+- `node .opencode/workflow-state.js release-task <work_item_id> <task_id> <requested_by>`
+- `node .opencode/workflow-state.js reassign-task <work_item_id> <task_id> <owner> <requested_by>`
+- `node .opencode/workflow-state.js assign-qa-owner <work_item_id> <task_id> <qa_owner> <requested_by>`
+- `node .opencode/workflow-state.js set-task-status <work_item_id> <task_id> <status>`
 - `node .opencode/workflow-state.js route-rework <issue_type> [repeat_failed_fix]`
+
+Use the mutation commands only when you are intentionally operating the checked-in workflow state machinery; they are not the normal day-to-day starting point for operators.
 
 Operational guidance:
 
 - `status` prints the project root, kit metadata, state file path, active mode, stage, workflow status, owner, and work item when present.
-- `doctor` reports repository runtime checks such as the registry, install manifest, workflow-state file, workflow-state CLI, hooks config, session-start hook, and lightweight contract-consistency checks for declared runtime surfaces and schema alignment.
+- `doctor` reports repository runtime checks such as the registry, install manifest, compatibility mirror, active work-item pointer, task-board validity, workflow-state CLI, hooks config, session-start hook, and lightweight contract-consistency checks for declared runtime surfaces and schema alignment.
 - `profiles` lists the local registry profiles known to this repository and marks the repository default with `*`.
 - `show-profile <name>` prints the profile name, whether it is the repository default, and the component categories referenced by that profile.
 - `sync-install-manifest <name>` rewrites `.opencode/install-manifest.json` so its recorded active profile matches the named registry profile.
+- `list-work-items` shows managed work items and marks the active one.
+- `show-work-item <work_item_id>` prints the selected work item's mode, stage, and status.
+- `list-tasks <work_item_id>` shows the task board for a full-delivery work item.
+- `validate-work-item-board <work_item_id>` checks that a full-delivery task board is present and structurally valid.
+- task commands only apply to full-delivery work items with an execution task board; quick mode intentionally stays task-board free.
 - `scaffold-artifact <task_card|plan> <slug>` creates a narrow repo-native draft from a checked-in template and links it into the active workflow state when the target slot is still empty.
 - `task_card` scaffolding is available only in `quick` mode and is intentionally allowed as optional traceability anywhere in the quick lane.
 - `plan` scaffolding is available only in `full` mode at `full_plan`, and it requires a linked architecture artifact before the draft is created.
 - the session-start hook prints a `<openkit_runtime_status>` block with `status`, `doctor`, and `show` command hints, then prints a `<workflow_resume_hint>` block with canonical resume-reading guidance when workflow state contains resumable context.
+- the same runtime surfaces may include active work-item id and task-board summaries for full-delivery work, but the hook still warns operators to confirm safety with `doctor` before relying on parallel task support.
+
+Validation guidance in the current repository:
+
+- `status`, `doctor`, `show`, and `validate` help inspect workflow runtime state; they are not substitutes for application build, lint, or test commands.
+- work-item and task-board commands help inspect and coordinate the implemented full-delivery runtime; they are not a general-purpose distributed scheduler.
+- This repository does not yet define repo-native app build/lint/test commands, so command docs and plans should name the real validation path honestly.
+- When no app-native tooling exists, use the workflow-state utility where relevant and then record manual or artifact-based verification instead of inventing automation.
 
 ## Safe Extension
 

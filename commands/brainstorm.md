@@ -1,17 +1,43 @@
 ---
-description: "Triggers the brainstorming skill to explore product/architecture design before implementation."
+description: "Starts Full Delivery design exploration with the brainstorming skill."
 ---
 
-# Lệnh: `/brainstorm`
+# Command: `/brainstorm`
 
-Lệnh này chỉ dùng cho lane `Full Delivery`.
+Use `/brainstorm` when work is already in `Full Delivery` mode and the team needs to refine product, requirements, or design direction before implementation planning.
 
-Khi User gõ lệnh `/brainstorm`, hoặc khi PM Agent/Architect Agent bắt đầu một tính năng mới trong full lane:
+## Preconditions
 
-1. Dừng mọi luồng công việc hiện tại (nếu đang dở dang).
-2. Đọc `AGENTS.md`, `context/navigation.md`, `context/core/workflow.md`, và `.opencode/workflow-state.json` nếu workflow đang resumable.
-3. Kiểm tra `mode` hiện tại. Nếu task đang ở `Quick Task`, không dùng `/brainstorm`; hãy escalate sang `Full Delivery` trước.
-4. Có thể dùng `node .opencode/workflow-state.js show` hoặc `node .opencode/workflow-state.js validate` để kiểm tra state hiện tại.
-5. Load skill `skills/brainstorming/SKILL.md`.
-6. Nếu cần, tạo hoặc cập nhật artifact thiết kế phù hợp trong `docs/briefs/` hoặc `docs/architecture/`.
-7. Bắt đầu Phase 1 của skill: Hỏi User 1 câu hỏi quan trọng nhất về bối cảnh.
+- The current `mode` must be `full`
+- The work needs design clarification, product exploration, or architecture framing before plan execution
+- If work is resuming, the current state must be readable before the session continues
+
+## Canonical docs to load
+
+- `AGENTS.md`
+- `context/navigation.md`
+- `context/core/workflow.md`
+- `context/core/project-config.md`
+- `.opencode/workflow-state.json` when resuming
+- skill `brainstorming`
+
+For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
+
+## Expected action
+
+- Confirm the work is in `Full Delivery` mode before starting brainstorming
+- Use the brainstorming skill to explore the problem, compare approaches, and converge on a design
+- Create or refine the appropriate Full Delivery artifact only when the skill outcome requires it
+- Point back to `context/core/workflow.md` for stage order, approvals, and escalation rules instead of restating them here
+
+## Rejection or escalation behavior
+
+- If the work is still in the quick lane, stop and escalate into `Full Delivery` before using this command
+- If the request is too incomplete to brainstorm safely, stop and ask for the missing context instead of fabricating direction
+- Do not use this command to imply an alternate workflow or any live parallel execution feature that the repository does not currently document
+
+## Validation guidance
+
+- Use `node .opencode/workflow-state.js show` or `node .opencode/workflow-state.js validate` when resumable state needs confirmation
+- Brainstorming output is design and workflow evidence, not app build/lint/test evidence
+- If the repository has no app-native validation commands for the eventual implementation, record that constraint honestly in downstream artifacts

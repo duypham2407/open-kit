@@ -8,7 +8,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 
 1. `AGENTS.md` for repository-wide rules and current-state guardrails
 2. `context/navigation.md` for context discovery and current-vs-future wayfinding
-3. `.opencode/workflow-state.json`
+3. `.opencode/workflow-state.json` as the active compatibility mirror for the current work item
 4. Determine `mode` and `current_stage`
 5. Read the mode-appropriate artifact or task context
 6. Read any related QA issues, approval notes, or escalation metadata
@@ -20,17 +20,29 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 If `mode` is `quick`:
 
 - read the quick task card if `artifacts.task_card` is present
-- if there is no task card, use workflow state plus the latest conversation or commit context as the working brief
+- if there is no task card, treat missing recorded quick context as a repair need; resume only from inspectable repository state and recorded workflow evidence, and repair the missing quick context before advancing when the current stage requires it
 - if `current_stage` is `quick_plan`, inspect the bounded checklist, acceptance confirmation, and verification path before resuming implementation
+- if `current_stage` is `quick_build`, inspect the recorded `quick_plan` content first; do not treat the absence of a task card as missing workflow
 - if `current_stage` is `quick_verify`, inspect the latest QA Lite evidence before continuing
+- if `current_stage` is `quick_done`, confirm `quick_verified` is approved and the closing evidence remains inspectable on resume
+
+Quick-lane reminder:
+
+- `quick_plan` is already part of the live contract, even when no separate doc artifact exists
+- QA Lite evidence is already part of the live contract, even when it is stored only in workflow state and session notes
+- do not invent a quick task board, extra lane, or extra artifact requirement while resuming quick work
 
 ### Full Delivery
 
 If `mode` is `full`:
 
 - read the artifact referenced by the current stage when it exists
+- if `work_item_id` is present, inspect `.opencode/work-items/index.json` and the active work-item state before trusting task-aware full-delivery context
+- if the current full-delivery stage is `full_plan`, `full_implementation`, or `full_qa`, inspect the task board when it exists and confirm it belongs only to this full work item
+- restore both feature-level and task-level context: current stage owner, active work item id, ready/active task summary, and any task-specific evidence tied to the next decision
 - if `current_stage` is `full_qa`, read the current QA report and related plan first
 - preserve the approval-gate context before advancing or rerouting
+- if resuming at a handoff boundary, inspect the latest approved gate notes before starting new work
 
 ## General Resume Rules
 
@@ -40,6 +52,15 @@ If `mode` is `full`:
 - If the referenced artifact file is missing, report the mismatch and repair the docs/state before proceeding.
 - If `escalated_from` is `quick`, resume from the current full-delivery stage, not from the abandoned quick stage.
 - Use `.opencode/workflow-state.js show` or `.opencode/workflow-state.js validate` when explicit state inspection helps resume work.
+- Use `node .opencode/workflow-state.js list-work-items`, `show-work-item`, `list-tasks`, or `validate-work-item-board` when full-delivery resume depends on task-aware state.
+- Inspect whether the recorded evidence is sufficient for the current stage before acting; if not, repair the handoff context first.
+- Preserve explicit validation history when resuming; do not replace prior evidence with vague restatements.
+
+Task-aware full-delivery reminder:
+
+- `.opencode/workflow-state.json` is the active compatibility mirror, not the sole managed backing file
+- do not assume every full-delivery item has parallel work; only rely on task-board state when the runtime actually recorded it
+- quick mode still has no task board
 
 The current one-way escalation behavior remains unchanged in the live contract.
 

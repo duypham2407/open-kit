@@ -67,6 +67,7 @@ Next step:
 - completed implementation package from `FullstackAgent`
 - spec, architecture, and implementation plan artifacts
 - current approval and issue context if resuming
+- task-board ownership and task evidence when the full-delivery runtime is coordinating execution tasks
 
 ### Role-local checks
 
@@ -74,13 +75,21 @@ Next step:
 - review code quality against `context/core/code-quality.md`
 - run or inspect the strongest real validation path defined in `context/core/project-config.md`
 - classify every issue with the schema from `context/core/issue-routing.md`
+- when a task board exists, validate task-scoped evidence against the assigned `qa_owner` responsibilities before recommending feature-level closure
 
 ### Output
 
 - QA report at `docs/qa/YYYY-MM-DD-<feature-slug>.md`, preferably started from `docs/templates/qa-report-template.md`
 - explicit PASS/FAIL status
-- issue list with type, severity, rooted_in, recommended owner, evidence, and artifact refs
+- issue list with type, severity, rooted_in, recommended owner, evidence, artifact refs, and task refs when applicable
 - clear next-step recommendation back to `MasterOrchestrator`
+
+## Feature-versus-task ownership
+
+- `QAAgent` still owns the feature-level `full_qa` stage when the active work item is in full QA
+- an assigned task-level `qa_owner` may move only its execution task through QA statuses and report task-scoped findings
+- task-level QA ownership does not authorize feature closure; `MasterOrchestrator` still owns the `qa_to_done` closure decision
+- quick mode keeps QA Lite simple and has no task board or per-task QA assignment layer
 
 ## Stop Conditions
 

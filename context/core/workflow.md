@@ -13,7 +13,7 @@ OpenKit now has two explicitly separate operating lanes:
 - `Quick Task` for narrow, low-risk daily work
 - `Full Delivery` for feature work and higher-risk changes
 
-`MasterOrchestrator` is the entry point for both lanes and is responsible for choosing the lane, recording the choice in workflow state, and routing the work.
+The Master Orchestrator is the entry point for both lanes and is responsible for choosing the lane, recording the choice in workflow state, and routing the work.
 
 Terminology guardrail:
 
@@ -21,7 +21,7 @@ Terminology guardrail:
 - `Quick Task+` is not a third operating mode
 - current runtime mode enums remain `quick` and `full`
 - current command names remain unchanged unless a separate explicit implementation changes them
-- use `MasterOrchestrator` for the role name and `QA Lite` for the lighter quick-lane verification pass
+- use human-readable role labels such as `Master Orchestrator` in prose, and use `QA Lite` for the lighter quick-lane verification pass
 - in narrative prose, prefer human-readable role labels such as `Master Orchestrator`, `QA Agent`, and `Tech Lead Agent`; use exact runtime identifiers only when naming owners, files, commands, or schema values
 
 ## Contract Alignment Status
@@ -39,7 +39,7 @@ Pipeline:
 ```
 User Request
     ↓
-    MasterOrchestrator    ← classify task, define quick scope
+    Master Orchestrator   ← classify task, define quick scope
     ↓
     quick_plan            ← bounded checklist and verification setup
     ↓
@@ -47,7 +47,7 @@ User Request
     ↓
     QA Agent              ← QA Lite verification
     ↓
-    MasterOrchestrator    ← close or reroute
+    Master Orchestrator   ← close or reroute
 ```
 
 Quick mode exists to reduce overhead, not to bypass quality.
@@ -78,7 +78,7 @@ Pipeline:
 ```
 User Request
     ↓
-MasterOrchestrator
+Master Orchestrator
     ↓
 PM Agent
     ↓
@@ -92,10 +92,17 @@ Fullstack Agent
     ↓
 QA Agent
     ↓
-MasterOrchestrator
+Master Orchestrator
 ```
 
 Full mode preserves the structured team workflow for work that benefits from deliberate requirements, design, planning, implementation, and QA handoffs.
+
+Implemented full-delivery task-runtime note:
+
+- from `full_plan` onward, a full-delivery work item may carry an execution task board under `.opencode/work-items/<work_item_id>/tasks.json`
+- task boards belong only to full-delivery work items
+- task-level ownership does not replace the feature-stage owner recorded in workflow state
+- operators must still treat parallel support conservatively and rely only on the runtime checks and commands that exist today
 
 ## Lane Selection Rules
 
@@ -154,11 +161,27 @@ There is no downgrade path from full mode back into quick mode.
 
 Approval requirements are mode-specific.
 
+Approval-authority rule for all live gates:
+
+- the gate owner preparing the handoff cannot self-approve the handoff as complete
+- the receiving role is the default approval authority for readiness to begin its stage
+- the Master Orchestrator is the approval authority for workflow closure gates that end a lane
+- approval notes should confirm both readiness and any blocking assumptions that remain
+
 ### Quick Task
 
 - `quick_verified` is the only required gate
 - the original user request is treated as implicit approval to begin unless the task is ambiguous or risky
 - `quick_plan` is required before `quick_build`, but it does not introduce a second approval gate
+- `QA Agent` is the approval authority for `quick_verified`
+- `quick_verified` means QA Lite evidence is inspected, recorded, and judged sufficient for closure
+
+Quick handoff-ready expectations:
+
+- `quick_intake -> quick_plan`: scope, lane fit, and intended validation path are clear enough for bounded planning
+- `quick_plan -> quick_build`: the checklist, acceptance bullets, and direct verification path are recorded and inspectable
+- `quick_build -> quick_verify`: the smallest safe change is implemented and the builder provides enough context for QA Lite to inspect it efficiently
+- `quick_verify -> quick_done`: QA Lite evidence is recorded, open issues are either resolved or escalated, and `quick_verified` is approved
 
 ### Full Delivery
 
@@ -169,7 +192,26 @@ Approval requirements are mode-specific.
 - `fullstack_to_qa`
 - `qa_to_done`
 
-Approval state should be recorded in `.opencode/workflow-state.json` before advancing stages.
+Approval authorities:
+
+- `pm_to_ba`: `BA Agent`
+- `ba_to_architect`: `Architect Agent`
+- `architect_to_tech_lead`: `Tech Lead Agent`
+- `tech_lead_to_fullstack`: `Fullstack Agent`
+- `fullstack_to_qa`: `QA Agent`
+- `qa_to_done`: `Master Orchestrator`
+
+Full-delivery handoff-ready expectations:
+
+- `full_intake -> full_brief`: lane choice, problem framing, and expected outcome are clear enough for PM scoping
+- `full_brief -> full_spec`: the brief states goals, constraints, success criteria, and unresolved product questions
+- `full_spec -> full_architecture`: the specification defines functional scope, edge cases, and acceptance expectations the architect can design against
+- `full_architecture -> full_plan`: the design identifies boundaries, dependencies, risks, and decisions the Tech Lead can turn into executable work
+- `full_plan -> full_implementation`: the plan breaks the work into implementable steps with validation expectations and any sequencing constraints
+- `full_implementation -> full_qa`: implementation artifacts and verification evidence are inspectable, and known deviations are called out explicitly
+- `full_qa -> full_done`: QA findings are resolved or routed correctly, final evidence is inspectable, and closure notes are ready for the Master Orchestrator
+
+Approval state should be recorded in the managed active work-item state before advancing stages, and the active compatibility mirror at `.opencode/workflow-state.json` should reflect that updated state.
 
 ## Document Outputs By Mode
 
@@ -184,6 +226,9 @@ Quick-task artifact rule:
 
 - `quick_plan` is mandatory as a workflow stage
 - `docs/tasks/...` remains optional as a documentation artifact
+- the required quick-plan content is live workflow state and communication, not a separate mandatory board or third quick artifact type
+- QA Lite evidence is part of the live quick contract already and should be inspectable on resume even when no standalone QA document exists
+- quick mode must stay free of execution task boards
 
 ### Full Delivery
 
@@ -204,10 +249,13 @@ Quick-task artifact rule:
 4. **Use Master Orchestrator for routing** — All inter-agent delegation goes through Master.
 5. **Escalate honestly** — Quick mode stops when the work becomes a design or requirements problem.
 6. **Report real validation** — If tooling does not exist, document the actual verification path instead of inventing commands.
+7. **Make handoffs inspectable** — Every stage boundary should leave enough recorded context that the next role can resume without hidden assumptions.
 
 ## Workflow State
 
-The canonical persisted runtime state lives in `.opencode/workflow-state.json`.
+The active external compatibility mirror lives in `.opencode/workflow-state.json`.
+
+Managed per-item state lives under `.opencode/work-items/`, and the active work item is mirrored into `.opencode/workflow-state.json` for compatibility with the existing command and resume surface.
 
 Field definitions and allowed enums live in `context/core/workflow-state-schema.md`.
 
@@ -221,5 +269,7 @@ At minimum it must track:
 - open issues
 - retry count
 - escalation metadata when quick work is promoted to full delivery
+
+When full delivery is using task-aware execution, task-board state is stored beside the active work item rather than inside the top-level mirrored state file.
 
 State-shape changes for future quick-lane behavior are out of scope for this phase. Preserve compatibility with the current schema until a later task changes runtime support deliberately.

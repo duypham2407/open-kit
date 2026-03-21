@@ -11,6 +11,7 @@ META_SKILL_PATH="$PROJECT_ROOT/skills/using-skills/SKILL.md"
 STATE_PATH="${OPENKIT_WORKFLOW_STATE:-$PROJECT_ROOT/.opencode/workflow-state.json}"
 MANIFEST_PATH="$PROJECT_ROOT/.opencode/opencode.json"
 PYTHON_BIN="${OPENKIT_PYTHON_BIN:-python3}"
+RUNTIME_SUMMARY_MODULE="$(dirname "$DIR")/.opencode/lib/runtime-summary.js"
 
 KIT_NAME="OpenKit AI Software Factory"
 KIT_VERSION="unknown"
@@ -18,7 +19,7 @@ ENTRY_AGENT="unknown"
 JSON_HELPER_STATUS="ok"
 
 if [ -f "$MANIFEST_PATH" ] && command -v "$PYTHON_BIN" >/dev/null 2>&1; then
-    readarray -t KIT_INFO < <("$PYTHON_BIN" - "$MANIFEST_PATH" <<'PY' || true
+    KIT_INFO_RAW=$("$PYTHON_BIN" - "$MANIFEST_PATH" <<'PY' || true
 import json
 import sys
 
@@ -36,10 +37,13 @@ print(kit.get("version", "unknown"))
 print(kit.get("entryAgent", "unknown"))
 PY
 )
-    if [ ${#KIT_INFO[@]} -ge 3 ]; then
-        KIT_NAME="${KIT_INFO[0]}"
-        KIT_VERSION="${KIT_INFO[1]}"
-        ENTRY_AGENT="${KIT_INFO[2]}"
+    KIT_INFO_1=$(printf '%s\n' "$KIT_INFO_RAW" | sed -n '1p')
+    KIT_INFO_2=$(printf '%s\n' "$KIT_INFO_RAW" | sed -n '2p')
+    KIT_INFO_3=$(printf '%s\n' "$KIT_INFO_RAW" | sed -n '3p')
+    if [ -n "$KIT_INFO_1" ] && [ -n "$KIT_INFO_2" ] && [ -n "$KIT_INFO_3" ]; then
+        KIT_NAME="$KIT_INFO_1"
+        KIT_VERSION="$KIT_INFO_2"
+        ENTRY_AGENT="$KIT_INFO_3"
     else
         JSON_HELPER_STATUS="degraded"
     fi
@@ -76,11 +80,16 @@ if [ -z "${OPENKIT_SESSION_START_NO_SKILL:-}" ] && [ -f "$META_SKILL_PATH" ]; th
 fi
 
 if [ -f "$STATE_PATH" ] && [ "$JSON_HELPER_STATUS" = "ok" ] && command -v "$PYTHON_BIN" >/dev/null 2>&1; then
-    "$PYTHON_BIN" - "$STATE_PATH" <<'PY' || true
+    "$PYTHON_BIN" - "$STATE_PATH" "$RUNTIME_SUMMARY_MODULE" <<'PY' || true
 import json
+import os
+import pathlib
+import subprocess
 import sys
 
 state_path = sys.argv[1]
+runtime_summary_module = sys.argv[2]
+project_root = os.environ.get("OPENKIT_PROJECT_ROOT") or str(pathlib.Path(state_path).resolve().parents[1])
 
 try:
     with open(state_path, "r", encoding="utf-8") as fh:
@@ -94,9 +103,40 @@ status = state.get("status")
 owner = state.get("current_owner")
 feature_id = state.get("feature_id")
 feature_slug = state.get("feature_slug")
+work_item_id = state.get("work_item_id")
 
 if not all([mode, stage, status, owner]):
     sys.exit(0)
+
+task_summary = None
+active_tasks = []
+
+if mode == "full" and work_item_id:
+    try:
+        node_cmd = [
+            "node",
+            "-e",
+            (
+                "const { getRuntimeContext } = require(process.argv[1]);"
+                "const context = getRuntimeContext(process.argv[2], JSON.parse(process.argv[3]));"
+                "process.stdout.write(JSON.stringify(context));"
+            ),
+            runtime_summary_module,
+            project_root,
+            json.dumps(state),
+        ]
+        result = subprocess.run(node_cmd, check=True, capture_output=True, text=True)
+        runtime_context = json.loads(result.stdout.strip() or "{}")
+        board_summary = runtime_context.get("taskBoardSummary")
+        if board_summary:
+            task_summary = (
+                f"task board: {board_summary.get('total', 0)} tasks | "
+                f"ready {board_summary.get('ready', 0)} | active {board_summary.get('active', 0)}"
+            )
+            active_tasks = board_summary.get("activeTasks") or []
+    except Exception:
+        task_summary = None
+        active_tasks = []
 
 print("<workflow_resume_hint>")
 print("OpenKit workflow resume context detected.")
@@ -106,8 +146,16 @@ print(f"status: {status}")
 print(f"owner: {owner}")
 if feature_id and feature_slug:
     print(f"work item: {feature_id} ({feature_slug})")
+if work_item_id:
+    print(f"active work item id: {work_item_id}")
+if task_summary:
+    print(task_summary)
+if active_tasks:
+    print(f"active tasks: {'; '.join(active_tasks)}")
 print("Read first: AGENTS.md -> context/navigation.md -> context/core/workflow.md -> .opencode/workflow-state.json")
 print("Then load resume guidance from context/core/session-resume.md.")
+if mode == "full" and active_tasks:
+    print("Parallel task support is not yet assumed safe by this hook; confirm with `node .opencode/workflow-state.js doctor` before relying on it.")
 print("</workflow_resume_hint>")
 PY
 fi

@@ -2,6 +2,17 @@ const fs = require("fs")
 const path = require("path")
 
 const {
+  bootstrapLegacyWorkflowState,
+  deriveWorkItemId,
+  readWorkItemIndex,
+  readWorkItemState,
+  resolveWorkItemPaths,
+  setActiveWorkItem,
+  writeCompatibilityMirror,
+  writeWorkItemIndex,
+  writeWorkItemState,
+} = require("./work-item-store")
+const {
   ARTIFACT_KINDS,
   ESCALATION_RETRY_THRESHOLD,
   ISSUE_SEVERITIES,
@@ -23,6 +34,15 @@ const {
 } = require("./workflow-state-rules")
 const { getContractConsistencyReport: buildContractConsistencyReport } = require("./contract-consistency")
 const { SUPPORTED_SCAFFOLDS, scaffoldArtifact } = require("./artifact-scaffolder")
+const { captureRevision, guardWrite, planGuardedMirrorRefresh } = require("./state-guard")
+const {
+  VALID_ASSIGNMENT_AUTHORITIES,
+  decideQaFailLocalRework,
+  validateParallelAssignments,
+  validateReassignmentAuthority,
+  validateWorktreeMetadata,
+} = require("./parallel-execution-rules")
+const { validateTaskBoard, validateTaskShape, validateTaskStatus, validateTaskTransition } = require("./task-board-rules")
 
 function fail(message) {
   const error = new Error(message)
@@ -70,9 +90,337 @@ function writeState(statePath, state) {
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
 }
 
+function createEmptyWorkItemIndex() {
+  return {
+    active_work_item_id: null,
+    work_items: [],
+  }
+}
+
 function resolveProjectRoot(customStatePath) {
   const statePath = resolveStatePath(customStatePath)
   return path.dirname(path.dirname(statePath))
+}
+
+function ensureWorkItemStoreReady(customStatePath) {
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const { indexPath } = resolveWorkItemPaths(projectRoot, "__bootstrap__")
+
+  if (!fs.existsSync(indexPath)) {
+    bootstrapLegacyWorkflowState(projectRoot)
+  }
+
+  return projectRoot
+}
+
+function upsertWorkItemIndexEntry(index, state, workItemId, relativeStatePath) {
+  const nextEntry = {
+    work_item_id: workItemId,
+    feature_id: state.feature_id,
+    feature_slug: state.feature_slug,
+    mode: state.mode,
+    status: state.status,
+    state_path: relativeStatePath,
+  }
+
+  const existingIndex = index.work_items.findIndex((entry) => entry.work_item_id === workItemId)
+  if (existingIndex === -1) {
+    index.work_items.push(nextEntry)
+  } else {
+    index.work_items[existingIndex] = nextEntry
+  }
+
+  return nextEntry
+}
+
+function readManagedState(customStatePath, workItemId = null) {
+  const statePath = resolveStatePath(customStatePath)
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const index = readWorkItemIndex(projectRoot)
+  const resolvedWorkItemId = workItemId ?? index.active_work_item_id
+
+  if (!resolvedWorkItemId) {
+    fail("Active work item pointer missing")
+  }
+
+  return {
+    statePath,
+    projectRoot,
+    index,
+    workItemId: resolvedWorkItemId,
+    state: readWorkItemState(projectRoot, resolvedWorkItemId),
+  }
+}
+
+function persistManagedState(customStatePath, state, options = {}) {
+  const statePath = resolveStatePath(customStatePath)
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const workItemId = options.workItemId ?? deriveWorkItemId(state)
+  const workItemPaths = resolveWorkItemPaths(projectRoot, workItemId)
+  const index = fs.existsSync(workItemPaths.indexPath)
+    ? readWorkItemIndex(projectRoot)
+    : createEmptyWorkItemIndex()
+  const hasPersistedState = fs.existsSync(workItemPaths.statePath)
+  const currentPersistedState = hasPersistedState ? readWorkItemState(projectRoot, workItemId) : null
+  const previousIndexSnapshot = JSON.parse(JSON.stringify(index))
+  const hadMirrorState = fs.existsSync(statePath)
+  const previousMirrorState = hadMirrorState ? readState(statePath).state : null
+
+  if (currentPersistedState) {
+    guardWrite({
+      currentState: currentPersistedState,
+      expectedRevision: options.expectedRevision,
+      nextState: state,
+    })
+  }
+
+  const persistedState = writeWorkItemState(projectRoot, workItemId, state)
+  try {
+    validateManagedState(persistedState, projectRoot, workItemId)
+
+    const nextActiveWorkItemId = options.activateWorkItemId ?? workItemId
+    const mirrorRefreshPlan = planGuardedMirrorRefresh({
+      activeWorkItemId: nextActiveWorkItemId,
+      targetWorkItemId: workItemId,
+      nextState: persistedState,
+    })
+
+    if (mirrorRefreshPlan.shouldRefreshMirror) {
+      const preflightMirrorState = fs.existsSync(statePath) ? readState(statePath).state : null
+
+      if (preflightMirrorState && options.expectedMirrorRevision) {
+        guardWrite({
+          currentState: preflightMirrorState,
+          expectedRevision: options.expectedMirrorRevision,
+          nextState: persistedState,
+        })
+      }
+
+      writeCompatibilityMirror(projectRoot, persistedState)
+
+      const mirrorState = readState(statePath).state
+      const mirrorRevision = captureRevision(mirrorState)
+
+      if (mirrorRevision !== mirrorRefreshPlan.mirrorRevision) {
+        fail(
+          `Compatibility mirror refresh revision conflict for active work item '${workItemId}'; expected ${mirrorRefreshPlan.mirrorRevision} but found ${mirrorRevision}`,
+        )
+      }
+    }
+
+    upsertWorkItemIndexEntry(index, persistedState, workItemId, workItemPaths.relativeStatePath)
+    index.active_work_item_id = nextActiveWorkItemId
+    writeWorkItemIndex(projectRoot, index)
+  } catch (error) {
+    if (currentPersistedState) {
+      writeWorkItemState(projectRoot, workItemId, currentPersistedState)
+    } else if (fs.existsSync(workItemPaths.statePath)) {
+      fs.rmSync(workItemPaths.statePath)
+    }
+
+    if (previousMirrorState) {
+      writeCompatibilityMirror(projectRoot, previousMirrorState)
+    } else if (!hadMirrorState && fs.existsSync(statePath)) {
+      fs.rmSync(statePath)
+    }
+
+    try {
+      writeWorkItemIndex(projectRoot, previousIndexSnapshot)
+    } catch (_rollbackError) {
+      // Preserve the original failure after best-effort rollback.
+    }
+    throw error
+  }
+
+  return {
+    statePath,
+    projectRoot,
+    index,
+    state: persistedState,
+  }
+}
+
+function getTaskBoardPath(projectRoot, workItemId) {
+  return path.join(resolveWorkItemPaths(projectRoot, workItemId).workItemDir, "tasks.json")
+}
+
+function readTaskBoardIfExists(projectRoot, workItemId) {
+  const taskBoardPath = getTaskBoardPath(projectRoot, workItemId)
+  if (!fs.existsSync(taskBoardPath)) {
+    return null
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(taskBoardPath, "utf8"))
+  } catch (error) {
+    fail(`Malformed JSON at '${taskBoardPath}': ${error.message}`)
+  }
+}
+
+function writeTaskBoard(projectRoot, workItemId, board) {
+  const taskBoardPath = getTaskBoardPath(projectRoot, workItemId)
+  fs.mkdirSync(path.dirname(taskBoardPath), { recursive: true })
+  fs.writeFileSync(taskBoardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
+  return board
+}
+
+function buildBoardView(state, board) {
+  return {
+    mode: state.mode,
+    current_stage: state.current_stage,
+    tasks: board?.tasks ?? [],
+    issues: board?.issues ?? [],
+  }
+}
+
+function readWorkItemContext(workItemId, customStatePath) {
+  ensureString(workItemId, "work_item_id")
+  const statePath = resolveStatePath(customStatePath)
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const state = readWorkItemState(projectRoot, workItemId)
+  validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
+
+  return {
+    statePath,
+    projectRoot,
+    workItemId,
+    state,
+  }
+}
+
+function requireFullModeWorkItem(state, workItemId) {
+  if (state.mode !== "full") {
+    fail(`Work item '${workItemId}' must be in full mode to use a task board`)
+  }
+}
+
+function isTaskBoardStageAllowed(stage) {
+  return ["full_plan", "full_implementation", "full_qa", "full_done"].includes(stage)
+}
+
+function requireTaskBoardStage(state, workItemId, action = "use a task board") {
+  if (!isTaskBoardStageAllowed(state.current_stage)) {
+    fail(
+      `Work item '${workItemId}' must reach 'full_plan' before it can ${action}; current stage is '${state.current_stage}'`,
+    )
+  }
+}
+
+function buildBoardForValidation(state, board) {
+  validateParallelAssignments(board.tasks ?? [])
+
+  return {
+    ...board,
+    mode: state.mode,
+    current_stage: state.current_stage,
+    issues: board.issues ?? [],
+  }
+}
+
+function withTaskBoard(workItemId, customStatePath, mutator) {
+  const context = readWorkItemContext(workItemId, customStatePath)
+  const { state, projectRoot } = context
+  requireFullModeWorkItem(state, workItemId)
+  requireTaskBoardStage(state, workItemId)
+
+  const existingBoard = readTaskBoardIfExists(projectRoot, workItemId)
+  const baseBoard = buildBoardView(state, existingBoard)
+  const nextBoard = mutator(JSON.parse(JSON.stringify(baseBoard)), context)
+  const validatedBoard = validateTaskBoard(buildBoardForValidation(state, nextBoard))
+  writeTaskBoard(projectRoot, workItemId, validatedBoard)
+
+  return {
+    ...context,
+    board: validatedBoard,
+  }
+}
+
+function findTask(board, taskId) {
+  ensureString(taskId, "task_id")
+  const task = board.tasks.find((entry) => entry.task_id === taskId)
+  if (!task) {
+    fail(`Unknown task '${taskId}'`)
+  }
+  return task
+}
+
+function buildTaskRecord(taskInput) {
+  ensureObject(taskInput, "task")
+  ensureString(taskInput.task_id, "task.task_id")
+  ensureString(taskInput.title, "task.title")
+  ensureString(taskInput.kind, "task.kind")
+
+  if (taskInput.worktree_metadata !== undefined) {
+    validateWorktreeMetadata(taskInput.worktree_metadata)
+  }
+
+  const now = timestamp()
+
+  return validateTaskShape({
+    task_id: taskInput.task_id,
+    title: taskInput.title,
+    summary: taskInput.summary ?? taskInput.title,
+    kind: taskInput.kind,
+    status: taskInput.status ?? "ready",
+    primary_owner: taskInput.primary_owner ?? null,
+    qa_owner: taskInput.qa_owner ?? null,
+    depends_on: taskInput.depends_on ?? [],
+    blocked_by: taskInput.blocked_by ?? [],
+    artifact_refs: taskInput.artifact_refs ?? [],
+    plan_refs: taskInput.plan_refs ?? [],
+    branch_or_worktree: taskInput.branch_or_worktree ?? taskInput.worktree_metadata?.worktree_path ?? null,
+    created_by: taskInput.created_by ?? "TechLeadAgent",
+    created_at: taskInput.created_at ?? now,
+    updated_at: taskInput.updated_at ?? now,
+  })
+}
+
+function validateManagedState(state, projectRoot, workItemId, options = {}) {
+  const taskBoard = readTaskBoardIfExists(projectRoot, workItemId)
+
+  if (state.mode === "quick") {
+    if (taskBoard !== null) {
+      fail("Quick mode cannot carry a task board; task boards are full-delivery only")
+    }
+    return null
+  }
+
+  if (taskBoard === null) {
+    return null
+  }
+
+  requireTaskBoardStage(state, workItemId, "carry a task board")
+
+  const boardStage = options.boardStage ?? taskBoard.current_stage ?? state.current_stage
+  validateTaskBoard({
+    ...taskBoard,
+    mode: state.mode,
+    current_stage: boardStage,
+  })
+
+  return taskBoard
+}
+
+function requireValidTaskBoard(state, projectRoot, workItemId, boardStage, reason) {
+  const taskBoard = readTaskBoardIfExists(projectRoot, workItemId)
+
+  if (state.mode === "quick") {
+    if (taskBoard !== null) {
+      fail("Quick mode cannot carry a task board; task boards are full-delivery only")
+    }
+    fail(reason)
+  }
+
+  if (taskBoard === null) {
+    fail(reason)
+  }
+
+  validateTaskBoard({
+    ...taskBoard,
+    mode: state.mode,
+    current_stage: boardStage,
+  })
 }
 
 function readJsonIfExists(filePath) {
@@ -392,25 +740,347 @@ function validateStateObject(state, options = {}) {
   return state
 }
 
+function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason, updatedAt }) {
+  const initialStage = getInitialStageForMode(mode)
+
+  return {
+    work_item_id: workItemId,
+    feature_id: featureId,
+    feature_slug: featureSlug,
+    mode,
+    mode_reason: modeReason,
+    current_stage: initialStage,
+    status: "in_progress",
+    current_owner: STAGE_OWNERS[initialStage],
+    artifacts: createEmptyArtifacts(),
+    approvals: createEmptyApprovals(mode),
+    issues: [],
+    retry_count: 0,
+    escalated_from: null,
+    escalation_reason: null,
+    updated_at: updatedAt,
+  }
+}
+
 function mutate(customStatePath, mutator) {
-  const { statePath, state } = readState(customStatePath)
+  const context = readManagedState(customStatePath)
+  const { state, workItemId, index, projectRoot } = context
+  const expectedRevision = captureRevision(state)
+  const expectedMirrorRevision = index.active_work_item_id === workItemId ? expectedRevision : null
   validateStateObject(state)
-  const nextState = mutator(JSON.parse(JSON.stringify(state)))
+  validateManagedState(state, projectRoot, workItemId)
+  const nextState = mutator(JSON.parse(JSON.stringify(state)), context)
   nextState.updated_at = timestamp()
   validateStateObject(nextState)
-  writeState(statePath, nextState)
-  return { statePath, state: nextState }
+  return persistManagedState(customStatePath, nextState, {
+    expectedRevision,
+    expectedMirrorRevision,
+    workItemId,
+    activateWorkItemId: index.active_work_item_id ?? workItemId,
+  })
+}
+
+function mutateWorkItem(workItemId, customStatePath, mutator) {
+  const context = readWorkItemContext(workItemId, customStatePath)
+  const { state, projectRoot } = context
+  const index = readWorkItemIndex(projectRoot)
+  const expectedRevision = captureRevision(state)
+  const expectedMirrorRevision = index.active_work_item_id === workItemId ? expectedRevision : null
+
+  validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
+
+  const nextState = mutator(JSON.parse(JSON.stringify(state)), context)
+  nextState.updated_at = timestamp()
+  validateStateObject(nextState)
+
+  return persistManagedState(customStatePath, nextState, {
+    expectedRevision,
+    expectedMirrorRevision,
+    workItemId,
+    activateWorkItemId: index.active_work_item_id ?? workItemId,
+  })
 }
 
 function showState(customStatePath) {
-  const { statePath, state } = readState(customStatePath)
+  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
   validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
   return { statePath, state }
 }
 
-function getRuntimeStatus(customStatePath) {
-  const { statePath, state } = readState(customStatePath)
+function showWorkItemState(workItemId, customStatePath) {
+  ensureString(workItemId, "work_item_id")
+  const { statePath, projectRoot, state } = readManagedState(customStatePath, workItemId)
   validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
+
+  return {
+    statePath,
+    workItemStatePath: resolveWorkItemPaths(projectRoot, workItemId).statePath,
+    state,
+  }
+}
+
+function createWorkItem(mode, featureId, featureSlug, modeReason, customStatePath) {
+  return startTask(mode, featureId, featureSlug, modeReason, customStatePath)
+}
+
+function listWorkItems(customStatePath) {
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const index = readWorkItemIndex(projectRoot)
+  return {
+    projectRoot,
+    index,
+    workItems: index.work_items,
+  }
+}
+
+function listTasks(workItemId, customStatePath) {
+  const context = readWorkItemContext(workItemId, customStatePath)
+  const { state, projectRoot } = context
+  requireFullModeWorkItem(state, workItemId)
+  requireTaskBoardStage(state, workItemId, "view a task board")
+
+  const board = buildBoardView(state, readTaskBoardIfExists(projectRoot, workItemId))
+  return {
+    ...context,
+    board,
+    tasks: board.tasks,
+  }
+}
+
+function createTask(workItemId, taskInput, customStatePath) {
+  return withTaskBoard(workItemId, customStatePath, (board) => {
+    const task = buildTaskRecord(taskInput)
+
+    if (board.tasks.some((entry) => entry.task_id === task.task_id)) {
+      fail(`Duplicate task_id '${task.task_id}' in task board`)
+    }
+
+    board.tasks.push(task)
+    return board
+  })
+}
+
+function claimTask(workItemId, taskId, owner, customStatePath, options = {}) {
+  ensureString(owner, "owner")
+
+  return withTaskBoard(workItemId, customStatePath, (board) => {
+    const task = findTask(board, taskId)
+
+    if (task.primary_owner && task.primary_owner !== owner) {
+      fail("Implicit reassignment is not allowed; use reassignTask")
+    }
+
+    validateReassignmentAuthority({
+      task,
+      ownerField: "primary_owner",
+      requestedBy: options.requestedBy,
+      nextOwner: owner,
+    })
+
+    validateTaskTransition(task, "claimed")
+    task.primary_owner = owner
+    task.status = "claimed"
+    task.updated_at = timestamp()
+    return board
+  })
+}
+
+function assignQaOwner(workItemId, taskId, qaOwner, customStatePath, options = {}) {
+  ensureString(qaOwner, "qa_owner")
+
+  return withTaskBoard(workItemId, customStatePath, (board) => {
+    const task = findTask(board, taskId)
+
+    validateReassignmentAuthority({
+      task,
+      ownerField: "qa_owner",
+      requestedBy: options.requestedBy,
+      nextOwner: qaOwner,
+    })
+
+    task.qa_owner = qaOwner
+    task.updated_at = timestamp()
+    return board
+  })
+}
+
+function reassignTask(workItemId, taskId, owner, customStatePath, options = {}) {
+  ensureString(owner, "owner")
+
+  return withTaskBoard(workItemId, customStatePath, (board) => {
+    const task = findTask(board, taskId)
+
+    validateReassignmentAuthority({
+      task,
+      ownerField: "primary_owner",
+      requestedBy: options.requestedBy,
+      nextOwner: owner,
+    })
+
+    task.primary_owner = owner
+    if (task.status === "ready") {
+      task.status = "claimed"
+    }
+    task.updated_at = timestamp()
+    return board
+  })
+}
+
+function releaseTask(workItemId, taskId, customStatePath, options = {}) {
+  ensureString(options.requestedBy, "requestedBy")
+
+  return withTaskBoard(workItemId, customStatePath, (board) => {
+    const task = findTask(board, taskId)
+    const allowedAuthorities = VALID_ASSIGNMENT_AUTHORITIES.primary_owner
+    const isCurrentOwner = task.primary_owner === options.requestedBy
+
+    if (!allowedAuthorities.includes(options.requestedBy) && !isCurrentOwner) {
+      fail(`Only ${allowedAuthorities.join(" or ")} can release primary_owner`)
+    }
+
+    task.primary_owner = null
+    if (task.status === "claimed") {
+      task.status = "ready"
+    }
+    task.updated_at = timestamp()
+    return board
+  })
+}
+
+function setTaskStatus(workItemId, taskId, nextStatus, customStatePath, options = {}) {
+  validateTaskStatus(nextStatus)
+
+  const targetContext = readWorkItemContext(workItemId, customStatePath)
+  const { state: targetState, projectRoot } = targetContext
+  validateManagedState(targetState, projectRoot, workItemId)
+  const targetBoard = buildBoardView(targetState, readTaskBoardIfExists(projectRoot, workItemId))
+  const targetTask = findTask(targetBoard, taskId)
+
+  if (targetTask.status === "qa_in_progress" && (nextStatus === "claimed" || nextStatus === "in_progress")) {
+    decideQaFailLocalRework({
+      mode: "full",
+      task: targetTask,
+      finding: options.finding,
+      rerouteDecision: options.rerouteDecision,
+    })
+  }
+
+  const shouldApplyQaFailReroute = nextStatus === "claimed" || nextStatus === "in_progress"
+  let rerouteDecision = null
+
+  const result = withTaskBoard(workItemId, customStatePath, (board) => {
+    const task = findTask(board, taskId)
+
+    if (task.status === "qa_in_progress" && (nextStatus === "claimed" || nextStatus === "in_progress")) {
+      const decision = decideQaFailLocalRework({
+        mode: "full",
+        task,
+        finding: options.finding,
+        rerouteDecision: options.rerouteDecision,
+      })
+      rerouteDecision = decision.route
+
+      validateTaskTransition(task, nextStatus, {
+        allowQaFailRework: true,
+        finding: options.finding,
+      })
+    } else {
+      validateTaskTransition(task, nextStatus)
+    }
+
+    task.status = nextStatus
+    task.updated_at = timestamp()
+    return board
+  })
+
+  if (shouldApplyQaFailReroute && rerouteDecision) {
+    const rerouted = mutateWorkItem(workItemId, customStatePath, (state) => {
+      state.current_stage = rerouteDecision.stage
+      state.current_owner = rerouteDecision.owner
+      state.status = "in_progress"
+      return state
+    })
+
+    return {
+      ...rerouted,
+      board: result.board,
+    }
+  }
+
+  return result
+}
+
+function validateWorkItemBoard(workItemId, customStatePath) {
+  const context = readWorkItemContext(workItemId, customStatePath)
+  const { state, projectRoot } = context
+  requireFullModeWorkItem(state, workItemId)
+  const board = readTaskBoardIfExists(projectRoot, workItemId)
+
+  if (!board) {
+    fail(`Task board missing for work item '${workItemId}'`)
+  }
+
+  return {
+    ...context,
+    board: validateTaskBoard(buildBoardForValidation(state, board)),
+  }
+}
+
+function selectActiveWorkItem(workItemId, customStatePath) {
+  ensureString(workItemId, "work_item_id")
+  const statePath = resolveStatePath(customStatePath)
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const previousIndex = readWorkItemIndex(projectRoot)
+  const previousActiveWorkItemId = previousIndex.active_work_item_id
+
+  try {
+    setActiveWorkItem(projectRoot, workItemId)
+    const nextActiveState = readWorkItemState(projectRoot, workItemId)
+    const mirrorRefreshPlan = planGuardedMirrorRefresh({
+      activeWorkItemId: workItemId,
+      targetWorkItemId: workItemId,
+      nextState: nextActiveState,
+    })
+    const preflightMirrorState = fs.existsSync(statePath) ? readState(statePath).state : null
+
+    if (preflightMirrorState) {
+      guardWrite({
+        currentState: preflightMirrorState,
+        expectedRevision: captureRevision(preflightMirrorState),
+        nextState: nextActiveState,
+      })
+    }
+
+    writeCompatibilityMirror(projectRoot, nextActiveState)
+    const state = readState(statePath).state
+    const mirrorRevision = captureRevision(state)
+
+    if (mirrorRevision !== mirrorRefreshPlan.mirrorRevision) {
+      fail(
+        `Compatibility mirror refresh revision conflict for active work item '${workItemId}'; expected ${mirrorRefreshPlan.mirrorRevision} but found ${mirrorRevision}`,
+      )
+    }
+
+    validateStateObject(state)
+    validateManagedState(state, projectRoot, workItemId)
+
+    return {
+      statePath,
+      state,
+    }
+  } catch (error) {
+    if (previousActiveWorkItemId !== null && previousActiveWorkItemId !== workItemId) {
+      setActiveWorkItem(projectRoot, previousActiveWorkItemId)
+    }
+    throw error
+  }
+}
+
+function getRuntimeStatus(customStatePath) {
+  const { statePath, state } = showState(customStatePath)
 
   const projectRoot = resolveProjectRoot(customStatePath)
   const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
@@ -568,8 +1238,9 @@ function getContractConsistencyReport(customStatePath) {
 }
 
 function validateState(customStatePath) {
-  const { statePath, state } = readState(customStatePath)
+  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
   validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
   return { statePath, state }
 }
 
@@ -579,22 +1250,28 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath) {
   ensureString(featureSlug, "feature_slug")
   ensureString(modeReason, "mode_reason")
 
-  return mutate(customStatePath, (state) => {
-    const initialStage = getInitialStageForMode(mode)
-    state.feature_id = featureId
-    state.feature_slug = featureSlug
-    state.mode = mode
-    state.mode_reason = modeReason
-    state.current_stage = initialStage
-    state.status = "in_progress"
-    state.current_owner = STAGE_OWNERS[initialStage]
-    state.artifacts = createEmptyArtifacts()
-    state.approvals = createEmptyApprovals(mode)
-    state.issues = []
-    state.retry_count = 0
-    state.escalated_from = null
-    state.escalation_reason = null
-    return state
+  const workItemId = deriveWorkItemId({ feature_id: featureId })
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const workItemPaths = resolveWorkItemPaths(projectRoot, workItemId)
+  const index = readWorkItemIndex(projectRoot)
+  const existingState = fs.existsSync(workItemPaths.statePath) ? readWorkItemState(projectRoot, workItemId) : null
+  const expectedRevision = existingState ? captureRevision(existingState) : null
+  const expectedMirrorRevision = index.active_work_item_id === workItemId && existingState ? expectedRevision : null
+  const nextState = createFreshState({
+    workItemId,
+    mode,
+    featureId,
+    featureSlug,
+    modeReason,
+    updatedAt: timestamp(),
+  })
+
+  validateStateObject(nextState)
+  return persistManagedState(customStatePath, nextState, {
+    expectedRevision,
+    expectedMirrorRevision,
+    workItemId,
+    activateWorkItemId: workItemId,
   })
 }
 
@@ -611,9 +1288,20 @@ function startFeature(featureId, featureSlug, customStatePath) {
 function setApproval(gate, status, approvedBy, approvedAt, notes, customStatePath) {
   ensureKnown(status, ["pending", "approved", "rejected"], "status")
 
-  return mutate(customStatePath, (state) => {
+  return mutate(customStatePath, (state, context) => {
     const allowedGates = getApprovalGatesForMode(state.mode)
     ensureKnown(gate, allowedGates, `gate for mode '${state.mode}'`)
+
+    const { projectRoot, workItemId } = context
+    if (status === "approved" && gate === "tech_lead_to_fullstack") {
+      requireValidTaskBoard(
+        state,
+        projectRoot,
+        workItemId,
+        "full_plan",
+        "A valid task board is required before approving 'tech_lead_to_fullstack' or entering 'full_implementation'",
+      )
+    }
 
     state.approvals[gate] = {
       status,
@@ -628,7 +1316,8 @@ function setApproval(gate, status, approvedBy, approvedAt, notes, customStatePat
 function advanceStage(targetStage, customStatePath) {
   ensureKnown(targetStage, STAGE_SEQUENCE, "target stage")
 
-  return mutate(customStatePath, (state) => {
+  return mutate(customStatePath, (state, context) => {
+    const { projectRoot, workItemId } = context
     if (getModeForStage(targetStage) !== state.mode) {
       fail(`target stage '${targetStage}' does not belong to mode '${state.mode}'`)
     }
@@ -640,6 +1329,26 @@ function advanceStage(targetStage, customStatePath) {
 
     if (targetStage !== nextStage) {
       fail(`advance-stage only allows the immediate next stage '${nextStage}', not '${targetStage}'`)
+    }
+
+    if (targetStage === "full_implementation") {
+      requireValidTaskBoard(
+        state,
+        projectRoot,
+        workItemId,
+        "full_implementation",
+        "A valid task board is required before entering 'full_implementation'",
+      )
+    }
+
+    if (targetStage === "full_qa") {
+      requireValidTaskBoard(
+        state,
+        projectRoot,
+        workItemId,
+        "full_qa",
+        "A valid task board is required before entering 'full_qa'",
+      )
     }
 
     const requiredGate = getTransitionGate(state.mode, state.current_stage, targetStage)
@@ -813,7 +1522,11 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 
 module.exports = {
   advanceStage,
+  assignQaOwner,
   clearIssues,
+  claimTask,
+  createTask,
+  createWorkItem,
   ESCALATION_RETRY_THRESHOLD,
   getContractConsistencyReport,
   getInstallManifest,
@@ -822,18 +1535,26 @@ module.exports = {
   getRuntimeStatus,
   getVersionInfo,
   linkArtifact,
+  listTasks,
+  listWorkItems,
   listProfiles,
   readState,
   recordIssue,
+  reassignTask,
+  releaseTask,
   resolveStatePath,
   routeRework,
   runDoctor,
   scaffoldAndLinkArtifact,
+  selectActiveWorkItem,
+  setTaskStatus,
   setApproval,
   showState,
+  showWorkItemState,
   syncInstallManifest,
   startFeature,
   startTask,
+  validateWorkItemBoard,
   validateState,
   validateStateObject,
   writeState,

@@ -1,10 +1,16 @@
 # Workflow State Schema
 
-This file defines the canonical fields and enums for `.opencode/workflow-state.json`.
+This file defines the canonical fields and enums exposed through `.opencode/workflow-state.json`, which now acts as the active external compatibility mirror for the active work item.
 
 For the canonical workflow contract, including lane semantics, stage order, escalation policy, approvals, and quick-lane artifact expectations, use `context/core/workflow.md`.
 
 The schema is mode-aware and uses separate stage names for `Quick Task` and `Full Delivery`.
+
+Internal runtime note:
+
+- managed per-item state lives under `.opencode/work-items/<work_item_id>/state.json`
+- the active work item is mirrored into `.opencode/workflow-state.json` for compatibility with existing docs, commands, and resume flow
+- full-delivery task boards live beside the per-item state, not inside the mirrored top-level state object
 
 ## Required Top-Level Fields
 
@@ -22,6 +28,7 @@ The schema is mode-aware and uses separate stage names for `Quick Task` and `Ful
 - `escalated_from`
 - `escalation_reason`
 - `updated_at`
+- `work_item_id`
 
 ## `mode` Values
 
@@ -37,10 +44,10 @@ Guardrail:
 
 ### Quick Task stages
 
-- `quick_intake`: request accepted into quick mode and scoped by `MasterOrchestrator`
-- `quick_plan`: `MasterOrchestrator` is recording the bounded quick checklist, acceptance confirmation, and verification path
+- `quick_intake`: request accepted into quick mode and scoped by the Master Orchestrator
+- `quick_plan`: the Master Orchestrator is recording the bounded quick checklist, acceptance confirmation, and verification path
 - `quick_build`: Fullstack is implementing the quick task
-- `quick_verify`: `QAAgent` is performing QA Lite validation for the quick task
+- `quick_verify`: the QA Agent is performing QA Lite validation for the quick task
 - `quick_done`: the quick task is complete
 
 ### Full Delivery stages
@@ -79,6 +86,23 @@ Guardrail:
 | `full_qa` | `QAAgent` |
 | `full_done` | `MasterOrchestrator` |
 
+Feature-versus-task ownership rule:
+
+- these owners are feature-stage owners
+- a full-delivery task board may also track task-level `primary_owner` and `qa_owner` assignments without changing the feature-stage owner above
+
+Approval authority map for live gates:
+
+| Gate | Approval Authority |
+| --- | --- |
+| `quick_verified` | `QAAgent` |
+| `pm_to_ba` | `BAAgent` |
+| `ba_to_architect` | `ArchitectAgent` |
+| `architect_to_tech_lead` | `TechLeadAgent` |
+| `tech_lead_to_fullstack` | `FullstackAgent` |
+| `fullstack_to_qa` | `QAAgent` |
+| `qa_to_done` | `MasterOrchestrator` |
+
 ## Artifacts Shape
 
 `artifacts` must always contain these keys:
@@ -97,6 +121,12 @@ Usage by mode:
 - `Full Delivery` uses `brief`, `spec`, `architecture`, `plan`, `qa_report`, and optional `adr`, while `task_card` stays `null`
 
 Do not assume additional quick-lane artifact keys until they are explicitly added to the runtime schema and supporting code.
+
+Task-board location and scope:
+
+- quick mode has no task-board schema surface
+- full-delivery task boards are stored in `.opencode/work-items/<work_item_id>/tasks.json`
+- task-board fields are validated by runtime code and work-item-board commands rather than being embedded into `.opencode/workflow-state.json`
 
 ## Approvals Shape
 
@@ -123,6 +153,13 @@ Mode-specific approval keys:
 - `qa_to_done`
 
 Validation must be mode-aware. Do not require full-delivery gates for quick mode or quick gates for full mode.
+
+Approval-entry expectations:
+
+- `approved_by` should identify the live approval authority for the gate when status is `approved`
+- `notes` should record handoff readiness, notable assumptions, or rejection reasons in inspectable form
+- `quick_verified.notes` should capture QA Lite evidence or reference where that evidence is stored
+- gate notes should be sufficient for session resume without relying on unstated memory
 
 ## Escalation Fields
 

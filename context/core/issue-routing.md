@@ -4,7 +4,7 @@ This file defines how QA findings are classified and routed.
 
 For the canonical workflow contract, including lane semantics, stage order, escalation policy, and artifact expectations, use `context/core/workflow.md`.
 
-Classification is shared across both workflow modes, but routing behavior depends on the active mode in `.opencode/workflow-state.json`.
+Classification is shared across both workflow modes, but routing behavior depends on the active work item mirrored through `.opencode/workflow-state.json`.
 
 ## Required Issue Schema
 
@@ -41,6 +41,10 @@ Quick mode must not absorb design or requirements work. When either appears, qui
 
 With the stronger quick-lane semantics now live, quick work includes an explicit `quick_plan` stage, but that stronger quick lane does not relax the design/requirements guardrail.
 
+Quick-mode guardrail:
+
+- do not invent a quick task board, per-task owners, or QA-per-subtask routing
+
 ### Full Delivery routing
 
 | Type | Route to | Expected action |
@@ -49,9 +53,17 @@ With the stronger quick-lane semantics now live, quick work includes an explicit
 | `design_flaw` | `full_architecture` / `ArchitectAgent` | Repair the design or escalate implementation concerns through architecture review |
 | `requirement_gap` | `full_spec` / `BAAgent` | Clarify or repair requirements |
 
+Task-aware full-delivery note:
+
+- full-delivery execution tasks may carry task-local owners and findings, but routing still resolves to the feature-level stage owner above
+- task-local rework may stay within the task board only for implementation-rooted bugs that do not require a stage change
+- when a QA finding reveals a design flaw or requirement gap, the feature returns to `full_architecture` or `full_spec` even if the finding started from one execution task
+- preserve task ids and task evidence in issue notes so the orchestrator can reconnect feature routing with task-board state
+
 ## Retry And Escalation
 
 - Increment `retry_count` when the same issue cycles back after a failed fix
 - In quick mode, repeated `bug` failures still stay in quick mode unless a design or requirement problem is uncovered and the work is no longer safely bounded
 - In quick mode, `design_flaw` and `requirement_gap` escalate immediately rather than retrying inside quick mode
+- In full mode, repeated task-local failures may keep a task in local rework only while the issue remains implementation-rooted and stage ownership does not need to change
 - Escalate to the user after 3 failed loops on the same issue family

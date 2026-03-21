@@ -158,6 +158,7 @@ test("scaffold-artifact substitutes real checked-in templates correctly", () => 
     qa_to_done: { status: "pending", approved_by: null, approved_at: null, notes: null },
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+  fs.rmSync(path.join(projectRoot, ".opencode", "work-items"), { recursive: true, force: true })
 
   result = spawnSync(
     "node",
