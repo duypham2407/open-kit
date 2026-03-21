@@ -114,6 +114,19 @@ test("routeRework keeps full-mode bugs in full implementation", () => {
   assert.equal(result.state.retry_count, 1)
 })
 
+test("routeRework blocks after reaching the retry threshold", () => {
+  const statePath = createTempStateFile()
+
+  startTask("full", "FEATURE-203", "retry-threshold", "Feature workflow with repeated bug", statePath)
+  routeRework("bug", true, statePath)
+  routeRework("bug", true, statePath)
+  const result = routeRework("bug", true, statePath)
+
+  assert.equal(result.state.retry_count, 3)
+  assert.equal(result.state.status, "blocked")
+  assert.equal(result.state.current_stage, "full_implementation")
+})
+
 test("quick mode rejects full-delivery approvals", () => {
   const statePath = createTempStateFile()
 

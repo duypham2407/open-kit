@@ -18,4 +18,12 @@ Khi User gõ `/delivery [mô_tả]`, `MasterOrchestrator` phải:
    - `QAAgent` validate
 5. Áp dụng full approval chain trước khi advance qua các stage chính.
 
-Lệnh này là đường vào rõ ràng cho feature work và các task có risk cao.
+`/delivery` là đường vào rõ ràng cho heavy lane. Dùng lệnh này khi:
+
+- task không còn bounded trong quick lane
+- cần product/spec/design/architecture treatment
+- có contract-sensitive change như API, schema, auth, billing, permission, hoặc security
+- phạm vi chạm nhiều subsystem lỏng liên quan
+- quick work đã bị escalate vì `requirement_gap` hoặc `design_flaw`, hoặc vì phát sinh scope expansion hay verification gap làm vượt quick boundary
+
+Lệnh này giữ nguyên hard split với quick lane và khớp với `/task`: khi đã vào full mode, entry point luôn bắt đầu bằng `PMAgent`, rồi đi theo full-delivery chain chuẩn.

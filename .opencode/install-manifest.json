@@ -1,0 +1,29 @@
+{
+  "schema": "openkit/install-manifest@1",
+  "manifestVersion": 1,
+  "kit": {
+    "name": "OpenKit AI Software Factory",
+    "version": "0.1.0"
+  },
+  "registry": {
+    "path": "registry.json",
+    "schema": "openkit/component-registry@1",
+    "registryVersion": 1
+  },
+  "installation": {
+    "type": "checked-in-local-metadata",
+    "activeProfile": "openkit-core",
+    "installedAt": "repository-root",
+    "managedRemotely": false,
+    "notes": "This manifest describes the metadata checked into this repository. It does not fetch or install remote components."
+  },
+  "components": {
+    "agents": "present",
+    "skills": "present",
+    "commands": "present",
+    "artifacts": "present",
+    "runtime": "present",
+    "hooks": "present",
+    "docs": "present"
+  }
+}

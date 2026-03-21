@@ -17,6 +17,8 @@ This repository implements the **OpenKit AI Software Factory**, a dual-lane work
 - `Quick Task` for narrow, low-risk tasks that should move fast
 - `Full Delivery` for feature work that benefits from the full multi-role team flow
 
+Approved future direction is documented for `Quick Task+` as the successor semantics of the existing quick lane. Treat that as planned direction, not as a third mode or an already-implemented runtime contract.
+
 The kit is structured into several core directories:
 
 - `agents/`: Definitions for the primary team roles plus helper subagents such as `code-reviewer.md`
@@ -34,6 +36,7 @@ The kit is structured into several core directories:
 Current repository facts:
 
 - The current workflow contract is the hard-split design described in `context/core/workflow.md`
+- FEATURE-002 direction artifacts record a planned quick-lane evolution and runtime-hardening roadmap, but they do not replace the current live contract until follow-on implementation lands
 - The original single-pipeline workflow vision remains at `docs/ai_software_factory_agents.md` as historical background only
 - `.opencode/opencode.json` is present as the runtime manifest for this kit
 - `.opencode/workflow-state.json` is present as the persisted workflow state file
@@ -56,7 +59,14 @@ The kit foundation is now established. The next phase is to use this team to bui
 - stronger validation loops before work is considered complete
 - quick-lane speed for daily tasks without losing the full-delivery path for feature work
 
+Approved follow-on direction from FEATURE-002 also includes:
+
+- evolving the existing quick lane toward `Quick Task+` semantics without adding a third lane
+- hardening runtime bootstrap, diagnostics, and workflow-level verification
+
 Until application code lands, test runners and build tooling remain targets rather than current capabilities.
+
+Until those changes are implemented, continue to use the current `Quick Task` and `Full Delivery` contract, current command names, and current workflow-state enums.
 
 ## Source Of Truth Files
 
@@ -65,16 +75,21 @@ Use the following order when deciding what is authoritative:
 1. Direct user instructions in the current session
 2. Root `AGENTS.md`
 3. `context/core/workflow.md` for the current workflow contract
-4. `docs/superpowers/specs/2026-03-21-openkit-hard-split-workflow-design.md` for the approved hard-split workflow design
-5. `docs/ai_software_factory_agents.md` for original single-pipeline intent and background only
-6. `docs/superpowers/specs/2026-03-20-openkit-operating-system-design.md` for pre-hard-split operating-system background only
-7. Repository files that actually exist in the working tree
+4. FEATURE-002 direction artifacts for approved future-state intent only:
+   - `docs/briefs/2026-03-21-openkit-evolution-direction.md`
+   - `docs/specs/2026-03-21-openkit-improvement-analysis.md`
+   - `docs/architecture/2026-03-21-openkit-evolution-direction.md`
+   - `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
+5. `docs/superpowers/specs/2026-03-21-openkit-hard-split-workflow-design.md` for the approved hard-split workflow design
+6. `docs/ai_software_factory_agents.md` for original single-pipeline intent and background only
+7. `docs/superpowers/specs/2026-03-20-openkit-operating-system-design.md` for pre-hard-split operating-system background only
+8. Repository files that actually exist in the working tree
 
 If guidance conflicts with repository state, trust the repository state and update documentation instead of inventing missing pieces.
 
 ## Repo Navigation Guidance
 
-- Start by reading `AGENTS.md`, then `context/navigation.md`, then the specific document or code file you need to change
+- Start with `AGENTS.md` for repository-wide rules, then use `context/navigation.md` to locate the specific workflow or standards docs you need
 - Treat `docs/` as the current center of gravity for repository knowledge
 - Verify file existence before referencing paths in plans or instructions
 - Prefer small, targeted edits over broad speculative restructuring
@@ -132,6 +147,10 @@ Required artifact outputs by mode:
 - Full Delivery / QA -> `docs/qa/YYYY-MM-DD-<feature>.md`
 - Architect decisions -> `docs/adr/YYYY-MM-DD-<decision>.md`
 
+Future note:
+
+- `Quick Task+` may later introduce a richer quick-lane checklist or artifact expectation, but that is not part of the current runtime or contract files yet
+
 ## Single-Test Guidance
 
 There is no current repo-native single-test command because no test toolchain is defined yet.
@@ -164,8 +183,9 @@ These standards are intentionally conservative so they are useful before a full 
 Adapt the workflow in `context/core/workflow.md` to the repository's current scale.
 
 - Choose the lane early: `Quick Task` for small localized work, `Full Delivery` for feature and higher-risk work
+- Treat `Quick Task+` references as approved future-state guidance for the existing quick lane, not as permission to invent a third mode, rename commands, or change enums unless the repository explicitly does so
 - Plan before coding. Even quick tasks need a clear objective, acceptance bullets, and validation path
-- Keep responsibilities explicit. Quick mode uses `Master -> Fullstack -> QA Lite`; full mode uses the broader delivery team
+- Keep responsibilities explicit. Quick mode uses `MasterOrchestrator -> FullstackAgent -> QAAgent (QA Lite)`; full mode uses the broader delivery team
 - Use feedback loops. Implementation is not complete until validation has run or the lack of validation tooling has been called out clearly
 - Do not skip review or validation because a task looks simple
 - Route issues by type and by mode: quick bugs loop within quick mode, but quick design or requirement issues must escalate to full delivery

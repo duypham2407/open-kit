@@ -1,0 +1,288 @@
+{
+  "schema": "openkit/component-registry@1",
+  "registryVersion": 1,
+  "kit": {
+    "name": "OpenKit AI Software Factory",
+    "version": "0.1.0",
+    "description": "Local component metadata for the checked-in OpenKit repository.",
+    "repositoryRoot": "."
+  },
+  "componentCategories": [
+    "agents",
+    "skills",
+    "commands",
+    "artifacts",
+    "runtime",
+    "hooks",
+    "docs"
+  ],
+  "components": {
+    "agents": [
+      {
+        "id": "agent.master-orchestrator",
+        "name": "Master Orchestrator",
+        "role": "primary",
+        "path": "agents/master-orchestrator.md"
+      },
+      {
+        "id": "agent.pm-agent",
+        "name": "PM Agent",
+        "role": "team",
+        "path": "agents/pm-agent.md"
+      },
+      {
+        "id": "agent.ba-agent",
+        "name": "BA Agent",
+        "role": "team",
+        "path": "agents/ba-agent.md"
+      },
+      {
+        "id": "agent.architect-agent",
+        "name": "Architect Agent",
+        "role": "team",
+        "path": "agents/architect-agent.md"
+      },
+      {
+        "id": "agent.tech-lead-agent",
+        "name": "Tech Lead Agent",
+        "role": "team",
+        "path": "agents/tech-lead-agent.md"
+      },
+      {
+        "id": "agent.fullstack-agent",
+        "name": "Fullstack Agent",
+        "role": "team",
+        "path": "agents/fullstack-agent.md"
+      },
+      {
+        "id": "agent.qa-agent",
+        "name": "QA Agent",
+        "role": "team",
+        "path": "agents/qa-agent.md"
+      },
+      {
+        "id": "agent.code-reviewer",
+        "name": "Code Reviewer",
+        "role": "helper",
+        "path": "agents/code-reviewer.md"
+      }
+    ],
+    "skills": [
+      {
+        "id": "skill.brainstorming",
+        "name": "brainstorming",
+        "path": "skills/brainstorming/SKILL.md"
+      },
+      {
+        "id": "skill.code-review",
+        "name": "code-review",
+        "path": "skills/code-review/SKILL.md"
+      },
+      {
+        "id": "skill.subagent-driven-development",
+        "name": "subagent-driven-development",
+        "path": "skills/subagent-driven-development/SKILL.md"
+      },
+      {
+        "id": "skill.systematic-debugging",
+        "name": "systematic-debugging",
+        "path": "skills/systematic-debugging/SKILL.md"
+      },
+      {
+        "id": "skill.test-driven-development",
+        "name": "test-driven-development",
+        "path": "skills/test-driven-development/SKILL.md"
+      },
+      {
+        "id": "skill.using-skills",
+        "name": "using-skills",
+        "path": "skills/using-skills/SKILL.md"
+      },
+      {
+        "id": "skill.writing-plans",
+        "name": "writing-plans",
+        "path": "skills/writing-plans/SKILL.md"
+      },
+      {
+        "id": "skill.writing-specs",
+        "name": "writing-specs",
+        "path": "skills/writing-specs/SKILL.md"
+      }
+    ],
+    "commands": [
+      {
+        "id": "command.task",
+        "name": "/task",
+        "path": "commands/task.md"
+      },
+      {
+        "id": "command.quick-task",
+        "name": "/quick-task",
+        "path": "commands/quick-task.md"
+      },
+      {
+        "id": "command.delivery",
+        "name": "/delivery",
+        "path": "commands/delivery.md"
+      },
+      {
+        "id": "command.brainstorm",
+        "name": "/brainstorm",
+        "path": "commands/brainstorm.md"
+      },
+      {
+        "id": "command.write-plan",
+        "name": "/write-plan",
+        "path": "commands/write-plan.md"
+      },
+      {
+        "id": "command.execute-plan",
+        "name": "/execute-plan",
+        "path": "commands/execute-plan.md"
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "artifact.tasks",
+        "name": "quick-task-cards",
+        "path": "docs/tasks",
+        "kind": "directory",
+        "optional": true
+      },
+      {
+        "id": "artifact.briefs",
+        "name": "briefs",
+        "path": "docs/briefs",
+        "kind": "directory"
+      },
+      {
+        "id": "artifact.specs",
+        "name": "specs",
+        "path": "docs/specs",
+        "kind": "directory"
+      },
+      {
+        "id": "artifact.architecture",
+        "name": "architecture",
+        "path": "docs/architecture",
+        "kind": "directory"
+      },
+      {
+        "id": "artifact.plans",
+        "name": "plans",
+        "path": "docs/plans",
+        "kind": "directory"
+      },
+      {
+        "id": "artifact.qa",
+        "name": "qa",
+        "path": "docs/qa",
+        "kind": "directory"
+      },
+      {
+        "id": "artifact.adr",
+        "name": "adr",
+        "path": "docs/adr",
+        "kind": "directory"
+      },
+      {
+        "id": "artifact.examples",
+        "name": "examples",
+        "path": "docs/examples",
+        "kind": "directory"
+      },
+      {
+        "id": "artifact.templates",
+        "name": "templates",
+        "path": "docs/templates",
+        "kind": "directory"
+      }
+    ],
+    "runtime": [
+      {
+        "id": "runtime.opencode-manifest",
+        "name": "OpenCode Runtime Manifest",
+        "path": ".opencode/opencode.json"
+      },
+      {
+        "id": "runtime.workflow-state",
+        "name": "Workflow State",
+        "path": ".opencode/workflow-state.json"
+      },
+      {
+        "id": "runtime.workflow-state-cli",
+        "name": "Workflow State CLI",
+        "path": ".opencode/workflow-state.js"
+      },
+      {
+        "id": "runtime.install-manifest",
+        "name": "Install Manifest",
+        "path": ".opencode/install-manifest.json"
+      }
+    ],
+    "hooks": [
+      {
+        "id": "hook.session-start",
+        "name": "Session Start Hook",
+        "path": "hooks/session-start"
+      },
+      {
+        "id": "hook.config",
+        "name": "Hooks Config",
+        "path": "hooks/hooks.json"
+      }
+    ],
+    "docs": [
+      {
+        "id": "doc.readme",
+        "name": "README",
+        "path": "README.md"
+      },
+      {
+        "id": "doc.navigation",
+        "name": "Navigation",
+        "path": "context/navigation.md"
+      },
+      {
+        "id": "doc.workflow-contract",
+        "name": "Workflow Contract",
+        "path": "context/core/workflow.md"
+      },
+      {
+        "id": "doc.governance",
+        "name": "Governance",
+        "path": "docs/governance/README.md"
+      }
+    ]
+  },
+  "profiles": [
+    {
+      "id": "profile.openkit-core",
+      "name": "openkit-core",
+      "description": "Core local profile for this repository's current OpenKit workflow kit.",
+      "componentRefs": [
+        "agents",
+        "skills",
+        "commands",
+        "artifacts",
+        "runtime",
+        "hooks",
+        "docs"
+      ],
+      "defaultForRepository": true
+    },
+    {
+      "id": "profile.runtime-docs-surface",
+      "name": "runtime-docs-surface",
+      "description": "Non-default local profile covering the checked-in runtime, hooks, command docs, artifact directories, and shared documentation surfaces.",
+      "componentRefs": [
+        "commands",
+        "artifacts",
+        "runtime",
+        "hooks",
+        "docs"
+      ],
+      "defaultForRepository": false
+    }
+  ]
+}

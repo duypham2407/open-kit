@@ -29,16 +29,18 @@ Full-delivery artifact chain:
 
 This artifact chain applies only to `mode: full`.
 
-1. PM creates `docs/briefs/2026-03-20-task-intake-dashboard.md`
-2. BA creates `docs/specs/2026-03-20-task-intake-dashboard.md`
-3. Architect creates `docs/architecture/2026-03-20-task-intake-dashboard.md`
-4. Tech Lead creates `docs/plans/2026-03-20-task-intake-dashboard.md`
+This example chain lives under `docs/examples/golden-path/` to illustrate the live workflow without claiming those files are the active repository artifacts for an in-flight feature.
+
+1. PM creates `docs/examples/golden-path/2026-03-20-task-intake-dashboard-brief.md`
+2. BA creates `docs/examples/golden-path/2026-03-20-task-intake-dashboard-spec.md`
+3. Architect creates `docs/examples/golden-path/2026-03-20-task-intake-dashboard-architecture.md`
+4. Tech Lead creates `docs/examples/golden-path/2026-03-20-task-intake-dashboard-plan.md`
 5. Fullstack implements code and tests
-6. QA creates `docs/qa/2026-03-20-task-intake-dashboard.md`
+6. QA creates `docs/examples/golden-path/2026-03-20-task-intake-dashboard-qa.md`
 
 ## Full Delivery Approval Flow
 
-These approval gates are used only in `Full Delivery`. Quick mode does not use them.
+These listed approval gates are used only in `Full Delivery`. Quick mode uses its own `quick_verified` gate instead.
 
 - `pm_to_ba`: approved after the brief is accepted
 - `ba_to_architect`: approved after acceptance criteria are stable
@@ -86,3 +88,46 @@ If QA reports a contradictory acceptance criterion:
 
 - If a new session opens while `mode` is `quick` and `current_stage` is `quick_verify`, read `.opencode/workflow-state.json`, then the quick task card if present, then the latest QA Lite evidence.
 - If a new session opens while `mode` is `full` and `current_stage` is `full_qa`, read `.opencode/workflow-state.json`, then the current QA report, then the current plan, and only then decide whether to route the issue or close the full-delivery feature.
+
+## Runtime Command Examples
+
+These commands describe current repository runtime behavior. They are not application build or test commands.
+
+Check the current runtime summary:
+
+```bash
+node .opencode/workflow-state.js status
+```
+
+Expected output includes:
+
+- project root
+- kit name and version
+- state file path
+- current `mode`, `stage`, `status`, and `owner`
+- current work item when `feature_id` and `feature_slug` exist
+
+Run runtime diagnostics:
+
+```bash
+node .opencode/workflow-state.js doctor
+```
+
+Expected behavior:
+
+- prints an `OpenKit doctor:` report
+- checks for key runtime files such as `.opencode/opencode.json`, `.opencode/workflow-state.json`, `.opencode/workflow-state.js`, `hooks/hooks.json`, and `hooks/session-start`
+- exits non-zero when required runtime checks fail
+
+## Session-Start Example
+
+At session start, `hooks/session-start` prints an `<openkit_runtime_status>` block with quick command hints for `status` and `doctor`.
+
+If workflow state contains resumable context, it also prints a `<workflow_resume_hint>` block that points the maintainer to:
+
+- `AGENTS.md`
+- `context/navigation.md`
+- `.opencode/workflow-state.json`
+- `context/core/session-resume.md`
+
+This bootstrap guidance is part of the current runtime surface. It does not introduce a third lane or rename the existing quick-lane commands.

@@ -25,6 +25,8 @@ Quick mode uses one required gate:
 
 - `quick_verified`
 
+This remains the gate for the current `quick` mode in this phase.
+
 Meaning:
 
 - the user request is treated as implicit approval to start quick work unless the task is ambiguous or risky
@@ -65,3 +67,5 @@ When quick work escalates to full delivery:
 - do not try to reuse quick gates as full-delivery approvals
 - record the escalation metadata in state
 - initialize the full-delivery approval chain with pending values
+
+This escalation behavior remains unchanged in this phase.

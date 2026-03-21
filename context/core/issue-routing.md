@@ -37,6 +37,8 @@ Each issue should record:
 
 Quick mode must not absorb design or requirements work. When either appears, quick execution stops and the work is promoted to the full lane.
 
+That guardrail remains in force in this phase.
+
 ### Full Delivery routing
 
 | Type | Route to | Expected action |
@@ -51,3 +53,5 @@ Quick mode must not absorb design or requirements work. When either appears, qui
 - In quick mode, repeated `bug` failures still stay in quick mode unless a design or requirement problem is uncovered
 - In quick mode, `design_flaw` and `requirement_gap` escalate immediately rather than retrying inside quick mode
 - Escalate to the user after 3 failed loops on the same issue family
+
+Future quick-lane strengthening must not turn design or requirements problems into quick-lane work without a separate contract change.

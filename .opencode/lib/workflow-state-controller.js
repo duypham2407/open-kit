@@ -68,6 +68,132 @@ function writeState(statePath, state) {
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
 }
 
+function resolveProjectRoot(customStatePath) {
+  const statePath = resolveStatePath(customStatePath)
+  return path.dirname(path.dirname(statePath))
+}
+
+function readJsonIfExists(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return null
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"))
+  } catch (error) {
+    fail(`Malformed JSON at '${filePath}': ${error.message}`)
+  }
+}
+
+function getManifestPaths(projectRoot, manifest) {
+  const kit = manifest?.kit ?? {}
+  const registryPath = kit.registry?.path
+    ? path.resolve(projectRoot, kit.registry.path)
+    : path.join(projectRoot, "registry.json")
+  const installManifestPath = kit.installManifest?.path
+    ? path.resolve(projectRoot, kit.installManifest.path)
+    : path.join(projectRoot, ".opencode", "install-manifest.json")
+
+  return {
+    registryPath,
+    installManifestPath,
+  }
+}
+
+function tryReadJson(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return { exists: false, readable: false, data: null }
+  }
+
+  try {
+    return {
+      exists: true,
+      readable: true,
+      data: JSON.parse(fs.readFileSync(filePath, "utf8")),
+    }
+  } catch (_error) {
+    return {
+      exists: true,
+      readable: false,
+      data: null,
+    }
+  }
+}
+
+function getRegistry(customStatePath) {
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const manifest = readJsonIfExists(manifestPath)
+  const { registryPath } = getManifestPaths(projectRoot, manifest)
+  const registry = readJsonIfExists(registryPath)
+
+  if (!registry) {
+    fail(`Unable to read registry metadata at '${registryPath}'`)
+  }
+
+  return {
+    projectRoot,
+    manifestPath,
+    registryPath,
+    manifest,
+    registry,
+  }
+}
+
+function getInstallManifest(customStatePath) {
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const manifest = readJsonIfExists(manifestPath)
+  const { installManifestPath } = getManifestPaths(projectRoot, manifest)
+  const installManifest = readJsonIfExists(installManifestPath)
+
+  if (!installManifest) {
+    fail(`Unable to read install manifest at '${installManifestPath}'`)
+  }
+
+  return {
+    projectRoot,
+    manifestPath,
+    installManifestPath,
+    manifest,
+    installManifest,
+  }
+}
+
+function listProfiles(customStatePath) {
+  const { registry } = getRegistry(customStatePath)
+  return registry.profiles ?? []
+}
+
+function getProfile(profileName, customStatePath) {
+  ensureString(profileName, "profile name")
+  const { registry } = getRegistry(customStatePath)
+  const profiles = registry.profiles ?? []
+  const profile = profiles.find((entry) => entry.name === profileName)
+
+  if (!profile) {
+    fail(`Unknown profile '${profileName}'`)
+  }
+
+  return profile
+}
+
+function syncInstallManifest(profileName, customStatePath) {
+  const profile = getProfile(profileName, customStatePath)
+  const { installManifestPath, installManifest } = getInstallManifest(customStatePath)
+
+  const nextManifest = JSON.parse(JSON.stringify(installManifest))
+  nextManifest.installation = nextManifest.installation ?? {}
+  nextManifest.installation.activeProfile = profile.name
+  writeState(installManifestPath, nextManifest)
+
+  return {
+    installManifestPath,
+    installManifest: nextManifest,
+    profile,
+  }
+}
+
 function ensureObject(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     fail(`${label} must be an object`)
@@ -280,6 +406,154 @@ function showState(customStatePath) {
   return { statePath, state }
 }
 
+function getRuntimeStatus(customStatePath) {
+  const { statePath, state } = readState(customStatePath)
+  validateStateObject(state)
+
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const manifest = readJsonIfExists(manifestPath)
+  const { registryPath, installManifestPath } = getManifestPaths(projectRoot, manifest)
+  const installManifest = readJsonIfExists(installManifestPath)
+  const hooksConfigPath = path.join(projectRoot, "hooks", "hooks.json")
+  const sessionStartPath = path.join(projectRoot, "hooks", "session-start")
+  const metaSkillPath = path.join(projectRoot, "skills", "using-skills", "SKILL.md")
+  const kit = manifest?.kit ?? {}
+
+  return {
+    projectRoot,
+    statePath,
+    manifestPath,
+    registryPath,
+    installManifestPath,
+    hooksConfigPath,
+    sessionStartPath,
+    metaSkillPath,
+    kitName: kit.name ?? "Unknown kit",
+    kitVersion: kit.version ?? "unknown",
+    entryAgent: kit.entryAgent ?? "unknown",
+    activeProfile: installManifest?.installation?.activeProfile ?? kit.activeProfile ?? "unknown",
+    installManifest,
+    state,
+  }
+}
+
+function getVersionInfo(customStatePath) {
+  const runtime = getRuntimeStatus(customStatePath)
+  return {
+    kitName: runtime.kitName,
+    kitVersion: runtime.kitVersion,
+    activeProfile: runtime.activeProfile,
+  }
+}
+
+function runDoctor(customStatePath) {
+  const statePath = resolveStatePath(customStatePath)
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const manifestInfo = tryReadJson(manifestPath)
+  const manifest = manifestInfo.data
+  const { registryPath, installManifestPath } = getManifestPaths(projectRoot, manifest)
+  const registryInfo = tryReadJson(registryPath)
+  const installManifestInfo = tryReadJson(installManifestPath)
+  const installManifest = installManifestInfo.data
+  const hooksConfigPath = path.join(projectRoot, "hooks", "hooks.json")
+  const sessionStartPath = path.join(projectRoot, "hooks", "session-start")
+  const metaSkillPath = path.join(projectRoot, "skills", "using-skills", "SKILL.md")
+  const workflowStateCliPath = path.join(projectRoot, ".opencode", "workflow-state.js")
+
+  let stateValid = false
+  let state = null
+  let kitName = "Unknown kit"
+  let kitVersion = "unknown"
+  let entryAgent = "unknown"
+
+  if (manifest?.kit) {
+    kitName = manifest.kit.name ?? kitName
+    kitVersion = manifest.kit.version ?? kitVersion
+    entryAgent = manifest.kit.entryAgent ?? entryAgent
+  }
+
+  if (fs.existsSync(statePath)) {
+    try {
+      const result = showState(customStatePath)
+      state = result.state
+      stateValid = true
+    } catch (_error) {
+      stateValid = false
+    }
+  }
+
+  const runtime = {
+    projectRoot,
+    statePath,
+    manifestPath,
+    registryPath,
+    installManifestPath,
+    workflowStateCliPath,
+    hooksConfigPath,
+    sessionStartPath,
+    metaSkillPath,
+    kitName,
+    kitVersion,
+    entryAgent,
+    activeProfile: installManifest?.installation?.activeProfile ?? manifest?.kit?.activeProfile ?? "unknown",
+    installManifest,
+    state,
+  }
+
+  const checks = [
+    { label: "manifest file found", ok: fs.existsSync(manifestPath) },
+    { label: "workflow state file found", ok: fs.existsSync(statePath) },
+    { label: "workflow state is valid", ok: stateValid },
+    { label: "registry file found", ok: fs.existsSync(registryPath) },
+    { label: "registry metadata is readable", ok: !registryInfo.exists || registryInfo.readable },
+    { label: "install manifest found", ok: fs.existsSync(installManifestPath) },
+    {
+      label: "install manifest is readable",
+      ok: !installManifestInfo.exists || installManifestInfo.readable,
+    },
+    { label: "workflow state CLI found", ok: fs.existsSync(workflowStateCliPath) },
+    { label: "hooks config found", ok: fs.existsSync(hooksConfigPath) },
+    { label: "session-start hook found", ok: fs.existsSync(sessionStartPath) },
+    { label: "meta-skill found", ok: fs.existsSync(metaSkillPath) },
+    {
+      label: "active profile exists in registry",
+      ok:
+        !installManifestInfo.readable ||
+        !registryInfo.readable ||
+        (registryInfo.data?.profiles ?? []).some(
+          (profile) => profile.name === (installManifest?.installation?.activeProfile ?? manifest?.kit?.activeProfile),
+        ),
+    },
+    {
+      label: "manifest and install manifest profiles agree",
+      ok:
+        !installManifestInfo.readable ||
+        !manifest?.kit?.activeProfile ||
+        manifest.kit.activeProfile === installManifest?.installation?.activeProfile,
+    },
+  ]
+
+  const summary = checks.reduce(
+    (counts, check) => {
+      if (check.ok) {
+        counts.ok += 1
+      } else {
+        counts.error += 1
+      }
+      return counts
+    },
+    { ok: 0, warn: 0, error: 0 },
+  )
+
+  return {
+    runtime,
+    checks,
+    summary,
+  }
+}
+
 function validateState(customStatePath) {
   const { statePath, state } = readState(customStatePath)
   validateStateObject(state)
@@ -450,13 +724,22 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 module.exports = {
   advanceStage,
   clearIssues,
+  ESCALATION_RETRY_THRESHOLD,
+  getInstallManifest,
+  getProfile,
+  getRegistry,
+  getRuntimeStatus,
+  getVersionInfo,
   linkArtifact,
+  listProfiles,
   readState,
   recordIssue,
   resolveStatePath,
   routeRework,
+  runDoctor,
   setApproval,
   showState,
+  syncInstallManifest,
   startFeature,
   startTask,
   validateState,

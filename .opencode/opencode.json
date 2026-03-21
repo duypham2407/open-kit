@@ -6,7 +6,16 @@
   "kit": {
     "name": "OpenKit AI Software Factory",
     "version": "0.1.0",
-    "entryAgent": "MasterOrchestrator"
+    "entryAgent": "MasterOrchestrator",
+    "registry": {
+      "path": "registry.json",
+      "schema": "openkit/component-registry@1"
+    },
+    "installManifest": {
+      "path": ".opencode/install-manifest.json",
+      "schema": "openkit/install-manifest@1"
+    },
+    "activeProfile": "openkit-core"
   },
   "hooks": {
     "config": "hooks/hooks.json"

@@ -4,8 +4,8 @@ Use this file when continuing work that may have started in a previous session.
 
 ## Required Read Order
 
-1. `AGENTS.md`
-2. `context/navigation.md`
+1. `AGENTS.md` for repository-wide rules and current-state guardrails
+2. `context/navigation.md` for context discovery and current-vs-future wayfinding
 3. `.opencode/workflow-state.json`
 4. Determine `mode` and `current_stage`
 5. Read the mode-appropriate artifact or task context
@@ -20,6 +20,8 @@ If `mode` is `quick`:
 - read the quick task card if `artifacts.task_card` is present
 - if there is no task card, use workflow state plus the latest conversation or commit context as the working brief
 - if `current_stage` is `quick_verify`, inspect the latest QA Lite evidence before continuing
+
+If follow-on quick-lane work adds richer evidence or artifacts, update this file when that runtime behavior actually lands.
 
 ### Full Delivery
 
@@ -37,6 +39,8 @@ If `mode` is `full`:
 - If the referenced artifact file is missing, report the mismatch and repair the docs/state before proceeding.
 - If `escalated_from` is `quick`, resume from the current full-delivery stage, not from the abandoned quick stage.
 - Use `.opencode/workflow-state.js show` or `.opencode/workflow-state.js validate` when explicit state inspection helps resume work.
+
+The current one-way escalation behavior remains unchanged in this phase.
 
 ## Status Values
 

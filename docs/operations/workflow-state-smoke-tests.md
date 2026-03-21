@@ -35,7 +35,79 @@ node --test ".opencode/tests/session-start-hook.test.js"
 
 This verifies that the session-start hook emits a mode-aware `workflow_resume_hint` when state exists.
 
+### Runtime CLI tests
+
+Run:
+
+```bash
+node --test ".opencode/tests/workflow-state-cli.test.js"
+```
+
+This covers:
+
+- `status` output for runtime summary fields
+- `doctor` output for runtime diagnostics
+- `profiles` output for checked-in profile listing
+- `show-profile` output for profile detail inspection
+- `sync-install-manifest` behavior for local manifest updates
+- non-zero `doctor` exit behavior when required runtime files are missing
+
 ## Manual CLI Smoke Tests
+
+### Runtime summary and diagnostics
+
+```bash
+node .opencode/workflow-state.js status
+node .opencode/workflow-state.js doctor
+```
+
+Expected outcome:
+
+- `status` prints the active runtime summary using the current state file, including the active profile plus registry and install-manifest paths
+- `doctor` reports repository runtime checks instead of application-tooling health
+- `doctor` exits successfully only when required OpenKit runtime files are present
+
+### Profile inspection
+
+```bash
+node .opencode/workflow-state.js profiles
+node .opencode/workflow-state.js show-profile openkit-core
+```
+
+Expected outcome:
+
+- `profiles` starts with `OpenKit profiles:`
+- the repository default profile is marked with `*`
+- `show-profile openkit-core` prints `Profile: openkit-core`
+- `show-profile openkit-core` prints `default: yes`
+- `show-profile openkit-core` prints a comma-separated `components:` line using registry category names such as `agents`, `skills`, `commands`, `artifacts`, `runtime`, `hooks`, and `docs`
+
+### Install-manifest sync
+
+Work on a throwaway branch or restore the checked-in manifest immediately after this check. `sync-install-manifest` rewrites the install manifest for the project root implied by the current `--state` path. If `--state` still points at this repository, the checked-in `.opencode/install-manifest.json` is what will change.
+
+```bash
+node .opencode/workflow-state.js sync-install-manifest runtime-docs-surface
+node .opencode/workflow-state.js status
+```
+
+Expected outcome:
+
+- `sync-install-manifest runtime-docs-surface` prints `Updated install manifest profile to 'runtime-docs-surface'`
+- the next `status` output shows `active profile: runtime-docs-surface`
+- `.opencode/install-manifest.json` records `installation.activeProfile = runtime-docs-surface`
+- no agent, skill, command, or doc files are created or removed by this command; only local metadata changes
+
+To restore the repository-default manifest after the check:
+
+```bash
+node .opencode/workflow-state.js sync-install-manifest openkit-core
+```
+
+Expected outcome:
+
+- the command prints `Updated install manifest profile to 'openkit-core'`
+- `.opencode/install-manifest.json` returns to `installation.activeProfile = openkit-core`
 
 ### Quick Task happy path
 
@@ -86,4 +158,7 @@ Expected outcome:
 ## Notes
 
 - Prefer using a temporary state file when running manual smoke tests so the checked-in `.opencode/workflow-state.json` remains stable.
+- Be deliberate when running `sync-install-manifest` because it updates the install manifest associated with the resolved project root, not the `--state` file itself. If that root is this repository, the checked-in `.opencode/install-manifest.json` will change.
 - If workflow rules change, update this file alongside the tests and the workflow-state CLI docs.
+- If session-start output changes, update this file, `README.md`, and any example docs that describe bootstrap behavior in the same change.
+- If registry categories, profile names, or manifest semantics change, update this file together with `README.md`, `docs/operations/README.md`, and the relevant governance notes.

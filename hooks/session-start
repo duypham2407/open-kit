@@ -6,9 +6,57 @@
 set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="$(dirname "$DIR")"
+PROJECT_ROOT="${OPENKIT_PROJECT_ROOT:-$(dirname "$DIR")}"
 META_SKILL_PATH="$PROJECT_ROOT/skills/using-skills/SKILL.md"
 STATE_PATH="${OPENKIT_WORKFLOW_STATE:-$PROJECT_ROOT/.opencode/workflow-state.json}"
+MANIFEST_PATH="$PROJECT_ROOT/.opencode/opencode.json"
+
+KIT_NAME="OpenKit AI Software Factory"
+KIT_VERSION="unknown"
+ENTRY_AGENT="unknown"
+
+if [ -f "$MANIFEST_PATH" ]; then
+    readarray -t KIT_INFO < <(python3 - "$MANIFEST_PATH" <<'PY'
+import json
+import sys
+
+manifest_path = sys.argv[1]
+
+try:
+    with open(manifest_path, "r", encoding="utf-8") as fh:
+        manifest = json.load(fh)
+except Exception:
+    sys.exit(0)
+
+kit = manifest.get("kit") or {}
+print(kit.get("name", "OpenKit AI Software Factory"))
+print(kit.get("version", "unknown"))
+print(kit.get("entryAgent", "unknown"))
+PY
+)
+    if [ ${#KIT_INFO[@]} -ge 3 ]; then
+        KIT_NAME="${KIT_INFO[0]}"
+        KIT_VERSION="${KIT_INFO[1]}"
+        ENTRY_AGENT="${KIT_INFO[2]}"
+    fi
+fi
+
+if [ -n "${OPENKIT_SESSION_START_NO_SKILL:-}" ]; then
+    SKILL_STATUS="skipped"
+elif [ -f "$META_SKILL_PATH" ]; then
+    SKILL_STATUS="loaded"
+else
+    SKILL_STATUS="missing"
+fi
+
+echo "<openkit_runtime_status>"
+echo "kit: $KIT_NAME v$KIT_VERSION"
+echo "entry agent: $ENTRY_AGENT"
+echo "state file: $STATE_PATH"
+echo "startup skill: $SKILL_STATUS"
+echo "help: node .opencode/workflow-state.js status"
+echo "doctor: node .opencode/workflow-state.js doctor"
+echo "</openkit_runtime_status>"
 
 if [ -z "${OPENKIT_SESSION_START_NO_SKILL:-}" ] && [ -f "$META_SKILL_PATH" ]; then
     echo "<skill_system_instruction>"

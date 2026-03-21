@@ -1,6 +1,8 @@
 # Context Navigation — Open Kit
 
-This file is the entry point for context discovery. Agents should read this first to locate relevant standards and workflow guides.
+This file is the entry point for context discovery after reading `AGENTS.md`. Use it to locate relevant standards and workflow guides.
+
+Use it to distinguish between live workflow contract docs and approved future-direction artifacts.
 
 Repository policies outside `context/` that agents should also consult when relevant:
 
@@ -22,6 +24,15 @@ context/
 │   └── workflow.md        ← Hard-split Quick Task and Full Delivery contract
 ```
 
+Directional artifacts for approved future work:
+
+- `docs/briefs/2026-03-21-openkit-evolution-direction.md`
+- `docs/specs/2026-03-21-openkit-improvement-analysis.md`
+- `docs/architecture/2026-03-21-openkit-evolution-direction.md`
+- `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
+
+Read those FEATURE-002 artifacts when you need the approved roadmap for `Quick Task+` and runtime hardening. Use `context/core/workflow.md` and companion core docs when you need the current live contract.
+
 ## Discovery Rules
 
 | Task type | Load first |
@@ -34,7 +45,13 @@ context/
 | Updating workflow state | `core/workflow-state-schema.md` |
 | Applying governance policy | `../docs/governance/` |
 | Recording operational history | `../docs/operations/` |
-| Starting a new feature | Both |
+| Starting a new feature | `core/workflow.md` and FEATURE-002 direction artifacts |
+
+## Current Vs Future Reading Rule
+
+- `context/core/workflow.md`, `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, and `context/core/workflow-state-schema.md` define the live operational contract
+- the FEATURE-002 brief, spec, architecture, and ADR define approved future direction only
+- do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Full Delivery`, `quick`, and `full` until implementation changes land
 
 ## Priority
 
