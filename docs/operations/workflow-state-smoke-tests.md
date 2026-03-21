@@ -51,6 +51,7 @@ This covers:
 - `show-profile` output for profile detail inspection
 - `sync-install-manifest` behavior for local manifest updates
 - non-zero `doctor` exit behavior when required runtime files are missing
+- quick-lane stage behavior such as `quick_plan` when live contract changes land in runtime tests
 
 ## Manual CLI Smoke Tests
 
@@ -162,3 +163,4 @@ Expected outcome:
 - If workflow rules change, update this file alongside the tests and the workflow-state CLI docs.
 - If session-start output changes, update this file, `README.md`, and any example docs that describe bootstrap behavior in the same change.
 - If registry categories, profile names, or manifest semantics change, update this file together with `README.md`, `docs/operations/README.md`, and the relevant governance notes.
+- Prefer behavior-oriented checks over purely structural checks whenever a workflow contract can be observed from CLI output, resume hints, or lane transitions.

@@ -12,6 +12,7 @@ Operational references in this directory:
 - `execution-log.md`: how to record meaningful execution events for longer-running work
 - `decision-log.md`: how to capture durable non-ADR decisions
 - `review-history.md`: how to record review outcomes that change direction or require follow-up
+- `reference-absorption-notes.md`: OpenKit-native capture of the last high-value ideas preserved from upstream reference repos
 
 Current runtime commands worth knowing:
 

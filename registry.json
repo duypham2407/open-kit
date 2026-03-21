@@ -94,6 +94,11 @@
         "path": "skills/test-driven-development/SKILL.md"
       },
       {
+        "id": "skill.verification-before-completion",
+        "name": "verification-before-completion",
+        "path": "skills/verification-before-completion/SKILL.md"
+      },
+      {
         "id": "skill.using-skills",
         "name": "using-skills",
         "path": "skills/using-skills/SKILL.md"
