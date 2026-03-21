@@ -2,7 +2,7 @@
 
 OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines OpenAgentsControl-style orchestration concepts with superpowers-style workflow discipline using explicit artifacts, approval gates, and resumable workflow state.
 
-The repository currently runs on the live `Quick Task` + `Full Delivery` contract. FEATURE-002 records the approved future direction, including `Quick Task+` as successor semantics for the existing quick lane rather than a third live mode.
+The repository currently runs on the live `Quick Task+` successor semantics for the `quick` lane together with the `Full Delivery` lane. The system still has only two live modes: `quick` and `full`.
 
 ## Two Workflow Lanes
 
@@ -13,10 +13,11 @@ OpenKit now uses a hard split between two lanes:
 
 `MasterOrchestrator` chooses the lane, records the decision in workflow state, and routes the work.
 
-Approved future direction:
+Live quick-lane guardrails:
 
-- `Quick Task+` is the intended evolution of the existing quick lane so it can handle a somewhat broader set of bounded daily tasks.
-- Current command names and runtime mode enums remain unchanged until follow-on runtime and contract work lands.
+- `Quick Task+` is the live successor semantics of the existing quick lane, not a third lane.
+- Current command names remain unchanged.
+- Runtime mode enums remain `quick` and `full`.
 
 ## The 7-Role Team
 
@@ -30,7 +31,7 @@ The full-delivery lane uses 7 distinct team roles:
 6. **Fullstack Agent**: Implements approved work.
 7. **QA Agent**: Validates implementation and classifies issues.
 
-Quick tasks use a smaller contract: `MasterOrchestrator -> FullstackAgent -> QAAgent (QA Lite) -> Done`.
+Quick tasks use a smaller contract: `MasterOrchestrator -> quick_plan -> FullstackAgent -> QAAgent (QA Lite) -> Done`.
 
 ## Workflow & Skills
 
@@ -120,7 +121,7 @@ Quick-task artifact:
 
 - `docs/tasks/`: lightweight quick-task cards when traceability beyond workflow state is useful
 
-This remains the current quick-lane artifact model. A richer quick-lane artifact or checklist model is future follow-on work, not a current requirement.
+The live quick lane now includes a first-class `quick_plan` stage for bounded planning. Task cards remain optional rather than mandatory.
 
 Full-delivery artifacts:
 
@@ -146,7 +147,7 @@ You can trigger workflows with the following commands:
 
 You can also type your request in normal language, and `MasterOrchestrator` will choose the appropriate lane.
 
-The command surface above is the current live interface. This documentation phase does not rename `/quick-task` or add a third lane command.
+The command surface above is the current live interface. FEATURE-003 does not rename `/quick-task` or add a third lane command.
 
 Helpful wayfinding docs:
 

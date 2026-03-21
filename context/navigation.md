@@ -31,7 +31,7 @@ Directional artifacts for approved future work:
 - `docs/architecture/2026-03-21-openkit-evolution-direction.md`
 - `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
 
-Read those FEATURE-002 artifacts when you need the approved roadmap for `Quick Task+` and runtime hardening. Use `context/core/workflow.md` and companion core docs when you need the current live contract.
+Read those FEATURE-002 artifacts when you need the approved roadmap that led to the live Quick Task+ activation and runtime hardening work. Use `context/core/workflow.md` and companion core docs when you need the current live contract.
 
 ## Discovery Rules
 
@@ -50,8 +50,8 @@ Read those FEATURE-002 artifacts when you need the approved roadmap for `Quick T
 ## Current Vs Future Reading Rule
 
 - `context/core/workflow.md`, `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, and `context/core/workflow-state-schema.md` define the live operational contract
-- the FEATURE-002 brief, spec, architecture, and ADR define approved future direction only
-- do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Full Delivery`, `quick`, and `full` until implementation changes land
+- the FEATURE-002 brief, spec, architecture, and ADR define the approved roadmap that informed the current live quick-lane contract
+- do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Full Delivery`, `quick`, and `full`
 
 ## Priority
 

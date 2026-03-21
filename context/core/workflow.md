@@ -4,7 +4,7 @@ Defines the current hard-split workflow contract for OpenKit.
 
 Use this file together with `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, and `context/core/workflow-state-schema.md`.
 
-FEATURE-002 approves a future direction for `Quick Task+` and runtime hardening, but this file remains the live contract until follow-on runtime, agent, command, and state changes land.
+FEATURE-003 activates `Quick Task+` as the live successor semantics of the existing quick lane while preserving the two-lane model and the `quick` / `full` mode enums.
 
 ## Workflow Lanes
 
@@ -25,26 +25,13 @@ Terminology guardrail:
 
 ## Contract Alignment Status
 
-This documentation phase updates how the repository describes the approved direction, not the live runtime behavior.
-
-Companion workflow docs updated in this phase:
-
-- `context/core/approval-gates.md`
-- `context/core/issue-routing.md`
-- `context/core/session-resume.md`
-- `context/core/workflow-state-schema.md`
-
-Companion workflow docs that remain operationally unchanged in this phase:
-
-- all live stage names, gate names, and mode enums
-- the one-way escalation rule from quick to full
-- the current command surface and workflow-state compatibility contract
+FEATURE-003 makes the stronger quick-lane semantics live. Companion workflow docs and runtime state are expected to align on the same active quick contract in this phase.
 
 ## Quick Task Lane
 
 Canonical stage sequence:
 
-`quick_intake -> quick_build -> quick_verify -> quick_done`
+`quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`
 
 Pipeline:
 
@@ -65,15 +52,17 @@ Quick mode exists to reduce overhead, not to bypass quality.
 Quick mode expectations:
 
 - clear scope up front
+- bounded planning before implementation
 - short acceptance bullet list
 - direct verification path
 - no architecture exploration
 - no full artifact chain requirement
 
-Approved future direction:
+Live Quick Task+ expectations:
 
-- the quick lane is expected to evolve toward `Quick Task+` so it can handle a somewhat broader set of bounded, low-risk daily work
-- that future lane may add a lightweight checklist, stronger evidence, or optional traceability artifacts
+- the quick lane can handle bounded small-to-medium work, not only the tiniest localized changes
+- `quick_plan` is a first-class quick stage for checklist-oriented planning and verification setup
+- optional task cards remain allowed when traceability helps, but are still not mandatory for every quick task
 
 ## Full Delivery Lane
 
@@ -109,13 +98,11 @@ Full mode preserves the structured team workflow for work that benefits from del
 
 Choose `Quick Task` only when all are true:
 
-- scope is small and localized
+- scope is bounded and remains within one tightly related area or two closely related surfaces
 - acceptance criteria are already clear
 - no new architecture or design trade-off is required
 - no API, schema, auth, billing, permission, or security model change is involved
 - validation can be done with a short, direct verification path
-
-FEATURE-002 does not relax these current routing rules yet.
 
 Choose `Full Delivery` when any are true:
 
@@ -169,8 +156,6 @@ Approval requirements are mode-specific.
 - `quick_verified` is the only required gate
 - the original user request is treated as implicit approval to begin unless the task is ambiguous or risky
 
-This remains the live approval contract in this phase.
-
 ### Full Delivery
 
 - `pm_to_ba`
@@ -188,9 +173,8 @@ Approval state should be recorded in `.opencode/workflow-state.json` before adva
 
 - optional lightweight task card: `docs/tasks/YYYY-MM-DD-<task>.md`
 - source code changes
+- bounded quick-plan/checklist state in `quick_plan`
 - concise QA Lite evidence in workflow communication and state
-
-This remains the current quick-lane artifact contract in this phase.
 
 ### Full Delivery
 

@@ -101,6 +101,38 @@ test("session-start emits mode-aware resume hint for quick tasks", () => {
   assert.match(result.stdout, /work item: TASK-500 \(quick-copy-fix\)/)
 })
 
+test("session-start reports quick_plan as a resumable quick stage", () => {
+  const projectRoot = makeTempProject()
+
+  writeManifest(projectRoot)
+  writeState(
+    projectRoot,
+    makeQuickState({
+      feature_id: "TASK-502",
+      feature_slug: "quick-plan-resume",
+      current_stage: "quick_plan",
+      current_owner: "MasterOrchestrator",
+    }),
+  )
+
+  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+    cwd: projectRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      OPENKIT_PROJECT_ROOT: projectRoot,
+      OPENKIT_SESSION_START_NO_SKILL: "1",
+      OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
+    },
+  })
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /<workflow_resume_hint>/)
+  assert.match(result.stdout, /mode: quick/)
+  assert.match(result.stdout, /stage: quick_plan/)
+  assert.match(result.stdout, /owner: MasterOrchestrator/)
+})
+
 test("session-start reports loaded startup skill when meta-skill exists", () => {
   const projectRoot = makeTempProject()
 

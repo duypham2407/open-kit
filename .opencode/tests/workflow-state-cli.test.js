@@ -106,6 +106,48 @@ test("status command prints workflow and runtime summary", () => {
   assert.match(result.stdout, /work item: FEATURE-001 \(task-intake-dashboard\)/)
 })
 
+test("status command reflects quick_plan as a live quick stage", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  state.feature_id = "TASK-600"
+  state.feature_slug = "quick-plan-status"
+  state.mode = "quick"
+  state.mode_reason = "Bounded quick work"
+  state.current_stage = "quick_plan"
+  state.status = "in_progress"
+  state.current_owner = "MasterOrchestrator"
+  state.approvals = {
+    quick_verified: {
+      status: "pending",
+      approved_by: null,
+      approved_at: null,
+      notes: null,
+    },
+  }
+  state.artifacts.task_card = null
+  state.artifacts.brief = null
+  state.artifacts.spec = null
+  state.artifacts.architecture = null
+  state.artifacts.plan = null
+  state.artifacts.qa_report = null
+  state.artifacts.adr = []
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+
+  const result = spawnSync("node", [path.resolve(__dirname, "../workflow-state.js"), "status"], {
+    cwd: projectRoot,
+    encoding: "utf8",
+  })
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /mode: quick/)
+  assert.match(result.stdout, /stage: quick_plan/)
+  assert.match(result.stdout, /owner: MasterOrchestrator/)
+  assert.match(result.stdout, /work item: TASK-600 \(quick-plan-status\)/)
+})
+
 test("doctor command reports runtime diagnostics", () => {
   const projectRoot = makeTempProject()
   setupTempRuntime(projectRoot)

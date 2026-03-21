@@ -7,16 +7,17 @@ This document shows the expected behavior of two separate operating lanes in the
 - Feature ID: `TASK-001`
 - Slug: `update-task-card-copy`
 - Mode: `quick`
-- Stage progression: `quick_intake -> quick_build -> quick_verify -> quick_done`
+- Stage progression: `quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`
 
 Quick-task example flow:
 
 1. `MasterOrchestrator` accepts a narrow copy change into quick mode.
 2. `MasterOrchestrator` records goal, scope, acceptance bullets, and verification path.
-3. `FullstackAgent` implements the change.
-4. `QAAgent` runs QA Lite.
-5. If QA Lite reports a `bug`, work routes back to `quick_build`.
-6. If QA Lite reports a `design_flaw` or `requirement_gap`, the task escalates to `full_intake`.
+3. `MasterOrchestrator` enters `quick_plan` and records the bounded checklist or confirms the task is trivial enough to pass this stage briefly.
+4. `FullstackAgent` implements the change.
+5. `QAAgent` runs QA Lite.
+6. If QA Lite reports a `bug`, work routes back to `quick_build`.
+7. If QA Lite reports a `design_flaw` or `requirement_gap`, the task escalates to `full_intake`.
 
 ## Full Delivery Example
 
@@ -86,6 +87,7 @@ If QA reports a contradictory acceptance criterion:
 
 ## Resume Examples
 
+- If a new session opens while `mode` is `quick` and `current_stage` is `quick_plan`, read `.opencode/workflow-state.json`, then the quick task card if present, then the bounded checklist, acceptance confirmation, and verification path.
 - If a new session opens while `mode` is `quick` and `current_stage` is `quick_verify`, read `.opencode/workflow-state.json`, then the quick task card if present, then the latest QA Lite evidence.
 - If a new session opens while `mode` is `full` and `current_stage` is `full_qa`, read `.opencode/workflow-state.json`, then the current QA report, then the current plan, and only then decide whether to route the issue or close the full-delivery feature.
 

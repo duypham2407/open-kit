@@ -23,11 +23,11 @@ Không trộn lẫn 2 contract này.
 
 ## Quick Task Mode
 
-`Quick Task+` là hướng phát triển đã được phê duyệt cho quick mode, không phải contract live mới. Hiện tại vẫn vận hành theo `Quick Task` contract đang live: nhanh, bounded, có thể dùng planning discipline nhẹ và verification mạnh hơn cho small-to-medium work miễn là chưa vượt quick boundary.
+`Quick Task+` là live successor semantics của quick mode hiện tại. Quick lane vẫn là `quick`, nhưng giờ có `quick_plan` là stage planning nhẹ bắt buộc trước implementation.
 
 ### Input
 
-Nhận quick intake brief từ `MasterOrchestrator`, gồm:
+Nhận quick intake brief và quick-plan context từ `MasterOrchestrator`, gồm:
 
 - goal
 - scope
@@ -35,9 +35,9 @@ Nhận quick intake brief từ `MasterOrchestrator`, gồm:
 - risk note
 - verification path
 
-Có thể kèm thêm:
+Kèm theo:
 
-- mini-plan/checklist ngắn nếu task có vài bước nhưng vẫn bounded
+- mini-plan/checklist ngắn trong `quick_plan`
 - `docs/tasks/YYYY-MM-DD-<slug>.md` nếu cần traceability nhẹ
 
 ### Quy trình
@@ -45,7 +45,7 @@ Có thể kèm thêm:
 1. Đọc quick intake brief đầy đủ
 2. Đọc `context/core/code-quality.md`
 3. Đọc `context/core/workflow.md` và `context/core/project-config.md`
-4. Nếu có mini-plan/checklist, bám theo checklist; nếu chưa có nhưng task có 2-5 bước rõ ràng, tự viết bounded checklist ngắn trong working notes hoặc task card thay vì lao vào sửa ad hoc
+4. Đọc `quick_plan` như contract implementation nhẹ; nếu checklist còn thiếu, báo lại `MasterOrchestrator` thay vì tự bỏ qua planning stage
 5. Thực hiện thay đổi nhỏ nhất an toàn để đạt acceptance bullets
 6. Chạy verification gần nhất có thật; nếu repo chưa có test command chuẩn, dùng manual verification và báo cáo rõ evidence đã kiểm tra gì
 7. Tóm tắt implementation, files changed, verification evidence, và unresolved risk note nếu có
@@ -130,7 +130,7 @@ Khi tất cả tasks pass 2-stage review:
 ## Nguyên tắc
 
 - **Quick mode không giả ceremony** — Nhanh nhưng vẫn phải có validation thật
-- **Quick mode có bounded planning** — Mini-plan/checklist được phép khi nó giảm rủi ro mà không biến quick lane thành full delivery
+- **Quick mode có first-class bounded planning** — `quick_plan` là stage bắt buộc nhưng vẫn phải nhẹ, checklist-oriented, và không biến quick lane thành full delivery
 - **Full mode tuân thủ plan** — Implementation plan là contract chính cho feature work
 - **TDD cho full-delivery work** — Test trước, code sau, khi repo có validation path phù hợp
 - **Incremental** — Một task tại một thời điểm, validate từng bước

@@ -52,10 +52,29 @@ test("startTask initializes quick mode with quick-only approvals", () => {
   assert.equal(result.state.escalation_reason, null)
 })
 
+test("quick mode requires quick_plan before quick_build", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-129", "needs-plan", "Bounded quick work", statePath)
+
+  assert.throws(() => advanceStage("quick_build", statePath), /immediate next stage 'quick_plan'/)
+})
+
+test("quick_plan becomes the next stage after quick_intake", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-130", "plan-stage", "Live quick plan stage", statePath)
+  const result = advanceStage("quick_plan", statePath)
+
+  assert.equal(result.state.current_stage, "quick_plan")
+  assert.equal(result.state.current_owner, "MasterOrchestrator")
+})
+
 test("quick_done requires quick_verified approval", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-124", "verify-copy", "Copy verification task", statePath)
+  advanceStage("quick_plan", statePath)
   advanceStage("quick_build", statePath)
   advanceStage("quick_verify", statePath)
 
@@ -143,7 +162,7 @@ test("quick mode rejects skipping stages", () => {
 
   startTask("quick", "TASK-128", "skip-stage", "Quick stage ordering", statePath)
 
-  assert.throws(() => advanceStage("quick_verify", statePath), /immediate next stage 'quick_build'/)
+  assert.throws(() => advanceStage("quick_verify", statePath), /immediate next stage 'quick_plan'/)
 })
 
 test("full mode rejects quick stages", () => {

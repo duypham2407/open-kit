@@ -25,8 +25,6 @@ Quick mode uses one required gate:
 
 - `quick_verified`
 
-This remains the gate for the current `quick` mode in this phase.
-
 Meaning:
 
 - the user request is treated as implicit approval to start quick work unless the task is ambiguous or risky
@@ -35,6 +33,8 @@ Meaning:
 Transition rule:
 
 - `quick_verify -> quick_done` requires `quick_verified = approved`
+
+`quick_plan` does not add a second quick approval gate in FEATURE-003. It is a required planning stage, but quick-mode completion still depends on `quick_verified` after QA Lite passes.
 
 ## Full Delivery Gates
 
@@ -68,4 +68,4 @@ When quick work escalates to full delivery:
 - record the escalation metadata in state
 - initialize the full-delivery approval chain with pending values
 
-This escalation behavior remains unchanged in this phase.
+This escalation behavior remains unchanged in FEATURE-003.

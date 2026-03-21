@@ -36,6 +36,7 @@ Guardrail:
 ### Quick Task stages
 
 - `quick_intake`: request accepted into quick mode and scoped by `MasterOrchestrator`
+- `quick_plan`: `MasterOrchestrator` is recording the bounded quick checklist, acceptance confirmation, and verification path
 - `quick_build`: Fullstack is implementing the quick task
 - `quick_verify`: `QAAgent` is performing QA Lite validation for the quick task
 - `quick_done`: the quick task is complete
@@ -63,6 +64,7 @@ Guardrail:
 | Stage | Default Owner |
 | --- | --- |
 | `quick_intake` | `MasterOrchestrator` |
+| `quick_plan` | `MasterOrchestrator` |
 | `quick_build` | `FullstackAgent` |
 | `quick_verify` | `QAAgent` |
 | `quick_done` | `MasterOrchestrator` |

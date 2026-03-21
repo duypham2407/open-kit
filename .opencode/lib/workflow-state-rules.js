@@ -1,5 +1,6 @@
 const QUICK_STAGE_SEQUENCE = [
   "quick_intake",
+  "quick_plan",
   "quick_build",
   "quick_verify",
   "quick_done",
@@ -20,6 +21,7 @@ const STAGE_SEQUENCE = [...QUICK_STAGE_SEQUENCE, ...FULL_STAGE_SEQUENCE]
 
 const STAGE_OWNERS = {
   quick_intake: "MasterOrchestrator",
+  quick_plan: "MasterOrchestrator",
   quick_build: "FullstackAgent",
   quick_verify: "QAAgent",
   quick_done: "MasterOrchestrator",

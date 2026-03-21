@@ -19,9 +19,8 @@ If `mode` is `quick`:
 
 - read the quick task card if `artifacts.task_card` is present
 - if there is no task card, use workflow state plus the latest conversation or commit context as the working brief
+- if `current_stage` is `quick_plan`, inspect the bounded checklist, acceptance confirmation, and verification path before resuming implementation
 - if `current_stage` is `quick_verify`, inspect the latest QA Lite evidence before continuing
-
-If follow-on quick-lane work adds richer evidence or artifacts, update this file when that runtime behavior actually lands.
 
 ### Full Delivery
 
@@ -40,7 +39,7 @@ If `mode` is `full`:
 - If `escalated_from` is `quick`, resume from the current full-delivery stage, not from the abandoned quick stage.
 - Use `.opencode/workflow-state.js show` or `.opencode/workflow-state.js validate` when explicit state inspection helps resume work.
 
-The current one-way escalation behavior remains unchanged in this phase.
+The current one-way escalation behavior remains unchanged in FEATURE-003.
 
 ## Status Values
 

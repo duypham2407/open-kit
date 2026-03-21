@@ -9,13 +9,12 @@ This directory contains end-to-end examples that show how OpenKit is expected to
 
 What examples currently cover:
 
-- the live `Quick Task` and `Full Delivery` lane split
+- the live `Quick Task+` quick-lane semantics and `Full Delivery` lane split
 - workflow-state stage progression and approval expectations
 - resumable-session guidance based on `.opencode/workflow-state.json`
 - current runtime commands where relevant, including `node .opencode/workflow-state.js status` and `node .opencode/workflow-state.js doctor`
 
 Current note:
 
-- existing examples illustrate the live `Quick Task` + `Full Delivery` contract
-- follow-on quick-lane changes should update examples only after the underlying contract and runtime behavior land
-- `Quick Task+` references remain directional unless the live workflow contract, commands, and runtime state support change together
+- existing examples illustrate the live quick lane with Quick Task+ semantics plus the `Full Delivery` lane
+- examples should be updated in the same change whenever the live quick-stage sequence, quick evidence expectations, or runtime bootstrap behavior changes
