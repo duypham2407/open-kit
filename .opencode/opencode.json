@@ -87,7 +87,6 @@
     "architecture": "docs/architecture",
     "plans": "docs/plans",
     "qa": "docs/qa",
-    "adr": "docs/adr",
-    "examples": "docs/examples"
+    "adr": "docs/adr"
   }
 }

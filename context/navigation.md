@@ -18,7 +18,7 @@ Repository policies outside `context/` that agents should also consult when rele
 - `docs/operator/README.md`: operator routing across live surfaces
 - `docs/maintainer/README.md`: maintainer routing across canonical and support surfaces
 - `docs/governance/`: naming, severity, ADR, and done criteria
-- `docs/operations/`: execution log, decision log, and review history guidance
+- `docs/operations/`: runbook guidance and durable operational-record policy
 
 ## Structure
 
@@ -35,13 +35,7 @@ context/
 │   └── workflow.md        ← Hard-split Quick Task and Full Delivery contract
 ```
 
-Maintainer-only roadmap and historical background lives outside the main navigation path:
-
-- `docs/briefs/2026-03-21-openkit-evolution-direction.md`
-- `docs/specs/2026-03-21-openkit-improvement-analysis.md`
-- `docs/architecture/2026-03-21-openkit-evolution-direction.md`
-- `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
-- `docs/archive/superpowers/`
+Most historical roadmap and archive docs were intentionally pruned from the working tree during cleanup. If you need older rationale, use git history rather than expecting archived background docs to remain present.
 
 Migration-contract references for the emerging managed wrapper should stay aligned across:
 
@@ -52,7 +46,7 @@ Migration-contract references for the emerging managed wrapper should stay align
 - `.opencode/install-manifest.json`
 - `.opencode/opencode.json`
 
-Read those roadmap and archived artifacts only when you need maintainer rationale or historical context. Use `context/core/workflow.md` when you need the current live workflow semantics, and use the companion core docs only for their local operational details.
+Use `context/core/workflow.md` when you need the current live workflow semantics, and use the companion core docs only for their local operational details. Use git history only when historical rationale matters more than current repository behavior.
 
 ## Phase-1 Authority Rule
 
@@ -82,8 +76,7 @@ Read those roadmap and archived artifacts only when you need maintainer rational
 
 - `context/core/workflow.md` is the canonical live workflow-semantics document
 - `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, `context/core/project-config.md`, and `context/core/workflow-state-schema.md` define local operational details and must stay aligned with `context/core/workflow.md`
-- the FEATURE-002 brief, spec, architecture, and ADR are maintainer background, not live operator docs
-- consult roadmap/archive artifacts only when the task is about workflow evolution, runtime hardening, or historical intent rather than normal feature execution
+- older roadmap rationale may no longer be present in the working tree; use git history when historical intent matters more than current behavior
 - do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Full Delivery`, `quick`, and `full`
 - do not describe the managed wrapper as fully shipped while `.opencode/opencode.json` remains the live manifest and no root `opencode.json` exists
 - do not describe the new audience index layers as canonical replacements for the docs they route to

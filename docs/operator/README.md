@@ -23,7 +23,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Workflow contract: `context/core/workflow.md`
 - Session resume: `context/core/session-resume.md`
 - Command and runtime reality: `context/core/project-config.md`
-- Examples and walkthroughs: `docs/examples/README.md`
+- Runtime smoke tests: `docs/operations/runbooks/workflow-state-smoke-tests.md`
 - Governance policy: `docs/governance/README.md`
 - Operations support: `docs/operations/README.md`
 

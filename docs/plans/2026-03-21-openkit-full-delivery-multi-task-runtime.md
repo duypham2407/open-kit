@@ -51,8 +51,7 @@ approval_gate: tech_lead_to_fullstack
   - Modify: `hooks/session-start`
   - Modify: `docs/operations/README.md`
   - Modify: `docs/operations/runbooks/workflow-state-smoke-tests.md`
-  - Modify: `docs/examples/README.md`
-  - Create: `docs/examples/maintainer/2026-03-21-full-delivery-parallel-agent-walkthrough.md`
+  - Modify: `README.md`
 - **Test layer**
   - Create: `.opencode/tests/work-item-store.test.js`
   - Create: `.opencode/tests/task-board-rules.test.js`
@@ -397,13 +396,11 @@ Expected: PASS.
 
 Refactor output strings only if the new runtime data makes command output too noisy or unclear.
 
-### Task 6: Update operations/examples guidance and add one realistic full-delivery task-board walkthrough
+### Task 6: Update operations guidance and add one realistic full-delivery task-board verification flow
 
 **Files:**
 - Modify: `docs/operations/README.md`
 - Modify: `docs/operations/runbooks/workflow-state-smoke-tests.md`
-- Modify: `docs/examples/README.md`
-- Create: `docs/examples/maintainer/2026-03-21-full-delivery-parallel-agent-walkthrough.md`
 - Modify: `README.md` if the walkthrough needs a top-level pointer
 
 - [ ] **Step 1: Add operator guidance for work-item and task-board inspection**
@@ -425,9 +422,9 @@ node .opencode/workflow-state.js validate-work-item-board <id>
 node --test ".opencode/tests/*.test.js"
 ```
 
-- [ ] **Step 3: Add one realistic walkthrough example**
+- [ ] **Step 3: Add one realistic walkthrough section to the smoke-test runbook**
 
-Create `docs/examples/maintainer/2026-03-21-full-delivery-parallel-agent-walkthrough.md` showing:
+Expand `docs/operations/runbooks/workflow-state-smoke-tests.md` to show:
 - one full-delivery feature entering `full_plan`
 - Tech Lead creating task-board entries
 - two implementation tasks with different primary owners

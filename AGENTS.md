@@ -29,18 +29,16 @@ The kit is structured into several core directories:
 - `.opencode/`: Configuration for the OpenCode environment
 - `docs/templates/`: Source-of-truth templates for workflow artifacts
 - `docs/tasks/`: Lightweight task cards for quick-mode traceability when needed
-- `docs/examples/`: End-to-end workflow examples
 - `docs/operator/`: Operator-facing index layer for daily routing
 - `docs/maintainer/`: Maintainer-facing index layer for repository upkeep routing
 - `docs/governance/`: Naming, severity, ADR, and definition-of-done policy
-- `docs/operations/`: Observability and execution logging guidance
+- `docs/operations/`: Runbook and operations guidance
 
 Current repository facts:
 
 - The current workflow contract is the hard-split design described in `context/core/workflow.md`
 - `context/core/workflow.md` is the canonical workflow-semantics document for lane behavior, stages, escalation, approvals, and quick-lane artifact expectations
-- FEATURE-002 direction artifacts explain the roadmap and rationale behind the current contract, but they do not override live runtime behavior or the current core workflow docs
-- The original single-pipeline workflow vision remains at `docs/ai_software_factory_agents.md` as historical background only
+- Historical planning and example docs have been intentionally pruned from the working tree; prefer current runtime docs and git history when older rationale is needed
 - `.opencode/opencode.json` is present as the runtime manifest for this kit
 - `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item
 - `.opencode/work-items/` is present as the internal per-item workflow backing store for managed runtime state
@@ -99,15 +97,10 @@ Phase-1 IA note:
 - `docs/operator/` and `docs/maintainer/` are index layers for audience-specific routing only
 - they do not replace canonical sources under `context/core/`, `docs/governance/`, `docs/operations/`, or the artifact directories
 
-Historical and roadmap background for maintainers only:
+Historical and roadmap note for maintainers:
 
-- `docs/briefs/2026-03-21-openkit-evolution-direction.md`
-- `docs/specs/2026-03-21-openkit-improvement-analysis.md`
-- `docs/architecture/2026-03-21-openkit-evolution-direction.md`
-- `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
-- `docs/archive/superpowers/specs/2026-03-21-openkit-hard-split-workflow-design.md`
-- `docs/archive/superpowers/specs/2026-03-20-openkit-operating-system-design.md`
-- `docs/ai_software_factory_agents.md`
+- Most historical planning docs were intentionally pruned from the working tree during repository cleanup.
+- If you need older rationale, inspect git history instead of assuming archived docs still exist in-tree.
 
 If guidance conflicts with repository state, trust the repository state and update documentation instead of inventing missing pieces.
 
@@ -163,7 +156,7 @@ The operating system layer is file-backed and should stay explicit.
 - Per-item backing store: `.opencode/work-items/`
 - Workflow-state CLI: `node .opencode/workflow-state.js ...`
 - Artifact templates: `docs/templates/`
-- Workflow examples: `docs/examples/`
+- Operational runbooks: `docs/operations/runbooks/`
 
 Wrapper migration contract:
 

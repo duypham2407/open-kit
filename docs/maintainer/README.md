@@ -15,7 +15,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 ## Start Here
 
 - Read `AGENTS.md` first for repository rules, tooling caveats, and authority order
-- Read `context/navigation.md` next for context discovery across live and historical docs
+- Read `context/navigation.md` next for context discovery across live docs and retained artifact surfaces
 - Read `context/core/project-config.md` when you need the maintained workflow-state command inventory
 
 ## Maintainer Routes
@@ -36,8 +36,8 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - `.opencode/work-items/` remains the per-item backing store for managed runtime state
 - `registry.json` and `.opencode/install-manifest.json` remain additive local metadata, not destructive install machinery
 
-## Historical And Roadmap References
+## Historical And Roadmap Notes
 
-- Use `docs/briefs/2026-03-21-openkit-evolution-direction.md`, `docs/specs/2026-03-21-openkit-improvement-analysis.md`, `docs/architecture/2026-03-21-openkit-evolution-direction.md`, and `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md` for maintainer rationale only
-- Use `docs/archive/` for historical background only
-- If historical guidance conflicts with checked-in runtime state, update docs to match reality rather than inventing missing infrastructure
+- Most historical planning and archive docs were intentionally pruned from the working tree during cleanup.
+- Use git history when you need older rationale that is no longer kept as checked-in documentation.
+- If older guidance conflicts with checked-in runtime state, update docs to match reality rather than inventing missing infrastructure.

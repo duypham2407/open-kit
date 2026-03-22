@@ -218,12 +218,6 @@
         "kind": "directory"
       },
       {
-        "id": "artifact.examples",
-        "name": "examples",
-        "path": "docs/examples",
-        "kind": "directory"
-      },
-      {
         "id": "artifact.templates",
         "name": "templates",
         "path": "docs/templates",

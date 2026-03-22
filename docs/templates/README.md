@@ -11,11 +11,10 @@ Current reality:
 - quick-mode work does not require every template-backed artifact
 - template ownership stays here even though audience routing now starts from `README.md`, `docs/operator/README.md`, and `docs/maintainer/README.md`
 
-Current template set aligns to the live artifact directories and example layout:
+Current template set aligns to the live artifact directories:
 
 - quick-task card drafts for `docs/tasks/` when optional traceability is useful
 - full-delivery artifacts for `docs/briefs/`, `docs/specs/`, `docs/architecture/`, `docs/plans/`, `docs/qa/`, and `docs/adr/`
-- examples under `docs/examples/` may demonstrate these shapes, but they do not override the templates or canonical workflow docs
 
 Use current runtime docs before assuming a template is backed by a live command.
 
@@ -25,7 +24,6 @@ For navigation around related support surfaces, use:
 
 - `docs/operator/README.md` for operator wayfinding
 - `docs/maintainer/README.md` for maintainer wayfinding
-- `docs/examples/README.md` for non-authoritative walkthroughs
 - `docs/operations/README.md` for runbooks and internal-record guidance
 
 Authority guardrail:

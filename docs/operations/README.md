@@ -18,10 +18,7 @@ The current operations surface includes the checked-in registry and install-mani
 ## Key Docs
 
 - `runbooks/workflow-state-smoke-tests.md`: smoke checks for both the wrapper path and the workflow-state/session-start internals
-- `internal-records/execution-log.md`: how to record meaningful execution events for longer-running work
-- `internal-records/decision-log.md`: how to capture durable non-ADR decisions
-- `internal-records/review-history.md`: how to record review outcomes that change direction or require follow-up
-- `internal-records/reference-absorption-notes.md`: OpenKit-native capture of the last high-value ideas preserved from upstream reference repos
+- `internal-records/README.md`: policy for when to keep a sparse durable operational record in-tree
 
 ## Primary Operator Path
 
@@ -62,10 +59,7 @@ Keep this distinction explicit:
 - workflow and command reality: `context/core/project-config.md`
 - workflow semantics and resume rules: `context/core/workflow.md` and `context/core/session-resume.md`
 - status, diagnostics, and repeatable verification steps: `runbooks/workflow-state-smoke-tests.md`
-- execution traceability guidance: `internal-records/execution-log.md`
-- lightweight decision capture: `internal-records/decision-log.md`
-- review outcome capture: `internal-records/review-history.md`
-- preserved reference context: `internal-records/reference-absorption-notes.md`
+- durable-record policy and any intentionally kept records: `internal-records/README.md`
 
 ## Index Guardrails
 

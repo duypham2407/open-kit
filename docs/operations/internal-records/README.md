@@ -11,10 +11,8 @@ Guardrails:
 - prefer concise records that help future maintainers recover context quickly
 - escalate architecture-shaping decisions to ADRs when repository policy requires it
 
-Current records:
+Current state:
 
-- `decision-log.md`: concise log of significant repository decisions
-- `execution-log.md`: lightweight history of notable implementation activity
-- `english-normalization-inventory.md`: current Vietnamese-bearing inventory, pairing map, and detector scope for the normalization effort
-- `reference-absorption-notes.md`: notes on how reference repositories informed the current repo
-- `review-history.md`: rolling notes on important reviews and follow-up actions
+- no standing internal-record files are kept checked in after the repository cleanup pass
+- add a focused record here only when it preserves durable operational context that does not belong in an ADR or runbook
+- prefer one clearly named file per topic and delete stale records once they stop helping maintainers

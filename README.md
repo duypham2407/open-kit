@@ -12,7 +12,6 @@ Use the top-level docs as routing layers before diving into detailed references:
 
 Phase-1 docs layout also routes supporting material through dedicated hubs:
 
-- `docs/examples/README.md`: examples split into `operator/`, `maintainer/`, and `workflow-samples/`
 - `docs/operations/README.md`: operational support split into `runbooks/` and `internal-records/`
 - `docs/templates/README.md`: template inventory and artifact-shape guardrails
 
@@ -25,7 +24,7 @@ Phase-1 authority rule:
 
 ## What Is Live Here
 
-This repository currently contains three different kinds of surfaces:
+This repository currently contains two active surface types:
 
 1. **Current checked-in runtime**
    - the live repository-local runtime rooted in `.opencode/`
@@ -36,11 +35,9 @@ This repository currently contains three different kinds of surfaces:
    - install, doctor, and run flows intended to become the preferred top-level user path
    - additive wrapper behavior that does not erase the checked-in runtime in one step
 
-3. **Historical and planning background**
-   - archived design/planning material under `docs/archive/`
-   - older roadmap and background artifacts kept for maintainers only
+Historical planning and example docs have been intentionally pruned from the working tree. If you need older rationale, use git history rather than treating removed docs as part of the live contract.
 
-If you only need the live checked-in workflow/runtime behavior, prefer the current runtime docs and commands over archived material.
+If you only need the live checked-in workflow/runtime behavior, prefer the current runtime docs and commands over older repository history.
 
 The repository currently runs on the live `Quick Task+` successor semantics for the `quick` lane together with the `Full Delivery` lane. The system still has only two live modes: `quick` and `full`.
 
@@ -144,13 +141,12 @@ Context is loaded dynamically based on the current phase, anchored by `context/n
 - `context/core/issue-routing.md`: QA issue classification and ownership routing.
 - `context/core/session-resume.md`: Resume protocol for fresh sessions.
 
-Historical and planning background now lives under archived or clearly historical locations. Do not treat those files as the live contract when repository state differs.
+Historical planning background has been intentionally pruned from this worktree. Do not treat older git history as the live contract when repository state differs.
 
 Current docs layout to keep straight:
 
 - audience routing stays at `README.md`, `docs/operator/README.md`, and `docs/maintainer/README.md`
 - artifact guidance stays with the owning directories such as `docs/briefs/`, `docs/specs/`, `docs/architecture/`, `docs/plans/`, `docs/qa/`, and `docs/adr/`
-- example walkthroughs now live under `docs/examples/operator/`, `docs/examples/maintainer/`, and `docs/examples/workflow-samples/`
 - operational support now routes through `docs/operations/runbooks/` and `docs/operations/internal-records/`
 - the phase-1 derived install bundle is documented under `assets/install-bundle/opencode/` and does not replace the root authoring sources
 
@@ -241,7 +237,7 @@ Full-delivery artifacts:
 - `docs/qa/`: QA reports
 - `docs/adr/`: architecture decision records
 
-Templates live in `docs/templates/` and examples live in `docs/examples/`.
+Templates live in `docs/templates/`.
 
 ## Usage
 
@@ -289,11 +285,10 @@ Helpful wayfinding docs:
 - `docs/operator/README.md` for operator-focused routing across the live surfaces
 - `docs/maintainer/README.md` for maintainer-focused routing across canonical and support docs
 - `context/navigation.md` for context discovery
-- `docs/examples/README.md` for example routing across operator, maintainer, and workflow-sample walkthroughs
 - `docs/briefs/README.md`, `docs/specs/README.md`, `docs/architecture/README.md`, `docs/plans/README.md`, `docs/qa/README.md`, and `docs/adr/README.md` for artifact-specific guidance
-- `docs/governance/README.md` and `docs/operations/README.md` for policy and operational support, including runbooks and internal-records routing
+- `docs/governance/README.md` and `docs/operations/README.md` for policy and operational support, including runbooks and sparse internal-records guidance
+- `docs/operations/runbooks/workflow-state-smoke-tests.md` for runtime smoke checks and command examples
 - `assets/install-bundle/opencode/README.md` for the derived phase-1 managed bundle boundary
-- `docs/archive/` for historical background only
 
 ## Operator Entry Points
 
