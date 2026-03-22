@@ -9,7 +9,27 @@ Current reality:
 - templates define the expected artifact shapes
 - runtime scaffolding support is narrower than the full template set
 - quick-mode work does not require every template-backed artifact
+- template ownership stays here even though audience routing now starts from `README.md`, `docs/operator/README.md`, and `docs/maintainer/README.md`
+
+Current template set aligns to the live artifact directories and example layout:
+
+- quick-task card drafts for `docs/tasks/` when optional traceability is useful
+- full-delivery artifacts for `docs/briefs/`, `docs/specs/`, `docs/architecture/`, `docs/plans/`, `docs/qa/`, and `docs/adr/`
+- examples under `docs/examples/` may demonstrate these shapes, but they do not override the templates or canonical workflow docs
 
 Use current runtime docs before assuming a template is backed by a live command.
 
-For the current command reality, use `context/core/project-config.md` and `docs/operations/README.md`.
+For the current command reality, use `context/core/project-config.md`.
+
+For navigation around related support surfaces, use:
+
+- `docs/operator/README.md` for operator wayfinding
+- `docs/maintainer/README.md` for maintainer wayfinding
+- `docs/examples/README.md` for non-authoritative walkthroughs
+- `docs/operations/README.md` for runbooks and internal-record guidance
+
+Authority guardrail:
+
+- templates are source-of-truth shapes for artifacts
+- canonical workflow and runtime semantics still live under `context/core/` and `.opencode/`
+- the new audience and support indexes route readers to those sources; they do not replace them

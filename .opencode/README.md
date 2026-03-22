@@ -4,6 +4,8 @@ This directory is the checked-in repository-local OpenKit runtime layer.
 
 It remains live in this repository today.
 
+For phase-1 navigation, treat this file as a local runtime boundary note, not as a replacement for the audience index layers in `README.md`, `docs/operator/README.md`, or `docs/maintainer/README.md`.
+
 What lives here:
 
 - `.opencode/opencode.json`: the current repository-local runtime manifest
@@ -12,6 +14,13 @@ What lives here:
 - `.opencode/workflow-state.js`: lower-level runtime utility CLI
 - `.opencode/lib/`: runtime internals
 - `.opencode/tests/`: runtime regression tests
+
+Related routing layers outside this directory:
+
+- `README.md`: top-level repository boundary and current docs layout
+- `docs/operator/README.md`: operator-facing routing for the live surfaces
+- `docs/maintainer/README.md`: maintainer-facing routing for canonical docs and internals
+- `docs/operations/README.md`: operational support routing for runbooks and internal records
 
 What this directory is not:
 
@@ -27,3 +36,9 @@ When a real OpenKit wrapper install exists elsewhere, the intended product path 
 - `openkit run`
 
 In this repository, `.opencode/` is still the concrete checked-in runtime that powers the lower-level workflow-state path and supports maintainer/runtime inspection.
+
+Authority guardrail:
+
+- `.opencode/` remains the live runtime layer
+- `context/core/workflow.md` remains the canonical workflow-semantics document
+- the phase-1 audience directories remain index layers only and do not relocate canonical runtime or workflow sources

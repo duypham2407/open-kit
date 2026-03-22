@@ -4,7 +4,7 @@ version: 1
 status: approved
 feature_id: FEATURE-001
 feature_slug: task-intake-dashboard
-source_plan: docs/examples/golden-path/2026-03-20-task-intake-dashboard-plan.md
+source_plan: docs/examples/workflow-samples/golden-path/2026-03-20-task-intake-dashboard-plan.md
 owner: QAAgent
 approval_gate: qa_to_done
 mode: full

@@ -2,7 +2,7 @@
 
 This example shows one realistic full-delivery feature moving through the implemented task-aware runtime.
 
-Use it as an operator reference only. The authoritative contract still lives in `context/core/workflow.md`, `context/core/session-resume.md`, and the checked-in workflow-state CLI help.
+Use it as a maintainer/runtime example only. The authoritative contract still lives in `context/core/workflow.md`, `context/core/session-resume.md`, and the checked-in workflow-state CLI help.
 
 ## Scenario
 

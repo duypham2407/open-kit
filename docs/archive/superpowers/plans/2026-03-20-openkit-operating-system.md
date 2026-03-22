@@ -59,7 +59,7 @@
 
 **Files:**
 - Create: `docs/examples/README.md`
-- Create: `docs/examples/2026-03-20-openkit-sample-workflow.md`
+- Create: `docs/examples/workflow-samples/2026-03-20-openkit-sample-workflow.md`
 
 - [ ] Demonstrate the complete artifact chain from brief to QA report.
 

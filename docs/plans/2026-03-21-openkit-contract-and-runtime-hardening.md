@@ -49,8 +49,8 @@ approval_gate: tech_lead_to_fullstack
   - Modify: `docs/templates/implementation-plan-template.md`, `docs/templates/quick-task-template.md`, `.opencode/workflow-state.js`, `.opencode/lib/workflow-state-controller.js`
   - Create: `.opencode/lib/artifact-scaffolder.js`, `.opencode/tests/artifact-scaffolder.test.js`
 - **Operator guidance layer**
-  - Modify: `docs/operations/README.md`, `docs/operations/workflow-state-smoke-tests.md`, `docs/examples/README.md`, `docs/governance/README.md`, `docs/governance/adr-policy.md`
-  - Create: `docs/examples/2026-03-21-runtime-hardening-walkthrough.md`
+  - Modify: `docs/operations/README.md`, `docs/operations/runbooks/workflow-state-smoke-tests.md`, `docs/examples/README.md`, `docs/governance/README.md`, `docs/governance/adr-policy.md`
+  - Create: `docs/examples/maintainer/2026-03-21-runtime-hardening-walkthrough.md`
 
 ## Execution Rules
 
@@ -191,7 +191,7 @@ Manual validation:
 - Modify: `.opencode/tests/workflow-state-cli.test.js`
 - Create: `.opencode/tests/workflow-contract-consistency.test.js`
 - Modify: `.opencode/tests/session-start-hook.test.js`
-- Modify: `docs/operations/workflow-state-smoke-tests.md`
+- Modify: `docs/operations/runbooks/workflow-state-smoke-tests.md`
 - Modify: `README.md`
 
 - [ ] **Step 1: Write failing tests for bootstrap hardening and contract-consistency checks**
@@ -247,7 +247,7 @@ Expected: PASS for the CLI, bootstrap, and consistency cases added in this task.
 
 - [ ] **Step 6: Document the new bootstrap and drift-detection behavior**
 
-Update `README.md` and `docs/operations/workflow-state-smoke-tests.md` so maintainers know:
+Update `README.md` and `docs/operations/runbooks/workflow-state-smoke-tests.md` so maintainers know:
 - startup output is intentionally aligned with the canonical workflow surfaces
 - `doctor` now checks contract drift, not only file presence
 
@@ -373,11 +373,11 @@ Expected: PASS.
 **Files:**
 - Modify: `README.md`
 - Modify: `docs/operations/README.md`
-- Modify: `docs/operations/workflow-state-smoke-tests.md`
+- Modify: `docs/operations/runbooks/workflow-state-smoke-tests.md`
 - Modify: `docs/examples/README.md`
 - Modify: `docs/governance/README.md`
 - Modify: `docs/governance/adr-policy.md`
-- Create: `docs/examples/2026-03-21-runtime-hardening-walkthrough.md`
+- Create: `docs/examples/maintainer/2026-03-21-runtime-hardening-walkthrough.md`
 
 - [ ] **Step 1: Add a maintainer-first startup path to `README.md`**
 
@@ -390,7 +390,7 @@ Document the smallest honest workflow for a new adopter:
 
 - [ ] **Step 2: Turn operations docs into runnable checklists**
 
-Update `docs/operations/README.md` and `docs/operations/workflow-state-smoke-tests.md` so they describe concrete checks with exact commands:
+Update `docs/operations/README.md` and `docs/operations/runbooks/workflow-state-smoke-tests.md` so they describe concrete checks with exact commands:
 ```bash
 node .opencode/workflow-state.js status
 node .opencode/workflow-state.js doctor
@@ -408,7 +408,7 @@ Update `docs/governance/README.md` and `docs/governance/adr-policy.md` with rule
 
 - [ ] **Step 4: Add one realistic walkthrough example**
 
-Create `docs/examples/2026-03-21-runtime-hardening-walkthrough.md` showing one full maintenance flow from status check to doctor to artifact scaffold to verification.
+Create `docs/examples/maintainer/2026-03-21-runtime-hardening-walkthrough.md` showing one full maintenance flow from status check to doctor to artifact scaffold to verification.
 
 - [ ] **Step 5: Review all operator docs for honesty and scope control**
 
@@ -452,7 +452,7 @@ Prepare a concise implementation summary that states:
 - which missing capabilities were added
 - which gaps remain deferred, such as multi-task concurrency or broader installer mechanics
 
-Only update `docs/operations/decision-log.md` or `docs/operations/review-history.md` if an existing governance or operations rule explicitly requires it for the changes actually made.
+Only update `docs/operations/internal-records/decision-log.md` or `docs/operations/internal-records/review-history.md` if an existing governance or operations rule explicitly requires it for the changes actually made.
 
 - [ ] **Step 5: Prepare execution handoff notes**
 

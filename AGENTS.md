@@ -30,6 +30,8 @@ The kit is structured into several core directories:
 - `docs/templates/`: Source-of-truth templates for workflow artifacts
 - `docs/tasks/`: Lightweight task cards for quick-mode traceability when needed
 - `docs/examples/`: End-to-end workflow examples
+- `docs/operator/`: Operator-facing index layer for daily routing
+- `docs/maintainer/`: Maintainer-facing index layer for repository upkeep routing
 - `docs/governance/`: Naming, severity, ADR, and definition-of-done policy
 - `docs/operations/`: Observability and execution logging guidance
 
@@ -92,6 +94,11 @@ Use the following order when deciding what is authoritative:
    - `context/core/workflow-state-schema.md`
 5. Repository files that actually exist in the working tree
 
+Phase-1 IA note:
+
+- `docs/operator/` and `docs/maintainer/` are index layers for audience-specific routing only
+- they do not replace canonical sources under `context/core/`, `docs/governance/`, `docs/operations/`, or the artifact directories
+
 Historical and roadmap background for maintainers only:
 
 - `docs/briefs/2026-03-21-openkit-evolution-direction.md`
@@ -107,6 +114,7 @@ If guidance conflicts with repository state, trust the repository state and upda
 ## Repo Navigation Guidance
 
 - Start with `AGENTS.md` for repository-wide rules, then use `context/navigation.md` to locate the specific workflow or standards docs you need
+- Use `docs/operator/README.md` for operator wayfinding and `docs/maintainer/README.md` for maintainer wayfinding when audience-specific routing helps
 - Treat `docs/` as the current center of gravity for repository knowledge
 - Verify file existence before referencing paths in plans or instructions
 - Prefer small, targeted edits over broad speculative restructuring

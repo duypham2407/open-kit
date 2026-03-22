@@ -4,7 +4,7 @@ version: 1
 status: approved
 feature_id: FEATURE-001
 feature_slug: task-intake-dashboard
-source_brief: docs/examples/golden-path/2026-03-20-task-intake-dashboard-brief.md
+source_brief: docs/examples/workflow-samples/golden-path/2026-03-20-task-intake-dashboard-brief.md
 owner: BAAgent
 approval_gate: ba_to_architect
 mode: full

@@ -2,6 +2,27 @@
 
 OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines explicit artifacts, approval gates, resumable workflow state, and a bounded full-delivery task runtime with an emerging managed-wrapper product direction over OpenCode.
 
+## Audience Navigation
+
+Use the top-level docs as routing layers before diving into detailed references:
+
+- `README.md`: concise top-level entrypoint for the repository surface
+- `docs/operator/README.md`: operator-facing index for daily use, command selection, and wayfinding
+- `docs/maintainer/README.md`: maintainer-facing index for canonical docs, runtime internals, and repository upkeep
+
+Phase-1 docs layout also routes supporting material through dedicated hubs:
+
+- `docs/examples/README.md`: examples split into `operator/`, `maintainer/`, and `workflow-samples/`
+- `docs/operations/README.md`: operational support split into `runbooks/` and `internal-records/`
+- `docs/templates/README.md`: template inventory and artifact-shape guardrails
+
+Phase-1 authority rule:
+
+- the new audience directories are index layers only
+- they do not relocate or replace canonical workflow, runtime, governance, or operations docs
+- `context/core/workflow.md` remains the canonical live workflow-semantics document
+- companion core docs under `context/core/` remain the authoritative operational references they already were
+
 ## What Is Live Here
 
 This repository currently contains three different kinds of surfaces:
@@ -124,6 +145,14 @@ Context is loaded dynamically based on the current phase, anchored by `context/n
 - `context/core/session-resume.md`: Resume protocol for fresh sessions.
 
 Historical and planning background now lives under archived or clearly historical locations. Do not treat those files as the live contract when repository state differs.
+
+Current docs layout to keep straight:
+
+- audience routing stays at `README.md`, `docs/operator/README.md`, and `docs/maintainer/README.md`
+- artifact guidance stays with the owning directories such as `docs/briefs/`, `docs/specs/`, `docs/architecture/`, `docs/plans/`, `docs/qa/`, and `docs/adr/`
+- example walkthroughs now live under `docs/examples/operator/`, `docs/examples/maintainer/`, and `docs/examples/workflow-samples/`
+- operational support now routes through `docs/operations/runbooks/` and `docs/operations/internal-records/`
+- the phase-1 derived install bundle is documented under `assets/install-bundle/opencode/` and does not replace the root authoring sources
 
 ## Maintainer Startup
 
@@ -257,10 +286,13 @@ This is the current checked-in operator surface for this worktree: `status`, `do
 
 Helpful wayfinding docs:
 
+- `docs/operator/README.md` for operator-focused routing across the live surfaces
+- `docs/maintainer/README.md` for maintainer-focused routing across canonical and support docs
 - `context/navigation.md` for context discovery
-- `docs/examples/README.md` for quick-task and full-delivery walkthroughs
+- `docs/examples/README.md` for example routing across operator, maintainer, and workflow-sample walkthroughs
 - `docs/briefs/README.md`, `docs/specs/README.md`, `docs/architecture/README.md`, `docs/plans/README.md`, `docs/qa/README.md`, and `docs/adr/README.md` for artifact-specific guidance
-- `docs/governance/README.md` and `docs/operations/README.md` for policy and operational support
+- `docs/governance/README.md` and `docs/operations/README.md` for policy and operational support, including runbooks and internal-records routing
+- `assets/install-bundle/opencode/README.md` for the derived phase-1 managed bundle boundary
 - `docs/archive/` for historical background only
 
 ## Operator Entry Points

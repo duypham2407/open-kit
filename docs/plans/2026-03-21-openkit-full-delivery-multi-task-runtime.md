@@ -50,9 +50,9 @@ approval_gate: tech_lead_to_fullstack
   - Modify: `.opencode/lib/contract-consistency.js`
   - Modify: `hooks/session-start`
   - Modify: `docs/operations/README.md`
-  - Modify: `docs/operations/workflow-state-smoke-tests.md`
+  - Modify: `docs/operations/runbooks/workflow-state-smoke-tests.md`
   - Modify: `docs/examples/README.md`
-  - Create: `docs/examples/2026-03-21-full-delivery-task-board-walkthrough.md`
+  - Create: `docs/examples/maintainer/2026-03-21-full-delivery-parallel-agent-walkthrough.md`
 - **Test layer**
   - Create: `.opencode/tests/work-item-store.test.js`
   - Create: `.opencode/tests/task-board-rules.test.js`
@@ -401,9 +401,9 @@ Refactor output strings only if the new runtime data makes command output too no
 
 **Files:**
 - Modify: `docs/operations/README.md`
-- Modify: `docs/operations/workflow-state-smoke-tests.md`
+- Modify: `docs/operations/runbooks/workflow-state-smoke-tests.md`
 - Modify: `docs/examples/README.md`
-- Create: `docs/examples/2026-03-21-full-delivery-task-board-walkthrough.md`
+- Create: `docs/examples/maintainer/2026-03-21-full-delivery-parallel-agent-walkthrough.md`
 - Modify: `README.md` if the walkthrough needs a top-level pointer
 
 - [ ] **Step 1: Add operator guidance for work-item and task-board inspection**
@@ -427,7 +427,7 @@ node --test ".opencode/tests/*.test.js"
 
 - [ ] **Step 3: Add one realistic walkthrough example**
 
-Create `docs/examples/2026-03-21-full-delivery-task-board-walkthrough.md` showing:
+Create `docs/examples/maintainer/2026-03-21-full-delivery-parallel-agent-walkthrough.md` showing:
 - one full-delivery feature entering `full_plan`
 - Tech Lead creating task-board entries
 - two implementation tasks with different primary owners

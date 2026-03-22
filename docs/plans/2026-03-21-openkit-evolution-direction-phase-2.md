@@ -61,7 +61,7 @@ Extend OpenKit from a stronger workflow/runtime kit into a more installable and 
 - [ ] **Step 5: Re-run the full runtime test suite and keep output clean**
 
 ### [ ] Task 8: Refine observability and extension mechanics
-- Files: `hooks/session-start`, `README.md`, `docs/operations/README.md`, `docs/operations/workflow-state-smoke-tests.md`, `docs/operations/decision-log.md`, `docs/operations/review-history.md`, `docs/governance/adr-policy.md`
+- Files: `hooks/session-start`, `README.md`, `docs/operations/README.md`, `docs/operations/runbooks/workflow-state-smoke-tests.md`, `docs/operations/internal-records/decision-log.md`, `docs/operations/internal-records/review-history.md`, `docs/governance/adr-policy.md`
 - Goal: make the new productization layer operationally understandable, including how to inspect install state and how to extend the kit safely
 - Validation: docs review against the real command surface and runtime behavior; run runtime tests after any hook changes
 - Notes: prefer explicit operational guidance over speculative roadmap prose

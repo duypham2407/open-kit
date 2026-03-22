@@ -321,7 +321,7 @@ test("bundled asset manifest matches the derived asset bundle on disk", () => {
 test("bundled asset validator reports drift between source and derived copy", () => {
   const testDir = path.dirname(fileURLToPath(import.meta.url))
   const projectRoot = path.resolve(testDir, "../..")
-  const bundledFilePath = path.join(projectRoot, "assets/opencode/commands/task.md")
+  const bundledFilePath = path.join(projectRoot, "assets/install-bundle/opencode/commands/task.md")
   const originalContents = fs.readFileSync(bundledFilePath, "utf8")
 
   fs.writeFileSync(bundledFilePath, `${originalContents}\n<!-- drift -->\n`, "utf8")
@@ -334,7 +334,7 @@ test("bundled asset validator reports drift between source and derived copy", ()
       {
         id: "opencode.command.task",
         sourcePath: "commands/task.md",
-        bundledPath: "assets/opencode/commands/task.md",
+        bundledPath: "assets/install-bundle/opencode/commands/task.md",
       },
     ])
   } finally {

@@ -2,15 +2,20 @@
 
 This directory contains end-to-end examples that show how OpenKit is expected to operate.
 
-Use examples to learn the operator flow, but treat the live wrapper commands and runtime docs as authoritative when behavior differs.
+Examples are organized by audience and function. Use them as non-authoritative walkthroughs and samples, not as substitutes for current repository state.
 
-- Start with `docs/examples/2026-03-20-openkit-sample-workflow.md`
-- For the supported wrapper-first operator path, start with `docs/examples/2026-03-22-openkit-wrapper-install-and-run.md`
-- For runtime inspection and bootstrap behavior, also see `docs/examples/2026-03-21-runtime-hardening-walkthrough.md`
-- For task-aware full-delivery execution, also see `docs/examples/2026-03-21-full-delivery-parallel-agent-walkthrough.md`
-- Full-delivery sample artifacts live under `docs/examples/golden-path/`
-- Quick-task sample artifacts live under `docs/examples/quick-task/`
-- Use examples as behavioral references, not as substitutes for current repository state
+Current layout:
+
+- `docs/examples/operator/`: operator-first onboarding and wrapper-path examples
+- `docs/examples/maintainer/`: lower-level runtime inspection and maintainer walkthroughs
+- `docs/examples/workflow-samples/`: sample artifacts and lane illustrations
+
+- Start with `docs/examples/operator/README.md` if you want the operator-first wrapper path.
+- Use `docs/examples/operator/2026-03-22-openkit-wrapper-install-and-run.md` as the primary first-run example.
+- Use `docs/examples/maintainer/README.md` for runtime inspection and task-aware maintainer walkthroughs.
+- Use `docs/examples/workflow-samples/README.md` for sample workflow artifacts and lane illustrations.
+- Use `docs/operations/README.md` when you need executable runbooks or durable operational records instead of examples.
+- When behavior differs, prefer live docs such as `README.md`, `docs/operator/README.md`, `docs/maintainer/README.md`, `context/core/workflow.md`, and current CLI help.
 
 What examples currently cover:
 
@@ -25,10 +30,10 @@ What examples currently cover:
 
 Operator note:
 
-- Start daily use from `README.md` for the concise operator path and command-selection matrix
-- Treat the wrapper walkthrough as the primary first-run example
-- Use examples to see what a Quick Task or Full Delivery run looks like in practice
-- Treat `node .opencode/workflow-state.js ...` examples as lower-level repository/runtime internals, not as the preferred wrapper onboarding path
+- Start daily use from `README.md` for the concise operator path and command-selection matrix.
+- Treat `docs/examples/operator/2026-03-22-openkit-wrapper-install-and-run.md` as the primary first-run example.
+- Use `docs/examples/workflow-samples/` to see what a Quick Task or Full Delivery run looks like in practice.
+- Treat examples under `docs/examples/maintainer/` and `node .opencode/workflow-state.js ...` examples as lower-level repository/runtime internals, not as the preferred wrapper onboarding path.
 - Do not read examples as proof of live parallel execution support unless the checked-in runtime docs and command surface say so
 - Do not read examples as proof of unrestricted concurrency; task-aware parallel support is limited to the exact work-item and task-board behaviors the runtime currently validates
 - When no app-native build, lint, or test tooling exists, examples should show honest validation notes rather than invented automation

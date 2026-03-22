@@ -39,7 +39,7 @@ approval_gate: tech_lead_to_fullstack
 - Validation: new doc is concise, OpenKit-native, and does not imply unsupported runtime exists today
 
 ### [ ] Task 4: Preserve useful behavior-test ideas in current OpenKit docs/tests
-- Files: `docs/operations/workflow-state-smoke-tests.md`, `.opencode/tests/*.test.js` only if a high-value behavior check is added
+- Files: `docs/operations/runbooks/workflow-state-smoke-tests.md`, `.opencode/tests/*.test.js` only if a high-value behavior check is added
 - Goal: absorb useful test/eval ideas from upstream references into current OpenKit practice
 - Validation: if tests are added, run `node --test ".opencode/tests/*.test.js"`
 

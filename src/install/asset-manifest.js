@@ -5,146 +5,146 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
   {
     id: "opencode.bundle.readme",
     assetClass: "bundle-metadata",
-    sourcePath: "assets/opencode/README.md",
-    bundledPath: "assets/opencode/README.md",
+    sourcePath: "assets/install-bundle/opencode/README.md",
+    bundledPath: "assets/install-bundle/opencode/README.md",
   },
   {
     id: "opencode.agent.ArchitectAgent",
     assetClass: "agents",
     sourcePath: "agents/architect-agent.md",
-    bundledPath: "assets/opencode/agents/ArchitectAgent.md",
+    bundledPath: "assets/install-bundle/opencode/agents/ArchitectAgent.md",
   },
   {
     id: "opencode.agent.BAAgent",
     assetClass: "agents",
     sourcePath: "agents/ba-agent.md",
-    bundledPath: "assets/opencode/agents/BAAgent.md",
+    bundledPath: "assets/install-bundle/opencode/agents/BAAgent.md",
   },
   {
     id: "opencode.agent.CodeReviewer",
     assetClass: "agents",
     sourcePath: "agents/code-reviewer.md",
-    bundledPath: "assets/opencode/agents/CodeReviewer.md",
+    bundledPath: "assets/install-bundle/opencode/agents/CodeReviewer.md",
   },
   {
     id: "opencode.agent.FullstackAgent",
     assetClass: "agents",
     sourcePath: "agents/fullstack-agent.md",
-    bundledPath: "assets/opencode/agents/FullstackAgent.md",
+    bundledPath: "assets/install-bundle/opencode/agents/FullstackAgent.md",
   },
   {
     id: "opencode.agent.MasterOrchestrator",
     assetClass: "agents",
     sourcePath: "agents/master-orchestrator.md",
-    bundledPath: "assets/opencode/agents/MasterOrchestrator.md",
+    bundledPath: "assets/install-bundle/opencode/agents/MasterOrchestrator.md",
   },
   {
     id: "opencode.agent.PMAgent",
     assetClass: "agents",
     sourcePath: "agents/pm-agent.md",
-    bundledPath: "assets/opencode/agents/PMAgent.md",
+    bundledPath: "assets/install-bundle/opencode/agents/PMAgent.md",
   },
   {
     id: "opencode.agent.QAAgent",
     assetClass: "agents",
     sourcePath: "agents/qa-agent.md",
-    bundledPath: "assets/opencode/agents/QAAgent.md",
+    bundledPath: "assets/install-bundle/opencode/agents/QAAgent.md",
   },
   {
     id: "opencode.agent.TechLeadAgent",
     assetClass: "agents",
     sourcePath: "agents/tech-lead-agent.md",
-    bundledPath: "assets/opencode/agents/TechLeadAgent.md",
+    bundledPath: "assets/install-bundle/opencode/agents/TechLeadAgent.md",
   },
   {
     id: "opencode.command.brainstorm",
     assetClass: "commands",
     sourcePath: "commands/brainstorm.md",
-    bundledPath: "assets/opencode/commands/brainstorm.md",
+    bundledPath: "assets/install-bundle/opencode/commands/brainstorm.md",
   },
   {
     id: "opencode.command.delivery",
     assetClass: "commands",
     sourcePath: "commands/delivery.md",
-    bundledPath: "assets/opencode/commands/delivery.md",
+    bundledPath: "assets/install-bundle/opencode/commands/delivery.md",
   },
   {
     id: "opencode.command.execute-plan",
     assetClass: "commands",
     sourcePath: "commands/execute-plan.md",
-    bundledPath: "assets/opencode/commands/execute-plan.md",
+    bundledPath: "assets/install-bundle/opencode/commands/execute-plan.md",
   },
   {
     id: "opencode.command.quick-task",
     assetClass: "commands",
     sourcePath: "commands/quick-task.md",
-    bundledPath: "assets/opencode/commands/quick-task.md",
+    bundledPath: "assets/install-bundle/opencode/commands/quick-task.md",
   },
   {
     id: "opencode.command.task",
     assetClass: "commands",
     sourcePath: "commands/task.md",
-    bundledPath: "assets/opencode/commands/task.md",
+    bundledPath: "assets/install-bundle/opencode/commands/task.md",
   },
   {
     id: "opencode.command.write-plan",
     assetClass: "commands",
     sourcePath: "commands/write-plan.md",
-    bundledPath: "assets/opencode/commands/write-plan.md",
+    bundledPath: "assets/install-bundle/opencode/commands/write-plan.md",
   },
   {
     id: "opencode.skill.brainstorming",
     assetClass: "skills",
     sourcePath: "skills/brainstorming/SKILL.md",
-    bundledPath: "assets/opencode/skills/brainstorming/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/brainstorming/SKILL.md",
   },
   {
     id: "opencode.skill.code-review",
     assetClass: "skills",
     sourcePath: "skills/code-review/SKILL.md",
-    bundledPath: "assets/opencode/skills/code-review/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/code-review/SKILL.md",
   },
   {
     id: "opencode.skill.subagent-driven-development",
     assetClass: "skills",
     sourcePath: "skills/subagent-driven-development/SKILL.md",
-    bundledPath: "assets/opencode/skills/subagent-driven-development/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/subagent-driven-development/SKILL.md",
   },
   {
     id: "opencode.skill.systematic-debugging",
     assetClass: "skills",
     sourcePath: "skills/systematic-debugging/SKILL.md",
-    bundledPath: "assets/opencode/skills/systematic-debugging/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/systematic-debugging/SKILL.md",
   },
   {
     id: "opencode.skill.test-driven-development",
     assetClass: "skills",
     sourcePath: "skills/test-driven-development/SKILL.md",
-    bundledPath: "assets/opencode/skills/test-driven-development/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/test-driven-development/SKILL.md",
   },
   {
     id: "opencode.skill.using-skills",
     assetClass: "skills",
     sourcePath: "skills/using-skills/SKILL.md",
-    bundledPath: "assets/opencode/skills/using-skills/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/using-skills/SKILL.md",
   },
   {
     id: "opencode.skill.verification-before-completion",
     assetClass: "skills",
     sourcePath: "skills/verification-before-completion/SKILL.md",
-    bundledPath: "assets/opencode/skills/verification-before-completion/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/verification-before-completion/SKILL.md",
   },
   {
     id: "opencode.skill.writing-plans",
     assetClass: "skills",
     sourcePath: "skills/writing-plans/SKILL.md",
-    bundledPath: "assets/opencode/skills/writing-plans/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/writing-plans/SKILL.md",
   },
   {
     id: "opencode.skill.writing-specs",
     assetClass: "skills",
     sourcePath: "skills/writing-specs/SKILL.md",
-    bundledPath: "assets/opencode/skills/writing-specs/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/writing-specs/SKILL.md",
   },
 ]
 
@@ -204,7 +204,7 @@ export function getManagedAsset(assetId) {
 }
 
 export function validateBundledAssetFiles(projectRoot) {
-  const bundleRoot = path.join(projectRoot, "assets", "opencode")
+  const bundleRoot = path.join(projectRoot, "assets", "install-bundle", "opencode")
   const missingFiles = []
   const mismatchedFiles = []
 

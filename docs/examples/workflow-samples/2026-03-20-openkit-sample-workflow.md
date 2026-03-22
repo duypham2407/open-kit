@@ -30,14 +30,14 @@ Full-delivery artifact chain:
 
 This artifact chain applies only to `mode: full`.
 
-This example chain lives under `docs/examples/golden-path/` to illustrate the live workflow without claiming those files are the active repository artifacts for an in-flight feature.
+This example chain lives under `docs/examples/workflow-samples/golden-path/` to illustrate the live workflow without claiming those files are the active repository artifacts for an in-flight feature.
 
-1. PM creates `docs/examples/golden-path/2026-03-20-task-intake-dashboard-brief.md`
-2. BA creates `docs/examples/golden-path/2026-03-20-task-intake-dashboard-spec.md`
-3. Architect creates `docs/examples/golden-path/2026-03-20-task-intake-dashboard-architecture.md`
-4. Tech Lead creates `docs/examples/golden-path/2026-03-20-task-intake-dashboard-plan.md`
+1. PM creates `docs/examples/workflow-samples/golden-path/2026-03-20-task-intake-dashboard-brief.md`
+2. BA creates `docs/examples/workflow-samples/golden-path/2026-03-20-task-intake-dashboard-spec.md`
+3. Architect creates `docs/examples/workflow-samples/golden-path/2026-03-20-task-intake-dashboard-architecture.md`
+4. Tech Lead creates `docs/examples/workflow-samples/golden-path/2026-03-20-task-intake-dashboard-plan.md`
 5. Fullstack implements code and tests
-6. QA creates `docs/examples/golden-path/2026-03-20-task-intake-dashboard-qa.md`
+6. QA creates `docs/examples/workflow-samples/golden-path/2026-03-20-task-intake-dashboard-qa.md`
 
 ## Full Delivery Approval Flow
 
