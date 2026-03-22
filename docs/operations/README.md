@@ -17,6 +17,7 @@ The current operations surface includes the checked-in registry and install-mani
 
 ## Key Docs
 
+- `runbooks/openkit-daily-usage.md`: detailed day-to-day usage guidance for the checked-in runtime path
 - `runbooks/workflow-state-smoke-tests.md`: smoke checks for both the wrapper path and the workflow-state/session-start internals
 - `internal-records/README.md`: policy for when to keep a sparse durable operational record in-tree
 
@@ -58,6 +59,7 @@ Keep this distinction explicit:
 - audience-specific operator routing: `docs/operator/README.md`
 - workflow and command reality: `context/core/project-config.md`
 - workflow semantics and resume rules: `context/core/workflow.md` and `context/core/session-resume.md`
+- daily operator path and command usage: `runbooks/openkit-daily-usage.md`
 - status, diagnostics, and repeatable verification steps: `runbooks/workflow-state-smoke-tests.md`
 - durable-record policy and any intentionally kept records: `internal-records/README.md`
 

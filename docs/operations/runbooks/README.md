@@ -4,6 +4,11 @@ This directory holds executable operator guidance.
 
 Use these docs when you need step-by-step checks, commands, or repeatable maintenance procedures.
 
+Current runbooks:
+
+- `openkit-daily-usage.md`: practical day-to-day operator flow for the checked-in runtime
+- `workflow-state-smoke-tests.md`: repeatable smoke checks for runtime and wrapper-related surfaces
+
 Guardrails:
 
 - keep runbooks action-oriented and safe to follow

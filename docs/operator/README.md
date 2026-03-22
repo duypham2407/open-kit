@@ -15,6 +15,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 ## Start Here
 
 - Read `README.md` for the top-level product and runtime boundary summary
+- Read `docs/operations/runbooks/openkit-daily-usage.md` for the detailed day-to-day usage path in this repository
 - Use `/task` unless you already know the work must start in `Quick Task` or `Full Delivery`
 - Use `context/navigation.md` when you need to locate deeper workflow or standards references
 
@@ -23,6 +24,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Workflow contract: `context/core/workflow.md`
 - Session resume: `context/core/session-resume.md`
 - Command and runtime reality: `context/core/project-config.md`
+- Detailed usage walkthrough: `docs/operations/runbooks/openkit-daily-usage.md`
 - Runtime smoke tests: `docs/operations/runbooks/workflow-state-smoke-tests.md`
 - Governance policy: `docs/governance/README.md`
 - Operations support: `docs/operations/README.md`

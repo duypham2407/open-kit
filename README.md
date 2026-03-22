@@ -267,6 +267,8 @@ For normal day-to-day use:
 4. Use `node .opencode/workflow-state.js show` when you need the current state object or linked artifact paths.
 5. Use `node .opencode/workflow-state.js validate` before trusting a resumed or manually edited workflow state.
 
+For the step-by-step operator walkthrough, use `docs/operations/runbooks/openkit-daily-usage.md`.
+
 This is the current checked-in operator surface for this worktree: `status`, `doctor`, `show`, `validate`, and the work-item/task-board inspection commands documented below. Treat those as bounded runtime helpers, not as evidence that arbitrary parallel execution support is safe.
 
 ## Command Selection Matrix
@@ -287,6 +289,7 @@ Helpful wayfinding docs:
 - `context/navigation.md` for context discovery
 - `docs/briefs/README.md`, `docs/specs/README.md`, `docs/architecture/README.md`, `docs/plans/README.md`, `docs/qa/README.md`, and `docs/adr/README.md` for artifact-specific guidance
 - `docs/governance/README.md` and `docs/operations/README.md` for policy and operational support, including runbooks and sparse internal-records guidance
+- `docs/operations/runbooks/openkit-daily-usage.md` for the detailed day-to-day usage path in this checked-in runtime
 - `docs/operations/runbooks/workflow-state-smoke-tests.md` for runtime smoke checks and command examples
 - `assets/install-bundle/opencode/README.md` for the derived phase-1 managed bundle boundary
 
