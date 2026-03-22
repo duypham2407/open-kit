@@ -2,9 +2,10 @@
 
 This directory contains end-to-end examples that show how OpenKit is expected to operate.
 
-Use examples to learn the operator flow, but treat the live runtime docs and workflow-state utility as authoritative when behavior differs.
+Use examples to learn the operator flow, but treat the live wrapper commands and runtime docs as authoritative when behavior differs.
 
 - Start with `docs/examples/2026-03-20-openkit-sample-workflow.md`
+- For the supported wrapper-first operator path, start with `docs/examples/2026-03-22-openkit-wrapper-install-and-run.md`
 - For runtime inspection and bootstrap behavior, also see `docs/examples/2026-03-21-runtime-hardening-walkthrough.md`
 - For task-aware full-delivery execution, also see `docs/examples/2026-03-21-full-delivery-parallel-agent-walkthrough.md`
 - Full-delivery sample artifacts live under `docs/examples/golden-path/`
@@ -13,6 +14,7 @@ Use examples to learn the operator flow, but treat the live runtime docs and wor
 
 What examples currently cover:
 
+- the supported wrapper path for install, doctor, and run
 - the live `Quick Task+` quick-lane semantics and `Full Delivery` lane split
 - workflow-state stage progression and approval expectations
 - resumable-session guidance based on `.opencode/workflow-state.json`
@@ -24,7 +26,9 @@ What examples currently cover:
 Operator note:
 
 - Start daily use from `README.md` for the concise operator path and command-selection matrix
+- Treat the wrapper walkthrough as the primary first-run example
 - Use examples to see what a Quick Task or Full Delivery run looks like in practice
+- Treat `node .opencode/workflow-state.js ...` examples as lower-level repository/runtime internals, not as the preferred wrapper onboarding path
 - Do not read examples as proof of live parallel execution support unless the checked-in runtime docs and command surface say so
 - Do not read examples as proof of unrestricted concurrency; task-aware parallel support is limited to the exact work-item and task-board behaviors the runtime currently validates
 - When no app-native build, lint, or test tooling exists, examples should show honest validation notes rather than invented automation

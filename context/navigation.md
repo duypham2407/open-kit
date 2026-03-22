@@ -4,6 +4,8 @@ This file is the entry point for context discovery after reading `AGENTS.md`. Us
 
 Use it to distinguish between live workflow contract docs and approved future-direction artifacts.
 
+Use it to keep the managed-wrapper migration story honest: the live repository-local runtime still centers on `.opencode/opencode.json`, while any future root `opencode.json` wrapper entrypoint remains planned direction until it exists in the tree.
+
 Repository policies outside `context/` that agents should also consult when relevant:
 
 - `docs/governance/`: naming, severity, ADR, and done criteria
@@ -31,6 +33,15 @@ Directional artifacts for approved future work:
 - `docs/architecture/2026-03-21-openkit-evolution-direction.md`
 - `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
 
+Migration-contract references for the emerging managed wrapper should stay aligned across:
+
+- `README.md`
+- `AGENTS.md`
+- `context/core/project-config.md`
+- `registry.json`
+- `.opencode/install-manifest.json`
+- `.opencode/opencode.json`
+
 Read those FEATURE-002 artifacts when you need roadmap rationale or historical context for workflow evolution and runtime hardening. Use `context/core/workflow.md` when you need the current live workflow semantics, and use the companion core docs only for their local operational details.
 
 ## Discovery Rules
@@ -54,6 +65,7 @@ Read those FEATURE-002 artifacts when you need roadmap rationale or historical c
 - the FEATURE-002 brief, spec, architecture, and ADR define approved roadmap and historical context for the current live quick-lane contract
 - consult FEATURE-002 direction artifacts when the task is about workflow evolution, runtime hardening, or roadmap intent rather than normal feature execution
 - do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Full Delivery`, `quick`, and `full`
+- do not describe the managed wrapper as fully shipped while `.opencode/opencode.json` remains the live manifest and no root `opencode.json` exists
 
 ## Priority
 

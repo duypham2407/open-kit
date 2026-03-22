@@ -1,0 +1,19 @@
+{
+  "schema": "openkit/install-state@1",
+  "stateVersion": 1,
+  "kit": {
+    "name": "OpenKit",
+    "version": "0.1.0"
+  },
+  "installation": {
+    "profile": "openkit-core",
+    "status": "installed",
+    "installedAt": "1970-01-01T00:00:00.000Z"
+  },
+  "assets": {
+    "managed": [],
+    "adopted": []
+  },
+  "warnings": [],
+  "conflicts": []
+}

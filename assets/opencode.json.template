@@ -1,0 +1,11 @@
+{
+  "installState": {
+    "path": ".openkit/openkit-install.json",
+    "schema": "openkit/install-state@1"
+  },
+  "productSurface": {
+    "current": "managed-opencode-wrapper",
+    "wrapperReadiness": "managed",
+    "installationMode": "openkit-managed"
+  }
+}

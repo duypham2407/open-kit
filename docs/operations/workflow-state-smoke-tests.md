@@ -1,10 +1,41 @@
 # Workflow-State Smoke Tests
 
-Use this document to run lightweight verification for the hard-split workflow-state utility and the session-start resume hint.
+Use this document to run lightweight verification for the managed wrapper path and for the lower-level workflow-state utility and session-start resume hint that still sit under it.
+
+## Safety First
+
+Many commands in this document mutate project state. Do not run the manual examples against the checked-in repository state unless you intentionally want to change it.
+
+Use one of these safer approaches before running any mutating command shown later in this document:
+
+- work in a temporary throwaway repository when validating `openkit init`, `openkit install`, or wrapper conflict handling
+- use a temporary state file or temporary project copy when validating `node .opencode/workflow-state.js` mutation commands
+- if you must point at this repository, restore any changed files immediately after the check
+
+High-risk mutating commands called out in this document include:
+
+- `openkit init`
+- `openkit install`
+- `node .opencode/workflow-state.js sync-install-manifest <name>`
+- `node .opencode/workflow-state.js start-task ...`
+- `node .opencode/workflow-state.js advance-stage ...`
+- `node .opencode/workflow-state.js route-rework ...`
+- `node .opencode/workflow-state.js create-task ...`
+
+Read this safety section before copying any command block below.
 
 ## Purpose
 
-These checks validate OpenKit's workflow operating system behavior without assuming any application build, lint, or test stack.
+These checks validate OpenKit's supported wrapper operator path plus the workflow operating system behavior underneath it, without assuming any application build, lint, or test stack.
+
+## Supported Path Order
+
+When you are validating operator-facing behavior, treat this order as primary:
+
+1. `openkit init` or `openkit install`
+2. `openkit doctor`
+3. `openkit run`
+4. `node .opencode/workflow-state.js ...` only when you need raw repository/runtime inspection
 
 ## Automated Checks
 
@@ -71,7 +102,69 @@ This covers:
 - quick-lane stage behavior such as `quick_plan` when live contract changes land in runtime tests
 - work-item and task-board summaries in `status` and `doctor` output when full-delivery parallel state is active
 
+### Wrapper CLI smoke tests
+
+Run:
+
+```bash
+node --test tests/cli/openkit-cli.test.js
+```
+
+This covers:
+
+- `openkit init` in a plain repository
+- `openkit doctor` after `openkit install` in a repository with an existing `.opencode/opencode.json`
+- `openkit run` launching a mocked `opencode` through the managed layering path
+- conflict reporting for wrapper install and init paths
+
 ## Manual CLI Smoke Tests
+
+Run the manual checks below only in a throwaway repo or temporary project copy unless the step explicitly says it is read-only.
+
+### Wrapper install and launch path
+
+In a plain repository:
+
+```bash
+openkit init
+openkit doctor
+```
+
+Expected outcome:
+
+- `openkit init` creates root `opencode.json`
+- `openkit init` creates `.openkit/openkit-install.json`
+- `openkit doctor` reports a managed-wrapper status instead of repository/runtime workflow-state details
+
+In a repository that already has `.opencode/opencode.json`:
+
+```bash
+openkit install
+openkit doctor
+openkit run --help
+```
+
+Expected outcome:
+
+- `openkit install` keeps `.opencode/opencode.json` intact
+- `openkit install` adds the wrapper-owned root `opencode.json`
+- `openkit doctor` reports whether the wrapper install is healthy, incomplete, or drifted
+- `openkit run` remains the supported wrapper launcher path over the raw runtime internals
+
+### Wrapper conflict reporting
+
+```bash
+openkit install
+```
+
+against a repository that already has an incompatible root `opencode.json`
+
+Expected outcome:
+
+- the command exits non-zero
+- the command reports the conflicting path
+- the command reports a machine-readable reason such as `unsupported-top-level-key`
+- the command reports `manual-review-required`
 
 ### Runtime summary and diagnostics
 
@@ -118,7 +211,7 @@ Expected outcome:
 
 ### Install-manifest sync
 
-Work on a throwaway branch or restore the checked-in manifest immediately after this check. `sync-install-manifest` rewrites the install manifest for the project root implied by the current `--state` path. If `--state` still points at this repository, the checked-in `.opencode/install-manifest.json` is what will change.
+Work on a throwaway branch, temporary project copy, or restore the checked-in manifest immediately after this check. `sync-install-manifest` rewrites the install manifest for the project root implied by the current `--state` path. If `--state` still points at this repository, the checked-in `.opencode/install-manifest.json` is what will change.
 
 ```bash
 node .opencode/workflow-state.js sync-install-manifest runtime-docs-surface
@@ -207,6 +300,8 @@ Expected outcome:
 
 ## Notes
 
+- Keep wrapper smoke coverage and the wrapper walkthrough example aligned with the actual `openkit` CLI behavior.
+- Keep `openkit doctor` guidance separate from `node .opencode/workflow-state.js doctor`; they validate different layers.
 - Prefer using a temporary state file when running manual smoke tests so the checked-in `.opencode/workflow-state.json` remains stable.
 - For task-aware smoke tests, prefer a temporary project copy rooted around `.opencode/workflow-state.json` so the compatibility mirror, work-item store, and install manifest can be exercised together.
 - Be deliberate when running `sync-install-manifest` because it updates the install manifest associated with the resolved project root, not the `--state` file itself. If that root is this repository, the checked-in `.opencode/install-manifest.json` will change.

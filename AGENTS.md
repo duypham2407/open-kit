@@ -66,6 +66,13 @@ Approved follow-on direction from FEATURE-002 also includes:
 - further refining the existing quick lane after the current `Quick Task+` successor semantics, without adding a third lane
 - hardening runtime bootstrap, diagnostics, and workflow-level verification
 
+The next product-layer direction is an emerging managed wrapper over OpenCode. Treat that as a staged migration target, not as a completed product transition. In this repository today:
+
+- `.opencode/opencode.json` remains the live runtime manifest
+- `registry.json` remains checked-in local metadata describing repository surfaces and profiles
+- `.opencode/install-manifest.json` remains additive local install metadata for this repository
+- a future root `opencode.json` is a target direction for wrapper-facing entry, not an already-shipped replacement
+
 Until application code lands, test runners and build tooling remain targets rather than current capabilities.
 
 Continue to use the current `Quick Task` and `Full Delivery` contract, current command names, and current workflow-state enums unless a later implemented change updates them.
@@ -117,6 +124,7 @@ Current state:
 - No single canonical package manager or language toolchain has been established for future generated applications
 - Node.js is a documented runtime dependency for the workflow-state utility only, not for future application code by default
 - The workflow-state CLI exists and is aligned with the hard-split stage and approval model documented in this repository
+- The repository-local runtime still boots from `.opencode/opencode.json`; do not claim that a root `opencode.json` wrapper entrypoint already exists unless the file is added
 
 Rules for agents:
 
@@ -140,11 +148,18 @@ These are illustrative patterns, not current repository commands.
 The operating system layer is file-backed and should stay explicit.
 
 - Runtime manifest: `.opencode/opencode.json`
+- Future wrapper-facing entrypoint direction: root `opencode.json` when that migration is actually implemented
 - Active compatibility mirror: `.opencode/workflow-state.json`
 - Per-item backing store: `.opencode/work-items/`
 - Workflow-state CLI: `node .opencode/workflow-state.js ...`
 - Artifact templates: `docs/templates/`
 - Workflow examples: `docs/examples/`
+
+Wrapper migration contract:
+
+- Treat the managed wrapper as additive over the checked-in runtime surfaces.
+- Do not describe registry or install-manifest metadata as plugin-only, remote-only, or destructive-install machinery.
+- Keep docs and metadata aligned about what exists now versus what is only planned.
 
 Required artifact outputs by mode:
 

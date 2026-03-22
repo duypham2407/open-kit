@@ -15,7 +15,20 @@
     "activeProfile": "openkit-core",
     "installedAt": "repository-root",
     "managedRemotely": false,
-    "notes": "This manifest describes the metadata checked into this repository. It does not fetch or install remote components."
+    "mode": "additive-non-destructive",
+    "wrapperReadiness": "emerging",
+    "notes": "This manifest describes additive metadata checked into this repository. It does not fetch remote components, remove the repository-local runtime, or imply that the managed wrapper migration is already complete.",
+    "repositoryInternalRuntime": ".opencode/opencode.json",
+    "wrapperFacingMetadata": [
+      "registry.json",
+      ".opencode/install-manifest.json"
+    ]
+  },
+  "migration": {
+    "currentRuntimeManifest": ".opencode/opencode.json",
+    "targetWrapperEntrypoint": "opencode.json",
+    "status": "staged-not-complete",
+    "notes": "The planned wrapper entrypoint is not checked in yet. Until it exists, repository operators should continue using the repository-local runtime surface."
   },
   "components": {
     "agents": "present",

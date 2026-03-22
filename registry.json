@@ -4,8 +4,35 @@
   "kit": {
     "name": "OpenKit AI Software Factory",
     "version": "0.1.0",
-    "description": "Local component metadata for the checked-in OpenKit repository.",
-    "repositoryRoot": "."
+    "description": "Local component metadata for the checked-in OpenKit repository during the staged migration toward a managed wrapper product surface.",
+    "repositoryRoot": ".",
+    "productSurface": {
+      "current": "repository-local-openkit-runtime",
+      "emerging": "managed-opencode-wrapper",
+      "wrapperReadiness": "emerging",
+      "migrationState": "staged-not-complete",
+      "activeRuntimeManifest": ".opencode/opencode.json",
+      "targetWrapperEntrypoint": "opencode.json",
+      "installMode": "additive-non-destructive",
+      "repositoryInternal": [
+        ".opencode/opencode.json",
+        ".opencode/workflow-state.json",
+        ".opencode/work-items/",
+        ".opencode/workflow-state.js",
+        "hooks/",
+        "agents/",
+        "skills/",
+        "commands/",
+        "context/",
+        "docs/"
+      ],
+      "wrapperFacing": [
+        "registry.json",
+        ".opencode/install-manifest.json",
+        "opencode.json (planned, not yet present)"
+      ],
+      "notes": "This registry describes repository-local components that exist today and also records migration-facing metadata for an additive managed wrapper direction. It does not mean the repository-local runtime has been removed or replaced."
+    }
   },
   "componentCategories": [
     "agents",
@@ -207,22 +234,28 @@
       {
         "id": "runtime.opencode-manifest",
         "name": "OpenCode Runtime Manifest",
-        "path": ".opencode/opencode.json"
+        "path": ".opencode/opencode.json",
+        "role": "active-runtime-manifest",
+        "surface": "repository-internal"
       },
       {
         "id": "runtime.workflow-state",
         "name": "Workflow State",
-        "path": ".opencode/workflow-state.json"
+        "path": ".opencode/workflow-state.json",
+        "surface": "repository-internal"
       },
       {
         "id": "runtime.workflow-state-cli",
         "name": "Workflow State CLI",
-        "path": ".opencode/workflow-state.js"
+        "path": ".opencode/workflow-state.js",
+        "surface": "repository-internal"
       },
       {
         "id": "runtime.install-manifest",
         "name": "Install Manifest",
-        "path": ".opencode/install-manifest.json"
+        "path": ".opencode/install-manifest.json",
+        "role": "additive-install-metadata",
+        "surface": "wrapper-facing-metadata"
       }
     ],
     "hooks": [
@@ -241,22 +274,26 @@
       {
         "id": "doc.readme",
         "name": "README",
-        "path": "README.md"
+        "path": "README.md",
+        "surface": "shared"
       },
       {
         "id": "doc.navigation",
         "name": "Navigation",
-        "path": "context/navigation.md"
+        "path": "context/navigation.md",
+        "surface": "repository-internal"
       },
       {
         "id": "doc.workflow-contract",
         "name": "Workflow Contract",
-        "path": "context/core/workflow.md"
+        "path": "context/core/workflow.md",
+        "surface": "repository-internal"
       },
       {
         "id": "doc.governance",
         "name": "Governance",
-        "path": "docs/governance/README.md"
+        "path": "docs/governance/README.md",
+        "surface": "repository-internal"
       }
     ]
   },
@@ -264,7 +301,7 @@
     {
       "id": "profile.openkit-core",
       "name": "openkit-core",
-      "description": "Core local profile for this repository's current OpenKit workflow kit.",
+      "description": "Core local profile for the checked-in repository runtime, with wrapper metadata present for migration visibility but not as a replacement runtime surface.",
       "componentRefs": [
         "agents",
         "skills",
@@ -279,7 +316,7 @@
     {
       "id": "profile.runtime-docs-surface",
       "name": "runtime-docs-surface",
-      "description": "Non-default local profile covering the checked-in runtime, hooks, command docs, artifact directories, and shared documentation surfaces.",
+      "description": "Non-default local profile covering repository-internal runtime and documentation surfaces for inspection, without implying a wrapper-only, plugin-only, or destructive install model.",
       "componentRefs": [
         "commands",
         "artifacts",

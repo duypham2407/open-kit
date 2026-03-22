@@ -1,20 +1,31 @@
 # Operations
 
-This directory defines lightweight operational guidance for execution logs, decision logs, review history, and runtime verification.
+This directory defines lightweight operational guidance for execution logs, decision logs, review history, wrapper verification, and lower-level runtime inspection.
 
-Use these docs when you need to understand or support OpenKit as an operating kit instead of only reading the workflow contract.
+Use these docs when you need to support OpenKit as an operating kit instead of only reading the workflow contract. For normal setup and launch, treat the managed wrapper path as primary. Use the raw repository/runtime commands here when you need maintainer-level detail.
 
 The current operations surface includes the checked-in registry and install-manifest metadata layer. Treat that layer as local repository observability, not as a remote package-management system.
 
 Operational references in this directory:
 
-- `workflow-state-smoke-tests.md`: lightweight checks for the workflow-state CLI and session-start behavior
+- `workflow-state-smoke-tests.md`: smoke checks for both the wrapper path and the workflow-state/session-start internals
 - `execution-log.md`: how to record meaningful execution events for longer-running work
 - `decision-log.md`: how to capture durable non-ADR decisions
 - `review-history.md`: how to record review outcomes that change direction or require follow-up
 - `reference-absorption-notes.md`: OpenKit-native capture of the last high-value ideas preserved from upstream reference repos
 
-Current runtime command surface:
+## Primary Operator Path
+
+Use the managed wrapper commands first:
+
+- `openkit init` for plain repositories
+- `openkit install` for repositories that already have `.opencode/opencode.json`
+- `openkit doctor` for wrapper readiness, drift, and missing-prerequisite checks
+- `openkit run <args>` for the supported managed launcher path
+
+Use `node .opencode/workflow-state.js ...` only when you intentionally need the lower-level repository/runtime internals that sit under the wrapper.
+
+Current repository/runtime command surface under the wrapper:
 
 - inspection and diagnostics: `show`, `status`, `doctor`, `version`, `profiles`, `show-profile <name>`, `validate`
 - install-manifest metadata: `sync-install-manifest <name>`
@@ -24,13 +35,19 @@ Current runtime command surface:
 - task-board management: `list-tasks <work_item_id>`, `create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`, `claim-task <work_item_id> <task_id> <owner> <requested_by>`, `release-task <work_item_id> <task_id> <requested_by>`, `reassign-task <work_item_id> <task_id> <owner> <requested_by>`, `assign-qa-owner <work_item_id> <task_id> <qa_owner> <requested_by>`, `set-task-status <work_item_id> <task_id> <status>`, `validate-work-item-board <work_item_id>`
 - issue routing: `record-issue <issue_id> <title> <type> <severity> <rooted_in> <recommended_owner> <evidence> <artifact_refs>`, `clear-issues`, `route-rework <issue_type> [repeat_failed_fix=true|false]`
 
-Operational notes for that surface:
+Operational notes for that lower-level surface:
 
 - `status` prints the current runtime summary for the checked-in state file or a supplied `--state` path.
 - `doctor` checks whether the expected runtime files are present, readable, and still aligned with the checked-in workflow contract; it also checks active-work-item pointer resolution, compatibility-mirror alignment, and task-board validity when applicable.
 - `validate` checks mirrored state-shape validity but does not replace the broader diagnostics from `doctor`.
 - `start-feature` remains a compatibility shortcut into full-delivery state; `start-task` is the explicit mode-aware entrypoint.
 - task-board commands are bounded coordination commands for the implemented full-delivery task runtime only.
+
+Wrapper-vs-internals note:
+
+- `openkit doctor` checks the supported wrapper installation path.
+- `node .opencode/workflow-state.js doctor` checks the underlying repository/runtime state.
+- Both are useful, but they answer different questions and should not be described as interchangeable.
 
 ## Operator Checklist
 

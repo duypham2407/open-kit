@@ -7,6 +7,30 @@
     "name": "OpenKit AI Software Factory",
     "version": "0.1.0",
     "entryAgent": "MasterOrchestrator",
+    "productSurface": {
+      "current": "repository-local-openkit-runtime",
+      "emerging": "managed-opencode-wrapper",
+      "wrapperReadiness": "emerging",
+      "migrationState": "staged-not-complete",
+      "targetWrapperEntrypoint": "opencode.json",
+      "repositoryInternal": [
+        ".opencode/opencode.json",
+        ".opencode/workflow-state.json",
+        ".opencode/work-items/",
+        ".opencode/workflow-state.js",
+        "hooks/",
+        "agents/",
+        "skills/",
+        "commands/",
+        "context/",
+        "docs/"
+      ],
+      "wrapperFacingMetadata": [
+        "registry.json",
+        ".opencode/install-manifest.json"
+      ],
+      "notes": "This file remains the live repository-local runtime manifest during the wrapper migration. Wrapper-facing entry at root `opencode.json` is planned direction only until that file exists."
+    },
     "registry": {
       "path": "registry.json",
       "schema": "openkit/component-registry@1"
@@ -15,7 +39,10 @@
       "path": ".opencode/install-manifest.json",
       "schema": "openkit/install-manifest@1"
     },
-    "activeProfile": "openkit-core"
+    "activeProfile": "openkit-core",
+    "installationMode": "additive-non-destructive",
+    "runtimeSurface": "repository-internal",
+    "wrapperMetadataSurface": "staged-additive"
   },
   "hooks": {
     "config": "hooks/hooks.json"

@@ -2,6 +2,10 @@
 
 OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines OpenAgentsControl-style orchestration concepts with superpowers-style workflow discipline using explicit artifacts, approval gates, resumable workflow state, and a bounded full-delivery task runtime.
 
+The intended primary product direction is the managed OpenKit wrapper over OpenCode. When that wrapper surface is present in a repository, the intended operator path is `openkit init`, `openkit install`, `openkit doctor`, and `openkit run`.
+
+In this worktree today, the checked-in repository-local runtime still centers on `.opencode/opencode.json`, the workflow-state utility, hooks, commands, and docs. Treat those repository/runtime internals as the current checked-in surface, while treating the wrapper path as the staged primary direction rather than a completed transition.
+
 The repository currently runs on the live `Quick Task+` successor semantics for the `quick` lane together with the `Full Delivery` lane. The system still has only two live modes: `quick` and `full`.
 
 ## Two Workflow Lanes
@@ -25,6 +29,49 @@ Live quick-lane guardrails:
 - `Quick Task+` is the live successor semantics of the existing quick lane, not a third lane.
 - Current command names remain unchanged.
 - Runtime mode enums remain `quick` and `full`.
+
+## Product Boundary And Migration Direction
+
+Wrapper-first remains the intended product direction, but the migration is still staged in this worktree.
+
+For the target wrapper path, once wrapper-owned files are actually present:
+
+1. Run `openkit init` in a plain repository to create the wrapper-owned root `opencode.json` entrypoint and `.openkit/openkit-install.json` state file.
+2. Run `openkit install` in a repository that already has `.opencode/opencode.json` when you want to add the wrapper path without replacing the checked-in runtime manifest.
+3. Run `openkit doctor` to confirm the wrapper install is healthy, incomplete, or drifted before relying on `openkit run`.
+4. Run `openkit run <args>` to launch `opencode` through the managed layering path for the current project.
+
+In this worktree today:
+
+- the wrapper path is the intended primary product surface, but it is still migration-stage rather than a fully checked-in replacement runtime here.
+- the checked-in runtime surface remains the repository-local OpenKit implementation rooted in `.opencode/opencode.json`.
+- docs may describe wrapper commands and wrapper-owned files as the target operator experience, but that does not mean those files are already present in this worktree.
+
+OpenKit currently exposes two related but not identical surfaces:
+
+- the intended managed wrapper surface for installation, readiness checks, and launch as migration completes
+- the checked-in repository-local runtime surface that exists today in this worktree
+
+Current boundary:
+
+- `.opencode/opencode.json` is still the live runtime manifest under the wrapper.
+- `.opencode/workflow-state.json`, `.opencode/work-items/`, `.opencode/workflow-state.js`, `hooks/`, `agents/`, `skills/`, `commands/`, `context/`, and `docs/` remain repository-internal runtime or support surfaces.
+- `registry.json` is local metadata describing repository surfaces and the migration-facing wrapper contract.
+- `.opencode/install-manifest.json` records the local installed profile for this repository and remains additive metadata rather than a destructive installer.
+- A wrapper-owned root `opencode.json` and `.openkit/openkit-install.json` are target wrapper surfaces, not checked-in current surfaces in this worktree.
+- The checked-in agents, skills, commands, hooks, docs, and workflow-state files remain the source of truth for what actually exists.
+
+Target migration direction:
+
+- The wrapper entrypoint is intended to stay additive over the current repo-local surfaces rather than erase them in one step.
+- The transition remains staged and non-destructive, with compatibility for existing repository-local runtime users during migration.
+- When docs refer to raw `.opencode/*` files, treat them as repository/runtime internals that power the wrapper rather than as proof that the wrapper path is unsupported.
+
+Repository-internal vs wrapper-facing summary:
+
+- Wrapper-facing direction: `openkit init`, `openkit install`, `openkit doctor`, `openkit run`, a root `opencode.json`, and `.openkit/openkit-install.json` when that wrapper surface is actually installed.
+- Repository-internal today: `.opencode/opencode.json`, workflow-state files, the workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs.
+- Wrapper-facing and repository-internal surfaces intentionally coexist; the wrapper does not imply the lower-level runtime vanished.
 
 ## The 7-Role Team
 
@@ -70,7 +117,7 @@ Directional and historical artifacts for the next phase live in:
 
 ## Maintainer Startup
 
-Use this flow when you want to inspect or resume the checked-in OpenKit runtime honestly, without assuming any broader installer or app stack.
+Use this flow when you want to inspect or resume the checked-in OpenKit runtime directly. In this worktree, that remains the concrete checked-in path.
 
 1. Ensure `.opencode/opencode.json` is present in the project root.
 2. Ensure `.opencode/workflow-state.json` is present as the active compatibility mirror for the current work item.
@@ -95,13 +142,15 @@ The default manifest currently carries a starter model value inherited from the 
 
 ## Registry Metadata
 
-OpenKit now includes a small checked-in metadata layer for local inspection:
+OpenKit now includes a small checked-in metadata layer for local inspection and for the emerging managed-wrapper contract:
 
-- `registry.json` describes the component categories that exist in this repository today, including agents, skills, commands, artifact directories, runtime files, hooks, and a few anchor docs.
-- `.opencode/install-manifest.json` records which local profile is active for this repository and points back to `registry.json`.
-- `.opencode/opencode.json` now includes discoverable pointers to both metadata files plus the active profile name.
+- `registry.json` describes the component categories that exist in this repository today, including agents, skills, commands, artifact directories, runtime files, hooks, and anchor docs, while also declaring which metadata participates in the emerging wrapper contract.
+- `.opencode/install-manifest.json` records which local profile is active for this repository, points back to `registry.json`, and documents the current install stance as additive and non-destructive.
+- `.opencode/opencode.json` remains the live repository-local manifest while also exposing pointers to both metadata files plus the active profile name and current wrapper-readiness status.
 
-This metadata is local repository state, not a remote installer. It does not fetch, download, or update components from elsewhere.
+This metadata is local repository state, not a remote installer. It does not fetch, download, replace, or update components from elsewhere.
+
+During migration, do not collapse these roles together: the metadata helps define the wrapper product surface, but the checked-in repository runtime remains the thing that actually runs.
 
 Current checked-in profile:
 
@@ -118,13 +167,13 @@ The install manifest is intended to make future runtime commands and diagnostics
 The current workflow for profile metadata is local and inspectable:
 
 1. `registry.json` defines the available component categories, checked-in components, and named profiles.
-2. `.opencode/opencode.json` points to the registry and install manifest, and declares the repository's active profile.
-3. `.opencode/install-manifest.json` records which profile is installed for this working tree and which broad component categories are present.
+2. `.opencode/opencode.json` points to the registry and install manifest, declares the repository's active profile, and remains the live manifest for the current repository-local runtime.
+3. `.opencode/install-manifest.json` records which profile is installed for this working tree, which broad component categories are present, and that installation remains additive rather than destructive.
 4. `node .opencode/workflow-state.js profiles` lists the named profiles from the registry.
 5. `node .opencode/workflow-state.js show-profile <name>` shows whether a profile is the repository default and which component categories it includes.
 6. `node .opencode/workflow-state.js sync-install-manifest <name>` updates `.opencode/install-manifest.json` so its recorded active profile matches a named local profile.
 
-This is not a package installer. `sync-install-manifest` updates checked-in local metadata only; it does not create missing files, fetch remote assets, or switch the repository to a different command surface automatically.
+This is not a package installer. `sync-install-manifest` updates checked-in local metadata only; it does not create missing files, fetch remote assets, remove existing runtime surfaces, or switch the repository to a different command surface automatically. It also does not mean the managed wrapper entrypoint has taken over unless a real root `opencode.json` is present.
 
 Practical inspection flow:
 
@@ -172,7 +221,7 @@ The command surface above is the current live interface. The live contract does 
 
 ## Daily Operator Path
 
-For normal day-to-day use, keep the operator loop short:
+For normal day-to-day use, prefer the wrapper path when a repository actually has that wrapper surface installed. In this worktree's checked-in state, use the repository-local runtime path below.
 
 1. Run `node .opencode/workflow-state.js status` to see whether work is already in progress.
 2. Run `node .opencode/workflow-state.js doctor` if the runtime looks off or you are entering a repo for the first time.
@@ -180,7 +229,7 @@ For normal day-to-day use, keep the operator loop short:
 4. Use `node .opencode/workflow-state.js show` when you need the current state object or linked artifact paths.
 5. Use `node .opencode/workflow-state.js validate` before trusting a resumed or manually edited workflow state.
 
-This is the current live operator surface: `status`, `doctor`, `show`, `validate`, and the work-item/task-board inspection commands documented below. Treat those as bounded runtime helpers, not as evidence that arbitrary parallel execution support is safe.
+This is the current checked-in operator surface for this worktree: `status`, `doctor`, `show`, `validate`, and the work-item/task-board inspection commands documented below. Treat those as bounded runtime helpers, not as evidence that arbitrary parallel execution support is safe.
 
 ## Command Selection Matrix
 
@@ -202,7 +251,7 @@ Helpful wayfinding docs:
 
 ## Operator Entry Points
 
-Normal operator entrypoints in this repository are:
+Current checked-in operator entrypoints in this repository are:
 
 - slash commands such as `/task`, `/quick-task`, `/delivery`, `/brainstorm`, `/write-plan`, and `/execute-plan`
 - `node .opencode/workflow-state.js status`
@@ -213,11 +262,13 @@ Normal operator entrypoints in this repository are:
 - `node .opencode/workflow-state.js show-work-item <work_item_id>`
 - `node .opencode/workflow-state.js list-tasks <work_item_id>` when the active full-delivery item uses a task board
 
-Use those first for day-to-day work, state inspection, and resume checks.
+Use those for the checked-in repository runtime, state inspection, and resume checks. When a real wrapper install exists in a repository, treat the wrapper commands as the preferred top-level operator path.
 
 ## Workflow-State Utility Commands
 
-Operator-facing inspection commands:
+For the authoritative workflow-state command inventory, use `context/core/project-config.md`.
+
+In this README, keep only the concise operator-facing surface:
 
 - `node .opencode/workflow-state.js status`
 - `node .opencode/workflow-state.js doctor`
@@ -225,27 +276,9 @@ Operator-facing inspection commands:
 - `node .opencode/workflow-state.js validate`
 - `node .opencode/workflow-state.js list-work-items`
 - `node .opencode/workflow-state.js show-work-item <work_item_id>`
-- `node .opencode/workflow-state.js list-tasks <work_item_id>`
-- `node .opencode/workflow-state.js validate-work-item-board <work_item_id>`
+- `node .opencode/workflow-state.js list-tasks <work_item_id>` when the active full-delivery item uses a task board
 
-Lower-level workflow-state mutation commands:
-
-- `node .opencode/workflow-state.js start-task <mode> <feature_id> <feature_slug> <mode_reason>`
-- `node .opencode/workflow-state.js create-work-item <mode> <feature_id> <feature_slug> <mode_reason>`
-- `node .opencode/workflow-state.js activate-work-item <work_item_id>`
-- `node .opencode/workflow-state.js advance-stage <stage>`
-- `node .opencode/workflow-state.js set-approval <gate> <status> ...`
-- `node .opencode/workflow-state.js link-artifact <kind> <path>`
-- `node .opencode/workflow-state.js scaffold-artifact <task_card|plan> <slug>`
-- `node .opencode/workflow-state.js create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`
-- `node .opencode/workflow-state.js claim-task <work_item_id> <task_id> <owner> <requested_by>`
-- `node .opencode/workflow-state.js release-task <work_item_id> <task_id> <requested_by>`
-- `node .opencode/workflow-state.js reassign-task <work_item_id> <task_id> <owner> <requested_by>`
-- `node .opencode/workflow-state.js assign-qa-owner <work_item_id> <task_id> <qa_owner> <requested_by>`
-- `node .opencode/workflow-state.js set-task-status <work_item_id> <task_id> <status>`
-- `node .opencode/workflow-state.js route-rework <issue_type> [repeat_failed_fix]`
-
-Use the mutation commands only when you are intentionally operating the checked-in workflow state machinery; they are not the normal day-to-day starting point for operators.
+Use lower-level mutation commands only when you are intentionally operating the checked-in workflow state machinery, and read `context/core/project-config.md` for the maintained full command list.
 
 Operational guidance:
 
