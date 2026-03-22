@@ -2,7 +2,7 @@
 
 This file is the entry point for context discovery after reading `AGENTS.md`. Use it to locate relevant standards and workflow guides.
 
-Use it to distinguish between live workflow contract docs and approved future-direction artifacts.
+Use it to distinguish between live workflow contract docs and background/historical artifacts.
 
 Use it to keep the managed-wrapper migration story honest: the live repository-local runtime still centers on `.opencode/opencode.json`, while any future root `opencode.json` wrapper entrypoint remains planned direction until it exists in the tree.
 
@@ -26,12 +26,13 @@ context/
 │   └── workflow.md        ← Hard-split Quick Task and Full Delivery contract
 ```
 
-Directional artifacts for approved future work:
+Maintainer-only roadmap and historical background lives outside the main navigation path:
 
 - `docs/briefs/2026-03-21-openkit-evolution-direction.md`
 - `docs/specs/2026-03-21-openkit-improvement-analysis.md`
 - `docs/architecture/2026-03-21-openkit-evolution-direction.md`
 - `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
+- `docs/archive/superpowers/`
 
 Migration-contract references for the emerging managed wrapper should stay aligned across:
 
@@ -42,7 +43,7 @@ Migration-contract references for the emerging managed wrapper should stay align
 - `.opencode/install-manifest.json`
 - `.opencode/opencode.json`
 
-Read those FEATURE-002 artifacts when you need roadmap rationale or historical context for workflow evolution and runtime hardening. Use `context/core/workflow.md` when you need the current live workflow semantics, and use the companion core docs only for their local operational details.
+Read those roadmap and archived artifacts only when you need maintainer rationale or historical context. Use `context/core/workflow.md` when you need the current live workflow semantics, and use the companion core docs only for their local operational details.
 
 ## Discovery Rules
 
@@ -62,8 +63,8 @@ Read those FEATURE-002 artifacts when you need roadmap rationale or historical c
 
 - `context/core/workflow.md` is the canonical live workflow-semantics document
 - `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, `context/core/project-config.md`, and `context/core/workflow-state-schema.md` define local operational details and must stay aligned with `context/core/workflow.md`
-- the FEATURE-002 brief, spec, architecture, and ADR define approved roadmap and historical context for the current live quick-lane contract
-- consult FEATURE-002 direction artifacts when the task is about workflow evolution, runtime hardening, or roadmap intent rather than normal feature execution
+- the FEATURE-002 brief, spec, architecture, and ADR are maintainer background, not live operator docs
+- consult roadmap/archive artifacts only when the task is about workflow evolution, runtime hardening, or historical intent rather than normal feature execution
 - do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Full Delivery`, `quick`, and `full`
 - do not describe the managed wrapper as fully shipped while `.opencode/opencode.json` remains the live manifest and no root `opencode.json` exists
 

@@ -1,10 +1,25 @@
 # OpenKit — AI Software Factory
 
-OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines OpenAgentsControl-style orchestration concepts with superpowers-style workflow discipline using explicit artifacts, approval gates, resumable workflow state, and a bounded full-delivery task runtime.
+OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines explicit artifacts, approval gates, resumable workflow state, and a bounded full-delivery task runtime with an emerging managed-wrapper product direction over OpenCode.
 
-The intended primary product direction is the managed OpenKit wrapper over OpenCode. When that wrapper surface is present in a repository, the intended operator path is `openkit init`, `openkit install`, `openkit doctor`, and `openkit run`.
+## What Is Live Here
 
-In this worktree today, the checked-in repository-local runtime still centers on `.opencode/opencode.json`, the workflow-state utility, hooks, commands, and docs. Treat those repository/runtime internals as the current checked-in surface, while treating the wrapper path as the staged primary direction rather than a completed transition.
+This repository currently contains three different kinds of surfaces:
+
+1. **Current checked-in runtime**
+   - the live repository-local runtime rooted in `.opencode/`
+   - the checked-in `agents/`, `commands/`, `skills/`, `hooks/`, `context/`, and runtime docs
+
+2. **Managed wrapper product direction**
+   - the emerging `openkit` CLI surface
+   - install, doctor, and run flows intended to become the preferred top-level user path
+   - additive wrapper behavior that does not erase the checked-in runtime in one step
+
+3. **Historical and planning background**
+   - archived design/planning material under `docs/archive/`
+   - older roadmap and background artifacts kept for maintainers only
+
+If you only need the live checked-in workflow/runtime behavior, prefer the current runtime docs and commands over archived material.
 
 The repository currently runs on the live `Quick Task+` successor semantics for the `quick` lane together with the `Full Delivery` lane. The system still has only two live modes: `quick` and `full`.
 
@@ -54,7 +69,7 @@ OpenKit currently exposes two related but not identical surfaces:
 
 Current boundary:
 
-- `.opencode/opencode.json` is still the live runtime manifest under the wrapper.
+- `.opencode/opencode.json` is still the live runtime manifest in this checked-in repository runtime.
 - `.opencode/workflow-state.json`, `.opencode/work-items/`, `.opencode/workflow-state.js`, `hooks/`, `agents/`, `skills/`, `commands/`, `context/`, and `docs/` remain repository-internal runtime or support surfaces.
 - `registry.json` is local metadata describing repository surfaces and the migration-facing wrapper contract.
 - `.opencode/install-manifest.json` records the local installed profile for this repository and remains additive metadata rather than a destructive installer.
@@ -108,12 +123,7 @@ Context is loaded dynamically based on the current phase, anchored by `context/n
 - `context/core/issue-routing.md`: QA issue classification and ownership routing.
 - `context/core/session-resume.md`: Resume protocol for fresh sessions.
 
-Directional and historical artifacts for the next phase live in:
-
-- `docs/briefs/2026-03-21-openkit-evolution-direction.md`
-- `docs/specs/2026-03-21-openkit-improvement-analysis.md`
-- `docs/architecture/2026-03-21-openkit-evolution-direction.md`
-- `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
+Historical and planning background now lives under archived or clearly historical locations. Do not treat those files as the live contract when repository state differs.
 
 ## Maintainer Startup
 
@@ -142,7 +152,7 @@ The default manifest currently carries a starter model value inherited from the 
 
 ## Registry Metadata
 
-OpenKit now includes a small checked-in metadata layer for local inspection and for the emerging managed-wrapper contract:
+OpenKit includes a small checked-in metadata layer for local inspection and for the emerging managed-wrapper contract:
 
 - `registry.json` describes the component categories that exist in this repository today, including agents, skills, commands, artifact directories, runtime files, hooks, and anchor docs, while also declaring which metadata participates in the emerging wrapper contract.
 - `.opencode/install-manifest.json` records which local profile is active for this repository, points back to `registry.json`, and documents the current install stance as additive and non-destructive.
@@ -221,7 +231,10 @@ The command surface above is the current live interface. The live contract does 
 
 ## Daily Operator Path
 
-For normal day-to-day use, prefer the wrapper path when a repository actually has that wrapper surface installed. In this worktree's checked-in state, use the repository-local runtime path below.
+For normal day-to-day use:
+
+- if a repository really has the wrapper surface installed, prefer `openkit init`, `openkit install`, `openkit doctor`, and `openkit run`
+- in this checked-in repository runtime, use the lower-level runtime path below
 
 1. Run `node .opencode/workflow-state.js status` to see whether work is already in progress.
 2. Run `node .opencode/workflow-state.js doctor` if the runtime looks off or you are entering a repo for the first time.
@@ -248,6 +261,7 @@ Helpful wayfinding docs:
 - `docs/examples/README.md` for quick-task and full-delivery walkthroughs
 - `docs/briefs/README.md`, `docs/specs/README.md`, `docs/architecture/README.md`, `docs/plans/README.md`, `docs/qa/README.md`, and `docs/adr/README.md` for artifact-specific guidance
 - `docs/governance/README.md` and `docs/operations/README.md` for policy and operational support
+- `docs/archive/` for historical background only
 
 ## Operator Entry Points
 

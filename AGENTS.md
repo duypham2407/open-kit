@@ -90,15 +90,17 @@ Use the following order when deciding what is authoritative:
    - `context/core/session-resume.md`
    - `context/core/project-config.md`
    - `context/core/workflow-state-schema.md`
-5. FEATURE-002 direction artifacts for approved roadmap and historical direction only:
-   - `docs/briefs/2026-03-21-openkit-evolution-direction.md`
-   - `docs/specs/2026-03-21-openkit-improvement-analysis.md`
-   - `docs/architecture/2026-03-21-openkit-evolution-direction.md`
-   - `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
-6. `docs/superpowers/specs/2026-03-21-openkit-hard-split-workflow-design.md` for approved design background
-7. `docs/ai_software_factory_agents.md` for original single-pipeline intent and background only
-8. `docs/superpowers/specs/2026-03-20-openkit-operating-system-design.md` for pre-hard-split operating-system background only
-9. Repository files that actually exist in the working tree
+5. Repository files that actually exist in the working tree
+
+Historical and roadmap background for maintainers only:
+
+- `docs/briefs/2026-03-21-openkit-evolution-direction.md`
+- `docs/specs/2026-03-21-openkit-improvement-analysis.md`
+- `docs/architecture/2026-03-21-openkit-evolution-direction.md`
+- `docs/adr/2026-03-21-openkit-runtime-enforcement-and-quick-task-plus.md`
+- `docs/archive/superpowers/specs/2026-03-21-openkit-hard-split-workflow-design.md`
+- `docs/archive/superpowers/specs/2026-03-20-openkit-operating-system-design.md`
+- `docs/ai_software_factory_agents.md`
 
 If guidance conflicts with repository state, trust the repository state and update documentation instead of inventing missing pieces.
 
