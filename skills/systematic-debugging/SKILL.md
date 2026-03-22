@@ -5,59 +5,59 @@ description: "4-phase root cause process to debug scientifically instead of blin
 
 # Skill: Systematic Debugging
 
-## Bối cảnh
+## Context
 
-Skill này được dùng bởi bất kỳ Developer Agent nào (Fullstack, QA, Tech Lead) khi gặp bug, build error, hoặc test fail ngoài ý muốn. LLM có thói quen thấu cáy (guess) và nhào vào sửa chữa bừa bãi. Skill này bắt buộc phải sửa lỗi theo con đường của kỹ sư.
+This skill is used by any developer agent (Fullstack, QA, Tech Lead) when it hits a bug, a build error, or an unexpected test failure. LLMs tend to guess and jump into random fixes. This skill forces an engineering-style debugging path.
 
-## Quy tắc Tuyệt đối (The Golden Rule)
-**KHÔNG thay đổi / fix bất cứ dòng code nào khi chưa làm sáng tỏ ROOT CAUSE.**
+## The Golden Rule
+**Do NOT change or fix any line of code until the ROOT CAUSE is clear.**
 
-## Guardrails bổ sung
+## Additional Guardrails
 
-- Chỉ test 1 hypothesis chính tại một thời điểm
-- Không được xếp chồng nhiều fix trong cùng một thử nghiệm
-- Nếu đã thử 3 hướng fix mà bug gốc vẫn quay lại, phải nghi ngờ pattern hoặc architecture thay vì fix tiếp hướng thứ 4
+- Test only 1 primary hypothesis at a time
+- Do not stack multiple fixes into the same experiment
+- If you have already tried 3 fixes and the original bug keeps returning, question the pattern or architecture instead of attempting a fourth fix
 
-## 4 Phase Fix Bug
+## 4-Phase Bug-Fix Process
 
-### Phase 1: Context & Reproduction (Khám xét & Tái Hiện)
-Đừng đọc code ngay. Đi tìm bằng chứng (Evidence).
-1. Lấy nguyên văn Error Stack Trace.
-2. Xác định file và dòng sập.
-3. Thử tái hiện lỗi: Môi trường (dev/prod), input nào làm nó sập?
-4. Nếu hệ thống có nhiều boundary (CLI -> controller -> rules, hook -> state file, command -> artifact), thu evidence theo từng boundary thay vì nhảy vào sửa lớp cuối.
+### Phase 1: Context and Reproduction
+Do not read code first. Go collect evidence.
+1. Capture the exact error stack trace.
+2. Identify the file and line that fails.
+3. Reproduce the failure: which environment (dev/prod) and which input trigger it?
+4. If the system has multiple boundaries (CLI -> controller -> rules, hook -> state file, command -> artifact), gather evidence at each boundary instead of jumping straight to the last layer.
 
-### Phase 2: Hypothesis Generation (Phát Rút & Cắt Nghĩa)
-Dựa vào Evidence, đề xuất Giả Thuyết (Hypothesis) tại sao nó lỗi. KHÔNG ĐƯỢC đề cập đến cách sửa ở đây.
+### Phase 2: Hypothesis Generation
+Based on the evidence, propose hypotheses for why it fails. Do NOT talk about fixes yet.
 
-* Ví dụ Giả định sai: "Tại vì biến X chưa tồn tại dẵn tới `.length` fail."
-* Ví dụ Tốt: "Hàm A kỳ vọng Array nhưng API backend trả về `{ data: [] }` (Object), gọi `.map()` sẽ sập."
+* Weak guess: "Variable X does not exist, so `.length` fails."
+* Better hypothesis: "Function A expects an array, but the backend API returns `{ data: [] }` (an object), so calling `.map()` crashes."
 
-Liệt kê ra 2-3 Hypothesis. Sau đó loại trừ dần bằng cách grep / đọc code. Chốt được 1 Hypothesis KHẢ DI nhất (Most Likely Root Cause).
+List 2-3 hypotheses. Then narrow them down by grepping and reading code until you identify the most likely root cause.
 
-⚠️ Chỉ chọn 1 hypothesis chính để test. Không sửa ba giả thuyết cùng lúc rồi mong test tự giải thích điều gì đã đúng.
+⚠️ Test only 1 primary hypothesis. Do not fix three hypotheses at once and expect the tests to explain which one was correct.
 
-### Phase 3: Propose Fix (Lập Kế Hoạch Sửa Chữa)
-Đề xuất Minimal Fix (Cách sửa tốn ít dòng code nhất, động vào ít file nhất).
+### Phase 3: Propose Fix
+Propose the Minimal Fix (the fewest lines changed across the fewest files).
 
-⚠️ **RED ALERT: Sửa nhiều nơi = Giải Phẫu Kiến Trúc.** Nếu lúc đang lập kế hoạch, bạn thấy cần sửa 1 lúc 3-4 file logic khác nhau (scattered changes) -> **DỪNG LẠI CHUÔNG BÁO ĐỘNG**. Bạn đang không sửa bug, bạn đang vá víu (hack) hệ thống hoặc kiến trúc hệ thống gốc bị sai. Quay lại hỏi Master Orchestrator và gọi Architect rà soát hệ thống.
+⚠️ **RED ALERT: fixing many places usually means architecture surgery.** If you realize the plan requires changing 3-4 separate logic files at once (scattered changes), stop. You are probably not fixing a bug anymore - you are papering over a broken system or bad architecture. Escalate back to the Master Orchestrator and bring in the Architect to review the system.
 
-### Phase 4: Implementation (Xử Lý)
-Tuân theo TDD (Đọc `skills/test-driven-development/SKILL.md`):
-- Viết Test (nhằm bắt cái bug đó).
-- Chạy: Thấy test đỏ ửng (vì bug còn đó).
-- Áp dụng Minimal Fix từ Phase 3.
-- Chạy: Thấy test pass xanh.
+### Phase 4: Implementation
+Follow TDD (see `skills/test-driven-development/SKILL.md`):
+- Write a test that captures the bug.
+- Run it and confirm it fails red (because the bug still exists).
+- Apply the Minimal Fix from Phase 3.
+- Run it again and confirm it passes green.
 - Commit.
 
-Nếu fix không work:
+If the fix does not work:
 
-1. DỪNG
-2. quay lại Phase 1 với evidence mới
-3. nếu đã có 3 lần thử sửa mà lỗi lõi vẫn còn, báo `MasterOrchestrator` rằng đây có thể là vấn đề architecture/pattern chứ không còn là bug cục bộ nữa
+1. STOP
+2. go back to Phase 1 with the new evidence
+3. if you have already tried 3 fixes and the core failure still remains, report to `MasterOrchestrator` that this may be an architecture or pattern problem rather than a local bug
 
-## Rationalization Checklist (Kiểm Tra Nguỵ Biện)
-- [ ] Tôi có đang ném log `console.log` mù quáng khắp nơi thay vì tập trung Root Cause? (Nếu có -> STOP).
-- [ ] Tôi có đang định bọc toàn bộ code bằng `try...catch` ngầm nuốt lỗi? (Nếu có -> STOP).
-- [ ] Tôi đã thử "đổi cách làm" lần 3 nhưng lỗi cũ vẫn y nguyên? (Hệ thống có vấn đề 캐ch (cache) hoặc môi trường sai. Kiểm tra lại môi trường thay vì sửa code).
-- [ ] Tôi có đang sửa nhiều file rải rác chỉ để “làm test xanh lại” mà chưa chứng minh root cause? (Nếu có -> STOP).
+## Rationalization Checklist
+- [ ] Am I blindly spraying `console.log` everywhere instead of concentrating on the root cause? (If yes -> STOP)
+- [ ] Am I about to wrap everything in `try...catch` and silently swallow errors? (If yes -> STOP)
+- [ ] Have I already tried a third workaround and the same failure still looks unchanged? (The real problem may be cache or environment state. Re-check the environment instead of editing more code.)
+- [ ] Am I changing many scattered files just to make the tests green again without proving the root cause? (If yes -> STOP)

@@ -3,6 +3,7 @@ import { initCommand } from './commands/init.js';
 import { installCommand } from './commands/install.js';
 import { runCommand } from './commands/run.js';
 import { doctorCommand } from './commands/doctor.js';
+import { detectVietnameseCommand } from './commands/detect-vietnamese.js';
 
 const commands = {
   help: helpCommand,
@@ -10,6 +11,7 @@ const commands = {
   install: installCommand,
   run: runCommand,
   doctor: doctorCommand,
+  'internal-audit-vietnamese': detectVietnameseCommand,
 };
 
 export async function runCli(argv, io = defaultIo()) {

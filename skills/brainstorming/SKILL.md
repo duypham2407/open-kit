@@ -5,47 +5,47 @@ description: "Socratic design refinement process. Used before writing any specs 
 
 # Skill: Brainstorming (Socratic Refinement)
 
-## Bối cảnh
+## Context
 
-Khi User đưa ra một ý tưởng, yêu cầu mới, hoặc khi PM Agent/Architect Agent bắt đầu thiết kế, **bắt buộc** phải dùng skill này trước khi chốt giải pháp.
+When the user brings a new idea or request, or when the PM Agent or Architect Agent starts designing, this skill **must** be used before locking in a solution.
 
-Tuyệt đối KHÔNG nhảy vào viết spec hoặc code ngay lập tức. Cần phải đi qua quy trình "đặt câu hỏi - khám phá - chốt hạ".
+Do NOT jump straight into writing a spec or code. You must go through the "ask questions - explore - converge" process first.
 
-## Quy trình Thực thi
+## Execution Process
 
-### Phase 1: Context Exploration (Khám phá Bối cảnh)
-1. Đọc yêu cầu ban đầu của User.
-2. Xác định các file hiện tại có liên quan (nếu có).
-3. Đặt câu hỏi làm rõ. **Quy tắc Vàng: Chỉ hỏi MỘT câu hỏi tại một thời điểm.** 
-   - Đừng đưa ra 1 list 5 câu hỏi khiến User ngợp.
-   - Hỏi câu quan trọng nhất trước. Chờ User trả lời rồi mới hỏi tiếp.
-   - Ví dụ: "Ai là người dùng chính của tính năng này: Admin hay Client?"
+### Phase 1: Context Exploration
+1. Read the user's initial request.
+2. Identify any relevant existing files.
+3. Ask clarifying questions. **Golden Rule: ask only ONE question at a time.**
+   - Do not dump a list of 5 questions on the user and overwhelm them.
+   - Ask the most important question first. Wait for the answer before asking the next one.
+   - Example: "Who is the primary user of this feature: Admin or Client?"
 
-### Phase 2: Option Generation (Đề xuất Giải pháp)
-Khi đã đủ thông tin (không còn câu hỏi lớn), KHÔNG tự chốt một giải pháp duy nhất. Phải đề xuất 2-3 hướng tiếp cận:
+### Phase 2: Option Generation
+Once you have enough information (no major open questions remain), do NOT choose a single solution on your own. You must present 2-3 approaches:
 
-**Mẫu Đề xuất:**
+**Proposal template:**
 ```markdown
-Dựa trên những gì bạn chia sẻ, tôi thấy có X hướng tiếp cận chính:
+Based on what you've shared, I see X main approaches:
 
-**Option 1: [Tên ngắn gọn]**
-*   **Cách hoạt động**: [Mô tả ngắn]
-*   **Ưu điểm**: [...]
-*   **Nhược điểm/Trade-off**: [...]
+**Option 1: [Short name]**
+*   **How it works**: [Brief description]
+*   **Pros**: [...]
+*   **Cons / Trade-offs**: [...]
 
-**Option 2: [Tên ngắn gọn]**
-*   **Cách hoạt động**: [Mô tả ngắn]
-*   **Ưu điểm**: [...]
-*   **Nhược điểm/Trade-off**: [...]
+**Option 2: [Short name]**
+*   **How it works**: [Brief description]
+*   **Pros**: [...]
+*   **Cons / Trade-offs**: [...]
 
-Bạn thích hướng đi nào hơn, hay muốn kết hợp ý tưởng từ cả hai?
+Which direction do you prefer, or do you want to combine ideas from both?
 ```
 
-### Phase 3: Incremental Design (Thiết kế Từng phần)
-Sau khi User chọn một Option, hãy thiết kế chi tiết **từng phần một**.
-- Không ném một cục thiết kế khổng lồ vào mặt User.
-- Ví dụ thiết kế DB trước. Xin ý kiến. Sau đó thiết kế API. Xin ý kiến.
-- Dùng công cụ trực quan nếu cần (Mermaid diagrams, ASCII art).
+### Phase 3: Incremental Design
+After the user chooses an option, design the solution **one part at a time**.
+- Do not drop one giant design block on the user.
+- For example, design the database first and get feedback. Then design the API and get feedback.
+- Use visual tools when helpful (Mermaid diagrams, ASCII art).
 
 ### Phase 4: Handoff
-Kết thúc brainstorming bằng cách chuyển sang tạo Product Brief hoặc Architecture Document (tùy vào Agent nào đang chạy), sau đó chuyển giao cho Agent tiếp theo trong pipeline.
+Finish brainstorming by moving into a Product Brief or Architecture Document (depending on which agent is active), then hand off to the next agent in the pipeline.

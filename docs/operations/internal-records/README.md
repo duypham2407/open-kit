@@ -10,3 +10,11 @@ Guardrails:
 - store repeatable command walkthroughs in `docs/operations/runbooks/`
 - prefer concise records that help future maintainers recover context quickly
 - escalate architecture-shaping decisions to ADRs when repository policy requires it
+
+Current records:
+
+- `decision-log.md`: concise log of significant repository decisions
+- `execution-log.md`: lightweight history of notable implementation activity
+- `english-normalization-inventory.md`: current Vietnamese-bearing inventory, pairing map, and detector scope for the normalization effort
+- `reference-absorption-notes.md`: notes on how reference repositories informed the current repo
+- `review-history.md`: rolling notes on important reviews and follow-up actions

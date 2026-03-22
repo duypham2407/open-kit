@@ -6,6 +6,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { detectVietnameseInventory } from '../../src/audit/vietnamese-detection.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const worktreeRoot = path.resolve(__dirname, '..', '..');
@@ -43,12 +45,27 @@ function writeExecutable(filePath, content) {
   fs.chmodSync(filePath, 0o755);
 }
 
+function runGit(args, cwd) {
+  return spawnSync('git', args, {
+    cwd,
+    encoding: 'utf8',
+  });
+}
+
+function initTempGitRepo() {
+  const projectRoot = makeTempDir();
+  const initResult = runGit(['init'], projectRoot);
+  assert.equal(initResult.status, 0, initResult.stderr);
+  return projectRoot;
+}
+
 test('openkit --help shows top-level help', () => {
   const result = runCli(['--help']);
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /Usage:\s+openkit\s+<command>/);
   assert.match(result.stdout, /Commands:\s+[\s\S]*\binit\b/);
+  assert.doesNotMatch(result.stdout, /internal-audit-vietnamese/);
   assert.equal(result.stderr, '');
 });
 
@@ -85,6 +102,50 @@ test('openkit doctor --help shows doctor help', () => {
   assert.equal(result.stderr, '');
 });
 
+test('openkit internal-audit-vietnamese --help shows maintainer audit help', () => {
+  const result = runCli(['internal-audit-vietnamese', '--help']);
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Usage:\s+openkit\s+internal-audit-vietnamese/);
+  assert.match(result.stdout, /maintainer audit helper/i);
+  assert.match(result.stdout, /heuristic/i);
+  assert.equal(result.stderr, '');
+});
+
+test('detectVietnameseInventory only scans checked-in files', () => {
+  const projectRoot = initTempGitRepo();
+  const trackedSample = 'Vietnamese sample with accents: ti\u1ebfng vi\u1ec7t\n';
+  const untrackedSample = 'Vietnamese sample with accents: t\u1ea1m bi\u1ec7t\n';
+
+  writeText(path.join(projectRoot, 'tracked.md'), trackedSample);
+  writeText(path.join(projectRoot, 'untracked.md'), untrackedSample);
+
+  const addResult = runGit(['add', 'tracked.md'], projectRoot);
+  assert.equal(addResult.status, 0, addResult.stderr);
+
+  const inventory = detectVietnameseInventory(projectRoot);
+
+  assert.equal(inventory.detectionScope, 'repo-wide checked-in files');
+  assert.deepEqual(
+    inventory.vietnameseBearingFiles.map((match) => match.path),
+    ['tracked.md']
+  );
+});
+
+test('openkit internal-audit-vietnamese reports stable heuristic inventory details', () => {
+  const result = runCli(['internal-audit-vietnamese'], { cwd: worktreeRoot });
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  assert.match(result.stdout, /Inventory status:\s+(matches-found|clear)/);
+  assert.match(result.stdout, /Detection scope:\s+repo-wide checked-in files/i);
+  assert.match(result.stdout, /Detection mode:\s+heuristic/i);
+  assert.match(result.stdout, /Heuristic review:\s+required/i);
+  assert.match(result.stdout, /Pairing map coverage:\s+complete/);
+  assert.match(result.stdout, /Machine-facing literals:\s+(out-of-scope confirmed|review needed)/);
+  assert.match(result.stdout, /Source-versus-derived pairing map:/);
+});
+
 test('openkit help init shows init help', () => {
   const result = runCli(['help', 'init']);
 
@@ -114,6 +175,14 @@ test('openkit help doctor shows doctor help', () => {
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /Usage:\s+openkit\s+doctor/);
+  assert.equal(result.stderr, '');
+});
+
+test('openkit help internal-audit-vietnamese shows maintainer audit help', () => {
+  const result = runCli(['help', 'internal-audit-vietnamese']);
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Usage:\s+openkit\s+internal-audit-vietnamese/);
   assert.equal(result.stderr, '');
 });
 

@@ -3,37 +3,37 @@ name: using-skills
 description: "Meta-skill: Teaches agents how to discover, evaluate, and invoke skills. Loaded at session start."
 ---
 
-# Hướng dẫn Sử dụng Skills — Meta-Skill
+# Skill Usage Guide - Meta-Skill
 
-## Ý nghĩa của Skills
+## What Skills Mean
 
-Trong AI Software Factory, "Skills" là các quy trình chuẩn (Standard Operating Procedures - SOP) định nghĩa cách hệ thống hoạt động. Khi một tình huống có skill tương ứng, bạn **bắt buộc** phải làm theo skill đó, không được tự ý hành động theo bản năng LLM.
+In the AI Software Factory, "Skills" are standard operating procedures that define how the system should work. When a situation matches a skill, you **must** follow that skill instead of improvising from raw LLM instinct.
 
-## Phân cấp Chỉ thị (Instruction Priority)
+## Instruction Priority
 
-Khi có xung đột, áp dụng thứ bậc sau (1 là cao nhất):
+When instructions conflict, apply this order (1 is highest):
 
-1. **User Prompt Hiện tại**: Chỉ thị trực tiếp của người dùng trong tin nhắn hiện tại
-2. **Skill Instructions**: Hướng dẫn bên trong file `SKILL.md` đang áp dụng
-3. **Agent Role Instructions**: Vai trò và ràng buộc của Agent (ví dụ: `QA Agent KHÔNG sửa code`)
-4. **General System Prompt**: Bản năng LLM cơ bản
+1. **Current user prompt**: direct instructions from the user in the current message
+2. **Skill instructions**: guidance inside the active `SKILL.md`
+3. **Agent role instructions**: the agent's role and constraints (for example, `QA Agent does not edit code`)
+4. **General system prompt**: the base LLM behavior
 
-## Làm thế nào để dùng Skill?
+## How to Use a Skill
 
-Khi bạn nhận diện một tình huống (ví dụ: cần tạo plan, cần fix bug, cần test code), hãy làm theo các bước:
+When you identify a situation (for example: need to write a plan, fix a bug, or test code), follow these steps:
 
-1. **Nhận diện**: "Cần tạo implementation plan"
-2. **Khám phá**: "Để tôi dùng tool để đọc file `skills/writing-plans/SKILL.md`"
-3. **Đọc**: Dùng tool `view_file` (hoặc tương đương) để đọc TOÀN BỘ file `SKILL.md`
-4. **Thực thi**: Áp dụng từng bước trong file đã đọc
+1. **Identify**: "I need to create an implementation plan"
+2. **Discover**: "Let me use the tool to read `skills/writing-plans/SKILL.md`"
+3. **Read**: use `view_file` (or the equivalent tool) to read the ENTIRE `SKILL.md`
+4. **Execute**: apply the steps from that file
 
-## Cảnh báo: Chống Hợp lý hóa (Rationalization Prevention)
+## Warning: Rationalization Prevention
 
-Bản năng LLM thường cố gắng "đi đường tắt" (short-circuit). Hãy đề phòng các suy nghĩ sai lầm sau:
+LLM instinct often tries to short-circuit the process. Watch for these faulty thoughts:
 
-| Suy nghĩ Sai lầm (Rationalization) | Hành động Đúng (Correction) |
-|-----------------------------------|----------------------------|
-| "File này sửa dễ ợt, tôi sửa luôn khỏi cần báo Master Orchestrator." | Dừng lại. Tuân thủ role. Báo cáo Master Orchestrator trước. |
-| "Tôi biết cách viết plan rồi, không cần đọc `skills/writing-plans/SKILL.md` đâu." | Không. Lần nào tạo plan cũng phải đọc lại skill để đảm bảo checklist mới nhất. |
-| "Lỗi này rõ ràng quá, khỏi cần root cause analysis, fix luôn." | Không. Dùng `systematic-debugging` skill. Bắt buộc tìm root cause trước. |
-| "User bảo làm gấp, bỏ qua khâu viết test (TDD) đi." | TDD là Iron Law. Không có ngoại lệ trừ khi User **rất explicitly** nói "Skip TDD". |
+| Bad thought (Rationalization) | Correct action |
+|--------------------------------|----------------|
+| "This file is easy, I'll just fix it without reporting to the Master Orchestrator." | Stop. Follow the role boundary. Report to the Master Orchestrator first. |
+| "I already know how to write plans, I don't need to reread `skills/writing-plans/SKILL.md`." | No. Every time you write a plan, reread the skill so you are using the latest checklist. |
+| "This bug is obvious, I can skip root-cause analysis and fix it directly." | No. Use `systematic-debugging`. Root cause analysis is mandatory first. |
+| "The user said it's urgent, so I'll skip the test-writing step (TDD)." | TDD is an Iron Law. There is no exception unless the user **very explicitly** says "Skip TDD". |

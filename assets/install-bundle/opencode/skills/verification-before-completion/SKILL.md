@@ -5,133 +5,133 @@ description: "Use before claiming work is complete, fixed, or passing. Requires 
 
 # Skill: Verification Before Completion
 
-## Bối cảnh
+## Context
 
-Skill này được dùng ngay trước khi Agent:
+Use this skill immediately before the agent:
 
-- báo đã xong việc
-- nói test pass / fix xong / workflow complete
-- tạo commit, PR, hoặc merge
-- chuyển task sang bước tiếp theo như thể đã hoàn tất
+- says the work is done
+- claims tests pass / the fix is done / the workflow is complete
+- creates a commit, PR, or merge
+- moves the task to the next step as if it were already complete
 
-OpenKit ưu tiên **evidence trước assertion**. Không có bằng chứng verification mới nhất thì không được nói như thể công việc đã ổn.
+OpenKit prioritizes **evidence before assertion**. Without fresh verification evidence, you must not speak as if the work is already sound.
 
 ## Iron Law
 
 ```
-KHÔNG CLAIM HOÀN THÀNH NẾU CHƯA CÓ VERIFICATION EVIDENCE MỚI
+DO NOT CLAIM COMPLETION WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
-Nếu chưa chạy lệnh chứng minh claim trong phiên làm việc hiện tại, Agent phải nói trạng thái thực tế là "chưa verify" thay vì suy đoán.
+If you have not run the command that proves the claim in the current working session, the agent must report the real status as "not yet verified" instead of guessing.
 
 ## Gate Function
 
-Trước khi phát biểu bất kỳ câu nào hàm ý thành công:
+Before making any statement that implies success:
 
-1. XÁC ĐỊNH lệnh nào chứng minh claim đó
-2. CHẠY full command tương ứng
-3. ĐỌC output thật, không suy diễn
-4. KIỂM TRA exit code, số lỗi, số test pass/fail
-5. CHỈ KHI đó mới được phát biểu trạng thái thành công
+1. IDENTIFY which command proves the claim
+2. RUN the full command
+3. READ the real output without inventing meaning
+4. CHECK the exit code, error count, and pass/fail counts
+5. ONLY THEN speak as if the outcome succeeded
 
-Nếu command fail hoặc verification path chưa tồn tại, phải báo đúng thực tế đó.
+If the command fails, or if no verification path exists yet, report that exact reality.
 
-## What Counts As Valid Evidence
+## What Counts as Valid Evidence
 
 ### Tests
 
-Ví dụ hợp lệ:
+Valid example:
 
-- `node --test ".opencode/tests/*.test.js"` với output pass thật
+- `node --test ".opencode/tests/*.test.js"` with real passing output
 
-Không hợp lệ:
+Not valid:
 
-- “lần trước test pass rồi”
-- “nhìn code có vẻ đúng”
-- “chỉ một phần suite pass nên chắc phần còn lại cũng ổn”
+- "it passed earlier"
+- "the code looks right"
+- "part of the suite passed so the rest is probably fine"
 
 ### Runtime behavior
 
-Ví dụ hợp lệ:
+Valid examples:
 
-- chạy `node .opencode/workflow-state.js status`
-- chạy `node .opencode/workflow-state.js doctor`
-- chạy manual smoke test có mô tả rõ input/output đã quan sát
+- run `node .opencode/workflow-state.js status`
+- run `node .opencode/workflow-state.js doctor`
+- run a manual smoke test with clearly described observed input and output
 
-Không hợp lệ:
+Not valid:
 
-- “hook này chắc in đúng vì test unit pass” nếu claim đang nói về integrated runtime behavior mà chưa kiểm chứng phù hợp
+- "this hook probably prints the right output because the unit test passed" when the claim is about integrated runtime behavior that has not been checked appropriately
 
-### Requirements / Plan completion
+### Requirements / plan completion
 
-Ví dụ hợp lệ:
+Valid example:
 
-- đối chiếu từng mục trong brief/spec/plan với diff và output verification
+- compare every item in the brief, spec, or plan against the diff and verification output
 
-Không hợp lệ:
+Not valid:
 
-- “test pass nên chắc requirements đều xong”
+- "tests passed, so the requirements must all be done"
 
 ## Current OpenKit Reality
 
-OpenKit hiện không có build/lint/test command cho application code nói chung.
+OpenKit does not currently define repo-wide build, lint, or test commands for general application code.
 
-Vì vậy skill này phải trung thực theo repo reality:
+So this skill must stay honest to the actual repo state:
 
-- nếu repo có workflow-runtime tests, dùng chúng
-- nếu chỉ có runtime CLI/manual checks, nói rõ đó là verification path thực tế
-- nếu không có validation path phù hợp, báo rõ khoảng trống đó thay vì bịa command
+- if the repo has workflow-runtime tests, use them
+- if it only has runtime CLI checks or manual checks, say clearly that those are the real verification paths
+- if no suitable validation path exists, report that gap instead of inventing a command
 
 ## Common Failure Patterns
 
-| Claim | Cần Evidence | Không Đủ |
-|------|--------------|---------|
-| “Tests pass” | output test command mới nhất | run cũ, memory, assumption |
-| “Bug fixed” | symptom repro + verification pass | chỉ sửa code |
-| “Ready to commit” | verify relevant scope pass | chỉ nhìn diff |
-| “Requirements met” | checklist against spec/plan + verification | tests pass một phần |
-| “Agent task done” | inspect changes + verify behavior | tin subagent report |
+| Claim | Required evidence | Not enough |
+|------|-------------------|------------|
+| "Tests pass" | latest test-command output | old run, memory, assumption |
+| "Bug fixed" | symptom reproduction + passing verification | code changes alone |
+| "Ready to commit" | passing verification for the relevant scope | only looking at the diff |
+| "Requirements met" | checklist against spec/plan + verification | partial test success |
+| "Agent task done" | inspect changes + verify behavior | trusting a subagent report |
 
 ## Red Flags
 
-Nếu bắt gặp các câu nghĩ sau, phải dừng lại:
+If you catch yourself thinking these phrases, stop:
 
 - “should work now”
 - “looks correct”
 - “probably fine”
 - “just this once”
-- “test cũ pass rồi”
-- “tôi khá chắc”
+- “the old test already passed”
+- “I'm pretty sure”
 
-Đó là dấu hiệu Agent đang chuyển từ kỹ sư sang người đoán mò.
+Those are signs the agent is shifting from engineering into guessing.
 
-## Required Output Style When Verification Fails Or Is Missing
+## Required Output Style When Verification Fails or Is Missing
 
-Nếu verification fail:
+If verification fails:
 
-- nêu command đã chạy
-- nêu trạng thái fail thật
-- nêu output/summary quan trọng
-- không dùng wording mập mờ như “almost done”
+- state the command you ran
+- state the real failure status
+- include the important output or summary
+- do not use fuzzy wording like "almost done"
 
-Nếu verification path không tồn tại:
+If no verification path exists:
 
-- nói rõ repo chưa có command phù hợp
-- nêu manual check nào đã làm
-- nêu limitation còn lại
+- say clearly that the repo does not yet have an appropriate command
+- describe any manual check you did perform
+- explain the remaining limitation
 
 ## Before Commit / PR / Merge
 
-Ngay trước commit, PR, hoặc merge, Agent phải kiểm tra:
+Immediately before commit, PR, or merge, the agent must check:
 
-- claim nào đang sắp được đưa ra
-- command nào chứng minh claim đó
-- output mới nhất có thật hay chưa
+- which claim is about to be made
+- which command proves it
+- whether fresh output actually exists
 
-Không được dùng commit/merge như cách “đóng task cho xong” khi verification còn thiếu.
+Do not use commit or merge as a way to "close the task and move on" when verification is still missing.
 
 ## Bottom Line
 
 **Evidence before claims. Always.**
 
-OpenKit có thể còn thiếu tooling ở nhiều phần, nhưng không bao giờ được thiếu sự trung thực về trạng thái verification.
+OpenKit may still lack tooling in many areas, but it must never lack honesty about verification status.

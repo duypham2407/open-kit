@@ -5,75 +5,75 @@ description: "Execution engine. Dispatches fresh subagents for each task to avoi
 
 # Skill: Subagent-Driven Development
 
-## Bối cảnh
+## Context
 
-Được Fullstack Agent sử dụng để thực thi một Implementation Plan.
+Used by the Fullstack Agent to execute an implementation plan.
 
-Khi thực hiện một chuỗi các công việc phức tạp, Agent gốc có thể bị "ngợp" (hallucination) do context quá dài. Subagent-Driven Development giải quyết bài toán này bằng cách: Thay vì một LLM session lớn ôm đồm tất cả, ta cắt task ra và phái (dispatch) một "bộ não" mới tinh (fresh subagent) xuống xử lý TỪNG task một.
+When working through a complex sequence of tasks, the primary agent can get overwhelmed or hallucinate because the context grows too large. Subagent-Driven Development solves this by splitting the work into tasks and dispatching a fresh subagent to handle each task individually.
 
-## Quy trình Thực thi
+## Execution Process
 
-### 1. Chuẩn bị (Task Queueing)
-Đọc file `docs/plans/YYYY-MM-DD-<feature>.md`.
-Có được một danh sách (queue) các tasks.
+### 1. Preparation (Task Queueing)
+Read `docs/plans/YYYY-MM-DD-<feature>.md`.
+Build a queue of tasks.
 
-### 2. Batch Execution (Lặp lại cho từng Task)
+### 2. Batch Execution (Repeat for Each Task)
 
-Lấy Task N từ Queue:
+Take Task N from the queue:
 
-#### Bước 2a: Chuẩn bị Payload cho Subagent
-Tạo một prompt (chỉ định nghĩa, chưa chạy) với đủ context cho Subagent (đây thường là Fullstack Agent "cày cuốc"):
-- File cần tập trung (`target file`)
-- Code cần viết (chi tiết nhỏ từ Plan)
-- Test cần pass
-- Explicit Instruction: "Tuân theo TDD, tuân theo coding standards"
+#### Step 2a: Prepare the Subagent Payload
+Create a prompt (define it first, do not run it yet) with enough context for the subagent (usually the implementation-focused Fullstack Agent):
+- target files
+- exact code requirements from the plan
+- tests that must pass
+- explicit instruction: "Follow TDD and follow the coding standards"
 
-#### Bước 2b: Dispatch & Execution
-Gọi công cụ/script để chạy subagent này độc lập. (Có thể là lệnh shell, script `run_agent.sh` hoặc tương tự mô phỏng việc ủy quyền).
+#### Step 2b: Dispatch & Execution
+Call the tool or script that runs the subagent independently. (This may be a shell command, a `run_agent.sh` script, or an equivalent delegation mechanism.)
 
-Subagent (nhân viên code) phải báo một trong 4 trạng thái chuẩn:
+The subagent must report one of 4 standard statuses:
 
-- `DONE`: hoàn thành task, sẵn sàng qua review
-- `DONE_WITH_CONCERNS`: hoàn thành nhưng có lo ngại cần controller đọc trước review
-- `NEEDS_CONTEXT`: thiếu context, không được đoán mò
-- `BLOCKED`: không thể hoàn thành với scope/context hiện tại
+- `DONE`: task completed, ready for review
+- `DONE_WITH_CONCERNS`: task completed, but with concerns the controller must read before review
+- `NEEDS_CONTEXT`: missing context; must not guess
+- `BLOCKED`: cannot complete with the current scope or context
 
-#### Bước 2c: Dừng & Gọi Reviewer (Code Reviewer Subagent)
-Tuyệt đối KHÔNG gạch bỏ (check) task hiện tại và đi tiếp.
-Phải dispatch một `code-reviewer` subagent độc lập (fresh context) để đánh giá code vừa xuất của nhân viên.
+#### Step 2c: Stop and Call a Reviewer (Code Reviewer Subagent)
+Do NOT mark the current task complete and continue.
+You must dispatch an independent `code-reviewer` subagent with a fresh context to evaluate the implementation.
 
-Quy trình Review 2-Stage (Đọc: `skills/code-review/SKILL.md`):
-- **Stage 1**: Kiểm tra Spec Compliance.
-- **Stage 2**: Kiểm tra Code Quality.
+Two-stage review process (see `skills/code-review/SKILL.md`):
+- **Stage 1**: spec compliance
+- **Stage 2**: code quality
 
-Không được đảo thứ tự hai stage này.
+Do not reverse this order.
 
-*Nếu fail*: Quăng lại task cho bước 2a kèm feedback để sửa.
-*Nếu pass*: Ghi task thành trạng thái DONE, commit.
+*If it fails*: send the task back to Step 2a with the review feedback.
+*If it passes*: mark the task as DONE and commit.
 
-### 3. Vòng Lặp & Tối Ưu
-Quay lại Bước 2 cho Task N+1.
+### 3. Loop and Throughput
+Return to Step 2 for Task N+1.
 
-## Anti-Patterns (Cần Xóa Bỏ)
-- "Tôi ôm luôn 5 tasks trong Plan làm một lần cho xong". → **Sai nghiêm trọng**. LLM sẽ quên instructions giữa chừng và rác context.
-- Bỏ qua code review subagent vì "tin tưởng khả năng của mình". → Subagent (nhân viên code) có thể làm bừa. Bắt buộc có bên kiểm tra độc lập thứ 3 (Reviewer subagent) không thiên vị.
-- Cho implementer đọc lại toàn bộ plan và tự chọn scope khi controller đã biết task cụ thể. → Sai. Controller phải đưa full task text/context liên quan, không ném cả thế giới vào subagent.
-- Nhảy sang task kế tiếp khi spec review hoặc quality review vẫn còn issue open. → Sai. Một task chỉ DONE khi đã qua cả 2 gate.
+## Anti-Patterns to Eliminate
+- "I'll just take all 5 tasks in the plan and do them in one shot." -> **Seriously wrong**. The LLM will forget instructions midway and accumulate context garbage.
+- Skipping the code-review subagent because "I trust my own work." -> The implementer subagent can still be wrong. An independent reviewer is mandatory.
+- Letting the implementer reread the whole plan and choose scope when the controller already knows the current task. -> Wrong. The controller should provide the full task text and relevant context, not dump the whole world into the subagent.
+- Moving to the next task while spec review or quality review still has open issues. -> Wrong. A task is DONE only after it passes both gates.
 
-## Xử lý theo trạng thái của Implementer
+## Handling Implementer Status
 
 ### `DONE`
-- qua spec review ngay
+- move straight into spec review
 
 ### `DONE_WITH_CONCERNS`
-- đọc concern trước
-- nếu concern liên quan correctness/scope, giải quyết trước khi review
-- nếu chỉ là note maintainability, vẫn qua review nhưng ghi nhớ cho task sau
+- read the concerns first
+- if they affect correctness or scope, resolve them before review
+- if they are only maintainability notes, continue into review but keep them in mind for later work
 
 ### `NEEDS_CONTEXT`
-- cung cấp context còn thiếu
-- re-dispatch cùng task, không để implementer tự bịa assumptions
+- provide the missing context
+- re-dispatch the same task; do not let the implementer invent assumptions
 
 ### `BLOCKED`
-- đánh giá blocker là do thiếu context, do task quá lớn, hay do plan sai
-- nếu cần, tách task nhỏ hơn hoặc escalate về người/agent điều phối
+- assess whether the blocker comes from missing context, an oversized task, or a bad plan
+- if needed, split the task smaller or escalate to the coordinating human or agent

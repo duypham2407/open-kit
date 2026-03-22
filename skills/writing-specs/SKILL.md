@@ -3,45 +3,45 @@ name: writing-specs
 description: "Converts requirements into structured spec documents with concrete acceptance criteria."
 ---
 
-# Skill: Writing Specs (Viết Specification)
+# Skill: Writing Specs
 
-## Bối cảnh
+## Context
 
-Skill này được BA Agent sử dụng để chuyển hóa từ Product Brief (high-level) thành một tài liệu Spec (low-level) chi tiết, sẵn sàng cho Architect và Dev team.
+This skill is used by the BA Agent to turn a high-level Product Brief into a detailed low-level spec that is ready for the Architect and the development team.
 
-## Quy trình Thực thi
+## Execution Process
 
-### 1. Verification (Kiểm tra Đầu vào)
-- Đảm bảo bạn đã có Product Brief.
-- Nếu Product Brief còn mơ hồ (ví dụ: "làm cho nó chạy nhanh hơn"), phải quay lại hỏi PM Agent/User để có định lượng rõ ràng.
+### 1. Verification (Input Check)
+- Make sure you already have a Product Brief.
+- If the Product Brief is still vague (for example: "make it faster"), go back to the PM Agent or user and get measurable detail.
 
 ### 2. User Stories Breakdown
-Chia nhỏ tính năng thành các luồng người dùng (User Stories).
-**Format Bắt buộc:** `Là [User Type], tôi muốn [Action], để [Benefit/Value].`
+Break the feature into user flows (user stories).
+**Required format:** `As a [User Type], I want [Action], so that [Benefit/Value].`
 
 ### 3. BDD Acceptance Criteria
-Phần khó nhất và quan trọng nhất. Mỗi User Story phải có Acceptance Criteria dạng Given-When-Then.
+This is the hardest and most important section. Each user story must include Given-When-Then acceptance criteria.
 
-**Ví dụ sai (mơ hồ):**
-> Nút submit nên bị disable khi data sai.
+**Bad example (too vague):**
+> The submit button should be disabled when the data is invalid.
 
-**Ví dụ đúng (Given-When-Then):**
-> **Given** người dùng đang ở form "Tạo mới"
-> **And** trường "Email" đang bỏ trống hoặc sai định dạng
-> **When** họ cố gắng bấm nút "Submit"
-> **Then** nút "Submit" phải ở trạng thái disabled
-> **And** một thông báo lỗi rỗng/sai định dạng sẽ hiện dưới trường "Email"
+**Good example (Given-When-Then):**
+> **Given** the user is on the "Create New" form
+> **And** the "Email" field is blank or invalid
+> **When** they try to click the "Submit" button
+> **Then** the "Submit" button must be disabled
+> **And** an empty/invalid-format error message appears under the "Email" field
 
-### 4. Edge Cases (Các trường hợp cực đoan)
-Phải có phần dành riêng để suy nghĩ về những thứ sẽ hỏng hóc:
-- Điều gì xảy ra nếu mạng rớt giữa chừng?
-- Điều gì xảy ra nếu user click đúp vào nút (double click)?
-- Thêm input quá dài/quá ngắn/kí tự đặc biệt?
+### 4. Edge Cases
+You must include a dedicated section for failure conditions and awkward scenarios:
+- What happens if the network drops mid-request?
+- What happens if the user double-clicks the button?
+- What happens with input that is too long, too short, or contains special characters?
 - Race conditions?
 
 ### 5. Document Output
-Tạo file markdown tại `docs/specs/YYYY-MM-DD-<feature-name>.md`.
+Create the markdown file at `docs/specs/YYYY-MM-DD-<feature-name>.md`.
 
-## Anti-Patterns (Cần Tránh)
-- **Tech Leaking**: Đưa quyết định kỹ thuật vào spec (ví dụ: "Dùng React useState để lưu form"). Spec chỉ nói về Hành Vi/Yêu Cầu, không nói về Code.
-- **Unmeasurable Goals**: "Giao diện đẹp", "Xử lý nhanh". Cần đổi thành "Responsive trên di động", "Thời gian phản hồi < 200ms".
+## Anti-Patterns to Avoid
+- **Tech leaking**: putting technical implementation decisions in the spec (for example: "Use React `useState` to store the form"). A spec should describe behavior and requirements, not code.
+- **Unmeasurable goals**: "beautiful UI", "fast performance". Replace them with measurable requirements like "responsive on mobile" or "response time < 200ms".
