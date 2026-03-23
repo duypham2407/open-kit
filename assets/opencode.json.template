@@ -4,8 +4,8 @@
     "schema": "openkit/install-state@1"
   },
   "productSurface": {
-    "current": "managed-opencode-wrapper",
-    "wrapperReadiness": "managed",
+    "current": "global-openkit-install",
+    "installReadiness": "managed",
     "installationMode": "openkit-managed"
   }
 }

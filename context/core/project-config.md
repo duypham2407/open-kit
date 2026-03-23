@@ -12,29 +12,36 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - There is no single canonical package manager or language toolchain for future applications yet.
 - OpenKit uses the mode-aware workflow documented in `context/core/workflow.md`; keep tooling and command guidance here aligned with that live contract instead of re-stating lane policy in full.
 - The active compatibility mirror uses a mode-aware schema and `.opencode/workflow-state.js` supports that workflow model.
-- The repository-local runtime still uses `.opencode/opencode.json` as its live manifest.
-- A future root `opencode.json` is an intended managed-wrapper entrypoint, but that migration is not complete in the checked-in repository state.
+- The preferred operator install path is now global: `openkit install-global`, `openkit doctor`, and `openkit run`.
+- The checked-in repository-local runtime still exists as the authoring and compatibility surface under `.opencode/`.
 - `registry.json` and `.opencode/install-manifest.json` are additive local metadata surfaces; they do not imply destructive install or plugin-only packaging.
 - Repository-internal runtime surfaces still include workflow state, workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs.
-- Wrapper-facing surface is currently limited to metadata and documentation that explain the staged migration contract.
+- Global-facing metadata surface is currently limited to documentation and metadata that explain the global install and compatibility contract.
 
 ## Commands That Do Exist
 
 - Session hook configuration lives in `hooks/hooks.json`.
 - The session-start hook script lives in `hooks/session-start`.
+- The global OpenKit CLI entrypoint lives at `bin/openkit.js`.
 - The OpenCode kit manifest lives in `.opencode/opencode.json`.
-- The root `opencode.json` wrapper entrypoint is planned direction only until a real file is added.
+- The global install writes its own profile manifest under the OpenCode home directory.
 - The active compatibility mirror lives in `.opencode/workflow-state.json`.
 - The managed work-item backing store lives in `.opencode/work-items/`.
 - The workflow-state CLI lives at `.opencode/workflow-state.js`.
 - Workflow command contracts live under `commands/`.
 - Registry metadata lives in `registry.json`.
 - Install metadata lives in `.opencode/install-manifest.json`.
-- The repository does not yet contain a root `opencode.json` wrapper entrypoint.
+- The repository does not contain a root `opencode.json` entrypoint.
 
 ### Workflow-State Utility Commands
 
 These are repository workflow commands, not application build/lint/test commands:
+
+- `openkit install-global`
+- `openkit doctor`
+- `openkit run [args]`
+- `openkit upgrade`
+- `openkit uninstall [--remove-workspaces]`
 
 - `node .opencode/workflow-state.js status`
 - `node .opencode/workflow-state.js doctor`
@@ -70,6 +77,11 @@ These are repository workflow commands, not application build/lint/test commands
 Current workflow-state behavior:
 
 - The CLI understands the current mode-aware workflow model.
+- `openkit install-global` materializes the globally managed kit into the OpenCode home directory.
+- `openkit doctor` checks the global install and the current workspace bootstrap.
+- `openkit run` launches OpenCode with the globally installed `openkit` profile and workspace-specific environment.
+- `openkit upgrade` refreshes the global managed kit bundle in place.
+- `openkit uninstall` removes the global managed kit and profile, with optional workspace cleanup.
 - `status`, `doctor`, `version`, `profiles`, `show-profile`, and `sync-install-manifest` are part of the current runtime inspection surface.
 - `start-feature` remains available as a compatibility shortcut and initializes `Full Delivery` mode.
 - `start-task` is the preferred explicit entrypoint for new mode-aware state.
@@ -83,15 +95,14 @@ Current workflow-state behavior:
 - `doctor` now checks active-work-item pointer integrity, compatibility-mirror alignment, and task-board validity when the active full-delivery stage depends on a task board.
 - Task-board support is bounded: only full-delivery work items may use it, and it does not imply unrestricted parallel safety outside the validated command surface.
 
-## Managed Wrapper Contract
+## Global Kit Contract
 
-- The current product surface is still repository-local and checked in.
-- The managed wrapper is an emerging layer over that surface, not a replacement that has already landed.
+- The preferred product surface is now the globally installed OpenKit kit inside the OpenCode home directory.
 - Repository-internal runtime surfaces remain `.opencode/opencode.json`, workflow-state files, the workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs.
-- `registry.json` documents available components and migration-facing metadata for the wrapper direction.
+- `registry.json` documents available components and metadata for the global-kit compatibility direction.
 - `.opencode/install-manifest.json` records which local profile is active and keeps install semantics explicit and non-destructive.
-- Wrapper-facing surface is presently metadata-first; it does not yet provide a separate checked-in runtime bootstrap file.
-- Until a root `opencode.json` exists, agents should treat references to that file as roadmap language only.
+- Global install writes its own managed kit bundle, profile manifest, and workspace state under the OpenCode home directory.
+- The checked-in repository runtime remains important for authoring, tests, and compatibility, not as the preferred end-user install shape.
 
 ## Validation Reality By Mode
 

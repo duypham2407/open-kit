@@ -4,7 +4,7 @@ This file is the entry point for context discovery after reading `AGENTS.md`. Us
 
 Use it to distinguish between live workflow contract docs and background/historical artifacts.
 
-Use it to keep the managed-wrapper migration story honest: the live repository-local runtime still centers on `.opencode/opencode.json`, while any future root `opencode.json` wrapper entrypoint remains planned direction until it exists in the tree.
+Use it to keep the global-kit migration story honest: the preferred operator path is now the globally installed OpenKit kit, while this repository still keeps the checked-in `.opencode/` runtime as the authoring and compatibility surface.
 
 Audience index layers outside `context/`:
 
@@ -37,7 +37,7 @@ context/
 
 Most historical roadmap and archive docs were intentionally pruned from the working tree during cleanup. If you need older rationale, use git history rather than expecting archived background docs to remain present.
 
-Migration-contract references for the emerging managed wrapper should stay aligned across:
+Migration-contract references for the global kit and checked-in compatibility runtime should stay aligned across:
 
 - `README.md`
 - `AGENTS.md`
@@ -82,7 +82,7 @@ Use `context/core/workflow.md` when you need the current live workflow semantics
 - `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, `context/core/project-config.md`, and `context/core/workflow-state-schema.md` define local operational details and must stay aligned with `context/core/workflow.md`
 - older roadmap rationale may no longer be present in the working tree; use git history when historical intent matters more than current behavior
 - do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Migration`, `Full Delivery`, `quick`, `migration`, and `full`
-- do not describe the managed wrapper as fully shipped while `.opencode/opencode.json` remains the live manifest and no root `opencode.json` exists
+- do not describe the checked-in `.opencode/` runtime as the preferred end-user install path now that the global kit exists
 - do not describe the new audience index layers as canonical replacements for the docs they route to
 
 ## Priority

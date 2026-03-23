@@ -102,6 +102,25 @@ function createEmptyIndex() {
   }
 }
 
+function bootstrapRuntimeStore(runtimeRoot) {
+  const paths = resolvePaths(runtimeRoot)
+
+  ensureDir(paths.workItemsDir)
+
+  if (fs.existsSync(paths.indexPath)) {
+    return readWorkItemIndex(runtimeRoot)
+  }
+
+  if (fs.existsSync(paths.workflowStatePath)) {
+    bootstrapLegacyWorkflowState(runtimeRoot)
+    return readWorkItemIndex(runtimeRoot)
+  }
+
+  const index = createEmptyIndex()
+  writeWorkItemIndex(runtimeRoot, index)
+  return index
+}
+
 function readWorkItemIndex(projectRoot) {
   const { indexPath } = resolvePaths(projectRoot)
   return readJson(indexPath, `Work-item index missing at '${indexPath}'`)
@@ -246,6 +265,7 @@ function validateActiveMirror(projectRoot) {
 }
 
 module.exports = {
+  bootstrapRuntimeStore,
   bootstrapLegacyWorkflowState,
   deriveWorkItemId,
   readWorkItemIndex,

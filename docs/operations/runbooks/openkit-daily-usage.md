@@ -1,23 +1,30 @@
 # OpenKit Daily Usage
 
-Use this runbook when you want the practical step-by-step path for working with the checked-in OpenKit runtime that exists in this repository today.
+Use this runbook when you want the practical step-by-step path for working with the globally installed OpenKit kit and its workspace-specific runtime state.
 
 ## Current Reality In This Repository
 
-- The live runtime in this worktree is the repository-local surface rooted in `.opencode/`.
-- The managed wrapper path is still a staged direction unless wrapper-owned files actually exist in the worktree.
-- This repository does not currently contain a wrapper-owned root `opencode.json` or `.openkit/openkit-install.json`.
+- The preferred operator path is now the global OpenKit install under the OpenCode home directory.
+- OpenKit workspace state is created per project in global storage instead of requiring the kit to be copied into each repository.
+- The checked-in `.opencode/` runtime in this repository remains the authoring and compatibility surface.
 - The workflow supports three live modes: `quick`, `migration`, and `full`.
 - `Quick Task+` is the current semantics of the `quick` lane, not a third mode.
 - There is no repo-native application build, lint, or test command yet, so verification must use the real runtime checks plus honest manual or artifact-based validation.
 
 ## Fast Path
 
-For normal day-to-day use in this repository:
+For normal day-to-day use on a machine with OpenKit installed globally:
 
 ```bash
-node .opencode/workflow-state.js status
-node .opencode/workflow-state.js doctor
+openkit doctor
+openkit run
+```
+
+Lifecycle commands:
+
+```bash
+openkit upgrade
+openkit uninstall
 ```
 
 Then start work from the chat surface with one of these:
@@ -27,7 +34,7 @@ Then start work from the chat surface with one of these:
 - `/migrate` when the work is primarily an upgrade or migration effort
 - `/delivery` when the work clearly needs the full multi-stage delivery flow
 
-If you need to inspect the current state more closely:
+If you need to inspect the current state more closely inside this repository's compatibility runtime:
 
 ```bash
 node .opencode/workflow-state.js show
@@ -70,23 +77,29 @@ If the boundary still feels fuzzy, use the `Lane Decision Matrix` in `context/co
 
 ## Daily Operator Flow
 
-### 1. Check runtime health
+### 1. Check global install and workspace health
 
 Start with read-only checks:
 
 ```bash
-node .opencode/workflow-state.js status
-node .opencode/workflow-state.js doctor
+openkit doctor
 ```
 
 What to look for:
 
-- `status` shows the active mode, stage, owner, and work item when one exists
-- `doctor` confirms the checked-in runtime files, metadata, hooks, workflow contract, and active work-item state are aligned
+- `doctor` confirms the global kit is installed, the workspace root is available, and the current project can launch with OpenKit cleanly
 
 If `doctor` reports errors, fix those before trusting resume or task-board behavior.
 
-### 2. Start or resume work
+### 2. Launch OpenKit for the current project
+
+```bash
+openkit run
+```
+
+This launches OpenCode with the `openkit` profile and injects the workspace-specific OpenKit environment for the current project.
+
+### 3. Start or resume work
 
 If no work is active, start from chat with `/task`, `/quick-task`, or `/delivery`.
 
@@ -102,7 +115,7 @@ Use `show` when you want the raw active state, linked artifacts, approvals, and 
 
 Use `list-work-items` and `show-work-item` when you need to understand which managed item is active or switch your attention to a different full-delivery item.
 
-### 3. Follow the lane that was chosen
+### 4. Follow the lane that was chosen
 
 Quick lane flow:
 
@@ -246,18 +259,19 @@ node .opencode/workflow-state.js list-tasks feature-001
 
 Use the output to confirm the active stage, linked artifacts, and any task-board state before continuing.
 
-## Wrapper Path Note
+## Global Kit Note
 
-If a repository really has the managed wrapper installed, the preferred top-level path becomes:
+The preferred top-level path is now:
 
 ```bash
-openkit init
-openkit install
+openkit install-global
 openkit doctor
 openkit run <args>
+openkit upgrade
+openkit uninstall
 ```
 
-That is not the concrete operator path in this worktree today because the wrapper-owned files are not present here. In this repository, use the lower-level runtime path rooted in `.opencode/`.
+Use the lower-level `.opencode/` runtime commands in this repository when you are validating or maintaining the checked-in compatibility runtime itself.
 
 ## Where To Read Next
 

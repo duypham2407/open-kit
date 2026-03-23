@@ -75,6 +75,12 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     bundledPath: "assets/install-bundle/opencode/commands/execute-plan.md",
   },
   {
+    id: "opencode.command.migrate",
+    assetClass: "commands",
+    sourcePath: "commands/migrate.md",
+    bundledPath: "assets/install-bundle/opencode/commands/migrate.md",
+  },
+  {
     id: "opencode.command.quick-task",
     assetClass: "commands",
     sourcePath: "commands/quick-task.md",
@@ -91,6 +97,12 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     assetClass: "commands",
     sourcePath: "commands/write-plan.md",
     bundledPath: "assets/install-bundle/opencode/commands/write-plan.md",
+  },
+  {
+    id: "opencode.context.lane-selection",
+    assetClass: "context",
+    sourcePath: "context/core/lane-selection.md",
+    bundledPath: "assets/install-bundle/opencode/context/core/lane-selection.md",
   },
   {
     id: "opencode.skill.brainstorming",
@@ -153,10 +165,10 @@ export const OPENKIT_ASSET_MANIFEST = {
   manifestVersion: 1,
   bundle: {
     namespace: "openkit",
-    profile: "openkit-managed-wrapper",
+    profile: "openkit-global-install",
     phase: 1,
     derivedFrom: ["agents/", "commands/", "skills/"],
-    includedAssetClasses: ["agents", "commands", "skills"],
+    includedAssetClasses: ["agents", "commands", "context", "skills"],
     deferredAssetClasses: ["plugins", "package.json"],
     collisionPolicy: {
       installNamespace: "openkit",
@@ -176,7 +188,7 @@ export const OPENKIT_ASSET_MANIFEST = {
       phase: 1,
       required: true,
       adoptionAllowed: true,
-      description: "Managed wrapper entrypoint manifest for OpenKit installs.",
+      description: "Managed install entrypoint manifest for OpenKit installs.",
     },
     {
       id: "runtime.install-state",

@@ -11,8 +11,8 @@ const EXPECTED_MANAGED_ASSETS = {
       return (
         contents?.installState?.path === '.openkit/openkit-install.json' &&
         contents?.installState?.schema === 'openkit/install-state@1' &&
-        contents?.productSurface?.current === 'managed-opencode-wrapper' &&
-        contents?.productSurface?.wrapperReadiness === 'managed' &&
+        contents?.productSurface?.current === 'global-openkit-install' &&
+        contents?.productSurface?.installReadiness === 'managed' &&
         contents?.productSurface?.installationMode === 'openkit-managed'
       );
     },
@@ -25,7 +25,7 @@ const EXPECTED_MANAGED_ASSETS = {
   },
 };
 
-const ROOT_WRAPPER_ASSET_ID = 'runtime.opencode-manifest';
+const ROOT_MANIFEST_ASSET_ID = 'runtime.opencode-manifest';
 
 function readJsonIfPresent(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -69,12 +69,12 @@ export function inspectManagedDoctor({
   isOpenCodeAvailable = defaultIsOpenCodeAvailable,
 } = {}) {
   const resolvedProjectRoot = projectRoot ?? process.cwd();
-  const wrapperManifestPath = path.join(resolvedProjectRoot, 'opencode.json');
+  const rootManifestPath = path.join(resolvedProjectRoot, 'opencode.json');
   const runtimeManifestPath = path.join(resolvedProjectRoot, '.opencode', 'opencode.json');
   const installStatePath = path.join(resolvedProjectRoot, '.openkit', 'openkit-install.json');
-  const wrapperManifestResult = readJsonIfPresent(wrapperManifestPath);
+  const rootManifestResult = readJsonIfPresent(rootManifestPath);
   const installStateResult = readJsonIfPresent(installStatePath);
-  const wrapperManifest = wrapperManifestResult.value;
+  const rootManifest = rootManifestResult.value;
   const installState = installStateResult.value;
   const issues = [];
   const driftedAssets = [];
@@ -84,22 +84,22 @@ export function inspectManagedDoctor({
   };
   const classification = discoverProjectShape(resolvedProjectRoot).classification;
 
-  if (!wrapperManifestResult.exists && !installStateResult.exists) {
+  if (!rootManifestResult.exists && !installStateResult.exists) {
     return {
       status: 'install-missing',
       canRunCleanly: false,
       summary: 'Managed install was not found; openkit run cannot proceed cleanly.',
-      issues: ['Managed wrapper entrypoint was not found at opencode.json.'],
+      issues: ['Managed install entrypoint was not found at opencode.json.'],
       driftedAssets,
       ownedAssets,
       classification,
-      wrapperManifestPath,
+      rootManifestPath,
       runtimeManifestPath,
       installStatePath,
     };
   }
 
-  if (!wrapperManifestResult.exists || !installStateResult.exists) {
+  if (!rootManifestResult.exists || !installStateResult.exists) {
     if (installState) {
       const installStateErrors = validateInstallState(installState);
       if (installStateErrors.length === 0) {
@@ -109,7 +109,7 @@ export function inspectManagedDoctor({
     }
 
     const missingAssets = [];
-    if (!wrapperManifestResult.exists) {
+    if (!rootManifestResult.exists) {
       missingAssets.push('Missing required managed asset: opencode.json');
     }
     if (!installStateResult.exists) {
@@ -124,13 +124,13 @@ export function inspectManagedDoctor({
       driftedAssets,
       ownedAssets,
       classification,
-      wrapperManifestPath,
+      rootManifestPath,
       runtimeManifestPath,
       installStatePath,
     };
   }
 
-  if (wrapperManifestResult.malformed || installStateResult.malformed) {
+  if (rootManifestResult.malformed || installStateResult.malformed) {
     if (installState && !installStateResult.malformed) {
       const installStateErrors = validateInstallState(installState);
       if (installStateErrors.length === 0) {
@@ -139,7 +139,7 @@ export function inspectManagedDoctor({
       }
     }
 
-    if (wrapperManifestResult.malformed) {
+    if (rootManifestResult.malformed) {
       driftedAssets.push('opencode.json');
       issues.push('Managed asset JSON is malformed: opencode.json');
     }
@@ -152,12 +152,12 @@ export function inspectManagedDoctor({
     return {
       status: 'drift-detected',
       canRunCleanly: false,
-      summary: 'Managed asset drift was detected; review wrapper-owned files before running OpenKit.',
+      summary: 'Managed asset drift was detected; review managed install files before running OpenKit.',
       issues,
       driftedAssets,
       ownedAssets,
       classification,
-      wrapperManifestPath,
+      rootManifestPath,
       runtimeManifestPath,
       installStatePath,
     };
@@ -173,7 +173,7 @@ export function inspectManagedDoctor({
       driftedAssets,
       ownedAssets,
       classification,
-      wrapperManifestPath,
+      rootManifestPath,
       runtimeManifestPath,
       installStatePath,
     };
@@ -183,19 +183,19 @@ export function inspectManagedDoctor({
   ownedAssets.adopted = (installState.assets?.adopted ?? []).map((asset) => asset.path);
 
   const adoptedRootManifest = (installState.assets?.adopted ?? []).some(
-    (asset) => asset?.assetId === ROOT_WRAPPER_ASSET_ID && asset?.path === 'opencode.json'
+    (asset) => asset?.assetId === ROOT_MANIFEST_ASSET_ID && asset?.path === 'opencode.json'
   );
 
-  if (adoptedRootManifest && !EXPECTED_MANAGED_ASSETS[ROOT_WRAPPER_ASSET_ID].validate(wrapperManifest)) {
+  if (adoptedRootManifest && !EXPECTED_MANAGED_ASSETS[ROOT_MANIFEST_ASSET_ID].validate(rootManifest)) {
     return {
       status: 'install-incomplete',
       canRunCleanly: false,
-      summary: 'Managed wrapper contract is incomplete; adopted root manifest is not compatible enough to run cleanly.',
-      issues: ['Adopted root manifest is incompatible with the managed wrapper contract.'],
+      summary: 'Managed install contract is incomplete; adopted root manifest is not compatible enough to run cleanly.',
+      issues: ['Adopted root manifest is incompatible with the managed install contract.'],
       driftedAssets,
       ownedAssets,
       classification,
-      wrapperManifestPath,
+      rootManifestPath,
       runtimeManifestPath,
       installStatePath,
     };
@@ -232,12 +232,12 @@ export function inspectManagedDoctor({
     return {
       status: 'drift-detected',
       canRunCleanly: false,
-      summary: 'Managed asset drift was detected; review wrapper-owned files before running OpenKit.',
+      summary: 'Managed asset drift was detected; review managed install files before running OpenKit.',
       issues,
       driftedAssets,
       ownedAssets,
       classification,
-      wrapperManifestPath,
+      rootManifestPath,
       runtimeManifestPath,
       installStatePath,
     };
@@ -260,7 +260,7 @@ export function inspectManagedDoctor({
       driftedAssets,
       ownedAssets,
       classification,
-      wrapperManifestPath,
+      rootManifestPath,
       runtimeManifestPath,
       installStatePath,
     };
@@ -269,12 +269,12 @@ export function inspectManagedDoctor({
   return {
     status: 'healthy',
     canRunCleanly: true,
-    summary: 'Managed wrapper is healthy; openkit run can proceed cleanly.',
+    summary: 'Managed install is healthy; openkit run can proceed cleanly.',
     issues: [],
     driftedAssets,
     ownedAssets,
     classification,
-    wrapperManifestPath,
+    rootManifestPath,
     runtimeManifestPath,
     installStatePath,
   };

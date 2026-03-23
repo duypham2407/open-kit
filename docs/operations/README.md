@@ -6,7 +6,7 @@ Use it to decide whether you need an executable runbook, an internal record, ope
 
 This is an index layer for operations support, not a replacement for canonical workflow docs or audience routing.
 
-The current operations surface includes the checked-in registry and install-manifest metadata layer. Treat that layer as local repository observability, not as a remote package-management system.
+The current operations surface includes both the global OpenKit install path and the checked-in registry/install-manifest metadata used by this repository as an authoring and compatibility surface.
 
 ## Directory Routes
 
@@ -17,26 +17,27 @@ The current operations surface includes the checked-in registry and install-mani
 
 ## Key Docs
 
-- `runbooks/openkit-daily-usage.md`: detailed day-to-day usage guidance for the checked-in runtime path
-- `runbooks/workflow-state-smoke-tests.md`: smoke checks for both the wrapper path and the workflow-state/session-start internals
+- `runbooks/openkit-daily-usage.md`: detailed day-to-day usage guidance for the global install path plus the checked-in compatibility runtime
+- `runbooks/workflow-state-smoke-tests.md`: smoke checks for both the global install path and the workflow-state/session-start internals
 - `internal-records/README.md`: policy for when to keep a sparse durable operational record in-tree
 
 ## Primary Operator Path
 
-If wrapper-owned files actually exist in the worktree, use the managed wrapper path first. Otherwise, the checked-in repository/runtime path is the concrete surface in this repository.
+Prefer the global install path first for everyday use. Use the checked-in repository/runtime path when maintaining or validating the authoring source in this repository.
 
-When a wrapper install exists, start with:
+When OpenKit is installed globally, start with:
 
-- `openkit init` for plain repositories
-- `openkit install` for repositories that already have `.opencode/opencode.json`
-- `openkit doctor` for wrapper readiness, drift, and missing-prerequisite checks
-- `openkit run <args>` for the supported managed launcher path
+- `openkit install-global`
+- `openkit doctor` for global install readiness, drift, and missing-prerequisite checks
+- `openkit run <args>` for the supported global launcher path
+- `openkit upgrade` to refresh the global kit bundle
+- `openkit uninstall [--remove-workspaces]` to remove the global kit and optionally clear workspace state
 
-When the wrapper layer is not installed, use the checked-in runtime directly through `node .opencode/workflow-state.js ...` and the canonical docs under `context/core/`.
+When the global layer is not installed or when you are maintaining the checked-in runtime itself, use the compatibility surface directly through `node .opencode/workflow-state.js ...` and the canonical docs under `context/core/`.
 
 ## Lower-Level Runtime Command Surface
 
-Current repository/runtime command surface under the wrapper:
+Current repository/runtime command surface under the checked-in compatibility runtime:
 
 - inspection and diagnostics: `show`, `status`, `doctor`, `version`, `profiles`, `show-profile <name>`, `validate`
 - install-manifest metadata: `sync-install-manifest <name>`
@@ -50,11 +51,11 @@ Task-board guardrail:
 
 - task-board commands remain full-delivery only; quick and migration work items stay task-board free in the current runtime
 
-## Wrapper Vs. Runtime Checks
+## Global Install Vs. Runtime Checks
 
 Keep this distinction explicit:
 
-- `openkit doctor` checks the supported wrapper installation path.
+- `openkit doctor` checks the supported global installation path.
 - `node .opencode/workflow-state.js doctor` checks the underlying repository/runtime state.
 - Both are useful, but they answer different questions and should not be described as interchangeable.
 
@@ -73,5 +74,5 @@ Current-state guardrails:
 
 - These docs describe repository runtime support only. They do not imply application build, lint, or test tooling.
 - Keep this file index-first; procedural verification belongs in `runbooks/` and durable project memory belongs in `internal-records/`.
-- Keep wrapper language aligned with the current repository reality: wrapper-first only when wrapper-owned files actually exist.
+- Keep global-kit language aligned with the current repository reality: global install is the preferred user path, while the checked-in runtime remains the maintainer and compatibility surface.
 - Keep lower-level command details concise here and route canonical command behavior to `context/core/project-config.md`.

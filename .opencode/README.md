@@ -24,16 +24,17 @@ Related routing layers outside this directory:
 
 What this directory is not:
 
-- not the preferred top-level onboarding surface for future wrapper installs
-- not proof that the managed wrapper migration is complete
+- not the preferred top-level onboarding surface for everyday OpenKit usage now that the global install path exists
+- not proof that end users should install the kit into each repository
 - not a separate product from the repository itself
 
-When a real OpenKit wrapper install exists elsewhere, the intended product path is:
+When the global OpenKit install exists elsewhere, the intended product path is:
 
-- `openkit init`
-- `openkit install`
+- `openkit install-global`
 - `openkit doctor`
 - `openkit run`
+- `openkit upgrade`
+- `openkit uninstall`
 
 In this repository, `.opencode/` is still the concrete checked-in runtime that powers the lower-level workflow-state path and supports maintainer/runtime inspection.
 

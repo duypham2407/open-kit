@@ -1,23 +1,23 @@
 import { materializeGlobalInstall } from '../../global/materialize.js';
 
-function installHelp() {
+function upgradeHelp() {
   return [
-    'Usage: openkit install',
+    'Usage: openkit upgrade',
     '',
-    'Compatibility alias for `openkit install-global`.',
+    'Refresh the globally installed OpenKit kit in the OpenCode home directory.',
   ].join('\n');
 }
 
-export const installCommand = {
-  name: 'install',
+export const upgradeCommand = {
+  name: 'upgrade',
   async run(args = [], io) {
     if (args.includes('--help') || args.includes('-h')) {
-      io.stdout.write(`${installHelp()}\n`);
+      io.stdout.write(`${upgradeHelp()}\n`);
       return 0;
     }
 
     const result = materializeGlobalInstall({ env: process.env });
-    io.stdout.write('Installed OpenKit globally.\n');
+    io.stdout.write('Upgraded OpenKit global install.\n');
     io.stdout.write(`Kit root: ${result.kitRoot}\n`);
     return 0;
   },

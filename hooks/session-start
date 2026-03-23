@@ -6,12 +6,13 @@
 set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PROJECT_ROOT="${OPENKIT_PROJECT_ROOT:-$(dirname "$DIR")}"
-META_SKILL_PATH="$PROJECT_ROOT/skills/using-skills/SKILL.md"
+KIT_ROOT="${OPENKIT_KIT_ROOT:-$(dirname "$DIR")}"
+PROJECT_ROOT="${OPENKIT_PROJECT_ROOT:-$(pwd)}"
+META_SKILL_PATH="$KIT_ROOT/skills/using-skills/SKILL.md"
 STATE_PATH="${OPENKIT_WORKFLOW_STATE:-$PROJECT_ROOT/.opencode/workflow-state.json}"
-MANIFEST_PATH="$PROJECT_ROOT/.opencode/opencode.json"
+MANIFEST_PATH="$KIT_ROOT/.opencode/opencode.json"
 PYTHON_BIN="${OPENKIT_PYTHON_BIN:-python3}"
-RUNTIME_SUMMARY_MODULE="$(dirname "$DIR")/.opencode/lib/runtime-summary.js"
+RUNTIME_SUMMARY_MODULE="$KIT_ROOT/.opencode/lib/runtime-summary.js"
 
 KIT_NAME="OpenKit AI Software Factory"
 KIT_VERSION="unknown"
@@ -89,7 +90,7 @@ import sys
 
 state_path = sys.argv[1]
 runtime_summary_module = sys.argv[2]
-project_root = os.environ.get("OPENKIT_PROJECT_ROOT") or str(pathlib.Path(state_path).resolve().parents[1])
+runtime_root = str(pathlib.Path(state_path).resolve().parents[1])
 
 try:
     with open(state_path, "r", encoding="utf-8") as fh:
@@ -122,7 +123,7 @@ if mode == "full" and work_item_id:
                 "process.stdout.write(JSON.stringify(context));"
             ),
             runtime_summary_module,
-            project_root,
+            runtime_root,
             json.dumps(state),
         ]
         result = subprocess.run(node_cmd, check=True, capture_output=True, text=True)

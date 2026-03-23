@@ -1,11 +1,10 @@
-import { materializeInstall } from '../../install/materialize.js';
-import { writeConflictReport } from '../conflict-output.js';
+import { materializeGlobalInstall } from '../../global/materialize.js';
 
 function initHelp() {
   return [
     'Usage: openkit init',
     '',
-    'Initialize the thin OpenKit wrapper surface for a project.',
+    'Compatibility alias for `openkit install-global`.',
   ].join('\n');
 }
 
@@ -17,14 +16,9 @@ export const initCommand = {
       return 0;
     }
 
-    const result = materializeInstall(process.cwd());
-
-    if (result.conflicts.length > 0) {
-      writeConflictReport(io, 'Init', result.conflicts);
-      return 1;
-    }
-
-    io.stdout.write('Initialized OpenKit wrapper.\n');
+    const result = materializeGlobalInstall({ env: process.env });
+    io.stdout.write('Installed OpenKit globally.\n');
+    io.stdout.write(`Kit root: ${result.kitRoot}\n`);
     return 0;
   },
 };

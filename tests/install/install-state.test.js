@@ -34,7 +34,7 @@ test("asset manifest defines the phase 1 managed assets", () => {
     phase: 1,
     required: true,
     adoptionAllowed: true,
-    description: "Managed wrapper entrypoint manifest for OpenKit installs.",
+    description: "Managed install entrypoint manifest for OpenKit installs.",
   })
 
   const installStateAsset = getManagedAsset("runtime.install-state")
@@ -56,6 +56,7 @@ test("asset manifest defines the explicit OpenCode-native phase 1 bundle", () =>
   assert.deepEqual(OPENKIT_ASSET_MANIFEST.bundle.includedAssetClasses, [
     "agents",
     "commands",
+    "context",
     "skills",
   ])
   assert.deepEqual(OPENKIT_ASSET_MANIFEST.bundle.deferredAssetClasses, [
@@ -83,9 +84,11 @@ test("asset manifest defines the explicit OpenCode-native phase 1 bundle", () =>
     "opencode.command.brainstorm",
     "opencode.command.delivery",
     "opencode.command.execute-plan",
+    "opencode.command.migrate",
     "opencode.command.quick-task",
     "opencode.command.task",
     "opencode.command.write-plan",
+    "opencode.context.lane-selection",
     "opencode.skill.brainstorming",
     "opencode.skill.code-review",
     "opencode.skill.subagent-driven-development",
@@ -120,7 +123,7 @@ test("install state factory records managed assets, adopted assets, warnings, an
     ],
     warnings: [
       {
-        code: "wrapper-entrypoint-adopted",
+        code: "root-manifest-adopted",
         message: "Existing root opencode.json was adopted instead of overwritten.",
       },
     ],
@@ -159,7 +162,7 @@ test("install state factory records managed assets, adopted assets, warnings, an
   ])
   assert.deepEqual(state.warnings, [
     {
-      code: "wrapper-entrypoint-adopted",
+      code: "root-manifest-adopted",
       message: "Existing root opencode.json was adopted instead of overwritten.",
     },
   ])
@@ -292,7 +295,7 @@ test("asset templates exist and point at the new schemas", () => {
 
   assert.equal(opencodeTemplate.installState.path, ".openkit/openkit-install.json")
   assert.equal(opencodeTemplate.installState.schema, INSTALL_STATE_SCHEMA)
-  assert.equal(opencodeTemplate.productSurface.wrapperReadiness, "managed")
+  assert.equal(opencodeTemplate.productSurface.installReadiness, "managed")
   assert.equal(opencodeTemplate.productSurface.installationMode, "openkit-managed")
 
   assert.equal(installTemplate.schema, INSTALL_STATE_SCHEMA)
@@ -314,7 +317,7 @@ test("bundled asset manifest matches the derived asset bundle on disk", () => {
 
   assert.deepEqual(validation.missingFiles, [])
   assert.deepEqual(validation.mismatchedFiles, [])
-  assert.equal(validation.bundleFileCount, 24)
+  assert.equal(validation.bundleFileCount, 26)
   assert.deepEqual(validation.extraBundledFiles, [])
 })
 

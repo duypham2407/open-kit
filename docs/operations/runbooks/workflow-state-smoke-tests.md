@@ -1,6 +1,6 @@
 # Workflow-State Smoke Tests
 
-Use this document to run lightweight verification for the managed wrapper path and for the lower-level workflow-state utility and session-start resume hint that still sit under it.
+Use this document to run lightweight verification for the global OpenKit install path and for the lower-level workflow-state utility and session-start resume hint that still sit underneath it.
 
 ## Safety First
 
@@ -8,14 +8,13 @@ Many commands in this document mutate project state. Do not run the manual examp
 
 Use one of these safer approaches before running any mutating command shown later in this document:
 
-- work in a temporary throwaway repository when validating `openkit init`, `openkit install`, or wrapper conflict handling
+- work in a temporary throwaway repository when validating `openkit install-global`, `openkit run`, or workspace bootstrap handling
 - use a temporary state file or temporary project copy when validating `node .opencode/workflow-state.js` mutation commands
 - if you must point at this repository, restore any changed files immediately after the check
 
 High-risk mutating commands called out in this document include:
 
-- `openkit init`
-- `openkit install`
+- `openkit install-global`
 - `node .opencode/workflow-state.js sync-install-manifest <name>`
 - `node .opencode/workflow-state.js start-task ...`
 - `node .opencode/workflow-state.js advance-stage ...`
@@ -32,7 +31,7 @@ These checks validate OpenKit's supported wrapper operator path plus the workflo
 
 When you are validating operator-facing behavior, treat this order as primary:
 
-1. `openkit init` or `openkit install`
+1. `openkit install-global`
 2. `openkit doctor`
 3. `openkit run`
 4. `node .opencode/workflow-state.js ...` only when you need raw repository/runtime inspection
@@ -112,59 +111,48 @@ node --test tests/cli/openkit-cli.test.js
 
 This covers:
 
-- `openkit init` in a plain repository
-- `openkit doctor` after `openkit install` in a repository with an existing `.opencode/opencode.json`
+- `openkit install-global` on a fresh machine or temp OpenCode home
+- `openkit doctor` after global install in a repository with an existing `.opencode/opencode.json`
 - `openkit run` launching a mocked `opencode` through the managed layering path
-- conflict reporting for wrapper install and init paths
+- workspace bootstrap and global profile wiring
 
 ## Manual CLI Smoke Tests
 
 Run the manual checks below only in a throwaway repo or temporary project copy unless the step explicitly says it is read-only.
 
-### Wrapper install and launch path
+### Global install and launch path
 
-In a plain repository:
+On a fresh machine or temporary OpenCode home:
 
 ```bash
-openkit init
+openkit install-global
 openkit doctor
 ```
 
 Expected outcome:
 
-- `openkit init` creates root `opencode.json`
-- `openkit init` creates `.openkit/openkit-install.json`
-- `openkit doctor` reports a managed-wrapper status instead of repository/runtime workflow-state details
+- `openkit install-global` materializes the kit under the OpenCode home directory
+- `openkit doctor` reports global kit and workspace readiness
 
 In a repository that already has `.opencode/opencode.json`:
 
 ```bash
-openkit install
 openkit doctor
 openkit run --help
 ```
 
 Expected outcome:
 
-- `openkit install` keeps `.opencode/opencode.json` intact
-- `openkit install` adds the wrapper-owned root `opencode.json`
-- `openkit doctor` reports whether the wrapper install is healthy, incomplete, or drifted
-- `openkit run` remains the supported wrapper launcher path over the raw runtime internals
+- `openkit doctor` reports workspace readiness without requiring the kit to be copied into the repository
+- `openkit run` remains the supported launcher path over the raw runtime internals
 
-### Wrapper conflict reporting
+### Workspace bootstrap reporting
 
-```bash
-openkit install
-```
+Expected outcome after `openkit doctor` in a new repository:
 
-against a repository that already has an incompatible root `opencode.json`
-
-Expected outcome:
-
-- the command exits non-zero
-- the command reports the conflicting path
-- the command reports a machine-readable reason such as `unsupported-top-level-key`
-- the command reports `manual-review-required`
+- the command reports the workspace root under the OpenCode home directory
+- the command reports the resolved project root
+- the command reports the workspace id used for this repository
 
 ### Runtime summary and diagnostics
 

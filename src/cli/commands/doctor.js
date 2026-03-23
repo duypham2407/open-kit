@@ -1,14 +1,10 @@
-import { inspectManagedDoctor } from '../../runtime/doctor.js';
-import { renderManagedDoctorSummary } from '../../runtime/openkit-managed-summary.js';
+import { inspectGlobalDoctor, renderGlobalDoctorSummary } from '../../global/doctor.js';
 
 function doctorHelp() {
   return [
     'Usage: openkit doctor',
     '',
-    'Check whether the local project is ready for managed OpenKit use.',
-    'This is the supported readiness check for the managed wrapper path.',
-    '',
-    'Reported states: install-missing, install-incomplete, drift-detected, runtime-prerequisites-missing, healthy.',
+    'Check whether the global OpenKit install and the current workspace are ready.',
   ].join('\n');
 }
 
@@ -20,11 +16,11 @@ export const doctorCommand = {
       return 0;
     }
 
-    const result = inspectManagedDoctor({
+    const result = inspectGlobalDoctor({
       projectRoot: process.cwd(),
       env: process.env,
     });
-    const output = renderManagedDoctorSummary(result);
+    const output = renderGlobalDoctorSummary(result);
 
     if (result.canRunCleanly) {
       io.stdout.write(output);

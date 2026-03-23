@@ -2,6 +2,14 @@ const fs = require("fs")
 const path = require("path")
 
 const {
+  resolveKitRoot,
+  resolveProjectRoot,
+  resolveRuntimeRoot,
+  resolveStatePath,
+} = require("./runtime-paths")
+
+const {
+  bootstrapRuntimeStore,
   bootstrapLegacyWorkflowState,
   deriveWorkItemId,
   readWorkItemIndex,
@@ -59,18 +67,6 @@ function formatModeLabel(mode) {
   return typeof mode === "string" && mode.length > 0 ? `${mode.charAt(0).toUpperCase()}${mode.slice(1)}` : "Unknown"
 }
 
-function resolveStatePath(customStatePath) {
-  if (customStatePath) {
-    return path.resolve(customStatePath)
-  }
-
-  if (process.env.OPENKIT_WORKFLOW_STATE) {
-    return path.resolve(process.env.OPENKIT_WORKFLOW_STATE)
-  }
-
-  return path.resolve(process.cwd(), ".opencode/workflow-state.json")
-}
-
 function timestamp() {
   return new Date().toISOString()
 }
@@ -106,20 +102,27 @@ function createEmptyWorkItemIndex() {
   }
 }
 
-function resolveProjectRoot(customStatePath) {
-  const statePath = resolveStatePath(customStatePath)
-  return path.dirname(path.dirname(statePath))
-}
-
 function ensureWorkItemStoreReady(customStatePath) {
+  const runtimeRoot = resolveRuntimeRoot(customStatePath)
   const projectRoot = resolveProjectRoot(customStatePath)
-  const { indexPath } = resolveWorkItemPaths(projectRoot, "__bootstrap__")
 
-  if (!fs.existsSync(indexPath)) {
-    bootstrapLegacyWorkflowState(projectRoot)
+  if (runtimeRoot !== projectRoot) {
+    const runtimePaths = resolveWorkItemPaths(runtimeRoot, "__bootstrap__")
+    const projectPaths = resolveWorkItemPaths(projectRoot, "__bootstrap__")
+
+    if (!fs.existsSync(runtimePaths.indexPath) && fs.existsSync(projectPaths.workflowStatePath)) {
+      fs.mkdirSync(path.dirname(runtimePaths.workflowStatePath), { recursive: true })
+      fs.copyFileSync(projectPaths.workflowStatePath, runtimePaths.workflowStatePath)
+
+      if (fs.existsSync(projectPaths.workItemsDir) && !fs.existsSync(runtimePaths.workItemsDir)) {
+        fs.cpSync(projectPaths.workItemsDir, runtimePaths.workItemsDir, { recursive: true })
+      }
+    }
   }
 
-  return projectRoot
+  bootstrapRuntimeStore(runtimeRoot)
+
+  return runtimeRoot
 }
 
 function upsertWorkItemIndexEntry(index, state, workItemId, relativeStatePath) {
@@ -1229,17 +1232,21 @@ function getRuntimeStatus(customStatePath) {
   const { statePath, state } = showState(customStatePath)
 
   const projectRoot = resolveProjectRoot(customStatePath)
-  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const runtimeRoot = resolveRuntimeRoot(customStatePath)
+  const kitRoot = resolveKitRoot(projectRoot)
+  const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
   const manifest = readJsonIfExists(manifestPath)
-  const { registryPath, installManifestPath } = getManifestPaths(projectRoot, manifest)
+  const { registryPath, installManifestPath } = getManifestPaths(kitRoot, manifest)
   const installManifest = readJsonIfExists(installManifestPath)
-  const hooksConfigPath = path.join(projectRoot, "hooks", "hooks.json")
-  const sessionStartPath = path.join(projectRoot, "hooks", "session-start")
-  const metaSkillPath = path.join(projectRoot, "skills", "using-skills", "SKILL.md")
+  const hooksConfigPath = path.join(kitRoot, "hooks", "hooks.json")
+  const sessionStartPath = path.join(kitRoot, "hooks", "session-start")
+  const metaSkillPath = path.join(kitRoot, "skills", "using-skills", "SKILL.md")
   const kit = manifest?.kit ?? {}
 
   return {
     projectRoot,
+    runtimeRoot,
+    kitRoot,
     statePath,
     manifestPath,
     registryPath,
@@ -1268,17 +1275,19 @@ function getVersionInfo(customStatePath) {
 function runDoctor(customStatePath) {
   const statePath = resolveStatePath(customStatePath)
   const projectRoot = resolveProjectRoot(customStatePath)
-  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const runtimeRoot = resolveRuntimeRoot(customStatePath)
+  const kitRoot = resolveKitRoot(projectRoot)
+  const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
   const manifestInfo = tryReadJson(manifestPath)
   const manifest = manifestInfo.data
-  const { registryPath, installManifestPath } = getManifestPaths(projectRoot, manifest)
+  const { registryPath, installManifestPath } = getManifestPaths(kitRoot, manifest)
   const registryInfo = tryReadJson(registryPath)
   const installManifestInfo = tryReadJson(installManifestPath)
   const installManifest = installManifestInfo.data
-  const hooksConfigPath = path.join(projectRoot, "hooks", "hooks.json")
-  const sessionStartPath = path.join(projectRoot, "hooks", "session-start")
-  const metaSkillPath = path.join(projectRoot, "skills", "using-skills", "SKILL.md")
-  const workflowStateCliPath = path.join(projectRoot, ".opencode", "workflow-state.js")
+  const hooksConfigPath = path.join(kitRoot, "hooks", "hooks.json")
+  const sessionStartPath = path.join(kitRoot, "hooks", "session-start")
+  const metaSkillPath = path.join(kitRoot, "skills", "using-skills", "SKILL.md")
+  const workflowStateCliPath = path.join(kitRoot, ".opencode", "workflow-state.js")
 
   let stateValid = false
   let state = null
@@ -1304,6 +1313,8 @@ function runDoctor(customStatePath) {
 
   const runtime = {
     projectRoot,
+    runtimeRoot,
+    kitRoot,
     statePath,
     manifestPath,
     registryPath,
@@ -1353,7 +1364,7 @@ function runDoctor(customStatePath) {
     },
   ]
 
-  const contractReport = buildContractConsistencyReport({ projectRoot, manifest })
+  const contractReport = buildContractConsistencyReport({ projectRoot: kitRoot, manifest })
   checks.push(...contractReport.checks)
 
   const summary = checks.reduce(
@@ -1377,10 +1388,11 @@ function runDoctor(customStatePath) {
 
 function getContractConsistencyReport(customStatePath) {
   const projectRoot = resolveProjectRoot(customStatePath)
-  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const kitRoot = resolveKitRoot(projectRoot)
+  const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
   const manifest = readJsonIfExists(manifestPath)
 
-  return buildContractConsistencyReport({ projectRoot, manifest })
+  return buildContractConsistencyReport({ projectRoot: kitRoot, manifest })
 }
 
 function validateState(customStatePath) {

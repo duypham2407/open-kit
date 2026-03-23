@@ -31,7 +31,7 @@ function safeReadJson(filePath) {
 
 function classifyProjectShape({
   hasRuntimeManifest,
-  hasRootWrapperEntrypoint,
+  hasRootInstallEntrypoint,
   hasInstallManifest,
   hasRegistry,
   installManifest,
@@ -48,12 +48,12 @@ function classifyProjectShape({
     notes.push("Registry metadata is malformed and could not be parsed.")
   }
 
-  if (hasRuntimeManifest && hasRootWrapperEntrypoint) {
+  if (hasRuntimeManifest && hasRootInstallEntrypoint) {
     return {
-      classification: "mixed-wrapper-surfaces",
+      classification: "mixed-install-surfaces",
       notes: [
         ...notes,
-        "Detected both repository-local runtime and root wrapper entrypoint surfaces; treat wrapper adoption as mixed and review manually.",
+        "Detected both repository-local runtime and root install entrypoint surfaces; treat install adoption as mixed and review manually.",
       ],
     }
   }
@@ -66,7 +66,7 @@ function classifyProjectShape({
     hasInstallManifest &&
     hasRegistry &&
     installMode === "additive-non-destructive" &&
-    emergingSurface === "managed-opencode-wrapper"
+    emergingSurface === "global-openkit-install"
   ) {
     return {
       classification: "openkit-additive-local-metadata",
@@ -81,10 +81,10 @@ function classifyProjectShape({
     }
   }
 
-  if (!hasRuntimeManifest && !hasRootWrapperEntrypoint) {
+  if (!hasRuntimeManifest && !hasRootInstallEntrypoint) {
     return {
       classification: "unknown",
-      notes: [...notes, "No recognized runtime manifest or wrapper entrypoint was found."],
+      notes: [...notes, "No recognized runtime manifest or install entrypoint was found."],
     }
   }
 
@@ -96,12 +96,12 @@ function classifyProjectShape({
 
 export function discoverProjectShape(projectRoot) {
   const runtimeManifestPath = path.join(projectRoot, ".opencode", "opencode.json")
-  const rootWrapperEntrypointPath = path.join(projectRoot, "opencode.json")
+  const rootInstallEntrypointPath = path.join(projectRoot, "opencode.json")
   const installManifestPath = path.join(projectRoot, ".opencode", "install-manifest.json")
   const registryPath = path.join(projectRoot, "registry.json")
 
   const hasRuntimeManifest = fileExists(runtimeManifestPath)
-  const hasRootWrapperEntrypoint = fileExists(rootWrapperEntrypointPath)
+  const hasRootInstallEntrypoint = fileExists(rootInstallEntrypointPath)
   const hasInstallManifest = fileExists(installManifestPath)
   const hasRegistry = fileExists(registryPath)
 
@@ -113,7 +113,7 @@ export function discoverProjectShape(projectRoot) {
   }
   const classification = classifyProjectShape({
     hasRuntimeManifest,
-    hasRootWrapperEntrypoint,
+    hasRootInstallEntrypoint,
     hasInstallManifest,
     hasRegistry,
     installManifest: installManifestResult.value,
@@ -124,11 +124,11 @@ export function discoverProjectShape(projectRoot) {
   return {
     projectRoot,
     runtimeManifestPath,
-    rootWrapperEntrypointPath,
+    rootInstallEntrypointPath,
     installManifestPath,
     registryPath,
     hasRuntimeManifest,
-    hasRootWrapperEntrypoint,
+    hasRootInstallEntrypoint,
     hasInstallManifest,
     hasRegistry,
     malformedMetadata,

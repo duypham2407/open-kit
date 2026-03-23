@@ -40,6 +40,7 @@ Current repository facts:
 - The current workflow contract is the hard-split design described in `context/core/workflow.md`
 - `context/core/workflow.md` is the canonical workflow-semantics document for lane behavior, stages, escalation, approvals, and quick-lane artifact expectations
 - Historical planning and example docs have been intentionally pruned from the working tree; prefer current runtime docs and git history when older rationale is needed
+- `openkit install-global`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit
 - `.opencode/opencode.json` is present as the runtime manifest for this kit
 - `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item
 - `.opencode/work-items/` is present as the internal per-item workflow backing store for managed runtime state
@@ -67,12 +68,13 @@ Approved follow-on direction from FEATURE-002 also includes:
 - further refining the existing quick lane after the current `Quick Task+` successor semantics while keeping lane semantics explicit and mode-aware
 - hardening runtime bootstrap, diagnostics, and workflow-level verification
 
-The next product-layer direction is an emerging managed wrapper over OpenCode. Treat that as a staged migration target, not as a completed product transition. In this repository today:
+The next product-layer direction is the global OpenKit kit layered over OpenCode while preserving the checked-in authoring and compatibility runtime. In this repository today:
 
-- `.opencode/opencode.json` remains the live runtime manifest
+- the global install path is implemented for the `openkit` CLI and stores the managed kit inside the OpenCode home directory
+- `.opencode/opencode.json` remains the checked-in authoring and compatibility runtime manifest
 - `registry.json` remains checked-in local metadata describing repository surfaces and profiles
 - `.opencode/install-manifest.json` remains additive local install metadata for this repository
-- a future root `opencode.json` is a target direction for wrapper-facing entry, not an already-shipped replacement
+- project artifacts stay local to the target repository, while kit installation and workspace state are managed through the global OpenKit path
 
 Until application code lands, test runners and build tooling remain targets rather than current capabilities.
 
@@ -128,7 +130,7 @@ Current state:
 - No single canonical package manager or language toolchain has been established for future generated applications
 - Node.js is a documented runtime dependency for the workflow-state utility only, not for future application code by default
 - The workflow-state CLI exists and is aligned with the live stage and approval model documented in this repository
-- The repository-local runtime still boots from `.opencode/opencode.json`; do not claim that a root `opencode.json` wrapper entrypoint already exists unless the file is added
+- The repository-local runtime still boots from `.opencode/opencode.json`; do not claim that a root `opencode.json` entrypoint already exists unless the file is added
 
 Rules for agents:
 
@@ -152,16 +154,16 @@ These are illustrative patterns, not current repository commands.
 The operating system layer is file-backed and should stay explicit.
 
 - Runtime manifest: `.opencode/opencode.json`
-- Future wrapper-facing entrypoint direction: root `opencode.json` when that migration is actually implemented
+- Runtime manifest for the checked-in authoring surface: `.opencode/opencode.json`
 - Active compatibility mirror: `.opencode/workflow-state.json`
 - Per-item backing store: `.opencode/work-items/`
 - Workflow-state CLI: `node .opencode/workflow-state.js ...`
 - Artifact templates: `docs/templates/`
 - Operational runbooks: `docs/operations/runbooks/`
 
-Wrapper migration contract:
+Global-kit compatibility contract:
 
-- Treat the managed wrapper as additive over the checked-in runtime surfaces.
+- Treat the global OpenKit install path as additive over the checked-in runtime surfaces.
 - Do not describe registry or install-manifest metadata as plugin-only, remote-only, or destructive-install machinery.
 - Keep docs and metadata aligned about what exists now versus what is only planned.
 

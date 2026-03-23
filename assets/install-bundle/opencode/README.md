@@ -1,6 +1,6 @@
 # OpenCode Phase 1 Managed Bundle
 
-This directory is the explicit derived install bundle for the phase-1 `openkit-managed-wrapper` profile.
+This directory is the explicit derived install bundle for the phase-1 `openkit-global-install` profile.
 
 - Authoring sources of truth stay at the repository root: `agents/`, `commands/`, and `skills/`.
 - Install-time consumers must use this bundle and `src/install/asset-manifest.js` instead of scraping arbitrary live repo paths.

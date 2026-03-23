@@ -1,6 +1,6 @@
 # OpenKit — AI Software Factory
 
-OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines explicit artifacts, approval gates, resumable workflow state, and a bounded full-delivery task runtime with an emerging managed-wrapper product direction over OpenCode.
+OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines explicit artifacts, approval gates, resumable workflow state, and a bounded full-delivery task runtime with a global OpenKit kit layered over OpenCode.
 
 ## Audience Navigation
 
@@ -26,14 +26,14 @@ Phase-1 authority rule:
 
 This repository currently contains two active surface types:
 
-1. **Current checked-in runtime**
-   - the live repository-local runtime rooted in `.opencode/`
-   - the checked-in `agents/`, `commands/`, `skills/`, `hooks/`, `context/`, and runtime docs
+1. **Global managed kit path**
+   - the `openkit` CLI now installs the kit into the OpenCode home directory
+   - `openkit install-global`, `openkit doctor`, and `openkit run` are the intended operator path
+   - global workspace state is created per project under the OpenCode home directory instead of copying the kit into each repository
 
-2. **Managed wrapper product direction**
-   - the emerging `openkit` CLI surface
-   - install, doctor, and run flows intended to become the preferred top-level user path
-   - additive wrapper behavior that does not erase the checked-in runtime in one step
+2. **Checked-in authoring and compatibility runtime**
+   - this repository still carries the source-of-truth `agents/`, `commands/`, `skills/`, `hooks/`, `context/`, docs, and the legacy `.opencode/` runtime surface
+   - those checked-in files remain the authoring source and compatibility path while the global install model matures
 
 Historical planning and example docs have been intentionally pruned from the working tree. If you need older rationale, use git history rather than treating removed docs as part of the live contract.
 
@@ -73,48 +73,49 @@ Live quick-lane guardrails:
 - Current command names remain unchanged.
 - Runtime mode enums remain `quick`, `migration`, and `full`.
 
-## Product Boundary And Migration Direction
+## Product Boundary And Install Direction
 
-Wrapper-first remains the intended product direction, but the migration is still staged in this worktree.
+The preferred product path is now the globally installed OpenKit kit. This repository still keeps the checked-in authoring and compatibility runtime needed to build, inspect, and validate that kit.
 
-For the target wrapper path, once wrapper-owned files are actually present:
+Preferred global path:
 
-1. Run `openkit init` in a plain repository to create the wrapper-owned root `opencode.json` entrypoint and `.openkit/openkit-install.json` state file.
-2. Run `openkit install` in a repository that already has `.opencode/opencode.json` when you want to add the wrapper path without replacing the checked-in runtime manifest.
-3. Run `openkit doctor` to confirm the wrapper install is healthy, incomplete, or drifted before relying on `openkit run`.
-4. Run `openkit run <args>` to launch `opencode` through the managed layering path for the current project.
+1. Run `openkit install-global` once on the machine to materialize the OpenKit bundle into the OpenCode home directory.
+2. Run `openkit doctor` to confirm the global install and current workspace are healthy.
+3. Run `openkit run <args>` to launch `opencode --profile openkit` with the workspace-specific OpenKit environment.
+4. Run `openkit upgrade` to refresh the installed global kit when a newer package version is available.
+5. Run `openkit uninstall [--remove-workspaces]` when you need to remove the global kit and optionally clear workspace state.
 
 In this worktree today:
 
-- the wrapper path is the intended primary product surface, but it is still migration-stage rather than a fully checked-in replacement runtime here.
-- the checked-in runtime surface remains the repository-local OpenKit implementation rooted in `.opencode/opencode.json`.
-- docs may describe wrapper commands and wrapper-owned files as the target operator experience, but that does not mean those files are already present in this worktree.
+- the global install path is implemented for the `openkit` CLI and is now the preferred user experience.
+- the checked-in `.opencode/` surface remains the authoring and compatibility runtime inside this repository.
+- project repositories do not need to vendor the kit just to use it; only workflow output artifacts belong in the project.
 
 OpenKit currently exposes two related but not identical surfaces:
 
-- the intended managed wrapper surface for installation, readiness checks, and launch as migration completes
+- the global kit surface used for installation, readiness checks, launch, upgrade, and uninstall
 - the checked-in repository-local runtime surface that exists today in this worktree
 
 Current boundary:
 
 - `.opencode/opencode.json` is still the live runtime manifest in this checked-in repository runtime.
 - `.opencode/workflow-state.json`, `.opencode/work-items/`, `.opencode/workflow-state.js`, `hooks/`, `agents/`, `skills/`, `commands/`, `context/`, and `docs/` remain repository-internal runtime or support surfaces.
-- `registry.json` is local metadata describing repository surfaces and the migration-facing wrapper contract.
+- `registry.json` is local metadata describing repository surfaces and the global-kit compatibility contract.
 - `.opencode/install-manifest.json` records the local installed profile for this repository and remains additive metadata rather than a destructive installer.
-- A wrapper-owned root `opencode.json` and `.openkit/openkit-install.json` are target wrapper surfaces, not checked-in current surfaces in this worktree.
 - The checked-in agents, skills, commands, hooks, docs, and workflow-state files remain the source of truth for what actually exists.
 
-Target migration direction:
+Install-direction guardrails:
 
-- The wrapper entrypoint is intended to stay additive over the current repo-local surfaces rather than erase them in one step.
-- The transition remains staged and non-destructive, with compatibility for existing repository-local runtime users during migration.
-- When docs refer to raw `.opencode/*` files, treat them as repository/runtime internals that power the wrapper rather than as proof that the wrapper path is unsupported.
+- The global install path stays additive over the current repo-local surfaces rather than erasing them in one step.
+- The transition remains non-destructive, with compatibility for existing repository-local runtime users and maintainers.
+- When docs refer to raw `.opencode/*` files, treat them as repository/runtime internals that power the global kit rather than as proof that the global path is unsupported.
 
-Repository-internal vs wrapper-facing summary:
+Repository-internal vs global-kit summary:
 
-- Wrapper-facing direction: `openkit init`, `openkit install`, `openkit doctor`, `openkit run`, a root `opencode.json`, and `.openkit/openkit-install.json` when that wrapper surface is actually installed.
-- Repository-internal today: `.opencode/opencode.json`, workflow-state files, the workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs.
-- Wrapper-facing and repository-internal surfaces intentionally coexist; the wrapper does not imply the lower-level runtime vanished.
+- Global-kit user path: `openkit install-global`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall`
+- Global kit lives under the OpenCode home directory, not inside each project
+- Repository-internal authoring surface remains: `.opencode/opencode.json`, workflow-state files, the workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs
+- The checked-in runtime remains useful for maintainers and compatibility testing even though end-user installation is now global-first
 
 ## The 7-Role Team
 
@@ -197,15 +198,15 @@ The default manifest currently carries a starter model value inherited from the 
 
 ## Registry Metadata
 
-OpenKit includes a small checked-in metadata layer for local inspection and for the emerging managed-wrapper contract:
+OpenKit includes a small checked-in metadata layer for local inspection and for the global-kit compatibility contract:
 
-- `registry.json` describes the component categories that exist in this repository today, including agents, skills, commands, artifact directories, runtime files, hooks, and anchor docs, while also declaring which metadata participates in the emerging wrapper contract.
+- `registry.json` describes the component categories that exist in this repository today, including agents, skills, commands, artifact directories, runtime files, hooks, and anchor docs, while also declaring which metadata participates in the global-kit compatibility contract.
 - `.opencode/install-manifest.json` records which local profile is active for this repository, points back to `registry.json`, and documents the current install stance as additive and non-destructive.
 - `.opencode/opencode.json` remains the live repository-local manifest while also exposing pointers to both metadata files plus the active profile name and current wrapper-readiness status.
 
 This metadata is local repository state, not a remote installer. It does not fetch, download, replace, or update components from elsewhere.
 
-During migration, do not collapse these roles together: the metadata helps define the wrapper product surface, but the checked-in repository runtime remains the thing that actually runs.
+Do not collapse these roles together: the metadata helps define the global-kit compatibility surface, but the checked-in repository runtime remains the authoring and maintainer-facing runtime in this worktree.
 
 Current checked-in profile:
 
@@ -228,7 +229,7 @@ The current workflow for profile metadata is local and inspectable:
 5. `node .opencode/workflow-state.js show-profile <name>` shows whether a profile is the repository default and which component categories it includes.
 6. `node .opencode/workflow-state.js sync-install-manifest <name>` updates `.opencode/install-manifest.json` so its recorded active profile matches a named local profile.
 
-This is not a package installer. `sync-install-manifest` updates checked-in local metadata only; it does not create missing files, fetch remote assets, remove existing runtime surfaces, or switch the repository to a different command surface automatically. It also does not mean the managed wrapper entrypoint has taken over unless a real root `opencode.json` is present.
+This is not a package installer. `sync-install-manifest` updates checked-in local metadata only; it does not create missing files, fetch remote assets, remove existing runtime surfaces, or switch the repository to a different command surface automatically. It also does not replace the preferred global OpenKit install path.
 
 Practical inspection flow:
 
@@ -279,8 +280,8 @@ The command surface above is the current live interface. The live contract keeps
 
 For normal day-to-day use:
 
-- if a repository really has the wrapper surface installed, prefer `openkit init`, `openkit install`, `openkit doctor`, and `openkit run`
-- in this checked-in repository runtime, use the lower-level runtime path below
+- prefer `openkit install-global`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall`
+- use the lower-level checked-in runtime path below when you are maintaining or validating this repository itself
 
 1. Run `node .opencode/workflow-state.js status` to see whether work is already in progress.
 2. Run `node .opencode/workflow-state.js doctor` if the runtime looks off or you are entering a repo for the first time.
@@ -328,7 +329,7 @@ Current checked-in operator entrypoints in this repository are:
 - `node .opencode/workflow-state.js show-work-item <work_item_id>`
 - `node .opencode/workflow-state.js list-tasks <work_item_id>` when the active full-delivery item uses a task board
 
-Use those for the checked-in repository runtime, state inspection, and resume checks. When a real wrapper install exists in a repository, treat the wrapper commands as the preferred top-level operator path.
+Use those for the checked-in repository runtime, state inspection, and resume checks. Treat the `openkit` global commands as the preferred top-level operator path for everyday use.
 
 ## Workflow-State Utility Commands
 

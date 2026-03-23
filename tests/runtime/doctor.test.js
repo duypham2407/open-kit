@@ -27,8 +27,8 @@ function materializeManagedInstall(projectRoot) {
       schema: 'openkit/install-state@1',
     },
     productSurface: {
-      current: 'managed-opencode-wrapper',
-      wrapperReadiness: 'managed',
+      current: 'global-openkit-install',
+      installReadiness: 'managed',
       installationMode: 'openkit-managed',
     },
   });
@@ -57,7 +57,7 @@ function materializeManagedInstall(projectRoot) {
   });
 }
 
-test('doctor reports install missing when managed wrapper files are absent', () => {
+test('doctor reports install missing when managed install files are absent', () => {
   const projectRoot = makeTempDir();
 
   const result = inspectManagedDoctor({
@@ -82,8 +82,8 @@ test('doctor reports install incomplete when install state is missing', () => {
       schema: 'openkit/install-state@1',
     },
     productSurface: {
-      current: 'managed-opencode-wrapper',
-      wrapperReadiness: 'managed',
+      current: 'global-openkit-install',
+      installReadiness: 'managed',
       installationMode: 'openkit-managed',
     },
   });
@@ -102,7 +102,7 @@ test('doctor reports install incomplete when install state is missing', () => {
   ]);
 });
 
-test('doctor reports install incomplete for a partial install when install state exists but wrapper entrypoint is missing', () => {
+test('doctor reports install incomplete for a partial install when install state exists but install entrypoint is missing', () => {
   const projectRoot = makeTempDir();
 
   writeJson(path.join(projectRoot, '.openkit', 'openkit-install.json'), {
@@ -156,7 +156,7 @@ test('doctor reports drift when a managed asset changed on disk', () => {
     },
     productSurface: {
       current: 'changed-wrapper-surface',
-      wrapperReadiness: 'managed',
+      installReadiness: 'managed',
       installationMode: 'openkit-managed',
     },
   });
@@ -221,7 +221,7 @@ test('doctor reports drift for managed install-state assets it owns in phase 1',
   );
 });
 
-test('doctor reports malformed wrapper manifest JSON as diagnosable drift instead of crashing', () => {
+test('doctor reports malformed install manifest JSON as diagnosable drift instead of crashing', () => {
   const projectRoot = makeTempDir();
 
   materializeManagedInstall(projectRoot);
@@ -305,11 +305,11 @@ test('doctor reports healthy state when install is intact and launcher prerequis
   assert.deepEqual(result.issues, []);
   assert.deepEqual(result.driftedAssets, []);
   assert.deepEqual(result.ownedAssets.managed, ['opencode.json', '.openkit/openkit-install.json']);
-  assert.match(result.summary, /managed wrapper is healthy/i);
+  assert.match(result.summary, /managed install is healthy/i);
   assert.match(result.summary, /openkit run can proceed cleanly/i);
 });
 
-test('doctor does not report healthy when an adopted root manifest is incompatible with the wrapper contract', () => {
+test('doctor does not report healthy when an adopted root manifest is incompatible with the install contract', () => {
   const projectRoot = makeTempDir();
 
   writeJson(path.join(projectRoot, 'opencode.json'), {
@@ -366,11 +366,11 @@ test('doctor does not report healthy when an adopted root manifest is incompatib
   assert.equal(result.status, 'install-incomplete');
   assert.equal(result.canRunCleanly, false);
   assert.deepEqual(result.ownedAssets.adopted, ['opencode.json']);
-  assert.match(result.summary, /wrapper contract is incomplete/i);
-  assert.match(result.issues.join('\n'), /adopted root manifest is incompatible with the managed wrapper contract/i);
+  assert.match(result.summary, /install contract is incomplete/i);
+  assert.match(result.issues.join('\n'), /adopted root manifest is incompatible with the managed install contract/i);
 });
 
-test('doctor can report healthy when an adopted root manifest still satisfies the wrapper contract', () => {
+test('doctor can report healthy when an adopted root manifest still satisfies the install contract', () => {
   const projectRoot = makeTempDir();
 
   writeJson(path.join(projectRoot, 'opencode.json'), {
@@ -380,8 +380,8 @@ test('doctor can report healthy when an adopted root manifest still satisfies th
       schema: 'openkit/install-state@1',
     },
     productSurface: {
-      current: 'managed-opencode-wrapper',
-      wrapperReadiness: 'managed',
+      current: 'global-openkit-install',
+      installReadiness: 'managed',
       installationMode: 'openkit-managed',
     },
   });

@@ -207,19 +207,19 @@ function requireArgument(value, placeholder, command) {
 }
 
 function enrichStateResult(result, statePath) {
-  const projectRoot = path.dirname(path.dirname(statePath ?? result.statePath))
+  const runtimeRoot = path.dirname(path.dirname(statePath ?? result.statePath))
   return {
     ...result,
-    runtimeContext: getRuntimeContext(projectRoot, result.state),
+    runtimeContext: getRuntimeContext(runtimeRoot, result.state),
   }
 }
 
 function extendDoctorReport(report, statePath) {
-  const projectRoot = path.dirname(path.dirname(statePath))
+  const runtimeRoot = path.dirname(path.dirname(statePath))
   const checks = [...report.checks]
-  const runtimeContext = getRuntimeContext(projectRoot, report.runtime.state)
+  const runtimeContext = getRuntimeContext(runtimeRoot, report.runtime.state)
   const activeWorkItemId = runtimeContext.activeWorkItemId
-  const indexPath = path.join(projectRoot, ".opencode", "work-items", "index.json")
+  const indexPath = path.join(runtimeRoot, ".opencode", "work-items", "index.json")
   const index = fs.existsSync(indexPath) ? JSON.parse(fs.readFileSync(indexPath, "utf8")) : null
   const activeWorkItem = index?.work_items?.find((entry) => entry.work_item_id === activeWorkItemId) ?? null
   let activePointerOk = !index || !activeWorkItemId
@@ -227,11 +227,11 @@ function extendDoctorReport(report, statePath) {
   let boardOk = true
 
   if (index && activeWorkItemId) {
-    const activeStatePath = resolveWorkItemPaths(projectRoot, activeWorkItemId).statePath
+    const activeStatePath = resolveWorkItemPaths(runtimeRoot, activeWorkItemId).statePath
     activePointerOk = fs.existsSync(activeStatePath)
 
     try {
-      validateActiveMirror(projectRoot)
+      validateActiveMirror(runtimeRoot)
       mirrorOk = true
     } catch (_error) {
       mirrorOk = false
@@ -297,7 +297,7 @@ async function main() {
       return
     case "status":
       result = getRuntimeStatus(statePath)
-      result.runtimeContext = getRuntimeContext(result.projectRoot, result.state)
+      result.runtimeContext = getRuntimeContext(result.runtimeRoot, result.state)
       printRuntimeStatus(result)
       return
     case "doctor":

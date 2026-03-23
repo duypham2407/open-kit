@@ -1,7 +1,10 @@
 import { helpCommand } from './commands/help.js';
 import { initCommand } from './commands/init.js';
 import { installCommand } from './commands/install.js';
+import { installGlobalCommand } from './commands/install-global.js';
 import { runCommand } from './commands/run.js';
+import { upgradeCommand } from './commands/upgrade.js';
+import { uninstallCommand } from './commands/uninstall.js';
 import { doctorCommand } from './commands/doctor.js';
 import { detectVietnameseCommand } from './commands/detect-vietnamese.js';
 
@@ -9,7 +12,10 @@ const commands = {
   help: helpCommand,
   init: initCommand,
   install: installCommand,
+  'install-global': installGlobalCommand,
   run: runCommand,
+  upgrade: upgradeCommand,
+  uninstall: uninstallCommand,
   doctor: doctorCommand,
   'internal-audit-vietnamese': detectVietnameseCommand,
 };

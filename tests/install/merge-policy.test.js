@@ -97,7 +97,7 @@ test("applyOpenKitMergePolicy preserves existing order while appending unique al
   assert.deepEqual(result.conflicts, [])
 })
 
-test("applyOpenKitMergePolicy additively inserts allowed wrapper-owned top-level keys", () => {
+test("applyOpenKitMergePolicy additively inserts allowed managed-install top-level keys", () => {
   const result = applyOpenKitMergePolicy({
     currentConfig: {
       plugin: ["existing-plugin"],
@@ -110,8 +110,8 @@ test("applyOpenKitMergePolicy additively inserts allowed wrapper-owned top-level
         schema: "openkit/install-state@1",
       },
       productSurface: {
-        current: "managed-opencode-wrapper",
-        wrapperReadiness: "managed",
+        current: "global-openkit-install",
+        installReadiness: "managed",
         installationMode: "openkit-managed",
       },
     },
@@ -126,8 +126,8 @@ test("applyOpenKitMergePolicy additively inserts allowed wrapper-owned top-level
       schema: "openkit/install-state@1",
     },
     productSurface: {
-      current: "managed-opencode-wrapper",
-      wrapperReadiness: "managed",
+      current: "global-openkit-install",
+      installReadiness: "managed",
       installationMode: "openkit-managed",
     },
   })
@@ -144,8 +144,8 @@ test("applyOpenKitMergePolicy treats allowlisted object fields as equal regardle
       },
       productSurface: {
         installationMode: "openkit-managed",
-        wrapperReadiness: "managed",
-        current: "managed-opencode-wrapper",
+        installReadiness: "managed",
+        current: "global-openkit-install",
       },
     },
     desiredConfig: {
@@ -154,8 +154,8 @@ test("applyOpenKitMergePolicy treats allowlisted object fields as equal regardle
         schema: "openkit/install-state@1",
       },
       productSurface: {
-        current: "managed-opencode-wrapper",
-        wrapperReadiness: "managed",
+        current: "global-openkit-install",
+        installReadiness: "managed",
         installationMode: "openkit-managed",
       },
     },
@@ -168,8 +168,8 @@ test("applyOpenKitMergePolicy treats allowlisted object fields as equal regardle
     },
     productSurface: {
       installationMode: "openkit-managed",
-      wrapperReadiness: "managed",
-      current: "managed-opencode-wrapper",
+      installReadiness: "managed",
+      current: "global-openkit-install",
     },
   })
   assert.deepEqual(result.conflicts, [])

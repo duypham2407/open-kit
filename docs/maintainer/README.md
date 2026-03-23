@@ -31,7 +31,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 
 ## Repository Internals To Keep Honest
 
-- `.opencode/opencode.json` is still the live checked-in runtime manifest until a real root `opencode.json` exists
+- `.opencode/opencode.json` remains the checked-in authoring and compatibility runtime manifest even though the preferred end-user install path is now global
 - `.opencode/workflow-state.json` remains the active compatibility mirror for the active work item
 - `.opencode/work-items/` remains the per-item backing store for managed runtime state
 - `registry.json` and `.opencode/install-manifest.json` remain additive local metadata, not destructive install machinery

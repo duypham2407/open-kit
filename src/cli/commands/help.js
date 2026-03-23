@@ -4,10 +4,13 @@ function topLevelHelp() {
     '',
     'Commands:',
     '  help      Show CLI help',
-    '  init      Set up OpenKit in a project',
-    '  install   Install managed OpenKit files',
-    '  run       Launch the managed OpenKit flow',
-    '  doctor    Inspect local OpenKit readiness',
+    '  install-global  Install OpenKit globally into OpenCode home',
+    '  init      Compatibility alias for install-global',
+    '  install   Compatibility alias for install-global',
+    '  run       Launch OpenCode with the global OpenKit profile',
+    '  upgrade   Refresh the global OpenKit install',
+    '  uninstall Remove the global OpenKit install',
+    '  doctor    Inspect global OpenKit and workspace readiness',
   ].join('\n');
 }
 

@@ -9,8 +9,8 @@
     "entryAgent": "MasterOrchestrator",
     "productSurface": {
       "current": "repository-local-openkit-runtime",
-      "emerging": "managed-opencode-wrapper",
-      "wrapperReadiness": "emerging",
+      "emerging": "global-openkit-install",
+      "installReadiness": "emerging",
       "migrationState": "staged-not-complete",
       "targetWrapperEntrypoint": "opencode.json",
       "repositoryInternal": [
@@ -29,7 +29,7 @@
         "registry.json",
         ".opencode/install-manifest.json"
       ],
-      "notes": "This file remains the live repository-local runtime manifest during the wrapper migration. Wrapper-facing entry at root `opencode.json` is planned direction only until that file exists."
+      "notes": "This file remains the live checked-in runtime manifest for the repository authoring and compatibility surface while the preferred end-user install path stays global."
     },
     "registry": {
       "path": "registry.json",

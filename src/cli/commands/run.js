@@ -1,11 +1,10 @@
-import { launchManagedOpenCode } from '../../runtime/launcher.js';
+import { launchGlobalOpenKit } from '../../global/launcher.js';
 
 function runHelp() {
   return [
     'Usage: openkit run',
     '',
-    'Run the managed OpenKit launcher path for the current project.',
-    'This path layers OpenKit-managed OpenCode config onto your current baseline config.',
+    'Run OpenCode with the globally installed OpenKit profile for the current project.',
   ].join('\n');
 }
 
@@ -17,9 +16,8 @@ export const runCommand = {
       return 0;
     }
 
-    const projectRoot = process.cwd();
-    const result = launchManagedOpenCode(args, {
-      projectRoot,
+    const result = launchGlobalOpenKit(args, {
+      projectRoot: process.cwd(),
       env: process.env,
     });
 

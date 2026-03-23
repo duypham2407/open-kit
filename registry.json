@@ -4,12 +4,12 @@
   "kit": {
     "name": "OpenKit AI Software Factory",
     "version": "0.1.0",
-    "description": "Local component metadata for the checked-in OpenKit repository during the staged migration toward a managed wrapper product surface.",
+    "description": "Local component metadata for the checked-in OpenKit repository and the global-kit compatibility surface.",
     "repositoryRoot": ".",
     "productSurface": {
       "current": "repository-local-openkit-runtime",
-      "emerging": "managed-opencode-wrapper",
-      "wrapperReadiness": "emerging",
+      "emerging": "global-openkit-install",
+      "installReadiness": "emerging",
       "migrationState": "staged-not-complete",
       "activeRuntimeManifest": ".opencode/opencode.json",
       "targetWrapperEntrypoint": "opencode.json",
@@ -26,12 +26,11 @@
         "context/",
         "docs/"
       ],
-      "wrapperFacing": [
+      "globalFacing": [
         "registry.json",
-        ".opencode/install-manifest.json",
-        "opencode.json (planned, not yet present)"
+        ".opencode/install-manifest.json"
       ],
-      "notes": "This registry describes repository-local components that exist today and also records migration-facing metadata for an additive managed wrapper direction. It does not mean the repository-local runtime has been removed or replaced."
+      "notes": "This registry describes repository-local components that exist today and also records metadata that supports the global OpenKit kit. It does not mean the checked-in repository runtime has been removed or replaced."
     }
   },
   "componentCategories": [
@@ -254,7 +253,7 @@
         "name": "Install Manifest",
         "path": ".opencode/install-manifest.json",
         "role": "additive-install-metadata",
-        "surface": "wrapper-facing-metadata"
+        "surface": "global-facing-metadata"
       }
     ],
     "hooks": [

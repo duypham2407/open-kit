@@ -34,7 +34,7 @@ test("discoverProjectShape classifies an OpenKit additive local metadata project
   writeJson(path.join(projectRoot, "registry.json"), {
     kit: {
       productSurface: {
-        emerging: "managed-opencode-wrapper",
+        emerging: "global-openkit-install",
       },
     },
   })
@@ -44,7 +44,7 @@ test("discoverProjectShape classifies an OpenKit additive local metadata project
   assert.equal(result.projectRoot, projectRoot)
   assert.equal(result.classification, "openkit-additive-local-metadata")
   assert.equal(result.hasRuntimeManifest, true)
-  assert.equal(result.hasRootWrapperEntrypoint, false)
+  assert.equal(result.hasRootInstallEntrypoint, false)
   assert.equal(result.hasInstallManifest, true)
   assert.equal(result.hasRegistry, true)
   assert.deepEqual(result.notes, [])
@@ -66,24 +66,24 @@ test("discoverProjectShape reports an OpenCode-only runtime when only the checke
   assert.deepEqual(result.notes, [])
 })
 
-test("discoverProjectShape flags mixed wrapper surfaces without mutating project state", () => {
+test("discoverProjectShape flags mixed install surfaces without mutating project state", () => {
   const projectRoot = makeTempDir()
 
   writeJson(path.join(projectRoot, ".opencode", "opencode.json"), {
     name: "runtime",
   })
   writeJson(path.join(projectRoot, "opencode.json"), {
-    wrapper: true,
+    install: true,
   })
 
   const before = fs.readFileSync(path.join(projectRoot, "opencode.json"), "utf8")
   const result = discoverProjectShape(projectRoot)
   const after = fs.readFileSync(path.join(projectRoot, "opencode.json"), "utf8")
 
-  assert.equal(result.classification, "mixed-wrapper-surfaces")
+  assert.equal(result.classification, "mixed-install-surfaces")
   assert.equal(result.hasRuntimeManifest, true)
-  assert.equal(result.hasRootWrapperEntrypoint, true)
-  assert.match(result.notes[0], /both repository-local runtime and root wrapper entrypoint/i)
+  assert.equal(result.hasRootInstallEntrypoint, true)
+  assert.match(result.notes[0], /both repository-local runtime and root install entrypoint/i)
   assert.equal(after, before)
 })
 
@@ -94,7 +94,7 @@ test("discoverProjectShape marks missing runtime surfaces as unknown", () => {
 
   assert.equal(result.classification, "unknown")
   assert.equal(result.hasRuntimeManifest, false)
-  assert.equal(result.hasRootWrapperEntrypoint, false)
+  assert.equal(result.hasRootInstallEntrypoint, false)
   assert.equal(result.hasInstallManifest, false)
   assert.equal(result.hasRegistry, false)
   assert.match(result.notes[0], /no recognized runtime manifest/i)

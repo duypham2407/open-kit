@@ -20,7 +20,7 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"))
 }
 
-test("materializeInstall creates managed wrapper files without mutating the checked-in runtime surface", () => {
+test("materializeInstall creates managed install files without mutating the checked-in runtime surface", () => {
   const projectRoot = makeTempDir()
   const runtimeManifestPath = path.join(projectRoot, ".opencode", "opencode.json")
 
@@ -48,8 +48,8 @@ test("materializeInstall creates managed wrapper files without mutating the chec
       schema: "openkit/install-state@1",
     },
     productSurface: {
-      current: "managed-opencode-wrapper",
-      wrapperReadiness: "managed",
+      current: "global-openkit-install",
+      installReadiness: "managed",
       installationMode: "openkit-managed",
     },
   })
@@ -71,7 +71,7 @@ test("materializeInstall creates managed wrapper files without mutating the chec
   ])
 })
 
-test("materializeInstall additively inserts allowed wrapper-owned keys into an existing root manifest", () => {
+test("materializeInstall additively inserts allowed managed-install keys into an existing root manifest", () => {
   const projectRoot = makeTempDir()
   const rootManifestPath = path.join(projectRoot, "opencode.json")
 
@@ -99,8 +99,8 @@ test("materializeInstall additively inserts allowed wrapper-owned keys into an e
       schema: "openkit/install-state@1",
     },
     productSurface: {
-      current: "managed-opencode-wrapper",
-      wrapperReadiness: "managed",
+      current: "global-openkit-install",
+      installReadiness: "managed",
       installationMode: "openkit-managed",
     },
   })
@@ -154,8 +154,8 @@ test("materializeInstall fails closed for unsupported root manifest rewrites", (
         current: "custom-surface",
       },
       desiredValue: {
-        current: "managed-opencode-wrapper",
-        wrapperReadiness: "managed",
+        current: "global-openkit-install",
+        installReadiness: "managed",
         installationMode: "openkit-managed",
       },
       resolution: "manual-review-required",
@@ -173,7 +173,7 @@ test("materializeInstall fails closed for unsupported root manifest rewrites", (
   ])
 })
 
-test("materializeInstall reports pre-existing user-owned install-state without mutating wrapper assets", () => {
+test("materializeInstall reports pre-existing user-owned install-state without mutating managed install assets", () => {
   const projectRoot = makeTempDir()
   const rootManifestPath = path.join(projectRoot, "opencode.json")
   const installStatePath = path.join(projectRoot, ".openkit", "openkit-install.json")
