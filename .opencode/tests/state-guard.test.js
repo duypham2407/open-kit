@@ -14,6 +14,13 @@ function createState(overrides = {}) {
     feature_id: "FEATURE-100",
     feature_slug: "parallel-runtime",
     mode: "full",
+    routing_profile: {
+      work_intent: "feature",
+      behavior_delta: "extend",
+      dominant_uncertainty: "product",
+      scope_shape: "cross_boundary",
+      selection_reason: "feature example",
+    },
     current_stage: "full_plan",
     status: "in_progress",
     updated_at: "2026-03-21T00:00:00.000Z",
@@ -22,7 +29,7 @@ function createState(overrides = {}) {
 }
 
 test("captureRevision returns a stable revision for equivalent state content", () => {
-  const first = createState({ artifacts: { plan: "docs/plans/feature-100.md", qa_report: null } })
+  const first = createState({ artifacts: { plan: "docs/plans/feature-100.md", migration_report: null, qa_report: null } })
   const second = {
     status: "in_progress",
     current_stage: "full_plan",
@@ -31,7 +38,14 @@ test("captureRevision returns a stable revision for equivalent state content", (
     feature_slug: "parallel-runtime",
     feature_id: "FEATURE-100",
     mode: "full",
-    artifacts: { qa_report: null, plan: "docs/plans/feature-100.md" },
+    routing_profile: {
+      selection_reason: "feature example",
+      scope_shape: "cross_boundary",
+      dominant_uncertainty: "product",
+      behavior_delta: "extend",
+      work_intent: "feature",
+    },
+    artifacts: { qa_report: null, migration_report: null, plan: "docs/plans/feature-100.md" },
   }
 
   const firstRevision = captureRevision(first)

@@ -26,7 +26,7 @@ Create a prompt (define it first, do not run it yet) with enough context for the
 - target files
 - exact code requirements from the plan
 - tests that must pass
-- explicit instruction: "Follow TDD and follow the coding standards"
+- explicit instruction: "Follow the active mode's validation model and the coding standards"; use TDD in full-delivery implementation work and migration validation in migration work
 
 #### Step 2b: Dispatch & Execution
 Call the tool or script that runs the subagent independently. (This may be a shell command, a `run_agent.sh` script, or an equivalent delegation mechanism.)

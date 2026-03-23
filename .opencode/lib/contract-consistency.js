@@ -4,8 +4,7 @@ const path = require("path")
 const {
   ARTIFACT_KINDS,
   MODE_VALUES,
-  QUICK_STAGE_SEQUENCE,
-  FULL_STAGE_SEQUENCE,
+  MODE_STAGE_SEQUENCES,
   MODE_APPROVAL_GATES,
 } = require("./workflow-state-rules")
 
@@ -76,8 +75,8 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
     .join("\n")
   const compatibilityText = [schemaText, fullDeliverySpecText, fullDeliveryPlanText].filter(Boolean).join("\n")
 
-  const allStageNames = [...QUICK_STAGE_SEQUENCE, ...FULL_STAGE_SEQUENCE]
-  const allApprovalGates = [...MODE_APPROVAL_GATES.quick, ...MODE_APPROVAL_GATES.full]
+  const allStageNames = Object.values(MODE_STAGE_SEQUENCES).flat()
+  const allApprovalGates = Object.values(MODE_APPROVAL_GATES).flat()
 
   const checks = [
     makeCheck("workflow contract doc found", Boolean(workflowText)),
@@ -102,7 +101,7 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
 
   checks.push(
     makeCheck(
-      "workflow contract keeps two runtime modes",
+      "workflow contract documents runtime mode enums",
       MODE_VALUES.every((value) => workflowText.includes(`\`${value}\``)),
     ),
     makeCheck(
@@ -113,6 +112,34 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
           /not a third operating mode/i,
           /not a third mode/i,
         ]),
+    ),
+    makeCheck(
+      "workflow contract keeps migration lane free of task boards",
+      includesAllTerms(taskBoardContractText, ["migration", "task", "board"]) &&
+        matchesAnyPattern(taskBoardContractText, [
+          /migration[^\n.]{0,120}(free of|without|must stay free of|must not carry|no) [^\n.]{0,80}task board/i,
+          /task board[^\n.]{0,120}(not allowed|forbidden|disallowed|full[- ]delivery only)[^\n.]{0,80}migration/i,
+          /migration[^\n.]{0,120}execution[- ]task[- ]board/i,
+          /migration[^\n.]{0,120}task[- ]board/i,
+        ]),
+    ),
+    makeCheck(
+      "workflow contract states migration lane is for upgrades",
+      includesAllTerms(workflowText, ["migration", "upgrade"]),
+    ),
+    makeCheck(
+      "workflow contract states migration preserves behavior and decouples blockers first",
+      includesAllTerms(workflowText, ["migration", "behavior"]) &&
+        matchesAnyPattern(workflowText, [
+          /preserve[^\n.]{0,80}behavior/i,
+          /freeze[^\n.]{0,80}invariant/i,
+          /decouple[^\n.]{0,120}blocker/i,
+          /seam/i,
+        ]),
+    ),
+    makeCheck(
+      "workflow contract documents lane tie-breakers and examples",
+      includesAllTerms(workflowText, ["lane", "tie breaker"]) && includesAllTerms(workflowText, ["decision", "matrix"]),
     ),
     makeCheck(
       "workflow contract keeps quick lane free of task boards",
@@ -145,6 +172,10 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
     makeCheck(
       "workflow schema matches runtime artifact slots",
       listExistingMarkdownLiterals(schemaText, ARTIFACT_KINDS).length === ARTIFACT_KINDS.length,
+    ),
+    makeCheck(
+      "workflow schema documents routing profile fields",
+      includesAllTerms(schemaText, ["routing_profile", "dominant_uncertainty", "behavior_delta"]),
     ),
     makeCheck(
       "workflow schema matches runtime approval keys",

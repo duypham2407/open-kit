@@ -4,7 +4,7 @@ This file defines how stage transitions are recorded and approved.
 
 For the canonical workflow contract, including lane semantics, stage order, and artifact expectations, use `context/core/workflow.md`.
 
-Approval behavior is mode-aware. `Quick Task` and `Full Delivery` do not share the same gate set.
+Approval behavior is mode-aware. `Quick Task`, `Migration`, and `Full Delivery` do not share the same gate set.
 
 ## Gate States
 
@@ -46,6 +46,43 @@ Readiness rule before `quick_verified` approval:
 - intended verification path is inspectable
 - QA Lite evidence is inspectable in workflow state or session artifacts
 - unresolved design or requirement issues are escalated instead of approved through
+
+## Migration Gates
+
+Migration mode uses four required gates:
+
+- `baseline_to_strategy`
+- `strategy_to_upgrade`
+- `upgrade_to_verify`
+- `migration_verified`
+
+Meaning:
+
+- `baseline_to_strategy` confirms the baseline, compatibility map, and likely breakpoints are inspectable enough for staged planning
+- `strategy_to_upgrade` confirms the staged upgrade sequence, rollback checkpoints, and validation path are ready for execution
+- `upgrade_to_verify` confirms upgrade execution evidence is inspectable enough for regression and compatibility QA
+- `migration_verified` becomes `approved` only after regression, smoke, and compatibility verification are judged sufficient
+
+Approval authorities:
+
+- `baseline_to_strategy`: `Tech Lead Agent`
+- `strategy_to_upgrade`: `Fullstack Agent`
+- `upgrade_to_verify`: `QA Agent`
+- `migration_verified`: `QA Agent`
+
+Transition rules:
+
+- `migration_baseline -> migration_strategy` uses `baseline_to_strategy`
+- `migration_strategy -> migration_upgrade` uses `strategy_to_upgrade`
+- `migration_upgrade -> migration_verify` uses `upgrade_to_verify`
+- `migration_verify -> migration_done` uses `migration_verified`
+
+Readiness rule before migration approvals:
+
+- current baseline and target upgrade intent are inspectable
+- staged execution notes and rollback checkpoints are inspectable
+- validation evidence uses real project commands or honest manual evidence
+- requirement ambiguity is escalated to full delivery instead of being approved through migration
 
 ## Full Delivery Gates
 
@@ -100,9 +137,9 @@ Do not mark a gate `approved` when the evidence is missing, not inspectable, or 
 
 ## Escalation Rule
 
-When quick work escalates to full delivery:
+When quick or migration work escalates to full delivery:
 
-- do not try to reuse quick gates as full-delivery approvals
+- do not try to reuse quick or migration gates as full-delivery approvals
 - record the escalation metadata in state
 - initialize the full-delivery approval chain with pending values
 

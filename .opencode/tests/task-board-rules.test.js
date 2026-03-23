@@ -135,6 +135,13 @@ test("validateTaskBoard rejects quick-mode task boards", () => {
   assert.throws(() => validateTaskBoard(makeBoard({ mode: "quick", current_stage: "quick_plan" })), /Quick mode/)
 })
 
+test("validateTaskBoard rejects migration-mode task boards", () => {
+  assert.throws(
+    () => validateTaskBoard(makeBoard({ mode: "migration", current_stage: "migration_strategy" })),
+    /Migration mode/,
+  )
+})
+
 test("validateTaskBoard rejects dependency cycles", () => {
   const tasks = [
     makeTask({ task_id: "TASK-1", depends_on: ["TASK-2"], blocked_by: ["TASK-2"] }),

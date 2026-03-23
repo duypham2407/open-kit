@@ -7,7 +7,7 @@ Use this runbook when you want the practical step-by-step path for working with 
 - The live runtime in this worktree is the repository-local surface rooted in `.opencode/`.
 - The managed wrapper path is still a staged direction unless wrapper-owned files actually exist in the worktree.
 - This repository does not currently contain a wrapper-owned root `opencode.json` or `.openkit/openkit-install.json`.
-- The workflow supports two live modes only: `quick` and `full`.
+- The workflow supports three live modes: `quick`, `migration`, and `full`.
 - `Quick Task+` is the current semantics of the `quick` lane, not a third mode.
 - There is no repo-native application build, lint, or test command yet, so verification must use the real runtime checks plus honest manual or artifact-based validation.
 
@@ -24,6 +24,7 @@ Then start work from the chat surface with one of these:
 
 - `/task` when you want the Master Orchestrator to choose the lane
 - `/quick-task` when the work is already clearly small, bounded, and low risk
+- `/migrate` when the work is primarily an upgrade or migration effort
 - `/delivery` when the work clearly needs the full multi-stage delivery flow
 
 If you need to inspect the current state more closely:
@@ -35,7 +36,7 @@ node .opencode/workflow-state.js validate
 
 ## Choose The Right Entry Point
 
-Use `/task` by default. It is the safest starting point when you are not fully sure whether the request belongs in `Quick Task` or `Full Delivery`.
+Use `/task` by default. It is the safest starting point when you are not fully sure whether the request belongs in `Quick Task`, `Migration`, or `Full Delivery`.
 
 Use `/quick-task` only when all of these are already true:
 
@@ -53,7 +54,19 @@ Use `/delivery` when any of these are true:
 - architecture or contracts may change
 - you need briefs, specs, architecture, plans, or QA artifacts
 
+Use `/migrate` when most of these are true:
+
+- the main goal is upgrading or replacing existing technology
+- the expected outcome is preserving layout, behavior, and contracts under a newer stack
+- current-state baseline capture is required before editing
+- compatibility risk is more central than feature definition
+- framework-coupled blockers need seams or adapters before the upgrade is safe
+- rollback checkpoints or staged remediation are needed
+- validation depends on builds, tests, smoke checks, type checks, or manual regression evidence more than on greenfield TDD slices
+
 Canonical lane rules live in `context/core/workflow.md`.
+
+If the boundary still feels fuzzy, use the `Lane Decision Matrix` in `context/core/workflow.md` before forcing a lane.
 
 ## Daily Operator Flow
 
@@ -105,6 +118,16 @@ Full-delivery flow:
 - expect explicit artifacts under `docs/briefs/`, `docs/specs/`, `docs/architecture/`, `docs/plans/`, and `docs/qa/`
 - use `/brainstorm`, `/write-plan`, and `/execute-plan` only in this lane
 
+Migration flow:
+
+- `migration_intake -> migration_baseline -> migration_strategy -> migration_upgrade -> migration_verify -> migration_done`
+- use it for framework upgrades, dependency modernization, and compatibility remediation
+- expect explicit baseline, architecture, and plan context before major edits
+- preserve behavior first, decouple only the blockers that make the migration unsafe, then upgrade in slices
+- use `/brainstorm`, `/write-plan`, and `/execute-plan` in this lane when strategy or staged execution is needed
+- use `docs/templates/migration-baseline-checklist.md` and `docs/templates/migration-verify-checklist.md` as repeatable checklists for baseline and verification
+- use `docs/templates/migration-report-template.md` when you want one running artifact for baseline, strategy, execution, and verification
+
 ### 4. Inspect work-item and task-board state when needed
 
 The task board belongs only to `Full Delivery` work items.
@@ -121,7 +144,7 @@ node .opencode/workflow-state.js validate-work-item-board <work_item_id>
 Guidance:
 
 - use `list-tasks` only for full-delivery items that actually use a task board
-- do not expect quick mode to have task-level ownership or task-board commands
+- do not expect quick or migration mode to have task-level ownership or task-board commands
 - treat task-board support as bounded coordination, not as proof that arbitrary parallel execution is safe
 
 ### 5. Validate honestly
@@ -150,7 +173,7 @@ Read-only commands you will use most often:
 | `node .opencode/workflow-state.js validate` | you suspect the state may be stale or manually edited | workflow-state check only |
 | `node .opencode/workflow-state.js list-work-items` | you want to see tracked work items | marks the active item |
 | `node .opencode/workflow-state.js show-work-item <work_item_id>` | you want one item's mode, stage, and status | full-delivery coordination helper |
-| `node .opencode/workflow-state.js list-tasks <work_item_id>` | you need task-board visibility for a full item | quick mode stays task-board free |
+| `node .opencode/workflow-state.js list-tasks <work_item_id>` | you need task-board visibility for a full item | quick and migration modes stay task-board free |
 
 Lower-level mutation commands exist, but they are operator and maintainer tools. Use them intentionally and prefer the documented lane commands and approved workflow over direct manual state manipulation.
 
@@ -170,7 +193,7 @@ node .opencode/workflow-state.js doctor
 2. In chat, use:
 
 ```text
-/quick-task Fix the wording in docs/operator/README.md so it matches the current two-lane terminology.
+/quick-task Fix the wording in docs/operator/README.md so it matches the current lane terminology.
 ```
 
 3. Let the quick lane move through `quick_plan`, implementation, and QA Lite.
@@ -191,6 +214,23 @@ node .opencode/workflow-state.js doctor
 ```
 
 3. Expect the work to move through PM, BA, Architect, Tech Lead, Fullstack, and QA stages, with artifacts created as the full lane progresses.
+
+### Example: start migration work
+
+1. Run:
+
+```bash
+node .opencode/workflow-state.js status
+node .opencode/workflow-state.js doctor
+```
+
+2. In chat, use:
+
+```text
+/migrate Upgrade a legacy React 16 app to React 19 and modernize the async data layer safely.
+```
+
+3. Expect the work to move through baseline capture, migration strategy, staged upgrade execution, and regression-focused verification.
 
 ### Example: resume an existing full-delivery item
 

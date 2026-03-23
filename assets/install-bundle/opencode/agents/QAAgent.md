@@ -1,6 +1,6 @@
 ---
 name: QAAgent
-description: "Quality Assurance agent. Runs QA Lite for quick tasks and full QA for delivery work, classifying issues for feedback routing."
+description: "Quality Assurance agent. Runs QA Lite for quick tasks, migration QA for upgrades, and full QA for delivery work, classifying issues for feedback routing."
 mode: subagent
 permission:
   edit:
@@ -60,6 +60,30 @@ Next step:
 - quick scope has expanded beyond the bounded task
 - available verification is no longer short and local enough to support quick completion
 
+## Migration Mode Delta: Migration QA
+
+### Expected inputs
+
+- completed migration package from `FullstackAgent`
+- linked migration architecture and implementation plan artifacts when they exist
+- `docs/templates/migration-verify-checklist.md` when present
+- current approval and issue context if resuming
+
+### Role-local checks
+
+- verify the upgraded baseline matches the intended target versions and compatibility decisions
+- verify preserved layout, flow, contract, and core-logic invariants remain equivalent unless an approved exception exists
+- run or inspect the strongest real regression path available: tests, builds, type checks, smoke tests, and manual compatibility checks
+- classify whether findings are implementation fallout, migration-strategy flaws, or requirement ambiguity
+- keep evidence focused on what still works, what changed technically, what stayed behaviorally equivalent, and what remains risky after the upgrade
+
+### Output
+
+- explicit PASS/FAIL status
+- regression, compatibility, and parity evidence
+- issue list with type, severity, rooted_in, recommended owner, and evidence
+- clear next-step recommendation back to `MasterOrchestrator`
+
 ## Full Mode Delta: Full QA
 
 ### Expected inputs
@@ -89,7 +113,7 @@ Next step:
 - `QAAgent` still owns the feature-level `full_qa` stage when the active work item is in full QA
 - an assigned task-level `qa_owner` may move only its execution task through QA statuses and report task-scoped findings
 - task-level QA ownership does not authorize feature closure; `MasterOrchestrator` still owns the `qa_to_done` closure decision
-- quick mode keeps QA Lite simple and has no task board or per-task QA assignment layer
+- quick and migration modes keep QA simpler and have no task board or per-task QA assignment layer
 
 ## Stop Conditions
 

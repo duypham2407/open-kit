@@ -153,6 +153,11 @@
         "path": "commands/quick-task.md"
       },
       {
+        "id": "command.migrate",
+        "name": "/migrate",
+        "path": "commands/migrate.md"
+      },
+      {
         "id": "command.delivery",
         "name": "/delivery",
         "path": "commands/delivery.md"

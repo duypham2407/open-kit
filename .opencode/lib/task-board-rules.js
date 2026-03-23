@@ -69,6 +69,10 @@ function fail(message) {
   throw new Error(message)
 }
 
+function formatModeLabel(mode) {
+  return typeof mode === "string" && mode.length > 0 ? `${mode.charAt(0).toUpperCase()}${mode.slice(1)}` : "Unknown"
+}
+
 function isNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0
 }
@@ -297,7 +301,7 @@ function validateBoardShape(board) {
   }
 
   if (board.mode !== "full") {
-    fail("Quick mode cannot carry a task board; task boards are full-delivery only")
+    fail(`${formatModeLabel(board.mode)} mode cannot carry a task board; task boards are full-delivery only`)
   }
 
   if (!Array.isArray(board.tasks)) {

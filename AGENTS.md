@@ -12,18 +12,19 @@ Treat that direction as a planned target, not as an already implemented stack.
 
 ## Current State
 
-This repository implements the **OpenKit AI Software Factory**, a dual-lane workflow kit for daily software work:
+This repository implements the **OpenKit AI Software Factory**, a mode-aware workflow kit for daily software work:
 
 - `Quick Task` for narrow, low-risk tasks that should move fast
+- `Migration` for project upgrades, framework migrations, dependency modernization, and compatibility remediation
 - `Full Delivery` for feature work that benefits from the full multi-role team flow
 
-The live quick lane uses `Quick Task+` successor semantics while preserving the same two runtime modes: `quick` and `full`. Treat `Quick Task+` as the current semantics of the `quick` lane, not as a third mode.
+The live quick lane uses `Quick Task+` successor semantics while preserving the dedicated runtime modes: `quick`, `migration`, and `full`. Treat `Quick Task+` as the current semantics of the `quick` lane, not as a third mode.
 
 The kit is structured into several core directories:
 
 - `agents/`: Definitions for the primary team roles plus helper subagents such as `code-reviewer.md`
 - `skills/`: Composable workflow procedures (TDD, brainstorming, planning, debugging)
-- `commands/`: User-facing triggers such as `/task`, `/quick-task`, `/delivery`, `/brainstorm`, `/write-plan`, and `/execute-plan`
+- `commands/`: User-facing triggers such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, and `/execute-plan`
 - `context/`: Shared intelligence (`navigation.md`, `core/code-quality.md`, `core/workflow.md`)
 - `hooks/`: Session bootstrap integration (`session-start`)
 - `.opencode/`: Configuration for the OpenCode environment
@@ -42,7 +43,7 @@ Current repository facts:
 - `.opencode/opencode.json` is present as the runtime manifest for this kit
 - `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item
 - `.opencode/work-items/` is present as the internal per-item workflow backing store for managed runtime state
-- `.opencode/workflow-state.js` now supports the hard-split mode-aware workflow state contract
+- `.opencode/workflow-state.js` now supports the live mode-aware workflow state contract
 - No repo-native build command is currently defined for application code
 - No repo-native lint command is currently defined for application code
 - No repo-native test command is currently defined for application code
@@ -63,7 +64,7 @@ The kit foundation is now established. The next phase is to use this team to bui
 
 Approved follow-on direction from FEATURE-002 also includes:
 
-- further refining the existing quick lane after the current `Quick Task+` successor semantics, without adding a third lane
+- further refining the existing quick lane after the current `Quick Task+` successor semantics while keeping lane semantics explicit and mode-aware
 - hardening runtime bootstrap, diagnostics, and workflow-level verification
 
 The next product-layer direction is an emerging managed wrapper over OpenCode. Treat that as a staged migration target, not as a completed product transition. In this repository today:
@@ -75,7 +76,7 @@ The next product-layer direction is an emerging managed wrapper over OpenCode. T
 
 Until application code lands, test runners and build tooling remain targets rather than current capabilities.
 
-Continue to use the current `Quick Task` and `Full Delivery` contract, current command names, and current workflow-state enums unless a later implemented change updates them.
+Continue to use the current `Quick Task`, `Migration`, and `Full Delivery` contract, current command names, and current workflow-state enums unless a later implemented change updates them.
 
 ## Source Of Truth Files
 
@@ -126,7 +127,7 @@ Current state:
 - No repository-native test command is currently defined for application code
 - No single canonical package manager or language toolchain has been established for future generated applications
 - Node.js is a documented runtime dependency for the workflow-state utility only, not for future application code by default
-- The workflow-state CLI exists and is aligned with the hard-split stage and approval model documented in this repository
+- The workflow-state CLI exists and is aligned with the live stage and approval model documented in this repository
 - The repository-local runtime still boots from `.opencode/opencode.json`; do not claim that a root `opencode.json` wrapper entrypoint already exists unless the file is added
 
 Rules for agents:
@@ -167,6 +168,7 @@ Wrapper migration contract:
 Required artifact outputs by mode:
 
 - Quick Task -> optional `docs/tasks/YYYY-MM-DD-<task>.md`; bounded planning happens in the live `quick_plan` stage and does not require a separate mandatory doc artifact
+- Migration -> optional `docs/architecture/YYYY-MM-DD-<migration>.md` and `docs/plans/YYYY-MM-DD-<migration>.md` when baseline and staged strategy need durable artifacts
 - Full Delivery / PM -> `docs/briefs/YYYY-MM-DD-<feature>.md`
 - Full Delivery / BA -> `docs/specs/YYYY-MM-DD-<feature>.md`
 - Full Delivery / Architect -> `docs/architecture/YYYY-MM-DD-<feature>.md`
@@ -181,6 +183,14 @@ Quick lane note:
 - `quick_plan` is a required quick stage
 - task cards remain optional unless a later implemented change makes them mandatory
 - quick mode still has no task board; execution task boards belong only to full-delivery work items
+
+Migration lane note:
+
+- migration mode uses `migration_*` stages for baseline, strategy, upgrade, and verification work
+- migration mode is the right lane when compatibility risk and staged upgrade sequencing dominate the task
+- migration mode is not TDD-first by default; validation centers on baseline evidence, regression checks, and compatibility verification
+- migration mode is behavior-preserving by default; refactor only to create seams or adapters that make the upgrade safe
+- migration mode still has no task board; execution task boards belong only to full-delivery work items
 
 ## Single-Test Guidance
 
@@ -213,14 +223,15 @@ These standards are intentionally conservative so they are useful before a full 
 
 Use `context/core/workflow.md` as the canonical workflow reference and adapt it to the repository's current scale.
 
-- Choose the lane early: `Quick Task` for bounded low-risk work, `Full Delivery` for feature and higher-risk work
+- Choose the lane early: `Quick Task` for bounded low-risk work, `Migration` for upgrades and modernization, `Full Delivery` for feature and higher-risk work
+- Record and respect the routing profile behind the lane choice: work intent, behavior delta, dominant uncertainty, and scope shape should support the chosen mode instead of contradicting it
 - Treat `Quick Task+` as the live successor semantics of the existing quick lane, not as permission to invent a third mode, rename commands, or change enums unless the repository explicitly does so
 - Plan before coding. Even quick tasks need a clear objective, acceptance bullets, and validation path
-- Keep responsibilities explicit. Quick mode follows the canonical `quick_*` stage chain in `context/core/workflow.md`, with the `QA Agent` operating in `QA Lite`; full mode uses the broader delivery team
+- Keep responsibilities explicit. Quick mode follows the canonical `quick_*` stage chain in `context/core/workflow.md`, migration mode follows the canonical `migration_*` stage chain, and full mode uses the broader delivery team
 - In the implemented full runtime, feature-level ownership still follows the stage owner while task-level ownership may be distributed through the full-delivery execution task board
 - Use feedback loops. Implementation is not complete until validation has run or the lack of validation tooling has been called out clearly
 - Do not skip review or validation because a task looks simple
-- Route issues by type and by mode: quick bugs loop within quick mode, but quick design or requirement issues must escalate to full delivery
+- Route issues by type and by mode: quick bugs loop within quick mode, migration bugs and compatibility flaws loop within migration mode, but product or requirement ambiguity must escalate to full delivery
 - Treat parallel support conservatively: only rely on task-board coordination, active-work-item switching, and task-level owner commands that the checked-in runtime actually enforces
 - Do not create commits unless the user explicitly asks for them, even if agent-level instructions mention frequent commit opportunities
 

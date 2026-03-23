@@ -26,6 +26,7 @@ const {
   scaffoldAndLinkArtifact,
   selectActiveWorkItem,
   assignQaOwner,
+  setRoutingProfile,
   setTaskStatus,
   setApproval,
   showState,
@@ -58,7 +59,8 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] advance-stage <stage>
   node .opencode/workflow-state.js [--state <path>] set-approval <gate> <status> [approved_by] [approved_at] [notes]
   node .opencode/workflow-state.js [--state <path>] link-artifact <kind> <path>
-  node .opencode/workflow-state.js [--state <path>] scaffold-artifact <task_card|plan> <slug>
+  node .opencode/workflow-state.js [--state <path>] scaffold-artifact <task_card|plan|migration_report> <slug>
+  node .opencode/workflow-state.js [--state <path>] set-routing-profile <work_intent> <behavior_delta> <dominant_uncertainty> <scope_shape> <selection_reason>
   node .opencode/workflow-state.js [--state <path>] list-tasks <work_item_id>
   node .opencode/workflow-state.js [--state <path>] create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]
   node .opencode/workflow-state.js [--state <path>] claim-task <work_item_id> <task_id> <owner> <requested_by>
@@ -370,6 +372,11 @@ async function main() {
     case "scaffold-artifact":
       result = scaffoldAndLinkArtifact(rest[0], rest[1], statePath)
       console.log(`Created artifact '${rest[0]}' at '${result.artifactPath}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "set-routing-profile":
+      result = setRoutingProfile(rest[0], rest[1], rest[2], rest[3], rest.slice(4).join(" "), statePath)
+      console.log(`Updated routing profile for mode '${result.state.mode}'`)
       console.log(`State file: ${result.statePath}`)
       return
     case "list-tasks":

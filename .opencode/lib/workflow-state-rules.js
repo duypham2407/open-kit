@@ -17,7 +17,16 @@ const FULL_STAGE_SEQUENCE = [
   "full_done",
 ]
 
-const STAGE_SEQUENCE = [...QUICK_STAGE_SEQUENCE, ...FULL_STAGE_SEQUENCE]
+const MIGRATION_STAGE_SEQUENCE = [
+  "migration_intake",
+  "migration_baseline",
+  "migration_strategy",
+  "migration_upgrade",
+  "migration_verify",
+  "migration_done",
+]
+
+const STAGE_SEQUENCE = [...QUICK_STAGE_SEQUENCE, ...MIGRATION_STAGE_SEQUENCE, ...FULL_STAGE_SEQUENCE]
 
 const STAGE_OWNERS = {
   quick_intake: "MasterOrchestrator",
@@ -25,6 +34,12 @@ const STAGE_OWNERS = {
   quick_build: "FullstackAgent",
   quick_verify: "QAAgent",
   quick_done: "MasterOrchestrator",
+  migration_intake: "MasterOrchestrator",
+  migration_baseline: "ArchitectAgent",
+  migration_strategy: "TechLeadAgent",
+  migration_upgrade: "FullstackAgent",
+  migration_verify: "QAAgent",
+  migration_done: "MasterOrchestrator",
   full_intake: "MasterOrchestrator",
   full_brief: "PMAgent",
   full_spec: "BAAgent",
@@ -35,15 +50,27 @@ const STAGE_OWNERS = {
   full_done: "MasterOrchestrator",
 }
 
-const MODE_VALUES = ["quick", "full"]
+const MODE_VALUES = ["quick", "migration", "full"]
+
+const ROUTING_WORK_INTENT_VALUES = ["maintenance", "modernization", "feature"]
+const ROUTING_BEHAVIOR_DELTA_VALUES = ["preserve", "extend", "redefine"]
+const ROUTING_DOMINANT_UNCERTAINTY_VALUES = ["low_local", "compatibility", "product"]
+const ROUTING_SCOPE_SHAPE_VALUES = ["local", "adjacent", "cross_boundary"]
 
 const MODE_STAGE_SEQUENCES = {
   quick: QUICK_STAGE_SEQUENCE,
+  migration: MIGRATION_STAGE_SEQUENCE,
   full: FULL_STAGE_SEQUENCE,
 }
 
 const MODE_APPROVAL_GATES = {
   quick: ["quick_verified"],
+  migration: [
+    "baseline_to_strategy",
+    "strategy_to_upgrade",
+    "upgrade_to_verify",
+    "migration_verified",
+  ],
   full: [
     "pm_to_ba",
     "ba_to_architect",
@@ -58,6 +85,12 @@ const TRANSITION_GATES = {
   quick: {
     "quick_verify->quick_done": "quick_verified",
   },
+  migration: {
+    "migration_baseline->migration_strategy": "baseline_to_strategy",
+    "migration_strategy->migration_upgrade": "strategy_to_upgrade",
+    "migration_upgrade->migration_verify": "upgrade_to_verify",
+    "migration_verify->migration_done": "migration_verified",
+  },
   full: {
     "full_brief->full_spec": "pm_to_ba",
     "full_spec->full_architecture": "ba_to_architect",
@@ -70,7 +103,7 @@ const TRANSITION_GATES = {
 
 const STATUS_VALUES = ["idle", "in_progress", "blocked", "done"]
 
-const ARTIFACT_KINDS = ["task_card", "brief", "spec", "architecture", "plan", "qa_report", "adr"]
+const ARTIFACT_KINDS = ["task_card", "brief", "spec", "architecture", "plan", "migration_report", "qa_report", "adr"]
 
 const ISSUE_TYPES = ["bug", "design_flaw", "requirement_gap"]
 const ISSUE_SEVERITIES = ["critical", "high", "medium", "low"]
@@ -107,8 +140,39 @@ function createEmptyArtifacts() {
     spec: null,
     architecture: null,
     plan: null,
+    migration_report: null,
     qa_report: null,
     adr: [],
+  }
+}
+
+function createDefaultRoutingProfile(mode, selectionReason) {
+  if (mode === "quick") {
+    return {
+      work_intent: "maintenance",
+      behavior_delta: "preserve",
+      dominant_uncertainty: "low_local",
+      scope_shape: "local",
+      selection_reason: selectionReason,
+    }
+  }
+
+  if (mode === "migration") {
+    return {
+      work_intent: "modernization",
+      behavior_delta: "preserve",
+      dominant_uncertainty: "compatibility",
+      scope_shape: "adjacent",
+      selection_reason: selectionReason,
+    }
+  }
+
+  return {
+    work_intent: "feature",
+    behavior_delta: "extend",
+    dominant_uncertainty: "product",
+    scope_shape: "cross_boundary",
+    selection_reason: selectionReason,
   }
 }
 
@@ -128,6 +192,10 @@ function getModeForStage(stage) {
 
   if (FULL_STAGE_SEQUENCE.includes(stage)) {
     return "full"
+  }
+
+  if (MIGRATION_STAGE_SEQUENCE.includes(stage)) {
+    return "migration"
   }
 
   return null
@@ -197,6 +265,35 @@ function getReworkRoute(mode, issueType) {
     }
   }
 
+  if (mode === "migration") {
+    if (issueType === "bug") {
+      return {
+        mode: "migration",
+        stage: "migration_upgrade",
+        owner: STAGE_OWNERS.migration_upgrade,
+        escalate: false,
+      }
+    }
+
+    if (issueType === "design_flaw") {
+      return {
+        mode: "migration",
+        stage: "migration_strategy",
+        owner: STAGE_OWNERS.migration_strategy,
+        escalate: false,
+      }
+    }
+
+    if (issueType === "requirement_gap") {
+      return {
+        mode: "full",
+        stage: "full_intake",
+        owner: STAGE_OWNERS.full_intake,
+        escalate: true,
+      }
+    }
+  }
+
   return null
 }
 
@@ -206,16 +303,22 @@ module.exports = {
   FULL_STAGE_SEQUENCE,
   ISSUE_SEVERITIES,
   ISSUE_TYPES,
+  MIGRATION_STAGE_SEQUENCE,
   MODE_APPROVAL_GATES,
   MODE_STAGE_SEQUENCES,
   MODE_VALUES,
   QUICK_STAGE_SEQUENCE,
   RECOMMENDED_OWNERS,
   ROOTED_IN_VALUES,
+  ROUTING_BEHAVIOR_DELTA_VALUES,
+  ROUTING_DOMINANT_UNCERTAINTY_VALUES,
+  ROUTING_SCOPE_SHAPE_VALUES,
+  ROUTING_WORK_INTENT_VALUES,
   STAGE_OWNERS,
   STAGE_SEQUENCE,
   STATUS_VALUES,
   TRANSITION_GATES,
+  createDefaultRoutingProfile,
   createEmptyApprovals,
   createEmptyArtifacts,
   createPendingGate,

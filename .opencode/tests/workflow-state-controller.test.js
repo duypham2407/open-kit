@@ -13,6 +13,7 @@ const {
   reassignTask,
   releaseTask,
   routeRework,
+  setRoutingProfile,
   setTaskStatus,
   showState,
   showWorkItemState,
@@ -125,6 +126,13 @@ test("startTask initializes quick mode with quick-only approvals", () => {
   assert.equal(result.state.mode_reason, "Scoped text change")
   assert.equal(result.state.current_stage, "quick_intake")
   assert.equal(result.state.current_owner, "MasterOrchestrator")
+  assert.deepEqual(result.state.routing_profile, {
+    work_intent: "maintenance",
+    behavior_delta: "preserve",
+    dominant_uncertainty: "low_local",
+    scope_shape: "local",
+    selection_reason: "Scoped text change",
+  })
   assert.deepEqual(Object.keys(result.state.approvals), ["quick_verified"])
   assert.equal(result.state.artifacts.task_card, null)
   assert.equal(result.state.escalated_from, null)
@@ -212,6 +220,79 @@ test("routeRework keeps full-mode bugs in full implementation", () => {
   assert.equal(result.state.retry_count, 1)
 })
 
+test("startTask initializes migration mode with migration approvals", () => {
+  const statePath = createTempStateFile()
+  const result = startTask("migration", "MIGRATE-100", "react-19-upgrade", "Upgrade React stack safely", statePath)
+
+  assert.equal(result.state.mode, "migration")
+  assert.equal(result.state.current_stage, "migration_intake")
+  assert.equal(result.state.current_owner, "MasterOrchestrator")
+  assert.deepEqual(result.state.routing_profile, {
+    work_intent: "modernization",
+    behavior_delta: "preserve",
+    dominant_uncertainty: "compatibility",
+    scope_shape: "adjacent",
+    selection_reason: "Upgrade React stack safely",
+  })
+  assert.deepEqual(Object.keys(result.state.approvals), [
+    "baseline_to_strategy",
+    "strategy_to_upgrade",
+    "upgrade_to_verify",
+    "migration_verified",
+  ])
+})
+
+test("migration mode advances through its canonical stage chain", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-101", "legacy-refresh", "Legacy stack refresh", statePath)
+
+  let result = advanceStage("migration_baseline", statePath)
+  assert.equal(result.state.current_owner, "ArchitectAgent")
+
+  setApproval("baseline_to_strategy", "approved", "TechLeadAgent", "2026-03-21", "Baseline approved", statePath)
+  result = advanceStage("migration_strategy", statePath)
+  assert.equal(result.state.current_owner, "TechLeadAgent")
+
+  setApproval("strategy_to_upgrade", "approved", "FullstackAgent", "2026-03-21", "Strategy approved", statePath)
+  result = advanceStage("migration_upgrade", statePath)
+  assert.equal(result.state.current_owner, "FullstackAgent")
+
+  setApproval("upgrade_to_verify", "approved", "QAAgent", "2026-03-21", "Upgrade ready for QA", statePath)
+  result = advanceStage("migration_verify", statePath)
+  assert.equal(result.state.current_owner, "QAAgent")
+
+  setApproval("migration_verified", "approved", "QAAgent", "2026-03-21", "Migration verified", statePath)
+  result = advanceStage("migration_done", statePath)
+  assert.equal(result.state.current_stage, "migration_done")
+  assert.equal(result.state.status, "done")
+})
+
+test("migration design flaws reroute within migration strategy", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-102", "upgrade-routing", "Upgrade routing", statePath)
+  const result = routeRework("design_flaw", false, statePath)
+
+  assert.equal(result.state.mode, "migration")
+  assert.equal(result.state.current_stage, "migration_strategy")
+  assert.equal(result.state.current_owner, "TechLeadAgent")
+})
+
+test("migration requirement gaps escalate into full delivery", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-103", "upgrade-requirements", "Upgrade with requirement ambiguity", statePath)
+  const result = routeRework("requirement_gap", false, statePath)
+
+  assert.equal(result.state.mode, "full")
+  assert.equal(result.state.current_stage, "full_intake")
+  assert.equal(result.state.escalated_from, "migration")
+  assert.match(result.state.mode_reason, /Promoted from migration mode/)
+  assert.match(result.state.escalation_reason, /migration work escalated/i)
+  assert.equal(result.state.routing_profile.dominant_uncertainty, "product")
+})
+
 test("routeRework blocks after reaching the retry threshold", () => {
   const statePath = createTempStateFile()
 
@@ -250,6 +331,17 @@ test("full mode rejects quick stages", () => {
   startTask("full", "FEATURE-201", "wrong-lane-stage", "Full workflow stage validation", statePath)
 
   assert.throws(() => advanceStage("quick_build", statePath), /does not belong to mode 'full'/)
+})
+
+test("setRoutingProfile rejects contradictory routing metadata for quick mode", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-777", "routing-conflict", "Quick routing profile", statePath)
+
+  assert.throws(
+    () => setRoutingProfile("modernization", "preserve", "compatibility", "adjacent", "Actually a migration", statePath),
+    /routing_profile\.work_intent must be 'maintenance' for quick mode/,
+  )
 })
 
 test("compatibility startFeature initializes full mode", () => {
@@ -441,7 +533,7 @@ test("advancing full_plan to full_implementation without a valid task board fail
     issues: [],
   })
 
-  assert.throws(() => advanceStage("full_implementation", statePath), /Full-delivery task board must include at least one task/)
+  assert.throws(() => advanceStage("full_implementation", statePath), /task board must include at least one task/)
 })
 
 test("advancing full_implementation to full_qa fails when task board has incomplete implementation work", () => {
@@ -475,6 +567,21 @@ test("quick mode state with tasks.json present is rejected at controller validat
 
   assert.throws(() => validateState(statePath), /Quick mode cannot carry a task board/)
   assert.throws(() => showState(statePath), /Quick mode cannot carry a task board/)
+})
+
+test("migration mode state with tasks.json present is rejected at controller validation time", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-700", "stale-board", "Migration should reject task boards", statePath)
+  writeTaskBoard(statePath, "migrate-700", {
+    mode: "full",
+    current_stage: "full_plan",
+    tasks: [createTask()],
+    issues: [],
+  })
+
+  assert.throws(() => validateState(statePath), /Migration mode cannot carry a task board/)
+  assert.throws(() => showState(statePath), /Migration mode cannot carry a task board/)
 })
 
 test("valid full-delivery task board passes implementation and QA stage enforcement", () => {

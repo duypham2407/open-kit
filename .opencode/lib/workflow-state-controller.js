@@ -20,9 +20,14 @@ const {
   MODE_VALUES,
   RECOMMENDED_OWNERS,
   ROOTED_IN_VALUES,
+  ROUTING_BEHAVIOR_DELTA_VALUES,
+  ROUTING_DOMINANT_UNCERTAINTY_VALUES,
+  ROUTING_SCOPE_SHAPE_VALUES,
+  ROUTING_WORK_INTENT_VALUES,
   STAGE_OWNERS,
   STAGE_SEQUENCE,
   STATUS_VALUES,
+  createDefaultRoutingProfile,
   createEmptyApprovals,
   createEmptyArtifacts,
   getApprovalGatesForMode,
@@ -48,6 +53,10 @@ function fail(message) {
   const error = new Error(message)
   error.isWorkflowStateError = true
   throw error
+}
+
+function formatModeLabel(mode) {
+  return typeof mode === "string" && mode.length > 0 ? `${mode.charAt(0).toUpperCase()}${mode.slice(1)}` : "Unknown"
 }
 
 function resolveStatePath(customStatePath) {
@@ -379,9 +388,9 @@ function buildTaskRecord(taskInput) {
 function validateManagedState(state, projectRoot, workItemId, options = {}) {
   const taskBoard = readTaskBoardIfExists(projectRoot, workItemId)
 
-  if (state.mode === "quick") {
+  if (state.mode !== "full") {
     if (taskBoard !== null) {
-      fail("Quick mode cannot carry a task board; task boards are full-delivery only")
+      fail(`${formatModeLabel(state.mode)} mode cannot carry a task board; task boards are full-delivery only`)
     }
     return null
   }
@@ -405,9 +414,9 @@ function validateManagedState(state, projectRoot, workItemId, options = {}) {
 function requireValidTaskBoard(state, projectRoot, workItemId, boardStage, reason) {
   const taskBoard = readTaskBoardIfExists(projectRoot, workItemId)
 
-  if (state.mode === "quick") {
+  if (state.mode !== "full") {
     if (taskBoard !== null) {
-      fail("Quick mode cannot carry a task board; task boards are full-delivery only")
+      fail(`${formatModeLabel(state.mode)} mode cannot carry a task board; task boards are full-delivery only`)
     }
     fail(reason)
   }
@@ -628,7 +637,7 @@ function ensureIssueShape(issue, index) {
 
 function validateArtifacts(artifacts) {
   ensureObject(artifacts, "artifacts")
-  for (const key of ["task_card", "brief", "spec", "architecture", "plan", "qa_report", "adr"]) {
+  for (const key of ["task_card", "brief", "spec", "architecture", "plan", "migration_report", "qa_report", "adr"]) {
     if (!(key in artifacts)) {
       fail(`artifacts.${key} is required`)
     }
@@ -639,8 +648,117 @@ function validateArtifacts(artifacts) {
   ensureNullableString(artifacts.spec, "artifacts.spec")
   ensureNullableString(artifacts.architecture, "artifacts.architecture")
   ensureNullableString(artifacts.plan, "artifacts.plan")
+  ensureNullableString(artifacts.migration_report, "artifacts.migration_report")
   ensureNullableString(artifacts.qa_report, "artifacts.qa_report")
   ensureArray(artifacts.adr, "artifacts.adr")
+}
+
+function validateRoutingProfile(routingProfile) {
+  ensureObject(routingProfile, "routing_profile")
+
+  for (const key of [
+    "work_intent",
+    "behavior_delta",
+    "dominant_uncertainty",
+    "scope_shape",
+    "selection_reason",
+  ]) {
+    if (!(key in routingProfile)) {
+      fail(`routing_profile.${key} is required`)
+    }
+  }
+
+  ensureKnown(routingProfile.work_intent, ROUTING_WORK_INTENT_VALUES, "routing_profile.work_intent")
+  ensureKnown(routingProfile.behavior_delta, ROUTING_BEHAVIOR_DELTA_VALUES, "routing_profile.behavior_delta")
+  ensureKnown(
+    routingProfile.dominant_uncertainty,
+    ROUTING_DOMINANT_UNCERTAINTY_VALUES,
+    "routing_profile.dominant_uncertainty",
+  )
+  ensureKnown(routingProfile.scope_shape, ROUTING_SCOPE_SHAPE_VALUES, "routing_profile.scope_shape")
+  ensureString(routingProfile.selection_reason, "routing_profile.selection_reason")
+}
+
+function validateRoutingProfileForMode(mode, routingProfile) {
+  if (mode === "quick") {
+    if (routingProfile.work_intent !== "maintenance") {
+      fail("routing_profile.work_intent must be 'maintenance' for quick mode")
+    }
+
+    if (routingProfile.behavior_delta !== "preserve") {
+      fail("routing_profile.behavior_delta must be 'preserve' for quick mode")
+    }
+
+    if (routingProfile.dominant_uncertainty !== "low_local") {
+      fail("routing_profile.dominant_uncertainty must be 'low_local' for quick mode")
+    }
+
+    if (routingProfile.scope_shape === "cross_boundary") {
+      fail("routing_profile.scope_shape cannot be 'cross_boundary' for quick mode")
+    }
+
+    return
+  }
+
+  if (mode === "migration") {
+    if (routingProfile.work_intent !== "modernization") {
+      fail("routing_profile.work_intent must be 'modernization' for migration mode")
+    }
+
+    if (routingProfile.behavior_delta !== "preserve") {
+      fail("routing_profile.behavior_delta must be 'preserve' for migration mode")
+    }
+
+    if (routingProfile.dominant_uncertainty !== "compatibility") {
+      fail("routing_profile.dominant_uncertainty must be 'compatibility' for migration mode")
+    }
+
+    return
+  }
+
+  const supportsFullMode =
+    routingProfile.dominant_uncertainty === "product" ||
+    routingProfile.behavior_delta !== "preserve" ||
+    routingProfile.work_intent === "feature" ||
+    routingProfile.scope_shape === "cross_boundary"
+
+  if (!supportsFullMode) {
+    fail(
+      "routing_profile must reflect product uncertainty, changed behavior, feature intent, or cross-boundary scope for full mode",
+    )
+  }
+}
+
+function validateArtifactSignatureForMode(mode, artifacts) {
+  if (mode === "quick") {
+    for (const key of ["brief", "spec", "architecture", "plan", "migration_report", "qa_report"]) {
+      if (artifacts[key] !== null) {
+        fail(`artifacts.${key} must be null in quick mode`)
+      }
+    }
+
+    if (artifacts.adr.length > 0) {
+      fail("artifacts.adr must stay empty in quick mode")
+    }
+
+    return
+  }
+
+  if (mode === "migration") {
+    for (const key of ["task_card", "brief", "spec", "qa_report"]) {
+      if (artifacts[key] !== null) {
+        fail(`artifacts.${key} must be null in migration mode`)
+      }
+    }
+
+    return
+  }
+
+  for (const key of ["task_card", "migration_report"]) {
+    if (artifacts[key] !== null) {
+      fail(`artifacts.${key} must be null in full mode`)
+    }
+  }
 }
 
 function validateApprovals(mode, approvals) {
@@ -671,6 +789,7 @@ function validateStateObject(state, options = {}) {
     "feature_slug",
     "mode",
     "mode_reason",
+    "routing_profile",
     "current_stage",
     "status",
     "current_owner",
@@ -697,6 +816,8 @@ function validateStateObject(state, options = {}) {
 
   ensureKnown(state.mode, MODE_VALUES, "mode")
   ensureString(state.mode_reason, "mode_reason")
+  validateRoutingProfile(state.routing_profile)
+  validateRoutingProfileForMode(state.mode, state.routing_profile)
   ensureKnown(state.current_stage, STAGE_SEQUENCE, "current_stage")
   ensureKnown(state.status, STATUS_VALUES, "status")
 
@@ -713,6 +834,7 @@ function validateStateObject(state, options = {}) {
   }
 
   validateArtifacts(state.artifacts)
+  validateArtifactSignatureForMode(state.mode, state.artifacts)
   validateApprovals(state.mode, state.approvals)
 
   ensureArray(state.issues, "issues")
@@ -723,7 +845,7 @@ function validateStateObject(state, options = {}) {
   }
 
   if (state.escalated_from !== null) {
-    ensureKnown(state.escalated_from, ["quick"], "escalated_from")
+    ensureKnown(state.escalated_from, ["quick", "migration"], "escalated_from")
   }
 
   ensureNullableString(state.escalation_reason, "escalation_reason")
@@ -733,8 +855,8 @@ function validateStateObject(state, options = {}) {
     fail("escalation_reason must be null when escalated_from is null")
   }
 
-  if (state.escalated_from === "quick" && state.mode !== "full") {
-    fail("mode must be 'full' when escalated_from is 'quick'")
+  if ((state.escalated_from === "quick" || state.escalated_from === "migration") && state.mode !== "full") {
+    fail("mode must be 'full' when escalated_from records an escalated lane")
   }
 
   return state
@@ -749,6 +871,7 @@ function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason
     feature_slug: featureSlug,
     mode,
     mode_reason: modeReason,
+    routing_profile: createDefaultRoutingProfile(mode, modeReason),
     current_stage: initialStage,
     status: "in_progress",
     current_owner: STAGE_OWNERS[initialStage],
@@ -760,6 +883,29 @@ function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason
     escalation_reason: null,
     updated_at: updatedAt,
   }
+}
+
+function setRoutingProfile(workIntent, behaviorDelta, dominantUncertainty, scopeShape, selectionReason, customStatePath) {
+  ensureKnown(workIntent, ROUTING_WORK_INTENT_VALUES, "routing_profile.work_intent")
+  ensureKnown(behaviorDelta, ROUTING_BEHAVIOR_DELTA_VALUES, "routing_profile.behavior_delta")
+  ensureKnown(
+    dominantUncertainty,
+    ROUTING_DOMINANT_UNCERTAINTY_VALUES,
+    "routing_profile.dominant_uncertainty",
+  )
+  ensureKnown(scopeShape, ROUTING_SCOPE_SHAPE_VALUES, "routing_profile.scope_shape")
+  ensureString(selectionReason, "routing_profile.selection_reason")
+
+  return mutate(customStatePath, (state) => {
+    state.routing_profile = {
+      work_intent: workIntent,
+      behavior_delta: behaviorDelta,
+      dominant_uncertainty: dominantUncertainty,
+      scope_shape: scopeShape,
+      selection_reason: selectionReason,
+    }
+    return state
+  })
 }
 
 function mutate(customStatePath, mutator) {
@@ -1408,16 +1554,30 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
   }
 
   if (kind === "plan") {
-    if (state.mode !== "full") {
-      fail(`Artifact scaffold kind 'plan' requires full mode`)
+    if (state.mode !== "full" && state.mode !== "migration") {
+      fail(`Artifact scaffold kind 'plan' requires full or migration mode`)
     }
 
-    if (state.current_stage !== "full_plan") {
+    if (state.mode === "full" && state.current_stage !== "full_plan") {
       fail(`Artifact scaffold kind 'plan' requires current stage 'full_plan'`)
+    }
+
+    if (state.mode === "migration" && state.current_stage !== "migration_strategy") {
+      fail(`Artifact scaffold kind 'plan' requires current stage 'migration_strategy'`)
     }
 
     if (typeof state.artifacts.architecture !== "string" || state.artifacts.architecture.length === 0) {
       fail(`Artifact scaffold kind 'plan' requires a linked architecture artifact`)
+    }
+  }
+
+  if (kind === "migration_report") {
+    if (state.mode !== "migration") {
+      fail(`Artifact scaffold kind 'migration_report' requires migration mode`)
+    }
+
+    if (state.current_stage !== "migration_baseline" && state.current_stage !== "migration_strategy") {
+      fail(`Artifact scaffold kind 'migration_report' requires current stage 'migration_baseline' or 'migration_strategy'`)
     }
   }
 
@@ -1436,10 +1596,13 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
   const scaffoldResult = scaffoldArtifact({
     projectRoot,
     kind,
+    mode: state.mode,
     slug,
     featureId,
     featureSlug,
-    sourceArchitecture: kind === "plan" ? state.artifacts.architecture : null,
+    sourceArchitecture:
+      kind === "plan" || kind === "migration_report" ? state.artifacts.architecture : null,
+    sourcePlan: kind === "migration_report" ? state.artifacts.plan : null,
   })
 
   try {
@@ -1489,6 +1652,7 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
   ensureKnown(issueType, ISSUE_TYPES, "issue_type")
 
   return mutate(customStatePath, (state) => {
+    const previousMode = state.mode
     const route = getReworkRoute(state.mode, issueType)
     if (!route) {
       fail(`No rework route exists for issue type '${issueType}' in mode '${state.mode}'`)
@@ -1496,13 +1660,14 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 
     if (route.escalate) {
       state.mode = route.mode
-      state.mode_reason = `Promoted from quick mode after '${issueType}' QA finding`
+      state.mode_reason = `Promoted from ${previousMode} mode after '${issueType}' QA finding`
+      state.routing_profile = createDefaultRoutingProfile(route.mode, state.mode_reason)
       state.current_stage = route.stage
       state.current_owner = route.owner
       state.status = "in_progress"
-      state.approvals = createEmptyApprovals("full")
-      state.escalated_from = "quick"
-      state.escalation_reason = `Quick task escalated to Full Delivery because QA reported '${issueType}'`
+      state.approvals = createEmptyApprovals(route.mode)
+      state.escalated_from = previousMode
+      state.escalation_reason = `${previousMode} work escalated to ${route.mode === "full" ? "Full Delivery" : route.mode} because QA reported '${issueType}'`
     } else {
       state.current_stage = route.stage
       state.current_owner = route.owner
@@ -1547,6 +1712,7 @@ module.exports = {
   runDoctor,
   scaffoldAndLinkArtifact,
   selectActiveWorkItem,
+  setRoutingProfile,
   setTaskStatus,
   setApproval,
   showState,

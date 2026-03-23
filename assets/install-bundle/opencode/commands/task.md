@@ -1,5 +1,5 @@
 ---
-description: "Default entry command. Lets the Master Orchestrator classify work into Quick Task or Full Delivery."
+description: "Default entry command. Lets the Master Orchestrator classify work into Quick Task, Migration, or Full Delivery."
 ---
 
 # Command: `/task`
@@ -16,6 +16,7 @@ Use `/task` when the user wants the default entrypoint and expects the Master Or
 - `AGENTS.md`
 - `context/navigation.md`
 - `context/core/workflow.md`
+- `context/core/lane-selection.md`
 - `context/core/project-config.md`
 - `.opencode/workflow-state.json` when resuming
 
@@ -23,16 +24,20 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Expected action
 
-- The Master Orchestrator chooses `quick` or `full` using the canonical workflow rules
+- The Master Orchestrator chooses `quick`, `migration`, or `full` using the canonical workflow rules
 - Record `mode` and `mode_reason` in workflow state
 - If the task enters the quick lane, initialize quick intake context and continue through the canonical quick stage chain
+- If the task enters the migration lane, initialize `migration_intake` and continue through the canonical migration stage chain
 - If the task enters the full lane, initialize `full_intake` and route to the PM agent
+- When choosing migration, prefer a behavior-preserving path that decouples blockers before changing the stack broadly
+- Use the lane tie-breaker from `context/core/workflow.md`: product ambiguity goes to `full`, compatibility uncertainty with preserved behavior goes to `migration`, and only bounded low-risk work goes to `quick`
 
 ## Rejection or escalation behavior
 
-- If the request is ambiguous but still complete enough to open work safely, route it to `Full Delivery` per `context/core/workflow.md`
+- If the request is ambiguous because product behavior, requirements, or acceptance are unclear, route it to `Full Delivery` per `context/core/workflow.md`
+- If the request is uncertain mainly because of upgrade or compatibility risk while the target behavior is already known, route it to `Migration`
 - If the request is too incomplete to open even `full_intake`, stop at intake and ask for clarification instead of guessing
-- If the quick lane is not appropriate under `context/core/workflow.md`, route directly to the full lane
+- If the quick lane is not appropriate under `context/core/workflow.md`, route directly to the migration or full lane that best matches the request
 
 ## Validation guidance
 

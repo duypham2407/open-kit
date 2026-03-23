@@ -114,6 +114,13 @@ test("selectActiveWorkItem rewrites a stale compatibility mirror from the active
       feature_slug: "stale-mirror",
       mode: "full",
       mode_reason: "stale",
+      routing_profile: {
+        work_intent: "feature",
+        behavior_delta: "extend",
+        dominant_uncertainty: "product",
+        scope_shape: "cross_boundary",
+        selection_reason: "stale",
+      },
       current_stage: "full_done",
       status: "done",
       current_owner: "MasterOrchestrator",
@@ -123,6 +130,7 @@ test("selectActiveWorkItem rewrites a stale compatibility mirror from the active
         spec: null,
         architecture: null,
         plan: null,
+        migration_report: null,
         qa_report: null,
         adr: [],
       },
@@ -188,6 +196,24 @@ test("active selection fails validation when switched to a quick work item carry
 
   const featureState = showWorkItemState("feature-302", statePath)
   assert.equal(featureState.state.work_item_id, "feature-302")
+})
+
+test("active selection fails validation when switched to a migration work item carrying tasks.json", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-303", "feature-valid", statePath)
+  startTask("migration", "MIGRATE-302", "migration-invalid", "Migration item with stale board", statePath)
+  writeTaskBoard(statePath, "migrate-302", {
+    mode: "full",
+    current_stage: "full_plan",
+    tasks: [createTask()],
+    issues: [],
+  })
+
+  assert.throws(() => showState(statePath), /Migration mode cannot carry a task board/)
+
+  const featureState = showWorkItemState("feature-303", statePath)
+  assert.equal(featureState.state.work_item_id, "feature-303")
 })
 
 test("task-board helpers operate on a specific full work item without changing active selection", () => {

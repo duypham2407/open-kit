@@ -42,9 +42,13 @@ Current repository/runtime command surface under the wrapper:
 - install-manifest metadata: `sync-install-manifest <name>`
 - compatibility entrypoints: `start-feature <feature_id> <feature_slug>` and `start-task <mode> <feature_id> <feature_slug> <mode_reason>`
 - work-item management: `create-work-item <mode> <feature_id> <feature_slug> <mode_reason>`, `list-work-items`, `show-work-item <work_item_id>`, `activate-work-item <work_item_id>`
-- feature-state mutation: `advance-stage <stage>`, `set-approval <gate> <status> [approved_by] [approved_at] [notes]`, `link-artifact <kind> <path>`, `scaffold-artifact <task_card|plan> <slug>`
+- feature-state mutation: `advance-stage <stage>`, `set-approval <gate> <status> [approved_by] [approved_at] [notes]`, `link-artifact <kind> <path>`, `scaffold-artifact <task_card|plan|migration_report> <slug>`
 - task-board management: `list-tasks <work_item_id>`, `create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`, `claim-task <work_item_id> <task_id> <owner> <requested_by>`, `release-task <work_item_id> <task_id> <requested_by>`, `reassign-task <work_item_id> <task_id> <owner> <requested_by>`, `assign-qa-owner <work_item_id> <task_id> <qa_owner> <requested_by>`, `set-task-status <work_item_id> <task_id> <status>`, `validate-work-item-board <work_item_id>`
 - issue routing: `record-issue <issue_id> <title> <type> <severity> <rooted_in> <recommended_owner> <evidence> <artifact_refs>`, `clear-issues`, `route-rework <issue_type> [repeat_failed_fix=true|false]`
+
+Task-board guardrail:
+
+- task-board commands remain full-delivery only; quick and migration work items stay task-board free in the current runtime
 
 ## Wrapper Vs. Runtime Checks
 

@@ -39,21 +39,31 @@ Historical planning and example docs have been intentionally pruned from the wor
 
 If you only need the live checked-in workflow/runtime behavior, prefer the current runtime docs and commands over older repository history.
 
-The repository currently runs on the live `Quick Task+` successor semantics for the `quick` lane together with the `Full Delivery` lane. The system still has only two live modes: `quick` and `full`.
+The repository currently runs on the live `Quick Task+` successor semantics for the `quick` lane together with dedicated `Migration` and `Full Delivery` lanes. The system now supports three live modes: `quick`, `migration`, and `full`.
 
-## Two Workflow Lanes
+## Workflow Lanes
 
-OpenKit now uses a hard split between two lanes:
+OpenKit now uses a hard split between three lanes:
 
 1. **Quick Task**: For narrow, low-risk daily tasks that should move fast.
-2. **Full Delivery**: For feature work and higher-risk changes that benefit from the full multi-role team flow.
+2. **Migration**: For upgrades, framework migrations, dependency modernization, and compatibility remediation.
+3. **Full Delivery**: For feature work and higher-risk changes that benefit from the full multi-role team flow.
 
 The Master Orchestrator chooses the lane, records the decision in workflow state, and routes the work.
+
+Lane boundary heuristic:
+
+- choose `Quick Task` for bounded low-risk work inside already-understood behavior
+- choose `Migration` when behavior should stay the same and compatibility modernization is the main uncertainty
+- choose `Full Delivery` when product behavior, requirements, or cross-boundary solution design are the main uncertainty
+
+Concrete examples live in `context/core/workflow.md` under `Lane Decision Matrix`.
+The stricter routing rubric and anti-patterns live in `context/core/lane-selection.md`.
 
 Parallel-runtime guardrails now implemented:
 
 - only `Full Delivery` work items can carry an execution task board
-- quick mode still has no task board and no task-level ownership model
+- quick and migration modes still have no task board and no task-level ownership model
 - `.opencode/workflow-state.json` is now the active external compatibility mirror for the active work item, while `.opencode/work-items/` is the internal managed backing store
 - safe parallel support is limited to the checked-in commands and validations; do not assume broader multi-agent safety than the runtime currently enforces
 
@@ -61,7 +71,7 @@ Live quick-lane guardrails:
 
 - `Quick Task+` is the live successor semantics of the existing quick lane, not a third lane.
 - Current command names remain unchanged.
-- Runtime mode enums remain `quick` and `full`.
+- Runtime mode enums remain `quick`, `migration`, and `full`.
 
 ## Product Boundary And Migration Direction
 
@@ -120,6 +130,16 @@ The full-delivery lane uses 7 distinct team roles:
 
 Quick tasks use the canonical `quick_*` stage chain defined in `context/core/workflow.md`, with the `QA Agent` operating in `QA Lite` mode.
 
+Migration work uses the canonical `migration_*` stage chain defined in `context/core/workflow.md`, with validation centered on baseline evidence, compatibility checks, and staged regression rather than default TDD-first execution.
+
+The migration lane is behavior-preserving by design: freeze invariants, decouple only the blockers that are tightly coupled to the old stack, migrate in slices, and clean up after parity is proven.
+
+Repeatable migration support docs now include `docs/templates/migration-baseline-checklist.md` and `docs/templates/migration-verify-checklist.md`.
+
+For teams that prefer one living artifact across the whole migration, `docs/templates/migration-report-template.md` is also available.
+
+The runtime can now scaffold that artifact directly through `node .opencode/workflow-state.js scaffold-artifact migration_report <slug>` while in the right migration stage.
+
 ## Workflow & Skills
 
 Agents use a library of **Skills** (standard operating procedures) to accomplish their tasks without relying purely on LLM instinct:
@@ -136,7 +156,7 @@ Agents use a library of **Skills** (standard operating procedures) to accomplish
 
 Context is loaded dynamically based on the current phase, anchored by `context/navigation.md`. Critical contexts include:
 - `context/core/code-quality.md`: The repo's coding standards.
-- `context/core/workflow.md`: The hard-split Quick Task and Full Delivery workflow contract.
+- `context/core/workflow.md`: The canonical Quick Task, Migration, and Full Delivery workflow contract.
 - `context/core/approval-gates.md`: Approval recording rules for stage transitions.
 - `context/core/issue-routing.md`: QA issue classification and ownership routing.
 - `context/core/session-resume.md`: Resume protocol for fresh sessions.
@@ -243,16 +263,17 @@ Templates live in `docs/templates/`.
 
 You can trigger workflows with the following commands:
 
-- `/task` — Default entrypoint; Master chooses `Quick Task` or `Full Delivery`
+- `/task` — Default entrypoint; Master chooses `Quick Task`, `Migration`, or `Full Delivery`
 - `/quick-task` — Explicit quick lane for small, localized work
+- `/migrate` — Explicit migration lane for upgrades and modernization work
 - `/delivery` — Explicit full-delivery lane for feature work and higher-risk changes
-- `/brainstorm` — Full-delivery only; explore product or design direction
-- `/write-plan` — Full-delivery only; convert Spec and Architecture into an Implementation Plan
-- `/execute-plan` — Full-delivery only; start building the approved plan
+- `/brainstorm` — Migration or full-delivery only; explore design or upgrade direction
+- `/write-plan` — Migration or full-delivery only; convert approved context into an Implementation Plan
+- `/execute-plan` — Migration or full-delivery only; start building the approved plan
 
 You can also type your request in normal language, and the Master Orchestrator will choose the appropriate lane.
 
-The command surface above is the current live interface. The live contract does not rename `/quick-task` or add a third lane command.
+The command surface above is the current live interface. The live contract keeps `/quick-task` and adds `/migrate` as the explicit upgrade lane command.
 
 ## Daily Operator Path
 
@@ -263,7 +284,7 @@ For normal day-to-day use:
 
 1. Run `node .opencode/workflow-state.js status` to see whether work is already in progress.
 2. Run `node .opencode/workflow-state.js doctor` if the runtime looks off or you are entering a repo for the first time.
-3. Start with `/task` unless you already know the work must be `Quick Task` or `Full Delivery`.
+3. Start with `/task` unless you already know the work must be `Quick Task`, `Migration`, or `Full Delivery`.
 4. Use `node .opencode/workflow-state.js show` when you need the current state object or linked artifact paths.
 5. Use `node .opencode/workflow-state.js validate` before trusting a resumed or manually edited workflow state.
 
@@ -277,10 +298,11 @@ This is the current checked-in operator surface for this worktree: `status`, `do
 | --- | --- | --- |
 | let the system choose the lane | `/task` | default entrypoint for most requests |
 | force bounded daily work into the quick lane | `/quick-task` | only when quick-lane criteria already fit |
+| start upgrade or migration work in the migration lane | `/migrate` | use when the main risk is compatibility and upgrade sequencing |
 | start feature or higher-risk work in the full lane | `/delivery` | use when the work clearly needs briefs, specs, architecture, or a plan |
-| refine product or design direction before planning | `/brainstorm` | full-delivery only; follow the brainstorming skill |
-| turn approved full-delivery artifacts into an implementation plan | `/write-plan` | full-delivery only; points to the planning skill and templates |
-| execute an approved implementation plan | `/execute-plan` | full-delivery only; follow the plan and report the real validation path |
+| refine design or upgrade direction before planning | `/brainstorm` | migration or full-delivery only; follow the brainstorming skill |
+| turn approved artifacts into an implementation plan | `/write-plan` | migration or full-delivery only; points to the planning skill and templates |
+| execute an approved implementation plan | `/execute-plan` | migration or full-delivery only; follow the plan and report the real validation path |
 
 Helpful wayfinding docs:
 
@@ -297,7 +319,7 @@ Helpful wayfinding docs:
 
 Current checked-in operator entrypoints in this repository are:
 
-- slash commands such as `/task`, `/quick-task`, `/delivery`, `/brainstorm`, `/write-plan`, and `/execute-plan`
+- slash commands such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, and `/execute-plan`
 - `node .opencode/workflow-state.js status`
 - `node .opencode/workflow-state.js doctor`
 - `node .opencode/workflow-state.js show`
@@ -335,10 +357,11 @@ Operational guidance:
 - `show-work-item <work_item_id>` prints the selected work item's mode, stage, and status.
 - `list-tasks <work_item_id>` shows the task board for a full-delivery work item.
 - `validate-work-item-board <work_item_id>` checks that a full-delivery task board is present and structurally valid.
-- task commands only apply to full-delivery work items with an execution task board; quick mode intentionally stays task-board free.
-- `scaffold-artifact <task_card|plan> <slug>` creates a narrow repo-native draft from a checked-in template and links it into the active workflow state when the target slot is still empty.
+- task commands only apply to full-delivery work items with an execution task board; quick and migration modes intentionally stay task-board free.
+- `scaffold-artifact <task_card|plan|migration_report> <slug>` creates a narrow repo-native draft from a checked-in template and links it into the active workflow state when the target slot is still empty.
 - `task_card` scaffolding is available only in `quick` mode and is intentionally allowed as optional traceability anywhere in the quick lane.
-- `plan` scaffolding is available only in `full` mode at `full_plan`, and it requires a linked architecture artifact before the draft is created.
+- `plan` scaffolding is available in `full` mode at `full_plan` and in `migration` mode at `migration_strategy`; it requires a linked architecture artifact before the draft is created.
+- `migration_report` scaffolding is available in `migration` mode at `migration_baseline` or `migration_strategy` for one-file migration tracking.
 - the session-start hook prints a `<openkit_runtime_status>` block with `status`, `doctor`, and `show` command hints, then prints a `<workflow_resume_hint>` block with canonical resume-reading guidance when workflow state contains resumable context.
 - the same runtime surfaces may include active work-item id and task-board summaries for full-delivery work, but the hook still warns operators to confirm safety with `doctor` before relying on parallel task support.
 
@@ -365,7 +388,7 @@ If an extension changes runtime behavior, profile semantics, or the long-term sh
 
 FEATURE-002 records the roadmap and rationale behind the contract that is already live today:
 
-- continue refining the current quick lane after the `Quick Task+` successor semantics activation while keeping the two-lane model intact
+- continue refining the current quick lane after the `Quick Task+` successor semantics activation while keeping the explicit lane model coherent
 - harden runtime behavior with stronger bootstrap guidance, operational discoverability, and workflow-level verification
 
 Rely on the current workflow contract and runtime surfaces that exist in the repository today. Treat these artifacts as roadmap context, not as overrides for `context/core/workflow.md` or the implemented runtime.

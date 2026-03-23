@@ -62,6 +62,7 @@ Use `context/core/workflow.md` when you need the current live workflow semantics
 |-----------|-----------|
 | Any implementation | `core/code-quality.md` |
 | Understanding team workflow | `core/workflow.md` |
+| Choosing the correct lane | `core/lane-selection.md` |
 | Recording approvals | `core/approval-gates.md` |
 | Routing QA issues | `core/issue-routing.md` |
 | Resuming a session | `core/session-resume.md` |
@@ -71,13 +72,16 @@ Use `context/core/workflow.md` when you need the current live workflow semantics
 | Daily operator wayfinding | `../docs/operator/README.md` |
 | Maintainer wayfinding | `../docs/maintainer/README.md` |
 | Starting a new feature | `core/workflow.md` |
+| Comparing lane examples and tie-breakers | `core/workflow.md` |
+| Running migration baseline or verify checks | `../docs/templates/migration-baseline-checklist.md` and `../docs/templates/migration-verify-checklist.md` |
+| Running one-file migration tracking | `../docs/templates/migration-report-template.md` |
 
 ## Current Vs Future Reading Rule
 
 - `context/core/workflow.md` is the canonical live workflow-semantics document
 - `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, `context/core/project-config.md`, and `context/core/workflow-state-schema.md` define local operational details and must stay aligned with `context/core/workflow.md`
 - older roadmap rationale may no longer be present in the working tree; use git history when historical intent matters more than current behavior
-- do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Full Delivery`, `quick`, and `full`
+- do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Migration`, `Full Delivery`, `quick`, `migration`, and `full`
 - do not describe the managed wrapper as fully shipped while `.opencode/opencode.json` remains the live manifest and no root `opencode.json` exists
 - do not describe the new audience index layers as canonical replacements for the docs they route to
 

@@ -4,7 +4,7 @@ This file defines how QA findings are classified and routed.
 
 For the canonical workflow contract, including lane semantics, stage order, escalation policy, and artifact expectations, use `context/core/workflow.md`.
 
-Classification is shared across both workflow modes, but routing behavior depends on the active work item mirrored through `.opencode/workflow-state.json`.
+Classification is shared across all workflow modes, but routing behavior depends on the active work item mirrored through `.opencode/workflow-state.json`.
 
 ## Required Issue Schema
 
@@ -60,10 +60,26 @@ Task-aware full-delivery note:
 - when a QA finding reveals a design flaw or requirement gap, the feature returns to `full_architecture` or `full_spec` even if the finding started from one execution task
 - preserve task ids and task evidence in issue notes so the orchestrator can reconnect feature routing with task-board state
 
+### Migration routing
+
+| Type | Route to | Expected action |
+| --- | --- | --- |
+| `bug` | `migration_upgrade` / `FullstackAgent` | Fix upgrade fallout and re-verify |
+| `design_flaw` | `migration_strategy` / `TechLeadAgent` | Rework upgrade sequencing, compatibility assumptions, or rollback plan |
+| `requirement_gap` | `full_intake` / `MasterOrchestrator` | Escalate into full delivery because the issue is no longer primarily technical migration work |
+
+Migration mode treats compatibility or upgrade-path mistakes as migration-stage work, but it must not absorb product-definition ambiguity.
+
+Migration-mode guardrail:
+
+- do not invent a migration task board, per-task owners, or QA-per-subtask routing in the current live contract
+
 ## Retry And Escalation
 
 - Increment `retry_count` when the same issue cycles back after a failed fix
 - In quick mode, repeated `bug` failures still stay in quick mode unless a design or requirement problem is uncovered and the work is no longer safely bounded
 - In quick mode, `design_flaw` and `requirement_gap` escalate immediately rather than retrying inside quick mode
+- In migration mode, repeated `bug` failures still stay in migration mode unless product ambiguity is uncovered and the work no longer fits migration semantics
+- In migration mode, `requirement_gap` escalates immediately to full delivery instead of retrying inside migration mode
 - In full mode, repeated task-local failures may keep a task in local rework only while the issue remains implementation-rooted and stage ownership does not need to change
 - Escalate to the user after 3 failed loops on the same issue family

@@ -1,16 +1,16 @@
 ---
-description: "Executes an approved Full Delivery implementation plan."
+description: "Executes an approved Full Delivery or Migration implementation plan."
 ---
 
 # Command: `/execute-plan`
 
-Use `/execute-plan` when an approved Full Delivery implementation plan is ready to be carried out.
+Use `/execute-plan` when an approved Full Delivery or Migration implementation plan is ready to be carried out.
 
 ## Preconditions
 
-- The current `mode` must be `full`
+- The current `mode` must be `full` or `migration`
 - An approved plan exists in `docs/plans/` for the current work item
-- Any required upstream Full Delivery approvals are already recorded in workflow state
+- Any required upstream approvals for the active mode are already recorded in workflow state
 
 ## Canonical docs to load
 
@@ -26,14 +26,14 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Expected action
 
-- Confirm the current state is compatible with Full Delivery implementation work
+- Confirm the current state is compatible with implementation work for the active mode
 - Read the approved plan and execute it without redefining the canonical workflow rules
 - Use the real implementation workflow available in the repository; do not imply live parallel execution support beyond what the checked-in runtime documents today
 - Report the actual validation path taken for each meaningful change
 
 ## Rejection or escalation behavior
 
-- If the work is still in quick mode, stop and route it into `Full Delivery` before using this command
+- If the work is still in quick mode, stop and route it into `Migration` or `Full Delivery` before using this command
 - If workflow state is invalid, contradictory, or missing required approvals, stop and correct state or inputs before implementation
 - If the plan is missing, stale, or unapproved, stop and send the work back to the planning step instead of improvising a new plan inline
 

@@ -4,12 +4,13 @@ description: "Triggers the writing-plans skill to create bite-sized tasks from s
 
 # Command: `/write-plan`
 
-Use `/write-plan` to create an implementation plan for work currently in `Full Delivery` mode.
+Use `/write-plan` to create an implementation plan for work currently in `Full Delivery` or `Migration` mode.
 
 ## Preconditions
 
-- The current `mode` must be `full`
-- The required spec and architecture artifacts already exist for the current feature
+- The current `mode` must be `full` or `migration`
+- The required architecture artifact already exists for the current work item
+- If the work is in `full`, the required spec artifact already exists for the current feature
 - The Tech Lead Agent is at the stage where `docs/plans/...` should be created
 
 ## Canonical docs to load
@@ -20,6 +21,7 @@ Use `/write-plan` to create an implementation plan for work currently in `Full D
 - `context/core/project-config.md`
 - `.opencode/workflow-state.json`
 - `docs/templates/implementation-plan-template.md`
+- `docs/templates/migration-report-template.md` when migration work benefits from one running artifact
 - skill `writing-plans`
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
@@ -27,18 +29,22 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 ## Expected action
 
 - Create or update `docs/plans/YYYY-MM-DD-<feature>.md`
-- Keep the plan aligned with the current full-mode stage and approval context
+- Keep the plan aligned with the current stage and approval context for the active mode
+- In migration mode, record preserved invariants, seam or adapter steps, and parity checks explicitly
+- In migration mode, recommend scaffolding or updating `migration_report` when baseline, plan, execution, and verification should stay visible in one artifact
 - Record the real validation path, or a missing-validation-path note when the repository has no suitable command
-- Return the plan for review and approval through the canonical full workflow
+- Return the plan for review and approval through the canonical workflow for the active mode
 
 ## Rejection or escalation behavior
 
-- If work is still in quick mode, reject this command and route the task into Full Delivery first
-- If spec or architecture inputs are incomplete, stop and require those upstream artifacts before writing the plan
+- If work is still in quick mode, reject this command and route the task into Migration or Full Delivery first
+- If required architecture input is incomplete, stop and require that upstream artifact before writing the plan
+- If work is in `full` and the spec input is incomplete, stop and require that upstream artifact before writing the plan
 - Do not use this command to open a new full lane implicitly or bypass the approval chain
 
 ## Validation guidance
 
 - The plan should name the strongest real validation path available in the repository
+- In migration mode, use `migration_report` when handoffs would benefit from a single running narrative instead of scattered notes
 - If no repo-native app build, lint, or test command exists, say that explicitly in the plan instead of guessing a stack command
 - Use `node .opencode/workflow-state.js validate` only to confirm workflow state, not to stand in for implementation verification

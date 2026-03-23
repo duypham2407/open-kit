@@ -95,6 +95,19 @@ test("full workflows start in full_intake with full-mode state", () => {
   assert.equal(result.state.escalated_from, null)
 })
 
+test("migration workflows start in migration_intake with migration-mode state", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-301", "react-refresh", "Framework upgrade workflow", statePath)
+  const result = validateState(statePath)
+
+  assert.equal(result.state.mode, "migration")
+  assert.equal(result.state.current_stage, "migration_intake")
+  assert.notEqual(result.state.current_stage, "quick_intake")
+  assert.notEqual(result.state.current_stage, "full_intake")
+  assert.equal(result.state.escalated_from, null)
+})
+
 test("session-start resume hints stay aligned with full stage names", () => {
   const projectRoot = makeTempDir()
   const opencodeDir = path.join(projectRoot, ".opencode")
@@ -105,6 +118,13 @@ test("session-start resume hints stay aligned with full stage names", () => {
   state.feature_id = "FEATURE-302"
   state.feature_slug = "full-qa-resume"
   state.mode = "full"
+  state.routing_profile = {
+    work_intent: "feature",
+    behavior_delta: "extend",
+    dominant_uncertainty: "product",
+    scope_shape: "cross_boundary",
+    selection_reason: "full qa resume",
+  }
   state.current_stage = "full_qa"
   state.current_owner = "QAAgent"
   state.status = "in_progress"

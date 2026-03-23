@@ -14,6 +14,9 @@ Current reality:
 Current template set aligns to the live artifact directories:
 
 - quick-task card drafts for `docs/tasks/` when optional traceability is useful
+- migration and full-delivery artifacts for `docs/architecture/`, `docs/plans/`, `docs/qa/`, and `docs/adr/`
+- reusable migration checklists for `migration_baseline` and `migration_verify`
+- a reusable migration report template for teams that want one artifact spanning baseline, strategy, execution, and verification
 - full-delivery artifacts for `docs/briefs/`, `docs/specs/`, `docs/architecture/`, `docs/plans/`, `docs/qa/`, and `docs/adr/`
 
 Use current runtime docs before assuming a template is backed by a live command.

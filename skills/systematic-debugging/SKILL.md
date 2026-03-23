@@ -43,12 +43,10 @@ Propose the Minimal Fix (the fewest lines changed across the fewest files).
 ⚠️ **RED ALERT: fixing many places usually means architecture surgery.** If you realize the plan requires changing 3-4 separate logic files at once (scattered changes), stop. You are probably not fixing a bug anymore - you are papering over a broken system or bad architecture. Escalate back to the Master Orchestrator and bring in the Architect to review the system.
 
 ### Phase 4: Implementation
-Follow TDD (see `skills/test-driven-development/SKILL.md`):
-- Write a test that captures the bug.
-- Run it and confirm it fails red (because the bug still exists).
-- Apply the Minimal Fix from Phase 3.
-- Run it again and confirm it passes green.
-- Commit.
+Follow the active mode's validation model:
+- In full-delivery implementation work, follow TDD (see `skills/test-driven-development/SKILL.md`): write a test, confirm it fails, apply the minimal fix, and confirm it passes.
+- In migration work, capture the failing compatibility evidence first, apply the minimal fix, then rerun the strongest real regression or compatibility check available.
+- In every mode, keep the fix minimal and evidence-based.
 
 If the fix does not work:
 

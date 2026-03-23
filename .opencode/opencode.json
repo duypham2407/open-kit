@@ -74,6 +74,7 @@
     "available": [
       "commands/task.md",
       "commands/quick-task.md",
+      "commands/migrate.md",
       "commands/delivery.md",
       "commands/brainstorm.md",
       "commands/write-plan.md",

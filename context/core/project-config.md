@@ -10,8 +10,8 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - There is no repo-native lint command for generated application code yet.
 - There is no repo-native test command for generated application code yet.
 - There is no single canonical package manager or language toolchain for future applications yet.
-- OpenKit uses the hard-split workflow documented in `context/core/workflow.md`; keep tooling and command guidance here aligned with that live contract instead of re-stating lane policy in full.
-- The active compatibility mirror uses a mode-aware schema and `.opencode/workflow-state.js` supports that hard-split workflow model.
+- OpenKit uses the mode-aware workflow documented in `context/core/workflow.md`; keep tooling and command guidance here aligned with that live contract instead of re-stating lane policy in full.
+- The active compatibility mirror uses a mode-aware schema and `.opencode/workflow-state.js` supports that workflow model.
 - The repository-local runtime still uses `.opencode/opencode.json` as its live manifest.
 - A future root `opencode.json` is an intended managed-wrapper entrypoint, but that migration is not complete in the checked-in repository state.
 - `registry.json` and `.opencode/install-manifest.json` are additive local metadata surfaces; they do not imply destructive install or plugin-only packaging.
@@ -52,8 +52,9 @@ These are repository workflow commands, not application build/lint/test commands
 - `node .opencode/workflow-state.js activate-work-item <work_item_id>`
 - `node .opencode/workflow-state.js advance-stage <stage>`
 - `node .opencode/workflow-state.js set-approval <gate> <status> [approved_by] [approved_at] [notes]`
+- `node .opencode/workflow-state.js set-routing-profile <work_intent> <behavior_delta> <dominant_uncertainty> <scope_shape> <selection_reason>`
 - `node .opencode/workflow-state.js link-artifact <kind> <path>`
-- `node .opencode/workflow-state.js scaffold-artifact <task_card|plan> <slug>`
+- `node .opencode/workflow-state.js scaffold-artifact <task_card|plan|migration_report> <slug>`
 - `node .opencode/workflow-state.js list-tasks <work_item_id>`
 - `node .opencode/workflow-state.js create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`
 - `node .opencode/workflow-state.js claim-task <work_item_id> <task_id> <owner> <requested_by>`
@@ -68,15 +69,17 @@ These are repository workflow commands, not application build/lint/test commands
 
 Current workflow-state behavior:
 
-- The CLI understands the hard-split workflow model.
+- The CLI understands the current mode-aware workflow model.
 - `status`, `doctor`, `version`, `profiles`, `show-profile`, and `sync-install-manifest` are part of the current runtime inspection surface.
 - `start-feature` remains available as a compatibility shortcut and initializes `Full Delivery` mode.
 - `start-task` is the preferred explicit entrypoint for new mode-aware state.
 - `create-work-item`, `list-work-items`, `show-work-item`, and `activate-work-item` are the live work-item coordination commands.
 - `list-tasks`, `create-task`, `claim-task`, `release-task`, `reassign-task`, `assign-qa-owner`, `set-task-status`, and `validate-work-item-board` are the live full-delivery task-board commands.
-- `scaffold-artifact` is a narrow helper for creating and linking `task_card` and `plan` artifacts from checked-in templates.
+- `scaffold-artifact` is a narrow helper for creating and linking `task_card`, `plan`, and `migration_report` artifacts from checked-in templates.
+- `set-routing-profile` updates the explicit routing metadata used to justify and validate lane selection.
 - `task_card` scaffolding requires `quick` mode and is intentionally allowed as optional traceability in the quick lane.
-- `plan` scaffolding requires `full` mode, `full_plan`, and a linked architecture artifact.
+- `plan` scaffolding requires `full` mode at `full_plan` or `migration` mode at `migration_strategy`, and it always requires a linked architecture artifact.
+- `migration_report` scaffolding requires `migration` mode at `migration_baseline` or `migration_strategy` and is intended for one-file migration tracking.
 - `doctor` now checks active-work-item pointer integrity, compatibility-mirror alignment, and task-board validity when the active full-delivery stage depends on a task board.
 - Task-board support is bounded: only full-delivery work items may use it, and it does not imply unrestricted parallel safety outside the validated command surface.
 
@@ -104,11 +107,18 @@ Current workflow-state behavior:
 - If no test or build tooling exists, explicitly record that the validation path is unavailable.
 - Do not claim TDD or automated QA evidence unless the supporting commands actually exist.
 
+### Migration
+
+- Prefer baseline capture, preserved-invariant tracking, compatibility evidence, build/test/typecheck results, codemod evidence, smoke checks, and targeted regression checks over default TDD-first execution.
+- Refactor only to create seams, adapters, or compatibility boundaries that make the migration safer; do not treat migration as an excuse for a rewrite.
+- If suitable test tooling exists, add focused tests only where they clarify behavior during the migration; do not force greenfield TDD semantics onto broad upgrades by default.
+- If no repo-native validation commands exist, state the missing validation path and record manual before/after evidence honestly.
+
 ## Future Update Rule
 
 When this repository adopts a real application stack, update both this file and `AGENTS.md` with the exact commands before expecting agents to run them.
 
-When the workflow-state CLI gains new hard-split capabilities, update this file at the same time so the documented command behavior matches reality.
+When the workflow-state CLI gains new mode-aware capabilities, update this file at the same time so the documented command behavior matches reality.
 
 ## Execution Rules For Agents
 

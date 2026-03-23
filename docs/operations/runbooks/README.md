@@ -9,6 +9,12 @@ Current runbooks:
 - `openkit-daily-usage.md`: practical day-to-day operator flow for the checked-in runtime
 - `workflow-state-smoke-tests.md`: repeatable smoke checks for runtime and wrapper-related surfaces
 
+Related reusable migration checklists live under `docs/templates/`:
+
+- `migration-baseline-checklist.md`
+- `migration-verify-checklist.md`
+- `migration-report-template.md`
+
 Guardrails:
 
 - keep runbooks action-oriented and safe to follow

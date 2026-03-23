@@ -1,15 +1,15 @@
 ---
-description: "Starts Full Delivery design exploration with the brainstorming skill."
+description: "Starts Migration or Full Delivery design exploration with the brainstorming skill."
 ---
 
 # Command: `/brainstorm`
 
-Use `/brainstorm` when work is already in `Full Delivery` mode and the team needs to refine product, requirements, or design direction before implementation planning.
+Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode and the team needs to refine design direction before implementation planning.
 
 ## Preconditions
 
-- The current `mode` must be `full`
-- The work needs design clarification, product exploration, or architecture framing before plan execution
+- The current `mode` must be `full` or `migration`
+- The work needs design clarification, product exploration, architecture framing, or upgrade strategy exploration before plan execution
 - If work is resuming, the current state must be readable before the session continues
 
 ## Canonical docs to load
@@ -25,14 +25,15 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Expected action
 
-- Confirm the work is in `Full Delivery` mode before starting brainstorming
+- Confirm the work is in `Migration` or `Full Delivery` mode before starting brainstorming
 - Use the brainstorming skill to explore the problem, compare approaches, and converge on a design
-- Create or refine the appropriate Full Delivery artifact only when the skill outcome requires it
+- In migration mode, use brainstorming to identify preserved invariants, migration blockers, seams, adapters, and slice boundaries before implementation planning
+- Create or refine the appropriate artifact for the active mode only when the skill outcome requires it
 - Point back to `context/core/workflow.md` for stage order, approvals, and escalation rules instead of restating them here
 
 ## Rejection or escalation behavior
 
-- If the work is still in the quick lane, stop and escalate into `Full Delivery` before using this command
+- If the work is still in the quick lane, stop and escalate into `Migration` or `Full Delivery` before using this command
 - If the request is too incomplete to brainstorm safely, stop and ask for the missing context instead of fabricating direction
 - Do not use this command to imply an alternate workflow or any live parallel execution feature that the repository does not currently document
 

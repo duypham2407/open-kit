@@ -16,12 +16,13 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 
 - Read `README.md` for the top-level product and runtime boundary summary
 - Read `docs/operations/runbooks/openkit-daily-usage.md` for the detailed day-to-day usage path in this repository
-- Use `/task` unless you already know the work must start in `Quick Task` or `Full Delivery`
+- Use `/task` unless you already know the work must start in `Quick Task`, `Migration`, or `Full Delivery`
 - Use `context/navigation.md` when you need to locate deeper workflow or standards references
 
 ## Operator Routes
 
 - Workflow contract: `context/core/workflow.md`
+- Lane examples and tie-breakers: `context/core/workflow.md`
 - Session resume: `context/core/session-resume.md`
 - Command and runtime reality: `context/core/project-config.md`
 - Detailed usage walkthrough: `docs/operations/runbooks/openkit-daily-usage.md`
@@ -31,7 +32,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 
 ## Live Operator Surfaces In This Repository
 
-- Slash commands: `/task`, `/quick-task`, `/delivery`, `/brainstorm`, `/write-plan`, `/execute-plan`
+- Slash commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, `/execute-plan`
 - Runtime inspection: `node .opencode/workflow-state.js status`
 - Diagnostics: `node .opencode/workflow-state.js doctor`
 - Current state view: `node .opencode/workflow-state.js show`

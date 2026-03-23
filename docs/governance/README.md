@@ -13,7 +13,7 @@ Current governance surface:
 
 Current-state guardrails:
 
-- Govern the live two-lane contract: `Quick Task` and `Full Delivery`.
+- Govern the live lane contract: `Quick Task`, `Migration`, and `Full Delivery`.
 - Treat `Quick Task+` as the live successor semantics of the existing quick lane, not as a third live mode or naming scheme.
 - Keep artifact names aligned with the directories and examples that actually exist in the repository.
 - Do not require build, lint, or test evidence that the repository has not adopted yet; when tooling is absent, require honest verification notes instead.

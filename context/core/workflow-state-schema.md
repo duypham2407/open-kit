@@ -4,7 +4,7 @@ This file defines the canonical fields and enums exposed through `.opencode/work
 
 For the canonical workflow contract, including lane semantics, stage order, escalation policy, approvals, and quick-lane artifact expectations, use `context/core/workflow.md`.
 
-The schema is mode-aware and uses separate stage names for `Quick Task` and `Full Delivery`.
+The schema is mode-aware and uses separate stage names for `Quick Task`, `Migration`, and `Full Delivery`.
 
 Internal runtime note:
 
@@ -18,6 +18,7 @@ Internal runtime note:
 - `feature_slug`
 - `mode`
 - `mode_reason`
+- `routing_profile`
 - `current_stage`
 - `status`
 - `current_owner`
@@ -33,6 +34,7 @@ Internal runtime note:
 ## `mode` Values
 
 - `quick`
+- `migration`
 - `full`
 
 Guardrail:
@@ -49,6 +51,15 @@ Guardrail:
 - `quick_build`: Fullstack is implementing the quick task
 - `quick_verify`: the QA Agent is performing QA Lite validation for the quick task
 - `quick_done`: the quick task is complete
+
+### Migration stages
+
+- `migration_intake`: request accepted into migration mode and scoped by the Master Orchestrator
+- `migration_baseline`: Architect is recording the current baseline, preserved invariants, compatibility map, and major breakpoints
+- `migration_strategy`: Tech Lead is defining staged upgrade sequence, seam creation, rollback points, and validation approach
+- `migration_upgrade`: Fullstack is executing the migration or upgrade work
+- `migration_verify`: the QA Agent is performing regression, compatibility, and parity validation for the migration
+- `migration_done`: the migration work is complete
 
 ### Full Delivery stages
 
@@ -68,6 +79,29 @@ Guardrail:
 - `blocked`
 - `done`
 
+## `routing_profile` Shape
+
+`routing_profile` must always contain these keys:
+
+- `work_intent`
+- `behavior_delta`
+- `dominant_uncertainty`
+- `scope_shape`
+- `selection_reason`
+
+Allowed values:
+
+- `work_intent`: `maintenance`, `modernization`, `feature`
+- `behavior_delta`: `preserve`, `extend`, `redefine`
+- `dominant_uncertainty`: `low_local`, `compatibility`, `product`
+- `scope_shape`: `local`, `adjacent`, `cross_boundary`
+
+Mode expectations:
+
+- `Quick Task` must use `work_intent = maintenance`, `behavior_delta = preserve`, and `dominant_uncertainty = low_local`
+- `Migration` must use `work_intent = modernization`, `behavior_delta = preserve`, and `dominant_uncertainty = compatibility`
+- `Full Delivery` must reflect product-facing uncertainty, changed behavior, feature intent, or cross-boundary scope
+
 ## Stage Ownership Map
 
 | Stage | Default Owner |
@@ -77,6 +111,12 @@ Guardrail:
 | `quick_build` | `FullstackAgent` |
 | `quick_verify` | `QAAgent` |
 | `quick_done` | `MasterOrchestrator` |
+| `migration_intake` | `MasterOrchestrator` |
+| `migration_baseline` | `ArchitectAgent` |
+| `migration_strategy` | `TechLeadAgent` |
+| `migration_upgrade` | `FullstackAgent` |
+| `migration_verify` | `QAAgent` |
+| `migration_done` | `MasterOrchestrator` |
 | `full_intake` | `MasterOrchestrator` |
 | `full_brief` | `PMAgent` |
 | `full_spec` | `BAAgent` |
@@ -96,6 +136,10 @@ Approval authority map for live gates:
 | Gate | Approval Authority |
 | --- | --- |
 | `quick_verified` | `QAAgent` |
+| `baseline_to_strategy` | `TechLeadAgent` |
+| `strategy_to_upgrade` | `FullstackAgent` |
+| `upgrade_to_verify` | `QAAgent` |
+| `migration_verified` | `QAAgent` |
 | `pm_to_ba` | `BAAgent` |
 | `ba_to_architect` | `ArchitectAgent` |
 | `architect_to_tech_lead` | `TechLeadAgent` |
@@ -112,12 +156,14 @@ Approval authority map for live gates:
 - `spec`
 - `architecture`
 - `plan`
+- `migration_report`
 - `qa_report`
 - `adr`
 
 Usage by mode:
 
 - `Quick Task` may use `task_card`, leaves `brief`, `spec`, `architecture`, `plan`, and `qa_report` as `null`, and keeps `adr` as an empty array; the required `quick_plan` stage is workflow state, not a separate artifact slot
+- `Migration` may use `architecture`, `plan`, and optional `migration_report`, leaves `task_card`, `brief`, `spec`, and `qa_report` as `null`, and keeps `adr` as optional decision records when needed
 - `Full Delivery` uses `brief`, `spec`, `architecture`, `plan`, `qa_report`, and optional `adr`, while `task_card` stays `null`
 
 Do not assume additional quick-lane artifact keys until they are explicitly added to the runtime schema and supporting code.
@@ -143,6 +189,13 @@ Mode-specific approval keys:
 
 - `quick_verified`
 
+### Migration
+
+- `baseline_to_strategy`
+- `strategy_to_upgrade`
+- `upgrade_to_verify`
+- `migration_verified`
+
 ### Full Delivery
 
 - `pm_to_ba`
@@ -163,9 +216,9 @@ Approval-entry expectations:
 
 ## Escalation Fields
 
-- `escalated_from`: `null` or `quick`
-- `escalation_reason`: `null` or a short explanation of why quick work was promoted to full delivery
+- `escalated_from`: `null`, `quick`, or `migration`
+- `escalation_reason`: `null` or a short explanation of why quick or migration work was promoted to full delivery
 
-These fields allow the repository to preserve history when a quick task becomes a full-delivery item.
+These fields allow the repository to preserve history when a quick or migration item becomes a full-delivery item.
 
 That compatibility rule stays in place unless a later approved migration changes it deliberately.

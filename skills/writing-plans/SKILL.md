@@ -1,6 +1,6 @@
 ---
 name: writing-plans
-description: "Converts specs and architecture into bite-sized implementation plans. Strictly enforces TDD flow."
+description: "Converts approved architecture and scope into bite-sized implementation plans with validation matched to the workflow mode."
 ---
 
 # Skill: Writing Implementation Plans
@@ -16,7 +16,7 @@ Each plan should be detailed enough that the Fullstack Agent can execute it with
 1. **Bite-sized tasks**: each task should take roughly 2-5 minutes. If a task looks like more than 10 minutes, split it smaller.
 2. **Atomic steps**: each step should be a complete, testable unit. Do not leave half-finished code behind.
 3. **Exact file paths**: specify the exact absolute path or repository-relative path for every file to create or edit.
-4. **TDD flow**: every logic task must start by writing a test if the repository has test tooling. If the repo does not define a standard command yet, the plan must state the missing validation path instead of inventing one.
+4. **Validation flow**: plan validation must match the active workflow mode. Full-delivery logic work should be TDD-first when the repository has suitable test tooling. Migration work should prioritize preserved invariants, blocker-decoupling steps, compatibility checks, staged verification, and targeted tests only where they are truly reliable and helpful. If the repo does not define a standard command yet, the plan must state the missing validation path instead of inventing one.
 
 ## Execution Process
 
@@ -39,15 +39,16 @@ Create `docs/plans/YYYY-MM-DD-<feature>.md` using this structure:
 
 ## Implementation Steps
 
-For each task, follow this TDD-oriented structure:
+For each task, follow a validation-aware structure:
 
 ### [ ] Task 1: [Specific action name, e.g. Init Database Schema]
 - **File**: `path/to/file.ext`
 - **Goal**: [Brief description]
-- **Test Command**: `[test command for this file, or an explicit note that no repo-native test command exists yet]`
+- **Validation Command**: `[test/build/typecheck/smoke/manual verification command for this step, or an explicit note that no repo-native validation command exists yet]`
 - **Details**:
-  - Write a test that checks whether table X exists (FAIL)
-  - Write the schema-creation script (PASS)
+  - State the baseline or expected change for this step
+  - State the implementation or upgrade action
+  - State how the result will be verified honestly
 
 ### [ ] Task 2: [Next task]
 ...
@@ -56,7 +57,9 @@ For each task, follow this TDD-oriented structure:
 ### Step 3: Review and Refine
 - Are the tasks small enough?
 - Does any task require changing more than 3 files at once? -> If yes, split it.
-- Does any logic task skip the "write test first" step? -> Add the test requirement.
+- In full mode, does any logic task skip the "write test first" step without justification? -> Add the test requirement.
+- In migration mode, does the plan mix rewrite work into the migration instead of isolating blockers and proving parity? -> Rewrite the sequence.
+- In migration mode, does the plan rely on fake TDD instead of baseline, compatibility, and regression evidence? -> Rewrite the validation guidance.
 - Does the plan cover all acceptance criteria from the spec?
 
 ## Anti-Patterns
