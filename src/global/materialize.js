@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { createGlobalInstallState, writeJson } from './install-state.js';
 import { getGlobalPaths } from './paths.js';
+import { getOpenKitVersion } from '../version.js';
 
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(MODULE_DIR, '../..');
@@ -65,7 +66,7 @@ function createOpenCodeConfig() {
   };
 }
 
-export function materializeGlobalInstall({ env = process.env, kitVersion = '0.1.0' } = {}) {
+export function materializeGlobalInstall({ env = process.env, kitVersion = getOpenKitVersion() } = {}) {
   const paths = getGlobalPaths({ env });
 
   removePathIfPresent(paths.kitRoot);
@@ -92,7 +93,7 @@ export function materializeGlobalInstall({ env = process.env, kitVersion = '0.1.
           hooks: [
             {
               type: 'command',
-              command: `${path.join(paths.kitRoot, 'hooks', 'session-start')}`,
+              command: `${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(paths.kitRoot, 'hooks', 'session-start.js'))}`,
               async: false,
             },
           ],

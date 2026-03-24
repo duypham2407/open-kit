@@ -40,7 +40,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 
 - The preferred end-user onboarding path is `npm install -g @duypham93/openkit` followed by `openkit run`.
 - The first `openkit run` materializes the managed kit into the OpenCode home directory automatically.
-- `openkit doctor` is the read-only check for the global install and workspace bootstrap state.
+- `openkit doctor` is a non-mutating check for the global install and current workspace readiness state.
 - `openkit install-global`, `openkit install`, and `openkit init` remain available as manual or compatibility commands.
 - The package intentionally avoids npm `postinstall` side effects; setup happens inside the OpenKit CLI where failures and recovery steps are easier to explain.
 

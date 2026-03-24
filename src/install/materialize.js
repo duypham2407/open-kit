@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url"
 import { createInstallState } from "./install-state.js"
 import { applyOpenKitMergePolicy } from "./merge-policy.js"
 import { createMaterializationConflict, qualifyMergeConflicts } from "./conflicts.js"
+import { getOpenKitVersion } from "../version.js"
 
 const ROOT_MANIFEST_ASSET_ID = "runtime.opencode-manifest"
 const ROOT_MANIFEST_PATH = "opencode.json"
@@ -40,7 +41,7 @@ function removeFileIfPresent(filePath) {
   }
 }
 
-export function materializeInstall(projectRoot, { kitVersion = "0.1.0", now } = {}) {
+export function materializeInstall(projectRoot, { kitVersion = getOpenKitVersion(), now } = {}) {
   const desiredRootManifest = readTemplate("assets/opencode.json.template")
   const rootManifestPath = path.join(projectRoot, ROOT_MANIFEST_PATH)
   const installStatePath = path.join(projectRoot, INSTALL_STATE_PATH)

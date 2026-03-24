@@ -44,6 +44,7 @@ test('ensureGlobalInstall returns none when install is healthy', () => {
   assert.equal(result.action, 'none');
   assert.equal(result.installed, false);
   assert.equal(result.doctor.status, 'healthy');
+  assert.equal(fs.existsSync(path.join(tempHome, 'workspaces')), false);
 });
 
 test('ensureGlobalInstall materializes the global install when it is missing', () => {
@@ -80,7 +81,7 @@ test('ensureGlobalInstall returns blocked when install state is invalid', () => 
     stateVersion: 1,
     kit: {
       name: 'OpenKit',
-      version: '0.1.0',
+      version: '0.2.8',
     },
     installation: {
       profile: 'openkit',

@@ -58,7 +58,7 @@ function makeQuickState(overrides = {}) {
   }
 }
 
-function writeManifest(projectRoot) {
+function writeManifest(projectRoot, version = "0.2.8") {
   const opencodeDir = path.join(projectRoot, ".opencode")
   fs.mkdirSync(opencodeDir, { recursive: true })
   fs.writeFileSync(
@@ -66,7 +66,7 @@ function writeManifest(projectRoot) {
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
-        version: "0.1.0",
+        version,
         entryAgent: "MasterOrchestrator",
       },
     }, null, 2)}\n`,
@@ -130,14 +130,6 @@ function writeMetaSkill(projectRoot) {
   fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# using-skills\n", "utf8")
 }
 
-function writeFailingPythonShim(projectRoot) {
-  const binDir = path.join(projectRoot, "bin")
-  const shimPath = path.join(binDir, "python3-shim")
-  fs.mkdirSync(binDir, { recursive: true })
-  fs.writeFileSync(shimPath, "#!/usr/bin/env bash\nexit 1\n", { encoding: "utf8", mode: 0o755 })
-  return shimPath
-}
-
 test("session-start emits mode-aware resume hint for quick tasks", () => {
   const projectRoot = makeTempProject()
 
@@ -157,7 +149,7 @@ test("session-start emits mode-aware resume hint for quick tasks", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /<openkit_runtime_status>/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.1\.0/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.8/)
   assert.match(result.stdout, /startup skill: skipped/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js status/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js doctor/)
@@ -265,9 +257,10 @@ test("session-start prints canonical resume guidance and inspection commands", (
 test("session-start degrades gracefully when the JSON helper fails", () => {
   const projectRoot = makeTempProject()
 
+  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
   writeManifest(projectRoot)
   writeState(projectRoot, makeQuickState())
-  const pythonShim = writeFailingPythonShim(projectRoot)
+  fs.writeFileSync(manifestPath, '{"kit":', 'utf8')
 
   const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
     cwd: projectRoot,
@@ -277,7 +270,6 @@ test("session-start degrades gracefully when the JSON helper fails", () => {
       OPENKIT_PROJECT_ROOT: projectRoot,
       OPENKIT_SESSION_START_NO_SKILL: "1",
       OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
-      OPENKIT_PYTHON_BIN: pythonShim,
     },
   })
 

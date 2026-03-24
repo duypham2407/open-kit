@@ -80,7 +80,7 @@ If the boundary still feels fuzzy, use the `Lane Decision Matrix` in `context/co
 
 ### 1. Check global install and workspace health
 
-Start with read-only checks:
+Start with non-mutating checks:
 
 ```bash
 openkit doctor
@@ -88,7 +88,7 @@ openkit doctor
 
 What to look for:
 
-- `doctor` confirms the global kit is installed, the workspace root is available, and the current project can launch with OpenKit cleanly
+- `doctor` confirms the global kit is installed, shows the derived workspace root, and reports whether the current project can launch with OpenKit cleanly without mutating local workspace files
 
 If `doctor` reports `install-missing`, run `openkit run` for first-time setup. If `doctor` reports other errors, fix those before trusting resume or task-board behavior.
 

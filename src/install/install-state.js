@@ -1,3 +1,5 @@
+import { getOpenKitVersion } from '../version.js'
+
 export const INSTALL_STATE_SCHEMA = "openkit/install-state@1"
 
 const MANAGED_STATUSES = new Set(["managed", "materialized"])
@@ -24,7 +26,7 @@ function isArray(value) {
 }
 
 export function createInstallState({
-  kitVersion = "0.1.0",
+  kitVersion = getOpenKitVersion(),
   profile = "openkit-core",
   managedAssets = [],
   adoptedAssets = [],

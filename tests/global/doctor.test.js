@@ -69,6 +69,11 @@ test('global doctor reports next steps for healthy installs', () => {
   assert.equal(result.status, 'healthy');
   assert.equal(result.nextStep, 'Run openkit run.');
   assert.equal(result.recommendedCommand, 'openkit run');
+  assert.equal(result.workspace.paths.workspaceRoot.includes('workspaces'), true);
+  assert.equal(result.workspace.meta, null);
+  assert.equal(result.workspace.index, null);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode')), false);
+  assert.equal(fs.existsSync(path.join(tempHome, 'workspaces')), false);
 });
 
 test('global doctor recommends upgrade for invalid installs', () => {
@@ -80,7 +85,7 @@ test('global doctor recommends upgrade for invalid installs', () => {
     stateVersion: 1,
     kit: {
       name: 'OpenKit',
-      version: '0.1.0',
+      version: '0.2.8',
     },
     installation: {
       profile: 'openkit',
@@ -127,4 +132,6 @@ test('global doctor reports workspace issues with guidance', () => {
   assert.equal(result.nextStep, 'Review the issues above before relying on this workspace.');
   assert.equal(result.recommendedCommand, null);
   assert.match(result.issues.join('\n'), /OpenCode executable is not available on PATH/);
+  assert.equal(result.workspace.meta, null);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode')), false);
 });

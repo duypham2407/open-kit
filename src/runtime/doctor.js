@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { validateInstallState } from '../install/install-state.js';
 import { discoverProjectShape } from '../install/discovery.js';
+import { isCommandAvailable } from '../command-detection.js';
 
 const EXPECTED_MANAGED_ASSETS = {
   'runtime.opencode-manifest': {
@@ -52,15 +53,7 @@ function readJsonIfPresent(filePath) {
 }
 
 function defaultIsOpenCodeAvailable() {
-  const pathValue = process.env.PATH ?? '';
-  return pathValue.split(path.delimiter).some((segment) => {
-    if (!segment) {
-      return false;
-    }
-
-    const candidate = path.join(segment, 'opencode');
-    return fs.existsSync(candidate);
-  });
+  return isCommandAvailable('opencode');
 }
 
 export function inspectManagedDoctor({

@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { getOpenKitVersion } from '../version.js';
+
 const GLOBAL_INSTALL_SCHEMA = 'openkit/global-install-state@1';
 
-export function createGlobalInstallState({ kitVersion = '0.1.0', installedAt = new Date().toISOString(), profile = 'openkit' } = {}) {
+export function createGlobalInstallState({ kitVersion = getOpenKitVersion(), installedAt = new Date().toISOString(), profile = 'openkit' } = {}) {
   return {
     schema: GLOBAL_INSTALL_SCHEMA,
     stateVersion: 1,

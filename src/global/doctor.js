@@ -2,12 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { readJsonIfPresent, validateGlobalInstallState } from './install-state.js';
-import { ensureWorkspaceBootstrap, readWorkspaceMeta } from './workspace-state.js';
+import { inspectWorkspaceMeta } from './workspace-state.js';
 import { getGlobalPaths, getWorkspacePaths } from './paths.js';
+import { isCommandAvailable } from '../command-detection.js';
 
 function isOpenCodeAvailable(env = process.env) {
-  const pathValue = env.PATH ?? '';
-  return pathValue.split(path.delimiter).some((segment) => segment && fs.existsSync(path.join(segment, 'opencode')));
+  return isCommandAvailable('opencode', { env });
 }
 
 function withGuidance(result, nextStep, recommendedCommand = null) {
@@ -59,8 +59,7 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
     issues.push('OpenCode executable is not available on PATH.');
   }
 
-  const workspace = readWorkspaceMeta({ projectRoot, env });
-  ensureWorkspaceBootstrap({ projectRoot, env });
+  const workspace = inspectWorkspaceMeta({ projectRoot, env });
 
   return withGuidance({
     status: issues.length === 0 ? 'healthy' : 'workspace-ready-with-issues',

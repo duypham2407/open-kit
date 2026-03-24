@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { getWorkspacePaths } from './paths.js';
 import { ensureWorkspaceShim } from './workspace-shim.js';
+import { getOpenKitVersion } from '../version.js';
 
 const WORKSPACE_STATE_SCHEMA = 'openkit/workspace-state@1';
 
@@ -115,7 +116,7 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
-export function createWorkspaceMeta({ projectRoot, workspaceId, kitVersion = '0.1.0', profile = 'openkit' }) {
+export function createWorkspaceMeta({ projectRoot, workspaceId, kitVersion = getOpenKitVersion(), profile = 'openkit' }) {
   return {
     schema: WORKSPACE_STATE_SCHEMA,
     stateVersion: 1,
@@ -169,5 +170,15 @@ export function readWorkspaceMeta(options = {}) {
     paths,
     meta: readJson(paths.workspaceMetaPath),
     index: readJson(paths.workItemIndexPath),
+  };
+}
+
+export function inspectWorkspaceMeta(options = {}) {
+  const paths = getWorkspacePaths(options);
+
+  return {
+    paths,
+    meta: fs.existsSync(paths.workspaceMetaPath) ? readJson(paths.workspaceMetaPath) : null,
+    index: fs.existsSync(paths.workItemIndexPath) ? readJson(paths.workItemIndexPath) : null,
   };
 }

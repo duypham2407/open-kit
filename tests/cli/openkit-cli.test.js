@@ -6,6 +6,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { inspectGlobalDoctor } from '../../src/global/doctor.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const worktreeRoot = path.resolve(__dirname, '..', '..');
@@ -96,6 +98,8 @@ test('openkit install-global materializes global kit and profile files', () => {
   assert.equal(fs.existsSync(path.join(profileRoot, 'opencode.json')), true);
   assert.equal(readJson(path.join(profileRoot, 'opencode.json')).default_agent, 'master-orchestrator');
   assert.equal(fs.existsSync(path.join(kitRoot, 'opencode.json')), true);
+  assert.match(readJson(path.join(kitRoot, 'install-state.json')).kit.version, /^0\.2\.8$/);
+  assert.match(readJson(path.join(profileRoot, 'hooks.json')).hooks.SessionStart[0].hooks[0].command, /session-start\.js/);
 });
 
 test('openkit init and install remain compatibility aliases for install-global', () => {
@@ -140,7 +144,7 @@ test('openkit doctor reports install-missing when global install is absent', () 
   assert.match(result.stdout, /Recommended command: openkit run/);
 });
 
-test('openkit doctor reports healthy after global install and bootstraps workspace metadata', () => {
+test('openkit doctor reports healthy without mutating workspace metadata', () => {
   const tempHome = makeTempDir();
   const projectRoot = makeTempDir();
   const fakeBinDir = path.join(tempHome, 'bin');
@@ -168,12 +172,8 @@ test('openkit doctor reports healthy after global install and bootstraps workspa
   assert.match(result.stdout, /Workspace root:/);
   assert.match(result.stdout, /Next: Run openkit run/);
   assert.match(result.stdout, /Recommended command: openkit run/);
-
-  const workspacesRoot = path.join(tempHome, 'workspaces');
-  const workspaceEntries = fs.readdirSync(workspacesRoot);
-  assert.equal(workspaceEntries.length, 1);
-  const workspaceMetaPath = path.join(workspacesRoot, workspaceEntries[0], 'openkit', 'workspace.json');
-  assert.equal(fs.existsSync(workspaceMetaPath), true);
+  assert.equal(fs.existsSync(path.join(tempHome, 'workspaces')), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode')), false);
 });
 
 test('openkit run launches opencode with the global profile and workspace env', () => {
@@ -336,7 +336,73 @@ test('openkit run does not overwrite existing repo-local workflow files when cre
   assert.equal(fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8'), 'project agents\n');
   assert.equal(fs.readFileSync(path.join(projectRoot, 'context', 'core', 'workflow.md'), 'utf8'), 'project workflow\n');
   assert.equal(fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.js'), 'utf8'), '#!/usr/bin/env node\n');
+  assert.equal(fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.json'), 'utf8'), '{"project":true}\n');
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
+});
+
+test('openkit run refreshes managed wrappers when the workspace location changes', () => {
+  const tempHomeA = makeTempDir();
+  const tempHomeB = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDirA = path.join(tempHomeA, 'bin');
+  const fakeBinDirB = path.join(tempHomeB, 'bin');
+
+  writeExecutable(path.join(fakeBinDirA, 'opencode'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(fakeBinDirB, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  let result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHomeA,
+      PATH: `${fakeBinDirA}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+
+  result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHomeB,
+      PATH: `${fakeBinDirB}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+
+  const workspaceWrapper = fs.readFileSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.js'), 'utf8');
+  assert.match(workspaceWrapper, new RegExp(tempHomeB.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.doesNotMatch(workspaceWrapper, new RegExp(tempHomeA.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
+
+test('openkit doctor recognizes opencode.cmd on Windows-style PATH', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+  writeExecutable(path.join(fakeBinDir, 'opencode.cmd'), '@echo off\nexit /b 0\n');
+
+  const installResult = runCli(['install-global'], {
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  assert.equal(installResult.status, 0);
+
+  const doctor = inspectGlobalDoctor({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: fakeBinDir,
+      PATHEXT: '.CMD;.EXE',
+    },
+  });
+
+  assert.equal(doctor.status, 'workspace-ready-with-issues');
+  assert.match(doctor.issues.join('\n'), /OpenCode executable is not available on PATH/);
 });
 
 test('openkit run cleans root compatibility shims when created files are removed', () => {
@@ -433,7 +499,7 @@ test('openkit run blocks on invalid global install state and recommends upgrade'
     `${JSON.stringify({
       schema: 'wrong-schema',
       stateVersion: 1,
-      kit: { name: 'OpenKit', version: '0.1.0' },
+      kit: { name: 'OpenKit', version: '0.2.8' },
       installation: {
         profile: 'openkit',
         status: 'installed',
