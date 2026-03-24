@@ -21,6 +21,10 @@ function writeFile(filePath, content, mode) {
   }
 }
 
+function writeJson(filePath, value) {
+  writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
 function relativeTarget(fromPath, toPath) {
   return path.relative(path.dirname(fromPath), toPath) || '.';
 }
@@ -128,12 +132,26 @@ process.exit(typeof result.status === 'number' ? result.status : 1);
     type: 'file',
   });
 
+  const opencodeRoot = path.join(paths.projectRoot, '.opencode');
+  const opencodePackagePath = path.join(opencodeRoot, 'package.json');
+  if (!fs.existsSync(opencodePackagePath)) {
+    writeJson(opencodePackagePath, { type: 'module' });
+    createdPaths.push(opencodePackagePath);
+  }
+
   if (!fs.existsSync(path.join(paths.projectRoot, '.opencode', 'workflow-state.js'))) {
     const rootWorkflowCli = `#!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 
-const args = process.argv.slice(2);
-const result = spawnSync(process.execPath, [${JSON.stringify(paths.workspaceShimWorkflowCliPath)}, ...args], {
+const rawArgs = process.argv.slice(2);
+const command = rawArgs[0];
+const aliasMap = new Map([
+  ['get', 'show'],
+  ['--help', 'help'],
+  ['-h', 'help'],
+]);
+const normalizedArgs = rawArgs.length === 0 ? ['help'] : [aliasMap.get(command) ?? command, ...rawArgs.slice(1)];
+const result = spawnSync(process.execPath, [${JSON.stringify(paths.workspaceShimWorkflowCliPath)}, ...normalizedArgs], {
   stdio: 'inherit',
   env: process.env,
 });

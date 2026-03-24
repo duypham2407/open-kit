@@ -367,6 +367,30 @@ test('openkit run cleans root compatibility shims when created files are removed
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
 });
 
+test('openkit run creates a module-aware root workflow wrapper with alias support', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+  assert.deepEqual(readJson(path.join(projectRoot, '.opencode', 'package.json')), { type: 'module' });
+
+  const wrapper = fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.js'), 'utf8');
+  assert.match(wrapper, /\['get', 'show'\]/);
+  assert.match(wrapper, /\['--help', 'help'\]/);
+});
+
 test('openkit run reports missing opencode after first-time setup completes', () => {
   const tempHome = makeTempDir();
   const projectRoot = makeTempDir();
