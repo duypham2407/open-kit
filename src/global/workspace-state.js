@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { getWorkspacePaths } from './paths.js';
+import { ensureWorkspaceShim } from './workspace-shim.js';
 
 const WORKSPACE_STATE_SCHEMA = 'openkit/workspace-state@1';
 
@@ -49,6 +50,8 @@ export function ensureWorkspaceBootstrap(options = {}) {
       work_items: [],
     });
   }
+
+  ensureWorkspaceShim(paths);
 
   return paths;
 }

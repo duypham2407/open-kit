@@ -14,8 +14,9 @@ You are the Code Reviewer subagent, dispatched by the Fullstack Agent. You perfo
 
 ## Global runtime path rule
 
-- In globally installed OpenKit sessions, resolve OpenKit-owned context from `OPENKIT_KIT_ROOT` instead of assuming the target repository contains `context/` or `.opencode/`.
-- Resolve workflow state from `OPENKIT_WORKFLOW_STATE` when resumable review context is needed.
+- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
+- Read canonical OpenKit files from `.opencode/openkit/...`, not from repo-root `context/` or repo-root `.opencode/`.
+- Use `.opencode/openkit/workflow-state.json` when resumable review context is needed.
 
 ## Important
 
@@ -49,7 +50,7 @@ Issues (if FAIL):
 
 Only perform this after Stage 1 passes.
 
-Review against `context/core/code-quality.md`:
+Review against `.opencode/openkit/context/core/code-quality.md`:
 
 **Categories:**
 - **Critical** — Block progress (security holes, data loss risk)

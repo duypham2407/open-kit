@@ -8,9 +8,10 @@ Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode an
 
 ## Global OpenKit path rule
 
-- In globally installed OpenKit sessions, resolve OpenKit-owned docs from `OPENKIT_KIT_ROOT` instead of assuming the target repository contains `AGENTS.md`, `context/`, or `.opencode/`.
-- Resolve resumable workflow state from `OPENKIT_WORKFLOW_STATE`.
-- Use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>` for workflow-state checks in global mode.
+- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
+- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
+- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
+- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
 
 ## Preconditions
 
@@ -20,11 +21,11 @@ Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode an
 
 ## Canonical docs to load
 
-- `AGENTS.md`
-- `context/navigation.md`
-- `context/core/workflow.md`
-- `context/core/project-config.md`
-- `.opencode/workflow-state.json` when resuming
+- `.opencode/openkit/AGENTS.md`
+- `.opencode/openkit/context/navigation.md`
+- `.opencode/openkit/context/core/workflow.md`
+- `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/workflow-state.json` when resuming
 - skill `brainstorming`
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
@@ -45,6 +46,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Use the workflow-state utility against `OPENKIT_WORKFLOW_STATE` when resumable state needs confirmation
+- Use `node .opencode/openkit/workflow-state.js show` or `node .opencode/openkit/workflow-state.js validate` when resumable state needs confirmation
 - Brainstorming output is design and workflow evidence, not app build/lint/test evidence
 - If the repository has no app-native validation commands for the eventual implementation, record that constraint honestly in downstream artifacts

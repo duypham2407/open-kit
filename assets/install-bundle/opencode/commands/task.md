@@ -6,6 +6,14 @@ description: "Default entry command. Lets the Master Orchestrator classify work 
 
 Use `/task` when the user wants the default entrypoint and expects the Master Orchestrator to choose the lane.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
+- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/workflow-state.json`.
+- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
+- For workflow-state CLI operations in global mode, use `node .opencode/openkit/workflow-state.js <command>`.
+- Use the target repository only for product/application code, local build tooling, and project-specific docs.
+
 ## Preconditions
 
 - A user request exists with enough information to summarize the initial goal, scope, and risk
@@ -13,12 +21,12 @@ Use `/task` when the user wants the default entrypoint and expects the Master Or
 
 ## Canonical docs to load
 
-- `AGENTS.md`
-- `context/navigation.md`
-- `context/core/workflow.md`
-- `context/core/lane-selection.md`
-- `context/core/project-config.md`
-- `.opencode/workflow-state.json` when resuming
+- `.opencode/openkit/AGENTS.md`
+- `.opencode/openkit/context/navigation.md`
+- `.opencode/openkit/context/core/workflow.md`
+- `.opencode/openkit/context/core/lane-selection.md`
+- `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/workflow-state.json` when resuming
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 
@@ -41,6 +49,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Use `node .opencode/workflow-state.js status` or `node .opencode/workflow-state.js show` to inspect resumable state before rerouting when needed
-- Use `node .opencode/workflow-state.js validate` if the saved state looks stale or manually edited
+- Use `node .opencode/openkit/workflow-state.js status` or `node .opencode/openkit/workflow-state.js show` to inspect resumable state before rerouting when needed
+- Use `node .opencode/openkit/workflow-state.js validate` to validate stale or manually edited state when needed
 - Do not imply repo-native app build, lint, or test commands exist when this repository has not defined them

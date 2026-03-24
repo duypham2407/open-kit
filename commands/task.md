@@ -8,10 +8,10 @@ Use `/task` when the user wants the default entrypoint and expects the Master Or
 
 ## Global OpenKit path rule
 
-- In globally installed OpenKit sessions, do not assume the target repository contains `AGENTS.md`, `context/`, `docs/`, or `.opencode/` from the OpenKit kit.
-- Resolve canonical OpenKit docs under the absolute kit root from `OPENKIT_KIT_ROOT`. For example, `context/core/workflow.md` means `${OPENKIT_KIT_ROOT}/context/core/workflow.md`.
-- Resolve workflow state from `OPENKIT_WORKFLOW_STATE`, not from the target repository, unless you are intentionally operating inside the OpenKit repository itself.
-- For workflow-state CLI operations in global mode, use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>`.
+- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
+- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/workflow-state.json`.
+- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
+- For workflow-state CLI operations in global mode, use `node .opencode/openkit/workflow-state.js <command>`.
 - Use the target repository only for product/application code, local build tooling, and project-specific docs.
 
 ## Preconditions
@@ -21,12 +21,12 @@ Use `/task` when the user wants the default entrypoint and expects the Master Or
 
 ## Canonical docs to load
 
-- `AGENTS.md`
-- `context/navigation.md`
-- `context/core/workflow.md`
-- `context/core/lane-selection.md`
-- `context/core/project-config.md`
-- `.opencode/workflow-state.json` when resuming
+- `.opencode/openkit/AGENTS.md`
+- `.opencode/openkit/context/navigation.md`
+- `.opencode/openkit/context/core/workflow.md`
+- `.opencode/openkit/context/core/lane-selection.md`
+- `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/workflow-state.json` when resuming
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 
@@ -49,6 +49,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Use the workflow-state utility against `OPENKIT_WORKFLOW_STATE` to inspect resumable state before rerouting when needed
-- Use the workflow-state utility against `OPENKIT_WORKFLOW_STATE` to validate stale or manually edited state when needed
+- Use `node .opencode/openkit/workflow-state.js status` or `node .opencode/openkit/workflow-state.js show` to inspect resumable state before rerouting when needed
+- Use `node .opencode/openkit/workflow-state.js validate` to validate stale or manually edited state when needed
 - Do not imply repo-native app build, lint, or test commands exist when this repository has not defined them

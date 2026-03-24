@@ -8,9 +8,10 @@ Use `/execute-plan` when an approved Full Delivery or Migration implementation p
 
 ## Global OpenKit path rule
 
-- In globally installed OpenKit sessions, resolve OpenKit-owned docs from `OPENKIT_KIT_ROOT` instead of assuming the target repository contains `AGENTS.md`, `context/`, `docs/`, or `.opencode/`.
-- Resolve resumable workflow state from `OPENKIT_WORKFLOW_STATE`.
-- Use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>` for workflow-state checks in global mode.
+- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
+- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
+- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
+- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
 
 ## Preconditions
 
@@ -20,13 +21,13 @@ Use `/execute-plan` when an approved Full Delivery or Migration implementation p
 
 ## Canonical docs to load
 
-- `AGENTS.md`
-- `context/navigation.md`
-- `context/core/workflow.md`
-- `context/core/project-config.md`
-- `context/core/session-resume.md`
-- `context/core/workflow-state-schema.md`
-- `.opencode/workflow-state.json`
+- `.opencode/openkit/AGENTS.md`
+- `.opencode/openkit/context/navigation.md`
+- `.opencode/openkit/context/core/workflow.md`
+- `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/context/core/session-resume.md`
+- `.opencode/openkit/context/core/workflow-state-schema.md`
+- `.opencode/openkit/workflow-state.json`
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 
@@ -45,6 +46,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Run the workflow-state utility against `OPENKIT_WORKFLOW_STATE` when you need to confirm workflow-state integrity before execution
+- Run `node .opencode/openkit/workflow-state.js validate` when you need to confirm workflow-state integrity before execution
 - Use repo-native app build, lint, or test commands only if they actually exist and are documented
 - If the repository still lacks app-native validation tooling, report manual checks or other real evidence instead of inventing automation

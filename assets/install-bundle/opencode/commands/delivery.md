@@ -6,6 +6,13 @@ description: "Starts the Full Delivery lane for feature work and higher-risk cha
 
 Use `/delivery` when work needs the full lane from the start or when quick or migration work has already escalated.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
+- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
+- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
+- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
+
 ## Preconditions
 
 - The request satisfies one or more full-lane triggers in `context/core/workflow.md`
@@ -13,13 +20,13 @@ Use `/delivery` when work needs the full lane from the start or when quick or mi
 
 ## Canonical docs to load
 
-- `AGENTS.md`
-- `context/navigation.md`
-- `context/core/workflow.md`
-- `context/core/lane-selection.md`
-- `context/core/approval-gates.md`
-- `context/core/project-config.md`
-- `.opencode/workflow-state.json` when resuming
+- `.opencode/openkit/AGENTS.md`
+- `.opencode/openkit/context/navigation.md`
+- `.opencode/openkit/context/core/workflow.md`
+- `.opencode/openkit/context/core/lane-selection.md`
+- `.opencode/openkit/context/core/approval-gates.md`
+- `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/workflow-state.json` when resuming
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 
@@ -40,6 +47,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Use `node .opencode/workflow-state.js show` or `node .opencode/workflow-state.js validate` when resumable full-mode state needs confirmation
+- Use `node .opencode/openkit/workflow-state.js show` or `node .opencode/openkit/workflow-state.js validate` when resumable full-mode state needs confirmation
 - Keep implementation and QA validation honest to the repository's actual tooling
 - Do not overstate automation when the repository still lacks app-native build, lint, or test commands

@@ -6,6 +6,13 @@ description: "Starts the Migration lane for upgrades, framework migrations, and 
 
 Use `/migrate` when work is primarily a project migration or upgrade effort such as framework version jumps, dependency replacement, legacy API removal, or compatibility remediation.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs, templates, and workflow tools.
+- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
+- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
+- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
+
 Core migration principle:
 
 - preserve behavior first, decouple blockers where necessary, and migrate incrementally instead of rewriting the product
@@ -20,15 +27,15 @@ Core migration principle:
 
 ## Canonical docs to load
 
-- `AGENTS.md`
-- `context/navigation.md`
-- `context/core/workflow.md`
-- `context/core/lane-selection.md`
-- `context/core/approval-gates.md`
-- `context/core/project-config.md`
-- `docs/templates/migration-baseline-checklist.md`
-- `docs/templates/migration-verify-checklist.md`
-- `.opencode/workflow-state.json` when resuming
+- `.opencode/openkit/AGENTS.md`
+- `.opencode/openkit/context/navigation.md`
+- `.opencode/openkit/context/core/workflow.md`
+- `.opencode/openkit/context/core/lane-selection.md`
+- `.opencode/openkit/context/core/approval-gates.md`
+- `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/docs/templates/migration-baseline-checklist.md`
+- `.opencode/openkit/docs/templates/migration-verify-checklist.md`
+- `.opencode/openkit/workflow-state.json` when resuming
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 

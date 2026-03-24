@@ -6,6 +6,13 @@ description: "Triggers the writing-plans skill to create bite-sized tasks from s
 
 Use `/write-plan` to create an implementation plan for work currently in `Full Delivery` or `Migration` mode.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs, templates, and workflow tools.
+- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
+- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
+- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
+
 ## Preconditions
 
 - The current `mode` must be `full` or `migration`
@@ -15,13 +22,13 @@ Use `/write-plan` to create an implementation plan for work currently in `Full D
 
 ## Canonical docs to load
 
-- `AGENTS.md`
-- `context/navigation.md`
-- `context/core/workflow.md`
-- `context/core/project-config.md`
-- `.opencode/workflow-state.json`
-- `docs/templates/implementation-plan-template.md`
-- `docs/templates/migration-report-template.md` when migration work benefits from one running artifact
+- `.opencode/openkit/AGENTS.md`
+- `.opencode/openkit/context/navigation.md`
+- `.opencode/openkit/context/core/workflow.md`
+- `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/workflow-state.json`
+- `.opencode/openkit/docs/templates/implementation-plan-template.md`
+- `.opencode/openkit/docs/templates/migration-report-template.md` when migration work benefits from one running artifact
 - skill `writing-plans`
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
@@ -47,4 +54,4 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - The plan should name the strongest real validation path available in the repository
 - In migration mode, use `migration_report` when handoffs would benefit from a single running narrative instead of scattered notes
 - If no repo-native app build, lint, or test command exists, say that explicitly in the plan instead of guessing a stack command
-- Use `node .opencode/workflow-state.js validate` only to confirm workflow state, not to stand in for implementation verification
+- Use `node .opencode/openkit/workflow-state.js validate` only to confirm workflow state, not to stand in for implementation verification

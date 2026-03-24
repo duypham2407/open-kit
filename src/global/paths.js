@@ -82,5 +82,11 @@ export function getWorkspacePaths({ projectRoot, env = process.env, platform = p
     legacyRuntimeDir: path.join(resolvedProjectRoot, '.opencode'),
     legacyWorkflowStatePath: path.join(resolvedProjectRoot, '.opencode', 'workflow-state.json'),
     legacyWorkItemsDir: path.join(resolvedProjectRoot, '.opencode', 'work-items'),
+    workspaceShimDir: path.join(resolvedProjectRoot, '.opencode', 'openkit'),
+    workspaceShimContextDir: path.join(resolvedProjectRoot, '.opencode', 'openkit', 'context'),
+    workspaceShimTemplatesDir: path.join(resolvedProjectRoot, '.opencode', 'openkit', 'docs', 'templates'),
+    workspaceShimAgentsPath: path.join(resolvedProjectRoot, '.opencode', 'openkit', 'AGENTS.md'),
+    workspaceShimWorkflowStatePath: path.join(resolvedProjectRoot, '.opencode', 'openkit', 'workflow-state.json'),
+    workspaceShimWorkflowCliPath: path.join(resolvedProjectRoot, '.opencode', 'openkit', 'workflow-state.js'),
   };
 }

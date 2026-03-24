@@ -8,10 +8,10 @@ Use `/quick-task` when the user wants to enter the quick lane directly for bound
 
 ## Global OpenKit path rule
 
-- In globally installed OpenKit sessions, treat `AGENTS.md`, `context/`, `docs/`, and `.opencode/` as kit-owned assets under `OPENKIT_KIT_ROOT`, not as files in the target repository.
-- Resolve canonical docs like `context/core/workflow.md` as `${OPENKIT_KIT_ROOT}/context/core/workflow.md`.
-- Resolve resumable workflow state from `OPENKIT_WORKFLOW_STATE`.
-- Use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>` for workflow-state checks in global mode.
+- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
+- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/` or repo-root `.opencode/`.
+- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
+- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
 
 ## Preconditions
 
@@ -20,12 +20,12 @@ Use `/quick-task` when the user wants to enter the quick lane directly for bound
 
 ## Canonical docs to load
 
-- `AGENTS.md`
-- `context/navigation.md`
-- `context/core/workflow.md`
-- `context/core/lane-selection.md`
-- `context/core/project-config.md`
-- `.opencode/workflow-state.json` when resuming
+- `.opencode/openkit/AGENTS.md`
+- `.opencode/openkit/context/navigation.md`
+- `.opencode/openkit/context/core/workflow.md`
+- `.opencode/openkit/context/core/lane-selection.md`
+- `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/workflow-state.json` when resuming
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 
@@ -49,4 +49,4 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 - Keep quick-task validation short and real, following `context/core/project-config.md`
 - If no app-native test or lint command exists, document the manual or artifact-based verification path clearly
-- Use the workflow-state utility against `OPENKIT_WORKFLOW_STATE` only for workflow-state checks, not as a substitute for application testing
+- Use `node .opencode/openkit/workflow-state.js validate` only for workflow-state checks, not as a substitute for application testing

@@ -222,6 +222,10 @@ process.stdout.write('mock opencode launched\\n');
   assert.equal(invocation.configDir, path.join(tempHome, 'kits', 'openkit'));
   assert.match(invocation.workflowState, /workspaces\/.*\/openkit\/\.opencode\/workflow-state\.json$/);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'context', 'core', 'workflow.md')), true);
+  assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.js')), true);
 });
 
 test('openkit run does not reinstall when the global install already exists', () => {
@@ -294,6 +298,7 @@ process.stdout.write('mock opencode launched after auto-install\\n');
   const invocation = readJson(logPath);
   assert.deepEqual(invocation.argv, [projectRoot]);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
 });
 
 test('openkit run reports missing opencode after first-time setup completes', () => {

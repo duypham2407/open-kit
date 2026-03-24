@@ -8,10 +8,10 @@ Use `/migrate` when work is primarily a project migration or upgrade effort such
 
 ## Global OpenKit path rule
 
-- In globally installed OpenKit sessions, resolve OpenKit-owned docs from `OPENKIT_KIT_ROOT` instead of assuming the target repository contains `AGENTS.md`, `context/`, `docs/templates/`, or `.opencode/`.
-- For example, `context/core/workflow.md` means `${OPENKIT_KIT_ROOT}/context/core/workflow.md`, and `docs/templates/migration-baseline-checklist.md` means `${OPENKIT_KIT_ROOT}/docs/templates/migration-baseline-checklist.md`.
-- Resolve resumable workflow state from `OPENKIT_WORKFLOW_STATE`.
-- Use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>` for workflow-state checks in global mode.
+- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs, templates, and workflow tools.
+- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
+- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
+- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
 
 Core migration principle:
 
@@ -27,15 +27,15 @@ Core migration principle:
 
 ## Canonical docs to load
 
-- `AGENTS.md`
-- `context/navigation.md`
-- `context/core/workflow.md`
-- `context/core/lane-selection.md`
-- `context/core/approval-gates.md`
-- `context/core/project-config.md`
-- `docs/templates/migration-baseline-checklist.md`
-- `docs/templates/migration-verify-checklist.md`
-- `.opencode/workflow-state.json` when resuming
+- `.opencode/openkit/AGENTS.md`
+- `.opencode/openkit/context/navigation.md`
+- `.opencode/openkit/context/core/workflow.md`
+- `.opencode/openkit/context/core/lane-selection.md`
+- `.opencode/openkit/context/core/approval-gates.md`
+- `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/docs/templates/migration-baseline-checklist.md`
+- `.opencode/openkit/docs/templates/migration-verify-checklist.md`
+- `.opencode/openkit/workflow-state.json` when resuming
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 
