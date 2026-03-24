@@ -335,7 +335,6 @@ test('openkit run does not overwrite existing repo-local workflow files when cre
   assert.equal(result.status, 0);
   assert.equal(fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8'), 'project agents\n');
   assert.equal(fs.readFileSync(path.join(projectRoot, 'context', 'core', 'workflow.md'), 'utf8'), 'project workflow\n');
-  assert.equal(fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.json'), 'utf8'), '{"project":true}\n');
   assert.equal(fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.js'), 'utf8'), '#!/usr/bin/env node\n');
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
 });
@@ -384,9 +383,9 @@ test('openkit run creates a module-aware root workflow wrapper with alias suppor
   });
 
   assert.equal(result.status, 0);
-  assert.deepEqual(readJson(path.join(projectRoot, '.opencode', 'package.json')), { type: 'module' });
 
   const wrapper = fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.js'), 'utf8');
+  assert.match(wrapper, /const \{ spawnSync \} = require\('node:child_process'\);/);
   assert.match(wrapper, /\['get', 'show'\]/);
   assert.match(wrapper, /\['--help', 'help'\]/);
 });

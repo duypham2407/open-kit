@@ -25,6 +25,10 @@ function writeJson(filePath, value) {
   writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
 function relativeTarget(fromPath, toPath) {
   return path.relative(path.dirname(fromPath), toPath) || '.';
 }
@@ -93,6 +97,10 @@ export function ensureWorkspaceShim(paths) {
     type: 'file',
   });
 
+  if (fs.existsSync(paths.workflowStatePath)) {
+    writeJson(paths.workspaceShimWorkflowStatePath, readJson(paths.workflowStatePath));
+  }
+
   const workflowCli = `#!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
 
@@ -132,16 +140,17 @@ process.exit(typeof result.status === 'number' ? result.status : 1);
     type: 'file',
   });
 
-  const opencodeRoot = path.join(paths.projectRoot, '.opencode');
-  const opencodePackagePath = path.join(opencodeRoot, 'package.json');
-  if (!fs.existsSync(opencodePackagePath)) {
-    writeJson(opencodePackagePath, { type: 'module' });
-    createdPaths.push(opencodePackagePath);
+  const rootWorkflowStatePath = path.join(paths.projectRoot, '.opencode', 'workflow-state.json');
+  if (!fs.existsSync(rootWorkflowStatePath)) {
+    createdPaths.push(rootWorkflowStatePath);
+  }
+  if (fs.existsSync(paths.workflowStatePath)) {
+    writeJson(rootWorkflowStatePath, readJson(paths.workflowStatePath));
   }
 
   if (!fs.existsSync(path.join(paths.projectRoot, '.opencode', 'workflow-state.js'))) {
     const rootWorkflowCli = `#!/usr/bin/env node
-import { spawnSync } from 'node:child_process';
+const { spawnSync } = require('node:child_process');
 
 const rawArgs = process.argv.slice(2);
 const command = rawArgs[0];
@@ -151,7 +160,7 @@ const aliasMap = new Map([
   ['-h', 'help'],
 ]);
 const normalizedArgs = rawArgs.length === 0 ? ['help'] : [aliasMap.get(command) ?? command, ...rawArgs.slice(1)];
-const result = spawnSync(process.execPath, [${JSON.stringify(paths.workspaceShimWorkflowCliPath)}, ...normalizedArgs], {
+const result = spawnSync(process.execPath, [${JSON.stringify(path.join(paths.kitRoot, '.opencode', 'workflow-state.js'))}, '--state', ${JSON.stringify(paths.workflowStatePath)}, ...normalizedArgs], {
   stdio: 'inherit',
   env: process.env,
 });
