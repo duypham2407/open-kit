@@ -1,6 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+function removePathIfPresent(targetPath) {
+  try {
+    fs.rmSync(targetPath, { recursive: true, force: true });
+  } catch {
+    // ignore cleanup failures
+  }
+}
+
 function ensureParent(filePath) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
 }
@@ -22,7 +30,7 @@ function createSymlinkOrCopy({ linkPath, targetPath, type = 'file' }) {
 
   try {
     if (fs.existsSync(linkPath) || fs.lstatSync(linkPath)) {
-      fs.rmSync(linkPath, { recursive: true, force: true });
+      removePathIfPresent(linkPath);
     }
   } catch {
     // ignore cleanup misses
@@ -42,28 +50,40 @@ function createSymlinkOrCopy({ linkPath, targetPath, type = 'file' }) {
   }
 }
 
+function createIfMissing(createdPaths, { linkPath, targetPath, type = 'file' }) {
+  if (fs.existsSync(linkPath)) {
+    return null;
+  }
+
+  const mode = createSymlinkOrCopy({ linkPath, targetPath, type });
+  createdPaths.push(linkPath);
+  return mode;
+}
+
 export function ensureWorkspaceShim(paths) {
+  const createdPaths = [];
+
   fs.mkdirSync(paths.workspaceShimDir, { recursive: true });
 
-  createSymlinkOrCopy({
+  createIfMissing(createdPaths, {
     linkPath: paths.workspaceShimAgentsPath,
     targetPath: path.join(paths.kitRoot, 'AGENTS.md'),
     type: 'file',
   });
 
-  createSymlinkOrCopy({
+  createIfMissing(createdPaths, {
     linkPath: paths.workspaceShimContextDir,
     targetPath: path.join(paths.kitRoot, 'context'),
     type: 'dir',
   });
 
-  createSymlinkOrCopy({
+  createIfMissing(createdPaths, {
     linkPath: paths.workspaceShimTemplatesDir,
     targetPath: path.join(paths.kitRoot, 'docs', 'templates'),
     type: 'dir',
   });
 
-  createSymlinkOrCopy({
+  createIfMissing(createdPaths, {
     linkPath: paths.workspaceShimWorkflowStatePath,
     targetPath: paths.workflowStatePath,
     type: 'file',
@@ -85,20 +105,83 @@ if (result.error) {
 process.exit(typeof result.status === 'number' ? result.status : 1);
 `;
 
-  writeFile(paths.workspaceShimWorkflowCliPath, workflowCli, 0o755);
-
-  const gitDir = path.join(paths.projectRoot, '.git');
-  if (fs.existsSync(gitDir)) {
-    const excludePath = path.join(gitDir, 'info', 'exclude');
-    const entry = '.opencode/openkit/';
-    let current = '';
-    if (fs.existsSync(excludePath)) {
-      current = fs.readFileSync(excludePath, 'utf8');
-    }
-    if (!current.split(/\r?\n/).includes(entry)) {
-      writeFile(excludePath, `${current}${current.endsWith('\n') || current.length === 0 ? '' : '\n'}${entry}\n`);
-    }
+  if (!fs.existsSync(paths.workspaceShimWorkflowCliPath)) {
+    writeFile(paths.workspaceShimWorkflowCliPath, workflowCli, 0o755);
+    createdPaths.push(paths.workspaceShimWorkflowCliPath);
   }
 
-  return paths;
+  createIfMissing(createdPaths, {
+    linkPath: path.join(paths.projectRoot, 'AGENTS.md'),
+    targetPath: paths.workspaceShimAgentsPath,
+    type: 'file',
+  });
+
+  createIfMissing(createdPaths, {
+    linkPath: path.join(paths.projectRoot, 'context'),
+    targetPath: paths.workspaceShimContextDir,
+    type: 'dir',
+  });
+
+  createIfMissing(createdPaths, {
+    linkPath: path.join(paths.projectRoot, '.opencode', 'workflow-state.json'),
+    targetPath: paths.workspaceShimWorkflowStatePath,
+    type: 'file',
+  });
+
+  if (!fs.existsSync(path.join(paths.projectRoot, '.opencode', 'workflow-state.js'))) {
+    const rootWorkflowCli = `#!/usr/bin/env node
+import { spawnSync } from 'node:child_process';
+
+const args = process.argv.slice(2);
+const result = spawnSync(process.execPath, [${JSON.stringify(paths.workspaceShimWorkflowCliPath)}, ...args], {
+  stdio: 'inherit',
+  env: process.env,
+});
+
+if (result.error) {
+  throw result.error;
+}
+
+process.exit(typeof result.status === 'number' ? result.status : 1);
+`;
+
+    const rootWorkflowCliPath = path.join(paths.projectRoot, '.opencode', 'workflow-state.js');
+    writeFile(rootWorkflowCliPath, rootWorkflowCli, 0o755);
+    createdPaths.push(rootWorkflowCliPath);
+  }
+
+  if (!fs.existsSync(path.join(paths.projectRoot, '.opencode', 'work-items'))) {
+    createIfMissing(createdPaths, {
+      linkPath: path.join(paths.projectRoot, '.opencode', 'work-items'),
+      targetPath: paths.workItemsDir,
+      type: 'dir',
+    });
+  }
+
+  return {
+    paths,
+    createdPaths,
+  };
+}
+
+export function cleanupWorkspaceShim(shim) {
+  if (!shim?.createdPaths) {
+    return;
+  }
+
+  for (const createdPath of [...shim.createdPaths].reverse()) {
+    removePathIfPresent(createdPath);
+  }
+
+  const maybeShimDir = shim.paths?.workspaceShimDir;
+  if (maybeShimDir && fs.existsSync(maybeShimDir)) {
+    try {
+      const entries = fs.readdirSync(maybeShimDir);
+      if (entries.length === 0) {
+        removePathIfPresent(maybeShimDir);
+      }
+    } catch {
+      // ignore cleanup misses
+    }
+  }
 }

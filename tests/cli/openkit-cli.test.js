@@ -33,6 +33,10 @@ function writeExecutable(filePath, content) {
   fs.chmodSync(filePath, 0o755);
 }
 
+function removePathIfPresent(targetPath) {
+  fs.rmSync(targetPath, { recursive: true, force: true });
+}
+
 test('openkit --help shows global-install oriented help', () => {
   const result = runCli(['--help']);
 
@@ -226,6 +230,10 @@ process.stdout.write('mock opencode launched\\n');
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'context', 'core', 'workflow.md')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.js')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'context', 'core', 'workflow.md')), true);
+  assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.json')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.js')), true);
 });
 
 test('openkit run does not reinstall when the global install already exists', () => {
@@ -298,6 +306,64 @@ process.stdout.write('mock opencode launched after auto-install\\n');
   const invocation = readJson(logPath);
   assert.deepEqual(invocation.argv, [projectRoot]);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
+});
+
+test('openkit run does not overwrite existing repo-local workflow files when creating shims', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  fs.mkdirSync(path.join(projectRoot, '.opencode'), { recursive: true });
+  fs.mkdirSync(path.join(projectRoot, 'context', 'core'), { recursive: true });
+  fs.writeFileSync(path.join(projectRoot, 'AGENTS.md'), 'project agents\n', 'utf8');
+  fs.writeFileSync(path.join(projectRoot, 'context', 'core', 'workflow.md'), 'project workflow\n', 'utf8');
+  fs.writeFileSync(path.join(projectRoot, '.opencode', 'workflow-state.json'), '{"project":true}\n', 'utf8');
+  fs.writeFileSync(path.join(projectRoot, '.opencode', 'workflow-state.js'), '#!/usr/bin/env node\n', 'utf8');
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+  assert.equal(fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8'), 'project agents\n');
+  assert.equal(fs.readFileSync(path.join(projectRoot, 'context', 'core', 'workflow.md'), 'utf8'), 'project workflow\n');
+  assert.equal(fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.json'), 'utf8'), '{"project":true}\n');
+  assert.equal(fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.js'), 'utf8'), '#!/usr/bin/env node\n');
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
+});
+
+test('openkit run cleans root compatibility shims when created files are removed', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), true);
+
+  removePathIfPresent(path.join(projectRoot, 'AGENTS.md'));
+  removePathIfPresent(path.join(projectRoot, 'context'));
+  removePathIfPresent(path.join(projectRoot, '.opencode', 'workflow-state.json'));
+  removePathIfPresent(path.join(projectRoot, '.opencode', 'workflow-state.js'));
+
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
 });
 

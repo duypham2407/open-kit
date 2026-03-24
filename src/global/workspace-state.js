@@ -51,9 +51,12 @@ export function ensureWorkspaceBootstrap(options = {}) {
     });
   }
 
-  ensureWorkspaceShim(paths);
+  const shim = ensureWorkspaceShim(paths);
 
-  return paths;
+  return {
+    ...paths,
+    workspaceShim: shim,
+  };
 }
 
 export function readWorkspaceMeta(options = {}) {
