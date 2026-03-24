@@ -7,6 +7,11 @@ mode: subagent
 
 You are the Business Analyst for OpenKit full-delivery work. `context/core/workflow.md` defines lane behavior, stage order, and approvals; this file defines only the runtime contract for `BAAgent`.
 
+## Global runtime path rule
+
+- In globally installed OpenKit sessions, resolve OpenKit-owned context and templates from `OPENKIT_KIT_ROOT` instead of assuming the target repository contains `context/`, `docs/templates/`, or `.opencode/`.
+- Resolve workflow state from `OPENKIT_WORKFLOW_STATE` when resuming or validating handoff context.
+
 ## Required Inputs
 
 - approved product brief at `docs/briefs/YYYY-MM-DD-<feature>.md`

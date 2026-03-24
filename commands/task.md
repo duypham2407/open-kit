@@ -6,6 +6,14 @@ description: "Default entry command. Lets the Master Orchestrator classify work 
 
 Use `/task` when the user wants the default entrypoint and expects the Master Orchestrator to choose the lane.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, do not assume the target repository contains `AGENTS.md`, `context/`, `docs/`, or `.opencode/` from the OpenKit kit.
+- Resolve canonical OpenKit docs under the absolute kit root from `OPENKIT_KIT_ROOT`. For example, `context/core/workflow.md` means `${OPENKIT_KIT_ROOT}/context/core/workflow.md`.
+- Resolve workflow state from `OPENKIT_WORKFLOW_STATE`, not from the target repository, unless you are intentionally operating inside the OpenKit repository itself.
+- For workflow-state CLI operations in global mode, use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>`.
+- Use the target repository only for product/application code, local build tooling, and project-specific docs.
+
 ## Preconditions
 
 - A user request exists with enough information to summarize the initial goal, scope, and risk
@@ -41,6 +49,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Use `node .opencode/workflow-state.js status` or `node .opencode/workflow-state.js show` to inspect resumable state before rerouting when needed
-- Use `node .opencode/workflow-state.js validate` if the saved state looks stale or manually edited
+- Use the workflow-state utility against `OPENKIT_WORKFLOW_STATE` to inspect resumable state before rerouting when needed
+- Use the workflow-state utility against `OPENKIT_WORKFLOW_STATE` to validate stale or manually edited state when needed
 - Do not imply repo-native app build, lint, or test commands exist when this repository has not defined them

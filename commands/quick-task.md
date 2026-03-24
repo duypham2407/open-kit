@@ -6,6 +6,13 @@ description: "Starts the Quick Task lane for narrow, low-risk work."
 
 Use `/quick-task` when the user wants to enter the quick lane directly for bounded small-to-medium work that stays within the quick-lane limits, remains lower risk, and uses a short verification path.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, treat `AGENTS.md`, `context/`, `docs/`, and `.opencode/` as kit-owned assets under `OPENKIT_KIT_ROOT`, not as files in the target repository.
+- Resolve canonical docs like `context/core/workflow.md` as `${OPENKIT_KIT_ROOT}/context/core/workflow.md`.
+- Resolve resumable workflow state from `OPENKIT_WORKFLOW_STATE`.
+- Use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>` for workflow-state checks in global mode.
+
 ## Preconditions
 
 - The request must satisfy quick-lane criteria in `context/core/workflow.md`
@@ -42,4 +49,4 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 - Keep quick-task validation short and real, following `context/core/project-config.md`
 - If no app-native test or lint command exists, document the manual or artifact-based verification path clearly
-- Use `node .opencode/workflow-state.js validate` only for workflow-state checks, not as a substitute for application testing
+- Use the workflow-state utility against `OPENKIT_WORKFLOW_STATE` only for workflow-state checks, not as a substitute for application testing

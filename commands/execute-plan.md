@@ -6,6 +6,12 @@ description: "Executes an approved Full Delivery or Migration implementation pla
 
 Use `/execute-plan` when an approved Full Delivery or Migration implementation plan is ready to be carried out.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, resolve OpenKit-owned docs from `OPENKIT_KIT_ROOT` instead of assuming the target repository contains `AGENTS.md`, `context/`, `docs/`, or `.opencode/`.
+- Resolve resumable workflow state from `OPENKIT_WORKFLOW_STATE`.
+- Use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>` for workflow-state checks in global mode.
+
 ## Preconditions
 
 - The current `mode` must be `full` or `migration`
@@ -39,6 +45,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Run `node .opencode/workflow-state.js validate` when you need to confirm workflow-state integrity before execution
+- Run the workflow-state utility against `OPENKIT_WORKFLOW_STATE` when you need to confirm workflow-state integrity before execution
 - Use repo-native app build, lint, or test commands only if they actually exist and are documented
 - If the repository still lacks app-native validation tooling, report manual checks or other real evidence instead of inventing automation

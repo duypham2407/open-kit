@@ -7,6 +7,14 @@ mode: primary
 
 You are the coordinator for OpenKit. `context/core/workflow.md` is the canonical source for lane semantics, stage order, escalation rules, approval rules, and the quick/migration/full contract. This file keeps only `MasterOrchestrator` responsibilities.
 
+## Global runtime path rule
+
+- In globally installed OpenKit sessions, do not assume the target repository contains OpenKit kit files such as `AGENTS.md`, `context/`, `docs/templates/`, or `.opencode/`.
+- Resolve canonical OpenKit files under `OPENKIT_KIT_ROOT`. For example, `context/core/workflow.md` means `${OPENKIT_KIT_ROOT}/context/core/workflow.md`.
+- Resolve workflow state from `OPENKIT_WORKFLOW_STATE`.
+- For workflow-state CLI operations in global mode, use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>`.
+- Use the target repository only for application code, project docs, and project-native validation paths.
+
 ## Core Responsibilities
 
 ### Lane selection ownership

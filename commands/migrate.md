@@ -6,6 +6,13 @@ description: "Starts the Migration lane for upgrades, framework migrations, and 
 
 Use `/migrate` when work is primarily a project migration or upgrade effort such as framework version jumps, dependency replacement, legacy API removal, or compatibility remediation.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, resolve OpenKit-owned docs from `OPENKIT_KIT_ROOT` instead of assuming the target repository contains `AGENTS.md`, `context/`, `docs/templates/`, or `.opencode/`.
+- For example, `context/core/workflow.md` means `${OPENKIT_KIT_ROOT}/context/core/workflow.md`, and `docs/templates/migration-baseline-checklist.md` means `${OPENKIT_KIT_ROOT}/docs/templates/migration-baseline-checklist.md`.
+- Resolve resumable workflow state from `OPENKIT_WORKFLOW_STATE`.
+- Use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>` for workflow-state checks in global mode.
+
 Core migration principle:
 
 - preserve behavior first, decouple blockers where necessary, and migrate incrementally instead of rewriting the product

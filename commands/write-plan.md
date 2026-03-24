@@ -6,6 +6,12 @@ description: "Triggers the writing-plans skill to create bite-sized tasks from s
 
 Use `/write-plan` to create an implementation plan for work currently in `Full Delivery` or `Migration` mode.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, resolve OpenKit-owned docs and templates from `OPENKIT_KIT_ROOT` instead of assuming the target repository contains `AGENTS.md`, `context/`, `docs/templates/`, or `.opencode/`.
+- Resolve resumable workflow state from `OPENKIT_WORKFLOW_STATE`.
+- Use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>` for workflow-state checks in global mode.
+
 ## Preconditions
 
 - The current `mode` must be `full` or `migration`
@@ -47,4 +53,4 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - The plan should name the strongest real validation path available in the repository
 - In migration mode, use `migration_report` when handoffs would benefit from a single running narrative instead of scattered notes
 - If no repo-native app build, lint, or test command exists, say that explicitly in the plan instead of guessing a stack command
-- Use `node .opencode/workflow-state.js validate` only to confirm workflow state, not to stand in for implementation verification
+- Use the workflow-state utility against `OPENKIT_WORKFLOW_STATE` only to confirm workflow state, not to stand in for implementation verification

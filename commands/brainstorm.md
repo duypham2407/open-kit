@@ -6,6 +6,12 @@ description: "Starts Migration or Full Delivery design exploration with the brai
 
 Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode and the team needs to refine design direction before implementation planning.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, resolve OpenKit-owned docs from `OPENKIT_KIT_ROOT` instead of assuming the target repository contains `AGENTS.md`, `context/`, or `.opencode/`.
+- Resolve resumable workflow state from `OPENKIT_WORKFLOW_STATE`.
+- Use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>` for workflow-state checks in global mode.
+
 ## Preconditions
 
 - The current `mode` must be `full` or `migration`
@@ -39,6 +45,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Use `node .opencode/workflow-state.js show` or `node .opencode/workflow-state.js validate` when resumable state needs confirmation
+- Use the workflow-state utility against `OPENKIT_WORKFLOW_STATE` when resumable state needs confirmation
 - Brainstorming output is design and workflow evidence, not app build/lint/test evidence
 - If the repository has no app-native validation commands for the eventual implementation, record that constraint honestly in downstream artifacts

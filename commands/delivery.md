@@ -6,6 +6,13 @@ description: "Starts the Full Delivery lane for feature work and higher-risk cha
 
 Use `/delivery` when work needs the full lane from the start or when quick or migration work has already escalated.
 
+## Global OpenKit path rule
+
+- In globally installed OpenKit sessions, resolve OpenKit-owned docs from `OPENKIT_KIT_ROOT` instead of assuming the target repository contains `AGENTS.md`, `context/`, or `.opencode/`.
+- For example, `context/core/workflow.md` means `${OPENKIT_KIT_ROOT}/context/core/workflow.md`.
+- Resolve resumable workflow state from `OPENKIT_WORKFLOW_STATE`.
+- Use `node "${OPENKIT_KIT_ROOT}/.opencode/workflow-state.js" --state "${OPENKIT_WORKFLOW_STATE}" <command>` for workflow-state checks in global mode.
+
 ## Preconditions
 
 - The request satisfies one or more full-lane triggers in `context/core/workflow.md`
@@ -40,6 +47,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Use `node .opencode/workflow-state.js show` or `node .opencode/workflow-state.js validate` when resumable full-mode state needs confirmation
+- Use the workflow-state utility against `OPENKIT_WORKFLOW_STATE` when resumable full-mode state needs confirmation
 - Keep implementation and QA validation honest to the repository's actual tooling
 - Do not overstate automation when the repository still lacks app-native build, lint, or test commands
