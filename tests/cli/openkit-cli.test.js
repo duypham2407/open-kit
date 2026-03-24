@@ -37,10 +37,12 @@ test('openkit --help shows global-install oriented help', () => {
   const result = runCli(['--help']);
 
   assert.equal(result.status, 0);
+  assert.match(result.stdout, /npm install -g openkit/);
+  assert.match(result.stdout, /perform first-time setup if needed/);
   assert.match(result.stdout, /install-global/);
   assert.match(result.stdout, /upgrade/);
   assert.match(result.stdout, /uninstall/);
-  assert.match(result.stdout, /Launch OpenCode with the global OpenKit profile/);
+  assert.match(result.stdout, /Launch OpenCode and perform first-time setup if needed/);
   assert.equal(result.stderr, '');
 });
 
@@ -50,6 +52,24 @@ test('openkit doctor --help shows global doctor help', () => {
   assert.equal(result.status, 0);
   assert.match(result.stdout, /global OpenKit install and the current workspace/);
   assert.equal(result.stderr, '');
+});
+
+test('install command help reflects manual and compatibility setup paths', () => {
+  const installGlobalResult = runCli(['install-global', '--help']);
+  const installResult = runCli(['install', '--help']);
+  const initResult = runCli(['init', '--help']);
+
+  assert.equal(installGlobalResult.status, 0);
+  assert.match(installGlobalResult.stdout, /Manually install OpenKit globally/i);
+  assert.match(installGlobalResult.stdout, /Most users should run `openkit run`/i);
+
+  assert.equal(installResult.status, 0);
+  assert.match(installResult.stdout, /Compatibility alias for manual global setup/i);
+  assert.match(installResult.stdout, /Most users should run `openkit run`/i);
+
+  assert.equal(initResult.status, 0);
+  assert.match(initResult.stdout, /Compatibility alias for manual global setup/i);
+  assert.match(initResult.stdout, /Most users should run `openkit run`/i);
 });
 
 test('openkit install-global materializes global kit and profile files', () => {
@@ -111,6 +131,8 @@ test('openkit doctor reports install-missing when global install is absent', () 
   assert.equal(result.status, 1);
   assert.match(result.stdout, /Status: install-missing/);
   assert.match(result.stdout, /Global OpenKit install was not found/);
+  assert.match(result.stdout, /Next: Run openkit run for first-time setup/);
+  assert.match(result.stdout, /Recommended command: openkit run/);
 });
 
 test('openkit doctor reports healthy after global install and bootstraps workspace metadata', () => {
@@ -139,6 +161,8 @@ test('openkit doctor reports healthy after global install and bootstraps workspa
   assert.equal(result.status, 0);
   assert.match(result.stdout, /Status: healthy/);
   assert.match(result.stdout, /Workspace root:/);
+  assert.match(result.stdout, /Next: Run openkit run/);
+  assert.match(result.stdout, /Recommended command: openkit run/);
 
   const workspacesRoot = path.join(tempHome, 'workspaces');
   const workspaceEntries = fs.readdirSync(workspacesRoot);
@@ -197,6 +221,132 @@ process.stdout.write('mock opencode launched\\n');
   assert.equal(invocation.configDir, path.join(tempHome, 'profiles', 'openkit'));
   assert.match(invocation.workflowState, /workspaces\/.*\/openkit\/\.opencode\/workflow-state\.json$/);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
+});
+
+test('openkit run does not reinstall when the global install already exists', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  const installResult = runCli(['install-global'], {
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  assert.equal(installResult.status, 0);
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\necho already-installed-run\n');
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+  assert.doesNotMatch(result.stdout, /Performing first-time setup/);
+  assert.match(result.stdout, /already-installed-run/);
+});
+
+test('openkit run auto-installs the global kit on first use', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+  const logPath = path.join(tempHome, 'opencode-auto-install.json');
+
+  writeExecutable(
+    path.join(fakeBinDir, 'opencode'),
+    `#!/usr/bin/env node
+import fs from 'node:fs';
+fs.writeFileSync(process.env.OPENKIT_TEST_LOG_PATH, JSON.stringify({
+  argv: process.argv.slice(2),
+  cwd: process.cwd(),
+  projectRoot: process.env.OPENKIT_PROJECT_ROOT,
+  workflowState: process.env.OPENKIT_WORKFLOW_STATE,
+  kitRoot: process.env.OPENKIT_KIT_ROOT,
+  configDir: process.env.OPENCODE_CONFIG_DIR,
+}, null, 2));
+process.stdout.write('mock opencode launched after auto-install\\n');
+`
+  );
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      OPENKIT_TEST_LOG_PATH: logPath,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Performing first-time setup/);
+  assert.match(result.stdout, /Installed OpenKit globally/);
+  assert.match(result.stdout, /mock opencode launched after auto-install/);
+  assert.equal(fs.existsSync(path.join(tempHome, 'kits', 'openkit', '.opencode', 'workflow-state.js')), true);
+
+  const invocation = readJson(logPath);
+  assert.deepEqual(invocation.argv, ['--profile', 'openkit']);
+  assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
+});
+
+test('openkit run reports missing opencode after first-time setup completes', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: '',
+    },
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /Performing first-time setup/);
+  assert.match(result.stdout, /Installed OpenKit globally/);
+  assert.match(result.stderr, /Could not find `opencode` on your PATH/);
+});
+
+test('openkit run blocks on invalid global install state and recommends upgrade', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const kitRoot = path.join(tempHome, 'kits', 'openkit');
+
+  fs.mkdirSync(kitRoot, { recursive: true });
+  fs.writeFileSync(
+    path.join(kitRoot, 'install-state.json'),
+    `${JSON.stringify({
+      schema: 'wrong-schema',
+      stateVersion: 1,
+      kit: { name: 'OpenKit', version: '0.1.0' },
+      installation: {
+        profile: 'openkit',
+        status: 'installed',
+        installedAt: '2026-03-24T00:00:00.000Z',
+      },
+    }, null, 2)}\n`,
+    'utf8'
+  );
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: process.env.PATH ?? '',
+    },
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /schema must be 'openkit\/global-install-state@1'/i);
+  assert.match(result.stderr, /Next: Run openkit upgrade to refresh the global install/i);
 });
 
 test('openkit upgrade refreshes the global kit install', () => {

@@ -28,7 +28,7 @@ This repository currently contains two active surface types:
 
 1. **Global managed kit path**
    - the `openkit` CLI now installs the kit into the OpenCode home directory
-   - `openkit install-global`, `openkit doctor`, and `openkit run` are the intended operator path
+   - install the CLI with `npm install -g openkit`, then use `openkit run` and `openkit doctor` as the intended operator path
    - global workspace state is created per project under the OpenCode home directory instead of copying the kit into each repository
 
 2. **Checked-in authoring and compatibility runtime**
@@ -79,9 +79,9 @@ The preferred product path is now the globally installed OpenKit kit. This repos
 
 Preferred global path:
 
-1. Run `openkit install-global` once on the machine to materialize the OpenKit bundle into the OpenCode home directory.
-2. Run `openkit doctor` to confirm the global install and current workspace are healthy.
-3. Run `openkit run <args>` to launch `opencode --profile openkit` with the workspace-specific OpenKit environment.
+1. Run `npm install -g openkit` to install the CLI once on the machine.
+2. Run `openkit run <args>` to launch `opencode --profile openkit`; on first run, OpenKit materializes the global kit into the OpenCode home directory automatically.
+3. Run `openkit doctor` to confirm the global install and current workspace are healthy.
 4. Run `openkit upgrade` to refresh the installed global kit when a newer package version is available.
 5. Run `openkit uninstall [--remove-workspaces]` when you need to remove the global kit and optionally clear workspace state.
 
@@ -95,6 +95,8 @@ OpenKit currently exposes two related but not identical surfaces:
 
 - the global kit surface used for installation, readiness checks, launch, upgrade, and uninstall
 - the checked-in repository-local runtime surface that exists today in this worktree
+
+On first run, `openkit run` materializes the managed global kit into the OpenCode home directory automatically.
 
 Current boundary:
 
@@ -112,7 +114,7 @@ Install-direction guardrails:
 
 Repository-internal vs global-kit summary:
 
-- Global-kit user path: `openkit install-global`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall`
+- Global-kit user path: `npm install -g openkit`, `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall`
 - Global kit lives under the OpenCode home directory, not inside each project
 - Repository-internal authoring surface remains: `.opencode/opencode.json`, workflow-state files, the workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs
 - The checked-in runtime remains useful for maintainers and compatibility testing even though end-user installation is now global-first
@@ -280,7 +282,7 @@ The command surface above is the current live interface. The live contract keeps
 
 For normal day-to-day use:
 
-- prefer `openkit install-global`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall`
+- prefer `npm install -g openkit`, then `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall`
 - use the lower-level checked-in runtime path below when you are maintaining or validating this repository itself
 
 1. Run `node .opencode/workflow-state.js status` to see whether work is already in progress.

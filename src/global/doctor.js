@@ -10,6 +10,14 @@ function isOpenCodeAvailable(env = process.env) {
   return pathValue.split(path.delimiter).some((segment) => segment && fs.existsSync(path.join(segment, 'opencode')));
 }
 
+function withGuidance(result, nextStep, recommendedCommand = null) {
+  return {
+    ...result,
+    nextStep,
+    recommendedCommand,
+  };
+}
+
 export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process.env } = {}) {
   const globalPaths = getGlobalPaths({ env });
   const workspacePaths = getWorkspacePaths({ projectRoot, env });
@@ -19,24 +27,24 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
   const issues = [];
 
   if (!globalInstallState) {
-    return {
+    return withGuidance({
       status: 'install-missing',
       canRunCleanly: false,
       globalPaths,
       workspacePaths,
       issues: ['Global OpenKit install was not found.'],
-    };
+    }, 'Run openkit run for first-time setup.', 'openkit run');
   }
 
   const installStateErrors = validateGlobalInstallState(globalInstallState);
   if (installStateErrors.length > 0) {
-    return {
+    return withGuidance({
       status: 'install-invalid',
       canRunCleanly: false,
       globalPaths,
       workspacePaths,
       issues: installStateErrors,
-    };
+    }, 'Run openkit upgrade to refresh the global install.', 'openkit upgrade');
   }
 
   if (!profileManifest) {
@@ -54,14 +62,14 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
   const workspace = readWorkspaceMeta({ projectRoot, env });
   ensureWorkspaceBootstrap({ projectRoot, env });
 
-  return {
+  return withGuidance({
     status: issues.length === 0 ? 'healthy' : 'workspace-ready-with-issues',
     canRunCleanly: issues.length === 0,
     globalPaths,
     workspacePaths,
     workspace,
     issues,
-  };
+  }, issues.length === 0 ? 'Run openkit run.' : 'Review the issues above before relying on this workspace.', issues.length === 0 ? 'openkit run' : null);
 }
 
 export function renderGlobalDoctorSummary(result) {
@@ -79,6 +87,14 @@ export function renderGlobalDoctorSummary(result) {
     for (const issue of result.issues) {
       lines.push(`- ${issue}`);
     }
+  }
+
+  if (result.nextStep) {
+    lines.push(`Next: ${result.nextStep}`);
+  }
+
+  if (result.recommendedCommand) {
+    lines.push(`Recommended command: ${result.recommendedCommand}`);
   }
 
   return `${lines.join('\n')}\n`;

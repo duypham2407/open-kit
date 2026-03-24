@@ -27,9 +27,10 @@ Prefer the global install path first for everyday use. Use the checked-in reposi
 
 When OpenKit is installed globally, start with:
 
-- `openkit install-global`
+- `npm install -g openkit`
+- `openkit run`
 - `openkit doctor` for global install readiness, drift, and missing-prerequisite checks
-- `openkit run <args>` for the supported global launcher path
+- `openkit run <args>` for the supported global launcher path and first-time setup
 - `openkit upgrade` to refresh the global kit bundle
 - `openkit uninstall [--remove-workspaces]` to remove the global kit and optionally clear workspace state
 

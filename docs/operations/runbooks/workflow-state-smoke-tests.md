@@ -8,12 +8,13 @@ Many commands in this document mutate project state. Do not run the manual examp
 
 Use one of these safer approaches before running any mutating command shown later in this document:
 
-- work in a temporary throwaway repository when validating `openkit install-global`, `openkit run`, or workspace bootstrap handling
+- work in a temporary throwaway repository when validating first-run `openkit run`, manual `openkit install-global`, or workspace bootstrap handling
 - use a temporary state file or temporary project copy when validating `node .opencode/workflow-state.js` mutation commands
 - if you must point at this repository, restore any changed files immediately after the check
 
 High-risk mutating commands called out in this document include:
 
+- `openkit run`
 - `openkit install-global`
 - `node .opencode/workflow-state.js sync-install-manifest <name>`
 - `node .opencode/workflow-state.js start-task ...`
@@ -31,9 +32,9 @@ These checks validate OpenKit's supported wrapper operator path plus the workflo
 
 When you are validating operator-facing behavior, treat this order as primary:
 
-1. `openkit install-global`
-2. `openkit doctor`
-3. `openkit run`
+1. `npm install -g openkit`
+2. `openkit run`
+3. `openkit doctor`
 4. `node .opencode/workflow-state.js ...` only when you need raw repository/runtime inspection
 
 ## Automated Checks
@@ -111,7 +112,7 @@ node --test tests/cli/openkit-cli.test.js
 
 This covers:
 
-- `openkit install-global` on a fresh machine or temp OpenCode home
+- first-run `openkit run` on a fresh machine or temp OpenCode home
 - `openkit doctor` after global install in a repository with an existing `.opencode/opencode.json`
 - `openkit run` launching a mocked `opencode` through the managed layering path
 - workspace bootstrap and global profile wiring
@@ -125,14 +126,16 @@ Run the manual checks below only in a throwaway repo or temporary project copy u
 On a fresh machine or temporary OpenCode home:
 
 ```bash
-openkit install-global
+npm install -g openkit
+openkit run
 openkit doctor
 ```
 
 Expected outcome:
 
-- `openkit install-global` materializes the kit under the OpenCode home directory
+- the first `openkit run` materializes the kit under the OpenCode home directory automatically
 - `openkit doctor` reports global kit and workspace readiness
+- `openkit install-global` remains available when you want to force the manual setup path explicitly
 
 In a repository that already has `.opencode/opencode.json`:
 

@@ -16,8 +16,9 @@ Use this runbook when you want the practical step-by-step path for working with 
 For normal day-to-day use on a machine with OpenKit installed globally:
 
 ```bash
-openkit doctor
+npm install -g openkit
 openkit run
+openkit doctor
 ```
 
 Lifecycle commands:
@@ -89,7 +90,7 @@ What to look for:
 
 - `doctor` confirms the global kit is installed, the workspace root is available, and the current project can launch with OpenKit cleanly
 
-If `doctor` reports errors, fix those before trusting resume or task-board behavior.
+If `doctor` reports `install-missing`, run `openkit run` for first-time setup. If `doctor` reports other errors, fix those before trusting resume or task-board behavior.
 
 ### 2. Launch OpenKit for the current project
 
@@ -98,6 +99,8 @@ openkit run
 ```
 
 This launches OpenCode with the `openkit` profile and injects the workspace-specific OpenKit environment for the current project.
+
+On the first run on a machine or a fresh OpenCode home, `openkit run` also materializes the managed global kit automatically.
 
 ### 3. Start or resume work
 
@@ -264,12 +267,14 @@ Use the output to confirm the active stage, linked artifacts, and any task-board
 The preferred top-level path is now:
 
 ```bash
-openkit install-global
-openkit doctor
+npm install -g openkit
 openkit run <args>
+openkit doctor
 openkit upgrade
 openkit uninstall
 ```
+
+`openkit install-global` still exists as a manual or compatibility setup command, but it is no longer the preferred onboarding step.
 
 Use the lower-level `.opencode/` runtime commands in this repository when you are validating or maintaining the checked-in compatibility runtime itself.
 

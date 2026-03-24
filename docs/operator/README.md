@@ -16,7 +16,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 
 - Read `README.md` for the top-level product and runtime boundary summary
 - Read `docs/operations/runbooks/openkit-daily-usage.md` for the detailed day-to-day usage path in this repository
-- Install globally with `openkit install-global`, then verify with `openkit doctor`
+- Install the CLI with `npm install -g openkit`, then run `openkit run` for first-time setup and `openkit doctor` to verify readiness
 - Use `/task` unless you already know the work must start in `Quick Task`, `Migration`, or `Full Delivery`
 - Use `context/navigation.md` when you need to locate deeper workflow or standards references
 
@@ -36,7 +36,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Slash commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, `/execute-plan`
 - Global diagnostics: `openkit doctor`
 - Global launcher: `openkit run`
-- Global lifecycle: `openkit install-global`, `openkit upgrade`, `openkit uninstall`
+- Global lifecycle: `npm install -g openkit`, `openkit upgrade`, `openkit uninstall`
 - Runtime inspection: `node .opencode/workflow-state.js status`
 - Compatibility diagnostics: `node .opencode/workflow-state.js doctor`
 - Current state view: `node .opencode/workflow-state.js show`
@@ -45,5 +45,6 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 ## Boundary Notes
 
 - The preferred user path is the global OpenKit install in the OpenCode home directory
+- `openkit install-global` remains available as a manual or compatibility setup command, but it is no longer the preferred onboarding step
 - `.opencode/opencode.json` remains the checked-in authoring and compatibility runtime manifest in this repository
 - `Quick Task+` remains the current semantics of the `quick` lane, not a third live mode

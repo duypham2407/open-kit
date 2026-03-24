@@ -4,7 +4,8 @@ function installGlobalHelp() {
   return [
     'Usage: openkit install-global',
     '',
-    'Install OpenKit globally into the OpenCode home directory.',
+    'Manually install OpenKit globally into the OpenCode home directory.',
+    'Most users should run `openkit run`, which performs first-time setup automatically.',
   ].join('\n');
 }
 

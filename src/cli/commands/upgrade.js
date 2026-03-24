@@ -5,6 +5,7 @@ function upgradeHelp() {
     'Usage: openkit upgrade',
     '',
     'Refresh the globally installed OpenKit kit in the OpenCode home directory.',
+    'Use this when the global install needs to be repaired or refreshed.',
   ].join('\n');
 }
 

@@ -40,7 +40,7 @@ Current repository facts:
 - The current workflow contract is the hard-split design described in `context/core/workflow.md`
 - `context/core/workflow.md` is the canonical workflow-semantics document for lane behavior, stages, escalation, approvals, and quick-lane artifact expectations
 - Historical planning and example docs have been intentionally pruned from the working tree; prefer current runtime docs and git history when older rationale is needed
-- `openkit install-global`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit
+- `npm install -g openkit`, `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit
 - `.opencode/opencode.json` is present as the runtime manifest for this kit
 - `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item
 - `.opencode/work-items/` is present as the internal per-item workflow backing store for managed runtime state
@@ -70,7 +70,7 @@ Approved follow-on direction from FEATURE-002 also includes:
 
 The next product-layer direction is the global OpenKit kit layered over OpenCode while preserving the checked-in authoring and compatibility runtime. In this repository today:
 
-- the global install path is implemented for the `openkit` CLI and stores the managed kit inside the OpenCode home directory
+- the global install path is implemented for the `openkit` CLI and stores the managed kit inside the OpenCode home directory, materializing it automatically on first `openkit run`
 - `.opencode/opencode.json` remains the checked-in authoring and compatibility runtime manifest
 - `registry.json` remains checked-in local metadata describing repository surfaces and profiles
 - `.opencode/install-manifest.json` remains additive local install metadata for this repository

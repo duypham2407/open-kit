@@ -4,7 +4,8 @@ function installHelp() {
   return [
     'Usage: openkit install',
     '',
-    'Compatibility alias for `openkit install-global`.',
+    'Compatibility alias for manual global setup.',
+    'Most users should run `openkit run`.',
   ].join('\n');
 }
 

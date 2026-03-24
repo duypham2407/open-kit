@@ -30,11 +30,13 @@ What this directory is not:
 
 When the global OpenKit install exists elsewhere, the intended product path is:
 
-- `openkit install-global`
+- `npm install -g openkit`
 - `openkit doctor`
 - `openkit run`
 - `openkit upgrade`
 - `openkit uninstall`
+
+`openkit install-global` remains available as a manual or compatibility setup command when you need it.
 
 In this repository, `.opencode/` is still the concrete checked-in runtime that powers the lower-level workflow-state path and supports maintainer/runtime inspection.
 

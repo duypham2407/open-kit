@@ -36,6 +36,14 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - `.opencode/work-items/` remains the per-item backing store for managed runtime state
 - `registry.json` and `.opencode/install-manifest.json` remain additive local metadata, not destructive install machinery
 
+## Global Install Notes
+
+- The preferred end-user onboarding path is `npm install -g openkit` followed by `openkit run`.
+- The first `openkit run` materializes the managed kit into the OpenCode home directory automatically.
+- `openkit doctor` is the read-only check for the global install and workspace bootstrap state.
+- `openkit install-global`, `openkit install`, and `openkit init` remain available as manual or compatibility commands.
+- The package intentionally avoids npm `postinstall` side effects; setup happens inside the OpenKit CLI where failures and recovery steps are easier to explain.
+
 ## Historical And Roadmap Notes
 
 - Most historical planning and archive docs were intentionally pruned from the working tree during cleanup.

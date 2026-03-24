@@ -1,0 +1,105 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+
+import { ensureGlobalInstall } from '../../src/global/ensure-install.js';
+import { materializeGlobalInstall } from '../../src/global/materialize.js';
+
+function makeTempDir() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-global-ensure-'));
+}
+
+function writeJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+test('ensureGlobalInstall returns none when install is healthy', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+
+  fs.mkdirSync(fakeBinDir, { recursive: true });
+  fs.writeFileSync(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n', 'utf8');
+  fs.chmodSync(path.join(fakeBinDir, 'opencode'), 0o755);
+
+  const result = ensureGlobalInstall({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+  });
+
+  assert.equal(result.action, 'none');
+  assert.equal(result.installed, false);
+  assert.equal(result.doctor.status, 'healthy');
+});
+
+test('ensureGlobalInstall materializes the global install when it is missing', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  fs.mkdirSync(fakeBinDir, { recursive: true });
+  fs.writeFileSync(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n', 'utf8');
+  fs.chmodSync(path.join(fakeBinDir, 'opencode'), 0o755);
+
+  const result = ensureGlobalInstall({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+  });
+
+  assert.equal(result.action, 'installed');
+  assert.equal(result.installed, true);
+  assert.equal(result.doctor.status, 'healthy');
+  assert.equal(fs.existsSync(path.join(tempHome, 'kits', 'openkit', '.opencode', 'workflow-state.js')), true);
+});
+
+test('ensureGlobalInstall returns blocked when install state is invalid', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const kitRoot = path.join(tempHome, 'kits', 'openkit');
+
+  writeJson(path.join(kitRoot, 'install-state.json'), {
+    schema: 'wrong-schema',
+    stateVersion: 1,
+    kit: {
+      name: 'OpenKit',
+      version: '0.1.0',
+    },
+    installation: {
+      profile: 'openkit',
+      status: 'installed',
+      installedAt: '2026-03-24T00:00:00.000Z',
+    },
+  });
+
+  const result = ensureGlobalInstall({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: process.env.PATH ?? '',
+    },
+  });
+
+  assert.equal(result.action, 'blocked');
+  assert.equal(result.installed, false);
+  assert.equal(result.doctor.status, 'install-invalid');
+  assert.equal(result.doctor.recommendedCommand, 'openkit upgrade');
+});

@@ -1,7 +1,23 @@
 {
   "name": "openkit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
+  "files": [
+    ".opencode/",
+    "agents/",
+    "assets/",
+    "bin/",
+    "commands/",
+    "context/",
+    "docs/",
+    "hooks/",
+    "skills/",
+    "src/",
+    "tests/",
+    "AGENTS.md",
+    "README.md",
+    "registry.json"
+  ],
   "bin": {
     "openkit": "./bin/openkit.js"
   }
