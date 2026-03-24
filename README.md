@@ -87,6 +87,20 @@ Preferred global path:
 
 Inside the OpenCode session opened by `openkit run`, OpenKit defaults to the `master-orchestrator` agent. Use `Ctrl+P` to open the command palette and run OpenKit commands like `/task`, `/quick-task`, `/migrate`, or `/delivery`.
 
+Quickstart:
+
+```bash
+npm install -g @duypham93/openkit
+openkit run
+```
+
+First session:
+
+1. Wait for OpenCode to open with the `master-orchestrator` agent.
+2. Press `Ctrl+P` to open the command palette.
+3. Run `/task` for the safest default entrypoint.
+4. Use `/quick-task`, `/migrate`, or `/delivery` only when you already know the right lane.
+
 In this worktree today:
 
 - the global install path is implemented for the `openkit` CLI and is now the preferred user experience.

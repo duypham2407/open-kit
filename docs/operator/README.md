@@ -21,6 +21,15 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Use `/task` unless you already know the work must start in `Quick Task`, `Migration`, or `Full Delivery`
 - Use `context/navigation.md` when you need to locate deeper workflow or standards references
 
+## Minimal First Session
+
+- `npm install -g @duypham93/openkit`
+- `openkit run`
+- Wait for OpenCode to open with `master-orchestrator`
+- Press `Ctrl+P`
+- Run `/task <what you want to do>`
+- Fall back to `/quick-task`, `/migrate`, or `/delivery` only when the lane is obvious
+
 ## Operator Routes
 
 - Workflow contract: `context/core/workflow.md`
