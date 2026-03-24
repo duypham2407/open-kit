@@ -19,10 +19,10 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
     OPENKIT_WORKFLOW_STATE: paths.workflowStatePath,
     OPENKIT_KIT_ROOT: paths.kitRoot,
     OPENKIT_HOME: paths.openCodeHome,
-    OPENCODE_CONFIG_DIR: paths.profilesRoot,
+    OPENCODE_CONFIG_DIR: paths.kitRoot,
   };
 
-  const result = spawn('opencode', ['--profile', 'openkit', ...args], {
+  const result = spawn('opencode', [paths.projectRoot, ...args], {
     cwd: paths.projectRoot,
     env: launcherEnv,
     encoding: 'utf8',

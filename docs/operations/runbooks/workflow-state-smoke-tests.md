@@ -32,7 +32,7 @@ These checks validate OpenKit's supported wrapper operator path plus the workflo
 
 When you are validating operator-facing behavior, treat this order as primary:
 
-1. `npm install -g openkit`
+1. `npm install -g @duypham93/openkit`
 2. `openkit run`
 3. `openkit doctor`
 4. `node .opencode/workflow-state.js ...` only when you need raw repository/runtime inspection
@@ -126,7 +126,7 @@ Run the manual checks below only in a throwaway repo or temporary project copy u
 On a fresh machine or temporary OpenCode home:
 
 ```bash
-npm install -g openkit
+npm install -g @duypham93/openkit
 openkit run
 openkit doctor
 ```

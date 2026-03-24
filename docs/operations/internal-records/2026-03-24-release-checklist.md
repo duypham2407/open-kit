@@ -1,18 +1,18 @@
-# OpenKit 0.2.0 Release Checklist
+# OpenKit 0.2.2 Release Checklist
 
 Date: 2026-03-24
 
 ## Scope
 
-- simplified onboarding with `npm install -g openkit` followed by `openkit run`
+- simplified onboarding with `npm install -g @duypham93/openkit` followed by `openkit run`
 - automatic first-run global kit setup when the install is missing
 - doctor guidance with `Next:` and `Recommended command:` output
 - manual and compatibility retention for `openkit install-global`, `openkit install`, and `openkit init`
 
 ## Pre-Publish
 
-- confirm `package.json` version is `0.2.0`
-- confirm docs describe `npm install -g openkit` and `openkit run` as the preferred path
+- confirm `package.json` version is `0.2.2`
+- confirm docs describe `npm install -g @duypham93/openkit` and `openkit run` as the preferred path
 - confirm release note draft is up to date in `docs/operations/internal-records/2026-03-24-simplified-install-ux.md`
 - run:
 
@@ -26,7 +26,7 @@ node --test tests/cli/openkit-cli.test.js tests/global/*.test.js tests/runtime/*
 npm pack
 ```
 
-- verify the tarball name is `openkit-0.2.0.tgz`
+- verify the tarball name is `duypham93-openkit-0.2.2.tgz`
 
 ## Local Smoke Test
 
@@ -40,7 +40,7 @@ npm pack
 - publish the package from the repository root:
 
 ```bash
-npm publish
+npm publish --access public
 ```
 
 - if using the packed tarball path explicitly, publish the generated archive instead
@@ -50,13 +50,13 @@ npm publish
 - verify the published version:
 
 ```bash
-npm view openkit version
+npm view @duypham93/openkit version
 ```
 
 - install globally on a clean machine or temporary prefix:
 
 ```bash
-npm install -g openkit
+npm install -g @duypham93/openkit
 ```
 
 - verify:
@@ -75,5 +75,5 @@ openkit doctor
 ```text
 simplify global OpenKit onboarding
 
-Make `openkit run` perform first-time global setup automatically so users can start with `npm install -g openkit` and launch immediately. Update doctor guidance, command help, docs, and tests to support the new onboarding flow while keeping manual install commands for compatibility.
+Make `openkit run` perform first-time global setup automatically so users can start with `npm install -g @duypham93/openkit` and launch immediately. Update doctor guidance, command help, docs, and tests to support the new onboarding flow while keeping manual install commands for compatibility.
 ```

@@ -12,7 +12,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - There is no single canonical package manager or language toolchain for future applications yet.
 - OpenKit uses the mode-aware workflow documented in `context/core/workflow.md`; keep tooling and command guidance here aligned with that live contract instead of re-stating lane policy in full.
 - The active compatibility mirror uses a mode-aware schema and `.opencode/workflow-state.js` supports that workflow model.
-- The preferred operator install path is now global: `npm install -g openkit`, then `openkit run` and `openkit doctor`.
+- The preferred operator install path is now global: `npm install -g @duypham93/openkit`, then `openkit run` and `openkit doctor`.
 - The checked-in repository-local runtime still exists as the authoring and compatibility surface under `.opencode/`.
 - `registry.json` and `.opencode/install-manifest.json` are additive local metadata surfaces; they do not imply destructive install or plugin-only packaging.
 - Repository-internal runtime surfaces still include workflow state, workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs.
@@ -23,7 +23,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - Session hook configuration lives in `hooks/hooks.json`.
 - The session-start hook script lives in `hooks/session-start`.
 - The global OpenKit CLI entrypoint lives at `bin/openkit.js`.
-- The OpenCode kit manifest lives in `.opencode/opencode.json`.
+- The repository-local OpenCode project config lives in `.opencode/opencode.json`.
 - The global install writes its own profile manifest under the OpenCode home directory.
 - The active compatibility mirror lives in `.opencode/workflow-state.json`.
 - The managed work-item backing store lives in `.opencode/work-items/`.
@@ -37,7 +37,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 
 These are repository workflow commands, not application build/lint/test commands:
 
-- `npm install -g openkit`
+- `npm install -g @duypham93/openkit`
 - `openkit install-global`
 - `openkit doctor`
 - `openkit run [args]`
@@ -78,11 +78,11 @@ These are repository workflow commands, not application build/lint/test commands
 Current workflow-state behavior:
 
 - The CLI understands the current mode-aware workflow model.
-- `npm install -g openkit` installs the OpenKit CLI globally.
+- `npm install -g @duypham93/openkit` installs the OpenKit CLI globally.
 - `openkit run` materializes the globally managed kit into the OpenCode home directory on first use when needed.
 - `openkit doctor` checks the global install and the current workspace bootstrap.
 - `openkit install-global` remains available as a manual or compatibility setup path.
-- `openkit run` launches OpenCode with the globally installed `openkit` profile and workspace-specific environment.
+- `openkit run` launches OpenCode with the OpenKit-managed config directory and workspace-specific environment.
 - `openkit upgrade` refreshes the global managed kit bundle in place.
 - `openkit uninstall` removes the global managed kit and profile, with optional workspace cleanup.
 - `status`, `doctor`, `version`, `profiles`, `show-profile`, and `sync-install-manifest` are part of the current runtime inspection surface.

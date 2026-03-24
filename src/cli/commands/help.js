@@ -3,7 +3,7 @@ function topLevelHelp() {
     'Usage: openkit <command> [options]',
     '',
     'Quickstart:',
-    '  npm install -g openkit',
+    '  npm install -g @duypham93/openkit',
     '  openkit run',
     '',
     'Commands:',

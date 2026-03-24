@@ -1,6 +1,6 @@
 {
-  "name": "openkit",
-  "version": "0.2.0",
+  "name": "@duypham93/openkit",
+  "version": "0.2.2",
   "type": "module",
   "files": [
     ".opencode/",
@@ -19,6 +19,6 @@
     "registry.json"
   ],
   "bin": {
-    "openkit": "./bin/openkit.js"
+    "openkit": "bin/openkit.js"
   }
 }

@@ -16,7 +16,7 @@ Use this runbook when you want the practical step-by-step path for working with 
 For normal day-to-day use on a machine with OpenKit installed globally:
 
 ```bash
-npm install -g openkit
+npm install -g @duypham93/openkit
 openkit run
 openkit doctor
 ```
@@ -267,7 +267,7 @@ Use the output to confirm the active stage, linked artifacts, and any task-board
 The preferred top-level path is now:
 
 ```bash
-npm install -g openkit
+npm install -g @duypham93/openkit
 openkit run <args>
 openkit doctor
 openkit upgrade

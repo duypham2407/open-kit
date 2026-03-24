@@ -4,7 +4,7 @@ Date: 2026-03-24
 
 ## Change Summary
 
-- the preferred onboarding flow is now `npm install -g openkit` followed by `openkit run`
+- the preferred onboarding flow is now `npm install -g @duypham93/openkit` followed by `openkit run`
 - `openkit run` performs first-time global kit setup automatically when the install is missing
 - `openkit doctor` now reports next-step guidance and recommended commands
 - `openkit install-global`, `openkit install`, and `openkit init` remain available as manual or compatibility commands
@@ -20,7 +20,7 @@ Date: 2026-03-24
 - new-user quickstart:
 
 ```bash
-npm install -g openkit
+npm install -g @duypham93/openkit
 openkit run
 openkit doctor
 ```
@@ -30,7 +30,7 @@ openkit doctor
 
 ## Release Notes Draft
 
-- Simplified onboarding so users can install the CLI with `npm install -g openkit` and start with `openkit run`
+- Simplified onboarding so users can install the CLI with `npm install -g @duypham93/openkit` and start with `openkit run`
 - Added automatic first-run global kit setup when the managed install is missing
 - Added doctor guidance with `Next:` and `Recommended command:` output for missing, invalid, healthy, and workspace-issue states
 - Kept `openkit install-global`, `openkit install`, and `openkit init` for manual and compatibility workflows

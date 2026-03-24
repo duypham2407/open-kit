@@ -5,7 +5,6 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
-  CONFIG_DIR_RELATIVE_PATHS,
   buildOpenCodeLayering,
 } from '../../src/runtime/opencode-layering.js';
 import { launchManagedOpenCode } from '../../src/runtime/launcher.js';
@@ -23,8 +22,7 @@ test('buildOpenCodeLayering uses the managed config dir when no baseline config 
   const projectRoot = makeTempDir();
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
-    model: 'managed-model',
-    commands_dir: 'commands',
+    $schema: 'https://opencode.ai/config.json',
   });
 
   const result = buildOpenCodeLayering({ projectRoot, env: {} });
@@ -41,19 +39,14 @@ test('buildOpenCodeLayering preserves baseline config while layering managed con
   const baselineConfigDir = path.join(projectRoot, 'user-config');
 
   writeJson(path.join(baselineConfigDir, 'opencode.json'), {
-    commands_dir: 'user-commands',
-    hooks: {
-      config: 'user-hooks/hooks.json',
-    },
+    model: 'baseline-model',
+    instructions: ['./docs/global-instructions.md'],
+    plugin: ['existing-plugin'],
   });
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
-    model: 'managed-model',
-    agents_dir: 'agents',
-    commands_dir: 'commands',
-    hooks: {
-      config: 'hooks/hooks.json',
-    },
+    $schema: 'https://opencode.ai/config.json',
+    instructions: ['AGENTS.md', 'context/navigation.md'],
   });
 
   const result = buildOpenCodeLayering({
@@ -61,12 +54,8 @@ test('buildOpenCodeLayering preserves baseline config while layering managed con
     env: {
       OPENCODE_CONFIG_DIR: baselineConfigDir,
       OPENCODE_CONFIG_CONTENT: JSON.stringify({
-        model: 'baseline-model',
         customSetting: true,
-        skills_dir: 'user-skills',
-        hooks: {
-          enabled: true,
-        },
+        share: 'manual',
       }),
     },
   });
@@ -75,29 +64,24 @@ test('buildOpenCodeLayering preserves baseline config while layering managed con
 
   const layeredContent = JSON.parse(result.env.OPENCODE_CONFIG_CONTENT);
   assert.equal(layeredContent.customSetting, true);
-  assert.equal(layeredContent.model, 'managed-model');
-  assert.equal(layeredContent.commands_dir, 'commands');
-  assert.equal(layeredContent.agents_dir, 'agents');
-  assert.equal(layeredContent.skills_dir, path.join(baselineConfigDir, 'user-skills'));
-  assert.deepEqual(layeredContent.hooks, {
-    enabled: true,
-    config: 'hooks/hooks.json',
-  });
+  assert.equal(layeredContent.share, 'manual');
+  assert.equal(layeredContent.model, 'baseline-model');
+  assert.equal(layeredContent.default_agent, undefined);
+  assert.deepEqual(layeredContent.plugin, ['existing-plugin']);
+  assert.deepEqual(layeredContent.instructions, ['AGENTS.md', 'context/navigation.md']);
   assert.equal(result.baseline.configDir, baselineConfigDir);
-  assert.equal(result.baseline.config.commands_dir, path.join(baselineConfigDir, 'user-commands'));
-  assert.equal(
-    result.baseline.config.hooks.config,
-    path.join(baselineConfigDir, 'user-hooks', 'hooks.json')
-  );
   assert.equal(result.baseline.config.model, 'baseline-model');
+  assert.deepEqual(result.baseline.config.instructions, [
+    path.join(baselineConfigDir, 'docs/global-instructions.md'),
+  ]);
 });
 
-test('buildOpenCodeLayering only normalizes the documented config-dir-relative keys', () => {
+test('buildOpenCodeLayering only resolves instruction paths relative to the config dir', () => {
   const projectRoot = makeTempDir();
   const baselineConfigDir = path.join(projectRoot, 'user-config');
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
-    model: 'managed-model',
+    $schema: 'https://opencode.ai/config.json',
   });
 
   const result = buildOpenCodeLayering({
@@ -105,23 +89,13 @@ test('buildOpenCodeLayering only normalizes the documented config-dir-relative k
     env: {
       OPENCODE_CONFIG_DIR: baselineConfigDir,
       OPENCODE_CONFIG_CONTENT: JSON.stringify({
-        model: 'baseline-model',
-        agents_dir: 'agents',
-        skills_dir: 'skills',
-        commands_dir: 'commands',
-        hooks: {
-          config: 'hooks/hooks.json',
-        },
+        instructions: ['docs/local.md'],
         otherRelativePath: 'notes/local.md',
       }),
     },
   });
 
-  assert.deepEqual(CONFIG_DIR_RELATIVE_PATHS, ['agents_dir', 'commands_dir', 'skills_dir', 'hooks.config']);
-  assert.equal(result.baseline.config.agents_dir, path.join(baselineConfigDir, 'agents'));
-  assert.equal(result.baseline.config.skills_dir, path.join(baselineConfigDir, 'skills'));
-  assert.equal(result.baseline.config.commands_dir, path.join(baselineConfigDir, 'commands'));
-  assert.equal(result.baseline.config.hooks.config, path.join(baselineConfigDir, 'hooks', 'hooks.json'));
+  assert.deepEqual(result.baseline.config.instructions, [path.join(baselineConfigDir, 'docs/local.md')]);
   assert.equal(result.baseline.config.otherRelativePath, 'notes/local.md');
 });
 
@@ -129,7 +103,7 @@ test('launchManagedOpenCode reports a clear error when opencode is unavailable',
   const projectRoot = makeTempDir();
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
-    model: 'managed-model',
+    $schema: 'https://opencode.ai/config.json',
   });
 
   const result = launchManagedOpenCode([], {
@@ -153,7 +127,7 @@ test('launchManagedOpenCode uses interactive stdio by default for the real launc
   let spawnCall = null;
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
-    model: 'managed-model',
+    $schema: 'https://opencode.ai/config.json',
   });
 
   const result = launchManagedOpenCode(['status'], {
@@ -178,13 +152,13 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
   const baselineConfigDir = path.join(projectRoot, 'user-config');
 
   writeJson(path.join(baselineConfigDir, 'opencode.json'), {
-    skills_dir: 'baseline-skills',
+    model: 'baseline-model',
+    instructions: ['./docs/global-instructions.md'],
   });
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
-    model: 'managed-model',
-    commands_dir: 'commands',
-    agents_dir: 'agents',
+    $schema: 'https://opencode.ai/config.json',
+    instructions: ['AGENTS.md', 'context/navigation.md'],
   });
 
   fs.mkdirSync(fakeBinDir, { recursive: true });
@@ -223,8 +197,7 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
 
   const layeredContent = JSON.parse(payload.configContent);
   assert.equal(layeredContent.customSetting, true);
-  assert.equal(layeredContent.model, 'managed-model');
-  assert.equal(layeredContent.commands_dir, 'commands');
-  assert.equal(layeredContent.agents_dir, 'agents');
-  assert.equal(layeredContent.skills_dir, path.join(baselineConfigDir, 'baseline-skills'));
+  assert.equal(layeredContent.model, 'baseline-model');
+  assert.equal(layeredContent.default_agent, undefined);
+  assert.deepEqual(layeredContent.instructions, ['AGENTS.md', 'context/navigation.md']);
 });

@@ -52,6 +52,7 @@ export function getGlobalPaths(options = {}) {
   return {
     openCodeHome,
     kitRoot,
+    kitConfigPath: path.join(kitRoot, 'opencode.json'),
     installStatePath: path.join(kitRoot, 'install-state.json'),
     managedFilesPath: path.join(kitRoot, 'managed-files.json'),
     profilesRoot,

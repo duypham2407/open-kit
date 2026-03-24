@@ -32,10 +32,10 @@ approval_gate: tech_lead_to_fullstack
 ## Target UX
 
 - Fresh machine install:
-  - `npx openkit@latest install-global`
-  - `npx openkit@latest doctor`
+  - `npx @duypham93/openkit@latest install-global`
+  - `npx @duypham93/openkit@latest doctor`
 - Day-to-day usage in any repo:
-  - `opencode --profile openkit`
+  - `openkit run`
 - Existing repo should not need checked-in `agents/`, `skills/`, `commands/`, or `.opencode/` surfaces just to use the kit.
 
 ## Proposed Runtime Shape
@@ -105,7 +105,7 @@ approval_gate: tech_lead_to_fullstack
 
 ### [ ] Task 7: Register and validate the OpenCode profile integration
 - Files: global profile config templates, launcher wiring, doctor/profile checks
-- Goal: make `opencode --profile openkit` a supported path after global installation.
+- Goal: make `openkit run` the supported path after global installation, with OpenCode launched through managed config injection rather than a profile flag.
 - Validation: profile registration can be inspected; doctor confirms registration; run-path smoke tests succeed.
 - Notes:
   - do not assume OpenCode plugin APIs that are not proven; verify the real profile/config surface during implementation

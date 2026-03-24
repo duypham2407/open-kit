@@ -8,7 +8,7 @@ For phase-1 navigation, treat this file as a local runtime boundary note, not as
 
 What lives here:
 
-- `.opencode/opencode.json`: the current repository-local runtime manifest
+- `.opencode/opencode.json`: the current repository-local OpenCode project config
 - `.opencode/workflow-state.json`: the active compatibility mirror
 - `.opencode/work-items/`: per-item backing store
 - `.opencode/workflow-state.js`: lower-level runtime utility CLI
@@ -30,7 +30,7 @@ What this directory is not:
 
 When the global OpenKit install exists elsewhere, the intended product path is:
 
-- `npm install -g openkit`
+- `npm install -g @duypham93/openkit`
 - `openkit doctor`
 - `openkit run`
 - `openkit upgrade`

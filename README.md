@@ -28,7 +28,7 @@ This repository currently contains two active surface types:
 
 1. **Global managed kit path**
    - the `openkit` CLI now installs the kit into the OpenCode home directory
-   - install the CLI with `npm install -g openkit`, then use `openkit run` and `openkit doctor` as the intended operator path
+   - install the CLI with `npm install -g @duypham93/openkit`, then use `openkit run` and `openkit doctor` as the intended operator path
    - global workspace state is created per project under the OpenCode home directory instead of copying the kit into each repository
 
 2. **Checked-in authoring and compatibility runtime**
@@ -79,11 +79,13 @@ The preferred product path is now the globally installed OpenKit kit. This repos
 
 Preferred global path:
 
-1. Run `npm install -g openkit` to install the CLI once on the machine.
-2. Run `openkit run <args>` to launch `opencode --profile openkit`; on first run, OpenKit materializes the global kit into the OpenCode home directory automatically.
+1. Run `npm install -g @duypham93/openkit` to install the CLI once on the machine.
+2. Run `openkit run <args>` to launch OpenCode with the OpenKit-managed kit directory injected as the active config for the current project; on first run, OpenKit materializes the global kit into the OpenCode home directory automatically.
 3. Run `openkit doctor` to confirm the global install and current workspace are healthy.
 4. Run `openkit upgrade` to refresh the installed global kit when a newer package version is available.
 5. Run `openkit uninstall [--remove-workspaces]` when you need to remove the global kit and optionally clear workspace state.
+
+Inside the OpenCode session opened by `openkit run`, use `Ctrl+P` to open the command palette and run OpenKit commands like `/task`, `/quick-task`, `/migrate`, or `/delivery`.
 
 In this worktree today:
 
@@ -100,7 +102,7 @@ On first run, `openkit run` materializes the managed global kit into the OpenCod
 
 Current boundary:
 
-- `.opencode/opencode.json` is still the live runtime manifest in this checked-in repository runtime.
+- `.opencode/opencode.json` is the repository-local OpenCode config for this checked-in authoring surface.
 - `.opencode/workflow-state.json`, `.opencode/work-items/`, `.opencode/workflow-state.js`, `hooks/`, `agents/`, `skills/`, `commands/`, `context/`, and `docs/` remain repository-internal runtime or support surfaces.
 - `registry.json` is local metadata describing repository surfaces and the global-kit compatibility contract.
 - `.opencode/install-manifest.json` records the local installed profile for this repository and remains additive metadata rather than a destructive installer.
@@ -114,7 +116,7 @@ Install-direction guardrails:
 
 Repository-internal vs global-kit summary:
 
-- Global-kit user path: `npm install -g openkit`, `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall`
+- Global-kit user path: `npm install -g @duypham93/openkit`, `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall`
 - Global kit lives under the OpenCode home directory, not inside each project
 - Repository-internal authoring surface remains: `.opencode/opencode.json`, workflow-state files, the workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs
 - The checked-in runtime remains useful for maintainers and compatibility testing even though end-user installation is now global-first
@@ -196,7 +198,7 @@ node .opencode/workflow-state.js show
 node --test ".opencode/tests/*.test.js"
 ```
 
-The default manifest currently carries a starter model value inherited from the existing repo setup. Treat that as a default, not as a statement that the kit only supports one model.
+The repository-local OpenCode config stays intentionally minimal and should not be treated as proof that the kit only supports one model or one launcher shape.
 
 ## Registry Metadata
 
@@ -204,7 +206,7 @@ OpenKit includes a small checked-in metadata layer for local inspection and for 
 
 - `registry.json` describes the component categories that exist in this repository today, including agents, skills, commands, artifact directories, runtime files, hooks, and anchor docs, while also declaring which metadata participates in the global-kit compatibility contract.
 - `.opencode/install-manifest.json` records which local profile is active for this repository, points back to `registry.json`, and documents the current install stance as additive and non-destructive.
-- `.opencode/opencode.json` remains the live repository-local manifest while also exposing pointers to both metadata files plus the active profile name and current wrapper-readiness status.
+- `.opencode/opencode.json` remains the repository-local OpenCode config, while `registry.json` and `.opencode/install-manifest.json` carry the additive OpenKit metadata for this repository.
 
 This metadata is local repository state, not a remote installer. It does not fetch, download, replace, or update components from elsewhere.
 
@@ -225,7 +227,7 @@ The install manifest is intended to make future runtime commands and diagnostics
 The current workflow for profile metadata is local and inspectable:
 
 1. `registry.json` defines the available component categories, checked-in components, and named profiles.
-2. `.opencode/opencode.json` points to the registry and install manifest, declares the repository's active profile, and remains the live manifest for the current repository-local runtime.
+2. `.opencode/opencode.json` remains the repository-local OpenCode config for this worktree.
 3. `.opencode/install-manifest.json` records which profile is installed for this working tree, which broad component categories are present, and that installation remains additive rather than destructive.
 4. `node .opencode/workflow-state.js profiles` lists the named profiles from the registry.
 5. `node .opencode/workflow-state.js show-profile <name>` shows whether a profile is the repository default and which component categories it includes.
@@ -282,7 +284,7 @@ The command surface above is the current live interface. The live contract keeps
 
 For normal day-to-day use:
 
-- prefer `npm install -g openkit`, then `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall`
+- prefer `npm install -g @duypham93/openkit`, then `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall`
 - use the lower-level checked-in runtime path below when you are maintaining or validating this repository itself
 
 1. Run `node .opencode/workflow-state.js status` to see whether work is already in progress.

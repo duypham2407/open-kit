@@ -1,13 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const CONFIG_DIR_RELATIVE_PATHS = [
-  'agents_dir',
-  'commands_dir',
-  'skills_dir',
-  'hooks.config',
-];
-
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
@@ -51,11 +44,6 @@ function parseJsonContent(content, sourceLabel) {
   }
 }
 
-function shouldResolveRelativeToConfigDir(keyPath) {
-  const joinedPath = keyPath.filter((segment) => typeof segment === 'string').join('.');
-  return CONFIG_DIR_RELATIVE_PATHS.includes(joinedPath);
-}
-
 function normalizeConfigPaths(value, configDir, keyPath = []) {
   if (Array.isArray(value)) {
     return value.map((entry, index) => normalizeConfigPaths(entry, configDir, [...keyPath, index]));
@@ -74,11 +62,14 @@ function normalizeConfigPaths(value, configDir, keyPath = []) {
     return value;
   }
 
-  if (!shouldResolveRelativeToConfigDir(keyPath)) {
-    return value;
+  const parentKey = keyPath.at(-2);
+  const currentKey = keyPath.at(-1);
+
+  if (currentKey === 'instructions' || parentKey === 'instructions') {
+    return path.resolve(configDir, value);
   }
 
-  return path.resolve(configDir, value);
+  return value;
 }
 
 export function buildOpenCodeLayering({ projectRoot, env = process.env }) {

@@ -58,23 +58,9 @@ function listManagedFiles(kitRoot) {
   return files.sort();
 }
 
-function createProfileManifest(kitRoot, profileHooksPath) {
-  const kitManifestPath = path.join(kitRoot, '.opencode', 'opencode.json');
-  const kitManifest = JSON.parse(fs.readFileSync(kitManifestPath, 'utf8'));
-
+function createOpenCodeConfig() {
   return {
-    model: kitManifest.model,
-    agents_dir: path.join(kitRoot, 'agents'),
-    skills_dir: path.join(kitRoot, 'skills'),
-    commands_dir: path.join(kitRoot, 'commands'),
-    hooks: {
-      config: profileHooksPath,
-    },
-    openkit: {
-      profile: 'openkit',
-      kit_root: kitRoot,
-      manifest: kitManifestPath,
-    },
+    $schema: 'https://opencode.ai/config.json',
   };
 }
 
@@ -92,8 +78,11 @@ export function materializeGlobalInstall({ env = process.env, kitVersion = '0.1.
   }
 
   const installState = createGlobalInstallState({ kitVersion, profile: 'openkit' });
+  const openCodeConfig = createOpenCodeConfig();
+
+  writeJson(paths.kitConfigPath, openCodeConfig);
   writeJson(paths.installStatePath, installState);
-  writeJson(paths.profileManifestPath, createProfileManifest(paths.kitRoot, paths.profileHooksPath));
+  writeJson(paths.profileManifestPath, openCodeConfig);
   writeJson(paths.profileHooksPath, {
     hooks: {
       SessionStart: [

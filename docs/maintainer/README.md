@@ -31,14 +31,14 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 
 ## Repository Internals To Keep Honest
 
-- `.opencode/opencode.json` remains the checked-in authoring and compatibility runtime manifest even though the preferred end-user install path is now global
+- `.opencode/opencode.json` remains the checked-in repository-local OpenCode config even though the preferred end-user install path is now global
 - `.opencode/workflow-state.json` remains the active compatibility mirror for the active work item
 - `.opencode/work-items/` remains the per-item backing store for managed runtime state
 - `registry.json` and `.opencode/install-manifest.json` remain additive local metadata, not destructive install machinery
 
 ## Global Install Notes
 
-- The preferred end-user onboarding path is `npm install -g openkit` followed by `openkit run`.
+- The preferred end-user onboarding path is `npm install -g @duypham93/openkit` followed by `openkit run`.
 - The first `openkit run` materializes the managed kit into the OpenCode home directory automatically.
 - `openkit doctor` is the read-only check for the global install and workspace bootstrap state.
 - `openkit install-global`, `openkit install`, and `openkit init` remain available as manual or compatibility commands.

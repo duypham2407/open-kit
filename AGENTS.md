@@ -40,8 +40,8 @@ Current repository facts:
 - The current workflow contract is the hard-split design described in `context/core/workflow.md`
 - `context/core/workflow.md` is the canonical workflow-semantics document for lane behavior, stages, escalation, approvals, and quick-lane artifact expectations
 - Historical planning and example docs have been intentionally pruned from the working tree; prefer current runtime docs and git history when older rationale is needed
-- `npm install -g openkit`, `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit
-- `.opencode/opencode.json` is present as the runtime manifest for this kit
+- `npm install -g @duypham93/openkit`, `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit
+- `.opencode/opencode.json` is present as the repository-local OpenCode config for this kit
 - `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item
 - `.opencode/work-items/` is present as the internal per-item workflow backing store for managed runtime state
 - `.opencode/workflow-state.js` now supports the live mode-aware workflow state contract
@@ -71,7 +71,7 @@ Approved follow-on direction from FEATURE-002 also includes:
 The next product-layer direction is the global OpenKit kit layered over OpenCode while preserving the checked-in authoring and compatibility runtime. In this repository today:
 
 - the global install path is implemented for the `openkit` CLI and stores the managed kit inside the OpenCode home directory, materializing it automatically on first `openkit run`
-- `.opencode/opencode.json` remains the checked-in authoring and compatibility runtime manifest
+- `.opencode/opencode.json` remains the checked-in repository-local OpenCode config for the authoring surface
 - `registry.json` remains checked-in local metadata describing repository surfaces and profiles
 - `.opencode/install-manifest.json` remains additive local install metadata for this repository
 - project artifacts stay local to the target repository, while kit installation and workspace state are managed through the global OpenKit path
@@ -130,7 +130,7 @@ Current state:
 - No single canonical package manager or language toolchain has been established for future generated applications
 - Node.js is a documented runtime dependency for the workflow-state utility only, not for future application code by default
 - The workflow-state CLI exists and is aligned with the live stage and approval model documented in this repository
-- The repository-local runtime still boots from `.opencode/opencode.json`; do not claim that a root `opencode.json` entrypoint already exists unless the file is added
+- The repository-local OpenCode config still lives at `.opencode/opencode.json`; do not claim that a root `opencode.json` entrypoint already exists unless the file is added
 
 Rules for agents:
 
@@ -153,8 +153,8 @@ These are illustrative patterns, not current repository commands.
 
 The operating system layer is file-backed and should stay explicit.
 
-- Runtime manifest: `.opencode/opencode.json`
-- Runtime manifest for the checked-in authoring surface: `.opencode/opencode.json`
+- Repository-local OpenCode config: `.opencode/opencode.json`
+- Repository-local OpenCode config for the checked-in authoring surface: `.opencode/opencode.json`
 - Active compatibility mirror: `.opencode/workflow-state.json`
 - Per-item backing store: `.opencode/work-items/`
 - Workflow-state CLI: `node .opencode/workflow-state.js ...`

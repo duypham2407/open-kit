@@ -27,7 +27,7 @@ Prefer the global install path first for everyday use. Use the checked-in reposi
 
 When OpenKit is installed globally, start with:
 
-- `npm install -g openkit`
+- `npm install -g @duypham93/openkit`
 - `openkit run`
 - `openkit doctor` for global install readiness, drift, and missing-prerequisite checks
 - `openkit run <args>` for the supported global launcher path and first-time setup

@@ -37,7 +37,7 @@ test('openkit --help shows global-install oriented help', () => {
   const result = runCli(['--help']);
 
   assert.equal(result.status, 0);
-  assert.match(result.stdout, /npm install -g openkit/);
+  assert.match(result.stdout, /npm install -g @duypham93\/openkit/);
   assert.match(result.stdout, /perform first-time setup if needed/);
   assert.match(result.stdout, /install-global/);
   assert.match(result.stdout, /upgrade/);
@@ -90,7 +90,8 @@ test('openkit install-global materializes global kit and profile files', () => {
   assert.equal(fs.existsSync(path.join(kitRoot, '.opencode', 'workflow-state.js')), true);
   assert.equal(fs.existsSync(path.join(kitRoot, 'commands', 'migrate.md')), true);
   assert.equal(fs.existsSync(path.join(profileRoot, 'opencode.json')), true);
-  assert.equal(readJson(path.join(profileRoot, 'opencode.json')).openkit.profile, 'openkit');
+  assert.equal(readJson(path.join(profileRoot, 'opencode.json')).$schema, 'https://opencode.ai/config.json');
+  assert.equal(fs.existsSync(path.join(kitRoot, 'opencode.json')), true);
 });
 
 test('openkit init and install remain compatibility aliases for install-global', () => {
@@ -215,10 +216,10 @@ process.stdout.write('mock opencode launched\\n');
   assert.match(result.stdout, /mock opencode launched/);
 
   const invocation = readJson(logPath);
-  assert.deepEqual(invocation.argv, ['--profile', 'openkit', '--mode', 'quick']);
+  assert.deepEqual(invocation.argv, [projectRoot, '--mode', 'quick']);
   assert.equal(fs.realpathSync(invocation.cwd), fs.realpathSync(projectRoot));
   assert.equal(fs.realpathSync(invocation.projectRoot), fs.realpathSync(projectRoot));
-  assert.equal(invocation.configDir, path.join(tempHome, 'profiles', 'openkit'));
+  assert.equal(invocation.configDir, path.join(tempHome, 'kits', 'openkit'));
   assert.match(invocation.workflowState, /workspaces\/.*\/openkit\/\.opencode\/workflow-state\.json$/);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
 });
@@ -291,7 +292,7 @@ process.stdout.write('mock opencode launched after auto-install\\n');
   assert.equal(fs.existsSync(path.join(tempHome, 'kits', 'openkit', '.opencode', 'workflow-state.js')), true);
 
   const invocation = readJson(logPath);
-  assert.deepEqual(invocation.argv, ['--profile', 'openkit']);
+  assert.deepEqual(invocation.argv, [projectRoot]);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
 });
 
