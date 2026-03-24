@@ -1,5 +1,4 @@
 ---
-name: PMAgent
 description: "Product Manager agent. Converts user intent into an approval-ready product brief for full-delivery work."
 mode: subagent
 ---

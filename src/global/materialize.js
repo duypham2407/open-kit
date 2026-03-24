@@ -61,6 +61,7 @@ function listManagedFiles(kitRoot) {
 function createOpenCodeConfig() {
   return {
     $schema: 'https://opencode.ai/config.json',
+    default_agent: 'master-orchestrator',
   };
 }
 

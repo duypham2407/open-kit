@@ -1,5 +1,4 @@
 ---
-name: MasterOrchestrator
 description: "Central brain of the AI Software Factory. Chooses workflow lane, routes tasks between agents, manages feedback loops, and classifies QA errors."
 mode: primary
 ---

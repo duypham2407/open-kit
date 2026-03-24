@@ -1,5 +1,4 @@
 ---
-name: QAAgent
 description: "Quality Assurance agent. Runs QA Lite for quick tasks, migration QA for upgrades, and full QA for delivery work, classifying issues for feedback routing."
 mode: subagent
 permission:

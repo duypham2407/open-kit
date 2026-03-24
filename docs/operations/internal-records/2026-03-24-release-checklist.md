@@ -1,4 +1,4 @@
-# OpenKit 0.2.2 Release Checklist
+# OpenKit 0.2.3 Release Checklist
 
 Date: 2026-03-24
 
@@ -11,7 +11,7 @@ Date: 2026-03-24
 
 ## Pre-Publish
 
-- confirm `package.json` version is `0.2.2`
+- confirm `package.json` version is `0.2.3`
 - confirm docs describe `npm install -g @duypham93/openkit` and `openkit run` as the preferred path
 - confirm release note draft is up to date in `docs/operations/internal-records/2026-03-24-simplified-install-ux.md`
 - run:
@@ -26,13 +26,14 @@ node --test tests/cli/openkit-cli.test.js tests/global/*.test.js tests/runtime/*
 npm pack
 ```
 
-- verify the tarball name is `duypham93-openkit-0.2.2.tgz`
+- verify the tarball name is `duypham93-openkit-0.2.3.tgz`
 
 ## Local Smoke Test
 
 - install the tarball into a temporary prefix
 - verify `openkit --help` shows the new quickstart
 - verify `openkit run` performs first-time setup and hands off to `opencode`
+- verify the materialized kit can load the `master-orchestrator` agent and OpenKit commands through the OpenCode config directory
 
 ## Publish
 

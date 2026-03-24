@@ -90,7 +90,7 @@ test('openkit install-global materializes global kit and profile files', () => {
   assert.equal(fs.existsSync(path.join(kitRoot, '.opencode', 'workflow-state.js')), true);
   assert.equal(fs.existsSync(path.join(kitRoot, 'commands', 'migrate.md')), true);
   assert.equal(fs.existsSync(path.join(profileRoot, 'opencode.json')), true);
-  assert.equal(readJson(path.join(profileRoot, 'opencode.json')).$schema, 'https://opencode.ai/config.json');
+  assert.equal(readJson(path.join(profileRoot, 'opencode.json')).default_agent, 'master-orchestrator');
   assert.equal(fs.existsSync(path.join(kitRoot, 'opencode.json')), true);
 });
 

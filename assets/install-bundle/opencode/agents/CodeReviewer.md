@@ -1,5 +1,4 @@
 ---
-name: CodeReviewer
 description: "Code reviewer subagent. Two-stage review: spec compliance first, then code quality. Dispatched by Fullstack Agent."
 mode: subagent
 permission:

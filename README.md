@@ -85,7 +85,7 @@ Preferred global path:
 4. Run `openkit upgrade` to refresh the installed global kit when a newer package version is available.
 5. Run `openkit uninstall [--remove-workspaces]` when you need to remove the global kit and optionally clear workspace state.
 
-Inside the OpenCode session opened by `openkit run`, use `Ctrl+P` to open the command palette and run OpenKit commands like `/task`, `/quick-task`, `/migrate`, or `/delivery`.
+Inside the OpenCode session opened by `openkit run`, OpenKit defaults to the `master-orchestrator` agent. Use `Ctrl+P` to open the command palette and run OpenKit commands like `/task`, `/quick-task`, `/migrate`, or `/delivery`.
 
 In this worktree today:
 

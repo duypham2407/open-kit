@@ -1,5 +1,4 @@
 ---
-name: TechLeadAgent
 description: "Tech Lead agent. Converts approved architecture into an execution-ready implementation plan and planning handoff."
 mode: subagent
 ---

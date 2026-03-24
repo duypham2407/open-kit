@@ -1,5 +1,4 @@
 ---
-name: ArchitectAgent
 description: "System Architect agent. Converts an approved spec into an architecture decision package that is ready for planning."
 mode: subagent
 ---

@@ -1,5 +1,4 @@
 ---
-name: BAAgent
 description: "Business Analyst agent. Converts an approved brief into a requirements spec with clear acceptance criteria and edge cases."
 mode: subagent
 ---

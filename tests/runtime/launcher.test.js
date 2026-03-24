@@ -23,6 +23,7 @@ test('buildOpenCodeLayering uses the managed config dir when no baseline config 
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
     $schema: 'https://opencode.ai/config.json',
+    default_agent: 'master-orchestrator',
   });
 
   const result = buildOpenCodeLayering({ projectRoot, env: {} });
@@ -46,6 +47,7 @@ test('buildOpenCodeLayering preserves baseline config while layering managed con
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
     $schema: 'https://opencode.ai/config.json',
+    default_agent: 'master-orchestrator',
     instructions: ['AGENTS.md', 'context/navigation.md'],
   });
 
@@ -66,7 +68,7 @@ test('buildOpenCodeLayering preserves baseline config while layering managed con
   assert.equal(layeredContent.customSetting, true);
   assert.equal(layeredContent.share, 'manual');
   assert.equal(layeredContent.model, 'baseline-model');
-  assert.equal(layeredContent.default_agent, undefined);
+  assert.equal(layeredContent.default_agent, 'master-orchestrator');
   assert.deepEqual(layeredContent.plugin, ['existing-plugin']);
   assert.deepEqual(layeredContent.instructions, ['AGENTS.md', 'context/navigation.md']);
   assert.equal(result.baseline.configDir, baselineConfigDir);
@@ -158,6 +160,7 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
     $schema: 'https://opencode.ai/config.json',
+    default_agent: 'master-orchestrator',
     instructions: ['AGENTS.md', 'context/navigation.md'],
   });
 
@@ -198,6 +201,6 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
   const layeredContent = JSON.parse(payload.configContent);
   assert.equal(layeredContent.customSetting, true);
   assert.equal(layeredContent.model, 'baseline-model');
-  assert.equal(layeredContent.default_agent, undefined);
+  assert.equal(layeredContent.default_agent, 'master-orchestrator');
   assert.deepEqual(layeredContent.instructions, ['AGENTS.md', 'context/navigation.md']);
 });

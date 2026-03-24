@@ -1,5 +1,4 @@
 ---
-name: FullstackAgent
 description: "Implementation specialist. Executes quick tasks directly and full-delivery work from approved plans with strong validation discipline."
 mode: subagent
 permission:
