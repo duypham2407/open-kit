@@ -58,7 +58,7 @@ function makeQuickState(overrides = {}) {
   }
 }
 
-function writeManifest(projectRoot, version = "0.2.8") {
+function writeManifest(projectRoot, version = "0.2.9") {
   const opencodeDir = path.join(projectRoot, ".opencode")
   fs.mkdirSync(opencodeDir, { recursive: true })
   fs.writeFileSync(
@@ -149,7 +149,7 @@ test("session-start emits mode-aware resume hint for quick tasks", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /<openkit_runtime_status>/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.8/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.9/)
   assert.match(result.stdout, /startup skill: skipped/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js status/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js doctor/)
