@@ -366,7 +366,7 @@ test('openkit run cleans root compatibility shims when created files are removed
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
 });
 
-test('openkit run creates a module-aware root workflow wrapper with alias support', () => {
+test('openkit run creates CommonJS workflow wrappers without module-boundary warnings', () => {
   const tempHome = makeTempDir();
   const projectRoot = makeTempDir();
   const fakeBinDir = path.join(tempHome, 'bin');
@@ -384,10 +384,23 @@ test('openkit run creates a module-aware root workflow wrapper with alias suppor
 
   assert.equal(result.status, 0);
 
-  const wrapper = fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.js'), 'utf8');
-  assert.match(wrapper, /const \{ spawnSync \} = require\('node:child_process'\);/);
-  assert.match(wrapper, /\['get', 'show'\]/);
-  assert.match(wrapper, /\['--help', 'help'\]/);
+  const rootWrapper = fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.js'), 'utf8');
+  assert.match(rootWrapper, /const \{ spawnSync \} = require\('node:child_process'\);/);
+  assert.match(rootWrapper, /\['get', 'show'\]/);
+  assert.match(rootWrapper, /\['--help', 'help'\]/);
+
+  const workspaceWrapper = fs.readFileSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.js'), 'utf8');
+  assert.match(workspaceWrapper, /const \{ spawnSync \} = require\('node:child_process'\);/);
+  assert.doesNotMatch(workspaceWrapper, /import \{ spawnSync \} from 'node:child_process';/);
+
+  const wrapperRun = spawnSync(process.execPath, ['.opencode/openkit/workflow-state.js', 'help'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+  });
+
+  assert.equal(wrapperRun.status, 0);
+  assert.match(wrapperRun.stdout, /Usage:/);
+  assert.doesNotMatch(wrapperRun.stderr, /MODULE_TYPELESS_PACKAGE_JSON/);
 });
 
 test('openkit run reports missing opencode after first-time setup completes', () => {

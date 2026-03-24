@@ -102,7 +102,7 @@ export function ensureWorkspaceShim(paths) {
   }
 
   const workflowCli = `#!/usr/bin/env node
-import { spawnSync } from 'node:child_process';
+const { spawnSync } = require('node:child_process');
 
 const args = process.argv.slice(2);
 const result = spawnSync(process.execPath, [${JSON.stringify(path.join(paths.kitRoot, '.opencode', 'workflow-state.js'))}, '--state', ${JSON.stringify(paths.workflowStatePath)}, ...args], {
