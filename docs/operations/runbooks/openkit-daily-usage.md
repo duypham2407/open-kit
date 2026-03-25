@@ -117,6 +117,10 @@ openkit configure-agent-models --agent qa-agent --model openai/gpt-5
 
 Use this flow when the same model family exists under multiple providers and you need an exact `provider/model` choice.
 
+The interactive flow now supports numbered provider and model pickers, so you do not need to remember the exact provider/model id up front.
+
+If `opencode models --verbose` exposes variants for the selected model, the interactive flow will also offer a numbered variant picker before saving the override.
+
 ### 3. Start or resume work
 
 If no work is active, start from chat with `/task`, `/quick-task`, or `/delivery`.

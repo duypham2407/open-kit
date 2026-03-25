@@ -105,7 +105,8 @@ Per-agent model setup:
 
 - OpenKit now supports official per-agent model overrides.
 - Use `openkit configure-agent-models --models` to inspect the exact provider-qualified model ids that OpenCode currently exposes.
-- Use `openkit configure-agent-models --interactive` for a guided terminal flow that lets you pick agent and model step by step.
+- Use `openkit configure-agent-models --interactive` for a guided terminal flow that lets you pick agent, provider, and model from numbered lists.
+- When OpenCode exposes variants for a model through `opencode models --verbose`, the interactive flow can also save a variant such as `high`, `low`, or `xhigh` per agent.
 - Save a per-agent override with `openkit configure-agent-models --agent <agent-id> --model <provider/model>`.
 - This is useful when similar model families are available from multiple providers and you need the exact provider/model pair for one agent.
 

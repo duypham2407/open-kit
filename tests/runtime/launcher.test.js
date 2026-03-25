@@ -235,6 +235,7 @@ test('launchGlobalOpenKit injects saved per-agent model overrides into inline co
     agentModels: {
       'qa-agent': {
         model: 'openai/gpt-5',
+        variant: 'high',
       },
     },
   });
@@ -261,4 +262,5 @@ test('launchGlobalOpenKit injects saved per-agent model overrides into inline co
   const inlineConfig = JSON.parse(spawnCall.options.env.OPENCODE_CONFIG_CONTENT);
   assert.equal(inlineConfig.customSetting, true);
   assert.equal(inlineConfig.agent['qa-agent'].model, 'openai/gpt-5');
+  assert.equal(inlineConfig.agent['qa-agent'].variant, 'high');
 });

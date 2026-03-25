@@ -158,10 +158,10 @@ test('configure-agent-models supports an interactive setup flow', async () => {
 
   writeExecutable(
     path.join(fakeBinDir, 'opencode'),
-    '#!/bin/sh\nif [ "$1" = "models" ]; then\n  printf "openai/gpt-5\\nopenai/gpt-5-mini\\nanthropic/claude-sonnet-4-5\\n"\n  exit 0\nfi\nexit 0\n'
+    '#!/bin/sh\nif [ "$1" = "models" ]; then\n  if [ "$2" = "--verbose" ]; then\n    cat <<\'EOF\'\nopenai/gpt-5\n{\n  "variants": {\n    "none": {},\n    "minimal": {},\n    "low": {},\n    "medium": {},\n    "high": {},\n    "xhigh": {}\n  }\n}\nopenai/gpt-5-mini\n{\n  "variants": {}\n}\nanthropic/claude-sonnet-4-5\n{\n  "variants": {\n    "high": {},\n    "max": {}\n  }\n}\nEOF\n    exit 0\n  fi\n  printf "openai/gpt-5\\nopenai/gpt-5-mini\\nanthropic/claude-sonnet-4-5\\n"\n  exit 0\nfi\nexit 0\n'
   );
 
-  const answers = ['7', '', 'gpt-5', '2', 'n'];
+  const answers = ['7', '3', '2', 'n'];
   const result = await runCli(['configure-agent-models', '--interactive'], {
     cwd: worktreeRoot,
     env: {
@@ -178,4 +178,62 @@ test('configure-agent-models supports an interactive setup flow', async () => {
 
   const settings = readJson(path.join(tempHome, 'openkit', 'agent-models.json'));
   assert.equal(settings.agentModels['qa-agent'].model, 'openai/gpt-5-mini');
+});
+
+test('configure-agent-models interactive flow supports provider search without typing full model ids', async () => {
+  const tempHome = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(
+    path.join(fakeBinDir, 'opencode'),
+    '#!/bin/sh\nif [ "$1" = "models" ]; then\n  if [ "$2" = "--verbose" ]; then\n    cat <<\'EOF\'\nopenai/gpt-5\n{\n  "variants": {\n    "high": {}\n  }\n}\nopenai/gpt-5-mini\n{\n  "variants": {}\n}\nanthropic/claude-sonnet-4-5\n{\n  "variants": {\n    "high": {},\n    "max": {}\n  }\n}\ngoogle/gemini-2.5-pro\n{\n  "variants": {\n    "low": {},\n    "high": {}\n  }\n}\nEOF\n    exit 0\n  fi\n  printf "openai/gpt-5\\nopenai/gpt-5-mini\\nanthropic/claude-sonnet-4-5\\ngoogle/gemini-2.5-pro\\n"\n  exit 0\nfi\nexit 0\n'
+  );
+
+  const answers = ['6', 's', 'gemini', '1', 'n'];
+  const result = await runCli(['configure-agent-models', '--interactive'], {
+    cwd: worktreeRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+    prompt: async () => answers.shift() ?? '',
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Available providers/);
+  assert.match(result.stdout, /Matching models/);
+  assert.match(result.stdout, /Saved google\/gemini-2.5-pro for fullstack-agent/);
+
+  const settings = readJson(path.join(tempHome, 'openkit', 'agent-models.json'));
+  assert.equal(settings.agentModels['fullstack-agent'].model, 'google/gemini-2.5-pro');
+});
+
+test('configure-agent-models interactive flow can save a variant for supported providers', async () => {
+  const tempHome = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(
+    path.join(fakeBinDir, 'opencode'),
+    '#!/bin/sh\nif [ "$1" = "models" ]; then\n  if [ "$2" = "--verbose" ]; then\n    cat <<\'EOF\'\nopenai/gpt-5\n{\n  "variants": {\n    "none": {},\n    "minimal": {},\n    "low": {},\n    "medium": {},\n    "high": {},\n    "xhigh": {}\n  }\n}\nopenai/gpt-5-mini\n{\n  "variants": {}\n}\nanthropic/claude-sonnet-4-5\n{\n  "variants": {\n    "high": {},\n    "max": {}\n  }\n}\nEOF\n    exit 0\n  fi\n  printf "openai/gpt-5\\nopenai/gpt-5-mini\\nanthropic/claude-sonnet-4-5\\n"\n  exit 0\nfi\nexit 0\n'
+  );
+
+  const answers = ['7', '3', '1', '7', 'n'];
+  const result = await runCli(['configure-agent-models', '--interactive'], {
+    cwd: worktreeRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+    prompt: async () => answers.shift() ?? '',
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Available variants for openai\/gpt-5/);
+  assert.match(result.stdout, /Saved openai\/gpt-5 \(variant: xhigh\) for qa-agent/);
+
+  const settings = readJson(path.join(tempHome, 'openkit', 'agent-models.json'));
+  assert.equal(settings.agentModels['qa-agent'].model, 'openai/gpt-5');
+  assert.equal(settings.agentModels['qa-agent'].variant, 'xhigh');
 });

@@ -137,6 +137,151 @@ function parseModelIdsFromOutput(output) {
   return [...matches].sort();
 }
 
+function groupModelsByProvider(modelIds) {
+  const grouped = new Map();
+
+  for (const modelId of modelIds) {
+    const separator = modelId.indexOf('/');
+    if (separator === -1) {
+      continue;
+    }
+
+    const provider = modelId.slice(0, separator);
+    const existing = grouped.get(provider) ?? [];
+    existing.push(modelId);
+    grouped.set(provider, existing);
+  }
+
+  return [...grouped.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([provider, models]) => ({
+      provider,
+      models: models.sort(),
+    }));
+}
+
+function parseVerboseModelCatalog(output) {
+  const entries = [];
+  const lines = output.split('\n');
+  const modelIdPattern = /^[a-z0-9._-]+\/[A-Za-z0-9._:-]+$/;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+    if (!modelIdPattern.test(line)) {
+      continue;
+    }
+
+    const entry = {
+      modelId: line,
+      variants: {},
+    };
+
+    let cursor = index + 1;
+    while (cursor < lines.length && lines[cursor].trim().length === 0) {
+      cursor += 1;
+    }
+
+    if (cursor < lines.length && lines[cursor].trim().startsWith('{')) {
+      let depth = 0;
+      const jsonLines = [];
+
+      while (cursor < lines.length) {
+        const jsonLine = lines[cursor];
+        jsonLines.push(jsonLine);
+        for (const character of jsonLine) {
+          if (character === '{') {
+            depth += 1;
+          } else if (character === '}') {
+            depth -= 1;
+          }
+        }
+        cursor += 1;
+        if (depth === 0) {
+          break;
+        }
+      }
+
+      try {
+        const parsed = JSON.parse(jsonLines.join('\n'));
+        entry.variants = parsed?.variants && typeof parsed.variants === 'object' && !Array.isArray(parsed.variants)
+          ? parsed.variants
+          : {};
+      } catch {
+        entry.variants = {};
+      }
+
+      index = cursor - 1;
+    }
+
+    entries.push(entry);
+  }
+
+  return entries;
+}
+
+function describeVariantOptions(variantConfig) {
+  if (!variantConfig || typeof variantConfig !== 'object' || Array.isArray(variantConfig)) {
+    return 'Custom variant';
+  }
+
+  const summary = [];
+  const reasoningEffort = typeof variantConfig.reasoningEffort === 'string' ? variantConfig.reasoningEffort : null;
+  const textVerbosity = typeof variantConfig.textVerbosity === 'string' ? variantConfig.textVerbosity : null;
+  const reasoningSummary = typeof variantConfig.reasoningSummary === 'string' ? variantConfig.reasoningSummary : null;
+  const thinkingBudget = typeof variantConfig.thinking?.budgetTokens === 'number' ? variantConfig.thinking.budgetTokens : null;
+
+  if (reasoningEffort) {
+    summary.push(`reasoning ${reasoningEffort}`);
+  }
+  if (textVerbosity) {
+    summary.push(`verbosity ${textVerbosity}`);
+  }
+  if (reasoningSummary) {
+    summary.push(`summary ${reasoningSummary}`);
+  }
+  if (thinkingBudget !== null) {
+    summary.push(`thinking ${thinkingBudget} tokens`);
+  }
+
+  return summary.length > 0 ? summary.join(', ') : 'Custom variant';
+}
+
+async function chooseVariantInteractively(rl, io, modelEntry) {
+  const variants = Object.entries(modelEntry.variants ?? {}).map(([id, config]) => ({
+    id,
+    description: describeVariantOptions(config),
+  }));
+
+  if (variants.length === 0) {
+    return null;
+  }
+
+  io.stdout.write(`Available variants for ${modelEntry.modelId}:\n`);
+  io.stdout.write('1. default (no explicit variant)\n');
+  for (const [index, variant] of variants.entries()) {
+    io.stdout.write(`${index + 2}. ${variant.id} - ${variant.description}\n`);
+  }
+
+  while (true) {
+    const response = await promptLine(rl, 'Choose variant by number/name, or press Enter for default: ');
+    if (!response || response === '1' || response.toLowerCase() === 'default') {
+      return null;
+    }
+
+    const variantIndex = Number.parseInt(response, 10);
+    if (Number.isInteger(variantIndex) && variantIndex >= 2 && variantIndex <= variants.length + 1) {
+      return variants[variantIndex - 2].id;
+    }
+
+    const direct = variants.find((variant) => variant.id === response);
+    if (direct) {
+      return direct.id;
+    }
+
+    io.stderr.write('Unknown variant selection. Try again.\n');
+  }
+}
+
 async function promptLine(rl, label) {
   try {
     const value = await rl.question(label);
@@ -212,86 +357,128 @@ async function chooseActionInteractively(rl, agent, settings, io) {
 }
 
 async function chooseModelInteractively(rl, io, { env, refresh, verbose }) {
-  let eofAttempts = 0;
+  const modelResult = runOpenCodeModels('', { env, refresh, verbose: true });
+
+  if (modelResult.stderr) {
+    io.stderr.write(modelResult.stderr);
+  }
+
+  if (modelResult.error?.code === 'ENOENT') {
+    throw new Error('Could not find `opencode` on your PATH. Install OpenCode or add it to PATH first.');
+  }
+
+  if ((modelResult.status ?? 1) !== 0) {
+    throw new Error('`opencode models` failed, so interactive model selection could not continue.');
+  }
+
+  const modelEntries = parseVerboseModelCatalog(modelResult.stdout ?? '');
+  const allModelIds = modelEntries.map((entry) => entry.modelId);
+  const providerGroups = groupModelsByProvider(allModelIds);
+
+  if (providerGroups.length === 0) {
+    throw new Error('OpenCode did not return any selectable models.');
+  }
 
   while (true) {
-    const provider = await promptLine(rl, 'Provider filter (blank for all models): ');
-    const search = await promptLine(rl, 'Search text to narrow models (blank for all): ');
+    io.stdout.write('Available providers:\n');
+    io.stdout.write('1. all providers\n');
+    for (const [index, group] of providerGroups.entries()) {
+      io.stdout.write(`${index + 2}. ${group.provider} (${group.models.length} models)\n`);
+    }
 
-    if (!provider && !search) {
-      eofAttempts += 1;
-      if (eofAttempts >= 2) {
-        return null;
+    const providerResponse = await promptLine(rl, 'Choose provider by number/name, [s]earch, [r]efresh, or [q]uit: ');
+    const providerSelection = providerResponse.toLowerCase();
+
+    if (!providerSelection || providerSelection === 'q' || providerSelection === 'quit') {
+      return null;
+    }
+
+    if (providerSelection === 'r' || providerSelection === 'refresh') {
+      return chooseModelInteractively(rl, io, { env, refresh: true, verbose });
+    }
+
+    if (providerSelection === 's' || providerSelection === 'search') {
+      const search = await promptLine(rl, 'Search models by text: ');
+      const filtered = modelEntries.filter((entry) => entry.modelId.toLowerCase().includes(search.toLowerCase()));
+
+      if (filtered.length === 0) {
+        io.stderr.write('No models matched that search. Try again.\n');
+        continue;
       }
-    } else {
-      eofAttempts = 0;
-    }
 
-    const modelResult = runOpenCodeModels(provider, { env, refresh, verbose });
-
-    if (modelResult.stdout) {
-      io.stdout.write(modelResult.stdout);
-      if (!modelResult.stdout.endsWith('\n')) {
-        io.stdout.write('\n');
+      io.stdout.write('Matching models:\n');
+      for (const [index, model] of filtered.slice(0, 30).entries()) {
+        io.stdout.write(`${index + 1}. ${model.modelId}\n`);
       }
-    }
-    if (modelResult.stderr) {
-      io.stderr.write(modelResult.stderr);
-    }
 
-    if (modelResult.error?.code === 'ENOENT') {
-      throw new Error('Could not find `opencode` on your PATH. Install OpenCode or add it to PATH first.');
-    }
+      const modelResponse = await promptLine(rl, 'Choose model by number, exact provider/model, or press Enter to go back: ');
+      if (!modelResponse) {
+        continue;
+      }
 
-    if ((modelResult.status ?? 1) !== 0) {
-      throw new Error('`opencode models` failed, so interactive model selection could not continue.');
-    }
+      const modelIndex = Number.parseInt(modelResponse, 10);
+      if (Number.isInteger(modelIndex) && modelIndex >= 1 && modelIndex <= filtered.slice(0, 30).length) {
+        return filtered.slice(0, 30)[modelIndex - 1];
+      }
 
-    const allModelIds = parseModelIdsFromOutput(modelResult.stdout ?? '');
-    const filtered = search
-      ? allModelIds.filter((entry) => entry.toLowerCase().includes(search.toLowerCase()))
-      : allModelIds;
+      if (isValidModelId(modelResponse)) {
+        return modelEntries.find((entry) => entry.modelId === modelResponse) ?? {
+          modelId: modelResponse,
+          variants: {},
+        };
+      }
 
-    if (filtered.length === 0) {
-      io.stderr.write('No models matched that filter. Try a different provider or search term.\n');
+      io.stderr.write('Unknown model selection. Try again.\n');
       continue;
     }
 
-    if (filtered.length === 1) {
-      io.stdout.write(`Selected model: ${filtered[0]}\n`);
-      return filtered[0];
+    let selectedModels = modelEntries;
+    if (providerSelection !== '1' && providerSelection !== 'all' && providerSelection !== 'all providers') {
+      const providerIndex = Number.parseInt(providerResponse, 10);
+      if (Number.isInteger(providerIndex) && providerIndex >= 2 && providerIndex <= providerGroups.length + 1) {
+        const provider = providerGroups[providerIndex - 2].provider;
+        selectedModels = modelEntries.filter((entry) => entry.modelId.startsWith(`${provider}/`));
+      } else {
+        const directProvider = providerGroups.find((group) => group.provider === providerResponse);
+        if (!directProvider) {
+          io.stderr.write('Unknown provider selection. Try again.\n');
+          continue;
+        }
+        selectedModels = modelEntries.filter((entry) => entry.modelId.startsWith(`${directProvider.provider}/`));
+      }
     }
 
-    const preview = filtered.slice(0, 20);
-    io.stdout.write('Matching models:\n');
-    for (const [index, model] of preview.entries()) {
-      io.stdout.write(`${index + 1}. ${model}\n`);
-    }
-    if (filtered.length > preview.length) {
-      io.stdout.write(`... ${filtered.length - preview.length} more match(es). Narrow the search or enter an exact provider/model.\n`);
-    }
+    while (true) {
+      io.stdout.write('Available models:\n');
+      for (const [index, model] of selectedModels.entries()) {
+        io.stdout.write(`${index + 1}. ${model.modelId}\n`);
+      }
 
-    const response = await promptLine(rl, 'Choose model by number, exact provider/model, or press Enter to search again: ');
-    if (!response) {
-      eofAttempts += 1;
-      if (eofAttempts >= 2) {
+      const modelResponse = await promptLine(rl, 'Choose model by number, type exact provider/model, [b]ack, or [q]uit: ');
+      const normalized = modelResponse.toLowerCase();
+
+      if (!modelResponse || normalized === 'b' || normalized === 'back') {
+        break;
+      }
+
+      if (normalized === 'q' || normalized === 'quit') {
         return null;
       }
-      continue;
+
+      const modelIndex = Number.parseInt(modelResponse, 10);
+      if (Number.isInteger(modelIndex) && modelIndex >= 1 && modelIndex <= selectedModels.length) {
+        return selectedModels[modelIndex - 1];
+      }
+
+      if (isValidModelId(modelResponse)) {
+        return modelEntries.find((entry) => entry.modelId === modelResponse) ?? {
+          modelId: modelResponse,
+          variants: {},
+        };
+      }
+
+      io.stderr.write('Unknown model selection. Try again.\n');
     }
-
-    eofAttempts = 0;
-
-    const asNumber = Number.parseInt(response, 10);
-    if (Number.isInteger(asNumber) && asNumber >= 1 && asNumber <= preview.length) {
-      return preview[asNumber - 1];
-    }
-
-    if (isValidModelId(response)) {
-      return response;
-    }
-
-    io.stderr.write('Unknown model selection. Try again.\n');
   }
 }
 
@@ -319,13 +506,14 @@ async function configureInteractively({ agents, settingsPath, env, refresh, verb
         clearAgentModel(settingsPath, agent.id);
         io.stdout.write(`Cleared model override for ${agent.id}.\n`);
       } else {
-        const model = await chooseModelInteractively(rl, io, { env, refresh, verbose });
-        if (!model) {
+        const modelEntry = await chooseModelInteractively(rl, io, { env, refresh, verbose });
+        if (!modelEntry) {
           io.stdout.write('Interactive setup cancelled.\n');
           return 0;
         }
-        setAgentModel(settingsPath, agent.id, model);
-        io.stdout.write(`Saved ${model} for ${agent.id}.\n`);
+        const variant = await chooseVariantInteractively(rl, io, modelEntry);
+        setAgentModel(settingsPath, agent.id, modelEntry.modelId, variant);
+        io.stdout.write(`Saved ${modelEntry.modelId}${variant ? ` (variant: ${variant})` : ''} for ${agent.id}.\n`);
       }
 
       const again = await promptLine(rl, 'Configure another agent? [y/N]: ');

@@ -11,6 +11,8 @@ Use `/configure-agent-models` when you want to configure an exact provider-quali
 - show the exact model ids OpenCode currently knows about via `opencode models`
 - let the operator choose a precise `provider/model` pair when multiple providers expose similar model names
 - persist agent-specific model overrides for future `openkit run` sessions
+- let the operator browse providers and models by numbered selection instead of memorizing or typing full ids
+- let the operator choose a supported model variant discovered from `opencode models --verbose` when OpenCode exposes it for the selected model
 
 ## Recommended operator flow
 
@@ -23,6 +25,7 @@ Use `/configure-agent-models` when you want to configure an exact provider-quali
 ## Notes
 
 - Model ids must use the exact `provider/model` format that OpenCode reports.
-- `--interactive` is the fastest path when the same model family appears under multiple providers and you want to browse exact choices before saving.
+- `--interactive` is the fastest path when the same model family appears under multiple providers and you want a provider picker plus numbered model selection before saving.
+- When `opencode models --verbose` exposes variants for the selected model, the interactive flow can also save an agent-level `variant` in addition to the selected `provider/model`.
 - If no override is set for an agent, OpenCode falls back to the global/default model behavior.
 - Use `openkit configure-agent-models --agent <agent-id> --clear` to remove a saved override.

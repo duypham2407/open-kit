@@ -84,12 +84,13 @@ export function writeAgentModelSettings(settingsPath, settings) {
   });
 }
 
-export function setAgentModel(settingsPath, agentId, model) {
+export function setAgentModel(settingsPath, agentId, model, variant = null) {
   const settings = readAgentModelSettings(settingsPath);
   settings.agentModels = {
     ...settings.agentModels,
     [agentId]: {
       model,
+      ...(typeof variant === 'string' && variant.length > 0 ? { variant } : {}),
     },
   };
   writeAgentModelSettings(settingsPath, settings);
@@ -109,7 +110,13 @@ export function buildAgentModelConfigOverrides(settingsPath) {
   const settings = readAgentModelSettings(settingsPath);
   const agentEntries = Object.entries(settings.agentModels)
     .filter(([, value]) => isPlainObject(value) && typeof value.model === 'string' && value.model.length > 0)
-    .map(([agentId, value]) => [agentId, { model: value.model }]);
+    .map(([agentId, value]) => [
+      agentId,
+      {
+        model: value.model,
+        ...(typeof value.variant === 'string' && value.variant.length > 0 ? { variant: value.variant } : {}),
+      },
+    ]);
 
   if (agentEntries.length === 0) {
     return {};

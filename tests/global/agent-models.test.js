@@ -39,6 +39,25 @@ test('agent model settings persist provider-qualified model ids', () => {
   });
 });
 
+test('agent model settings can persist variants alongside model ids', () => {
+  const tempDir = makeTempDir();
+  const settingsPath = path.join(tempDir, 'agent-models.json');
+
+  setAgentModel(settingsPath, 'qa-agent', 'openai/gpt-5', 'high');
+  const settings = readAgentModelSettings(settingsPath);
+
+  assert.equal(settings.agentModels['qa-agent'].model, 'openai/gpt-5');
+  assert.equal(settings.agentModels['qa-agent'].variant, 'high');
+  assert.deepEqual(buildAgentModelConfigOverrides(settingsPath), {
+    agent: {
+      'qa-agent': {
+        model: 'openai/gpt-5',
+        variant: 'high',
+      },
+    },
+  });
+});
+
 test('agent model settings can clear a saved override', () => {
   const tempDir = makeTempDir();
   const settingsPath = path.join(tempDir, 'agent-models.json');
