@@ -18,6 +18,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Read `docs/operations/runbooks/openkit-daily-usage.md` for the detailed day-to-day usage path in this repository
 - Install the CLI with `npm install -g @duypham93/openkit`, then run `openkit run` for first-time setup and `openkit doctor` to verify readiness
 - Once OpenCode is open, use `Ctrl+P` and choose `/task`, `/quick-task`, `/migrate`, or `/delivery` to enter the right workflow lane
+- If you want different providers or models per agent, run `/configure-agent-models`, `openkit configure-agent-models --interactive`, or `openkit configure-agent-models --models` before starting the session you care about
 - Use `/task` unless you already know the work must start in `Quick Task`, `Migration`, or `Full Delivery`
 - Use `context/navigation.md` when you need to locate deeper workflow or standards references
 
@@ -43,7 +44,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 
 ## Live Operator Surfaces In This Repository
 
-- Slash commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, `/execute-plan`
+- Slash commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, `/execute-plan`, `/configure-agent-models`
 - Global diagnostics: `openkit doctor`
 - Global launcher: `openkit run`
 - Global lifecycle: `npm install -g @duypham93/openkit`, `openkit upgrade`, `openkit uninstall`

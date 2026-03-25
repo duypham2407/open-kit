@@ -85,7 +85,7 @@ Preferred global path:
 4. Run `openkit upgrade` to refresh the installed global kit when a newer package version is available.
 5. Run `openkit uninstall [--remove-workspaces]` when you need to remove the global kit and optionally clear workspace state.
 
-Inside the OpenCode session opened by `openkit run`, OpenKit defaults to the `master-orchestrator` agent. Use `Ctrl+P` to open the command palette and run OpenKit commands like `/task`, `/quick-task`, `/migrate`, or `/delivery`.
+Inside the OpenCode session opened by `openkit run`, OpenKit defaults to the `master-orchestrator` agent. Use `Ctrl+P` to open the command palette and run OpenKit commands like `/task`, `/quick-task`, `/migrate`, `/delivery`, or `/configure-agent-models`.
 
 Quickstart:
 
@@ -100,6 +100,14 @@ First session:
 2. Press `Ctrl+P` to open the command palette.
 3. Run `/task` for the safest default entrypoint.
 4. Use `/quick-task`, `/migrate`, or `/delivery` only when you already know the right lane.
+
+Per-agent model setup:
+
+- OpenKit now supports official per-agent model overrides.
+- Use `openkit configure-agent-models --models` to inspect the exact provider-qualified model ids that OpenCode currently exposes.
+- Use `openkit configure-agent-models --interactive` for a guided terminal flow that lets you pick agent and model step by step.
+- Save a per-agent override with `openkit configure-agent-models --agent <agent-id> --model <provider/model>`.
+- This is useful when similar model families are available from multiple providers and you need the exact provider/model pair for one agent.
 
 In this worktree today:
 
@@ -289,6 +297,7 @@ You can trigger workflows with the following commands:
 - `/brainstorm` — Migration or full-delivery only; explore design or upgrade direction
 - `/write-plan` — Migration or full-delivery only; convert approved context into an Implementation Plan
 - `/execute-plan` — Migration or full-delivery only; start building the approved plan
+- `/configure-agent-models` — inspect available OpenCode models and bind exact `provider/model` ids to OpenKit agents
 
 You can also type your request in normal language, and the Master Orchestrator will choose the appropriate lane.
 
@@ -322,6 +331,7 @@ This is the current checked-in operator surface for this worktree: `status`, `do
 | refine design or upgrade direction before planning | `/brainstorm` | migration or full-delivery only; follow the brainstorming skill |
 | turn approved artifacts into an implementation plan | `/write-plan` | migration or full-delivery only; points to the planning skill and templates |
 | execute an approved implementation plan | `/execute-plan` | migration or full-delivery only; follow the plan and report the real validation path |
+| choose exact provider-specific models per agent | `/configure-agent-models` | use when you need a specific `provider/model` pair for one OpenKit agent |
 
 Helpful wayfinding docs:
 
@@ -338,7 +348,7 @@ Helpful wayfinding docs:
 
 Current checked-in operator entrypoints in this repository are:
 
-- slash commands such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, and `/execute-plan`
+- slash commands such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, `/execute-plan`, and `/configure-agent-models`
 - `node .opencode/workflow-state.js status`
 - `node .opencode/workflow-state.js doctor`
 - `node .opencode/workflow-state.js show`

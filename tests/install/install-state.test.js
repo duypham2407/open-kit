@@ -84,6 +84,7 @@ test("asset manifest defines the explicit OpenCode-native phase 1 bundle", () =>
     "opencode.command.brainstorm",
     "opencode.command.delivery",
     "opencode.command.execute-plan",
+    "opencode.command.configure-agent-models",
     "opencode.command.migrate",
     "opencode.command.quick-task",
     "opencode.command.task",
@@ -317,7 +318,7 @@ test("bundled asset manifest matches the derived asset bundle on disk", () => {
 
   assert.deepEqual(validation.missingFiles, [])
   assert.deepEqual(validation.mismatchedFiles, [])
-  assert.equal(validation.bundleFileCount, 26)
+  assert.equal(validation.bundleFileCount, 27)
   assert.deepEqual(validation.extraBundledFiles, [])
 })
 

@@ -7,6 +7,7 @@ import { upgradeCommand } from './commands/upgrade.js';
 import { uninstallCommand } from './commands/uninstall.js';
 import { doctorCommand } from './commands/doctor.js';
 import { detectVietnameseCommand } from './commands/detect-vietnamese.js';
+import { configureAgentModelsCommand } from './commands/configure-agent-models.js';
 
 const commands = {
   help: helpCommand,
@@ -17,6 +18,7 @@ const commands = {
   upgrade: upgradeCommand,
   uninstall: uninstallCommand,
   doctor: doctorCommand,
+  'configure-agent-models': configureAgentModelsCommand,
   'internal-audit-vietnamese': detectVietnameseCommand,
 };
 
@@ -52,5 +54,6 @@ function defaultIo() {
   return {
     stdout: process.stdout,
     stderr: process.stderr,
+    stdin: process.stdin,
   };
 }

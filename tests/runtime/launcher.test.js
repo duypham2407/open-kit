@@ -8,6 +8,7 @@ import {
   buildOpenCodeLayering,
 } from '../../src/runtime/opencode-layering.js';
 import { launchManagedOpenCode } from '../../src/runtime/launcher.js';
+import { launchGlobalOpenKit } from '../../src/global/launcher.js';
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-launcher-'));
@@ -203,4 +204,61 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
   assert.equal(layeredContent.model, 'baseline-model');
   assert.equal(layeredContent.default_agent, 'master-orchestrator');
   assert.deepEqual(layeredContent.instructions, ['AGENTS.md', 'context/navigation.md']);
+});
+
+test('launchGlobalOpenKit injects saved per-agent model overrides into inline config', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let spawnCall = null;
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+  fs.mkdirSync(path.join(openCodeHome, 'kits', 'openkit'), { recursive: true });
+  fs.mkdirSync(path.join(openCodeHome, 'profiles', 'openkit'), { recursive: true });
+
+  writeJson(path.join(openCodeHome, 'kits', 'openkit', 'registry.json'), {
+    components: {
+      agents: [
+        {
+          id: 'agent.qa-agent',
+          name: 'QA Agent',
+          role: 'team',
+          path: 'agents/qa-agent.md',
+        },
+      ],
+    },
+  });
+
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-models.json'), {
+    schema: 'openkit/agent-model-settings@1',
+    stateVersion: 1,
+    updatedAt: '2026-03-24T00:00:00.000Z',
+    agentModels: {
+      'qa-agent': {
+        model: 'openai/gpt-5',
+      },
+    },
+  });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+      OPENCODE_CONFIG_CONTENT: JSON.stringify({
+        customSetting: true,
+      }),
+    },
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      spawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(spawnCall.command, 'opencode');
+  assert.deepEqual(spawnCall.args, [projectRoot, 'status']);
+
+  const inlineConfig = JSON.parse(spawnCall.options.env.OPENCODE_CONFIG_CONTENT);
+  assert.equal(inlineConfig.customSetting, true);
+  assert.equal(inlineConfig.agent['qa-agent'].model, 'openai/gpt-5');
 });

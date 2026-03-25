@@ -1,27 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-function isPlainObject(value) {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
+import { deepMergeConfig, parseInlineConfig } from '../global/config-merge.js';
 
 function deepMerge(base, overlay) {
-  if (!isPlainObject(base) || !isPlainObject(overlay)) {
-    return overlay;
-  }
+  return deepMergeConfig(base, overlay);
+}
 
-  const result = { ...base };
-
-  for (const [key, value] of Object.entries(overlay)) {
-    if (isPlainObject(value) && isPlainObject(result[key])) {
-      result[key] = deepMerge(result[key], value);
-      continue;
-    }
-
-    result[key] = value;
-  }
-
-  return result;
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
 function readJsonIfPresent(filePath) {
@@ -33,15 +20,7 @@ function readJsonIfPresent(filePath) {
 }
 
 function parseJsonContent(content, sourceLabel) {
-  if (!content) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(content);
-  } catch (error) {
-    throw new Error(`${sourceLabel} must contain valid JSON.`, { cause: error });
-  }
+  return parseInlineConfig(content, sourceLabel);
 }
 
 function normalizeConfigPaths(value, configDir, keyPath = []) {

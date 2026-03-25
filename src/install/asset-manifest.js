@@ -75,6 +75,12 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     bundledPath: "assets/install-bundle/opencode/commands/execute-plan.md",
   },
   {
+    id: "opencode.command.configure-agent-models",
+    assetClass: "commands",
+    sourcePath: "commands/configure-agent-models.md",
+    bundledPath: "assets/install-bundle/opencode/commands/configure-agent-models.md",
+  },
+  {
     id: "opencode.command.migrate",
     assetClass: "commands",
     sourcePath: "commands/migrate.md",

@@ -15,6 +15,7 @@ function topLevelHelp() {
     '  upgrade   Refresh the global OpenKit install',
     '  uninstall Remove the global OpenKit install',
     '  doctor    Inspect global OpenKit and workspace readiness',
+    '  configure-agent-models  Configure provider-specific models per OpenKit agent',
   ].join('\n');
 }
 

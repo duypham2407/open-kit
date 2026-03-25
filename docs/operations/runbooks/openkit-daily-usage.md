@@ -34,6 +34,7 @@ Then start work from the chat surface with one of these:
 - `/quick-task` when the work is already clearly small, bounded, and low risk
 - `/migrate` when the work is primarily an upgrade or migration effort
 - `/delivery` when the work clearly needs the full multi-stage delivery flow
+- `/configure-agent-models` when you want to bind exact provider-qualified models to OpenKit agents
 
 If you need to inspect the current state more closely inside this repository's compatibility runtime:
 
@@ -101,6 +102,20 @@ openkit run
 This launches OpenCode with the `openkit` profile and injects the workspace-specific OpenKit environment for the current project.
 
 On the first run on a machine or a fresh OpenCode home, `openkit run` also materializes the managed global kit automatically.
+
+### Optional: configure per-agent models before launch
+
+If you want different models for different OpenKit agents, inspect the exact provider-qualified model ids that OpenCode currently knows about:
+
+```bash
+openkit configure-agent-models --interactive
+openkit configure-agent-models --models
+openkit configure-agent-models --models openai --refresh
+openkit configure-agent-models --list
+openkit configure-agent-models --agent qa-agent --model openai/gpt-5
+```
+
+Use this flow when the same model family exists under multiple providers and you need an exact `provider/model` choice.
 
 ### 3. Start or resume work
 

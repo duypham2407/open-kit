@@ -30,7 +30,7 @@ function setupTempRuntime(projectRoot) {
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
-        version: "0.2.9",
+        version: "0.2.10",
         entryAgent: "MasterOrchestrator",
         registry: {
           path: "registry.json",
@@ -91,7 +91,7 @@ function setupTempRuntime(projectRoot) {
       "",
       "Quick Task+ is the live semantics of the quick lane, not a third lane.",
       "Mode enums remain `quick`, `migration`, and `full`.",
-      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, and `/write-plan`.",
+      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-plan`, and `/configure-agent-models`.",
       "Migration is the dedicated upgrade and modernization lane.",
       "Migration work must stay free of task boards.",
       "Migration must preserve behavior first and decouple blockers before broad upgrade work.",

@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
-import path from 'node:path';
 
+import { buildAgentModelConfigOverrides } from './agent-models.js';
+import { deepMergeConfig, parseInlineConfig } from './config-merge.js';
 import { ensureWorkspaceBootstrap } from './workspace-state.js';
 
 function formatMissingOpenCodeError() {
@@ -12,6 +13,9 @@ function formatMissingOpenCodeError() {
 
 export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), env = process.env, spawn = spawnSync, stdio = 'inherit' } = {}) {
   const paths = ensureWorkspaceBootstrap({ projectRoot, env });
+  const baselineInlineConfig = parseInlineConfig(env.OPENCODE_CONFIG_CONTENT, 'OPENCODE_CONFIG_CONTENT') ?? {};
+  const agentModelOverrides = buildAgentModelConfigOverrides(paths.agentModelSettingsPath);
+  const layeredInlineConfig = deepMergeConfig(baselineInlineConfig, agentModelOverrides);
   const launcherEnv = {
     ...env,
     OPENKIT_GLOBAL_MODE: '1',
@@ -20,7 +24,14 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
     OPENKIT_KIT_ROOT: paths.kitRoot,
     OPENKIT_HOME: paths.openCodeHome,
     OPENCODE_CONFIG_DIR: paths.kitRoot,
+    OPENCODE_CONFIG_CONTENT: Object.keys(layeredInlineConfig).length > 0
+      ? JSON.stringify(layeredInlineConfig)
+      : undefined,
   };
+
+  if (launcherEnv.OPENCODE_CONFIG_CONTENT === undefined) {
+    delete launcherEnv.OPENCODE_CONFIG_CONTENT;
+  }
 
   const result = spawn('opencode', [paths.projectRoot, ...args], {
     cwd: paths.projectRoot,

@@ -48,6 +48,7 @@ export function getGlobalPaths(options = {}) {
   const kitRoot = path.join(openCodeHome, 'kits', 'openkit');
   const profilesRoot = path.join(openCodeHome, 'profiles', 'openkit');
   const workspacesRoot = path.join(openCodeHome, 'workspaces');
+  const settingsRoot = path.join(openCodeHome, 'openkit');
 
   return {
     openCodeHome,
@@ -59,6 +60,8 @@ export function getGlobalPaths(options = {}) {
     profileManifestPath: path.join(profilesRoot, 'opencode.json'),
     profileHooksPath: path.join(profilesRoot, 'hooks.json'),
     workspacesRoot,
+    settingsRoot,
+    agentModelSettingsPath: path.join(settingsRoot, 'agent-models.json'),
   };
 }
 

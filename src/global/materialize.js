@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { createGlobalInstallState, writeJson } from './install-state.js';
+import { createEmptyAgentModelSettings } from './agent-models.js';
 import { getGlobalPaths } from './paths.js';
 import { getOpenKitVersion } from '../version.js';
 
@@ -85,6 +86,7 @@ export function materializeGlobalInstall({ env = process.env, kitVersion = getOp
   writeJson(paths.kitConfigPath, openCodeConfig);
   writeJson(paths.installStatePath, installState);
   writeJson(paths.profileManifestPath, openCodeConfig);
+  writeJson(paths.agentModelSettingsPath, createEmptyAgentModelSettings());
   writeJson(paths.profileHooksPath, {
     hooks: {
       SessionStart: [

@@ -3,7 +3,7 @@
   "registryVersion": 1,
   "kit": {
     "name": "OpenKit AI Software Factory",
-    "version": "0.2.9",
+    "version": "0.2.10",
     "description": "Local component metadata for the checked-in OpenKit repository and the global-kit compatibility surface.",
     "repositoryRoot": ".",
     "productSurface": {
@@ -175,6 +175,11 @@
         "id": "command.execute-plan",
         "name": "/execute-plan",
         "path": "commands/execute-plan.md"
+      },
+      {
+        "id": "command.configure-agent-models",
+        "name": "/configure-agent-models",
+        "path": "commands/configure-agent-models.md"
       }
     ],
     "artifacts": [
