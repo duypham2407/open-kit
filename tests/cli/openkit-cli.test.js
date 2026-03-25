@@ -48,6 +48,7 @@ test('openkit --help shows global-install oriented help', () => {
   assert.match(result.stdout, /install-global/);
   assert.match(result.stdout, /upgrade/);
   assert.match(result.stdout, /uninstall/);
+  assert.match(result.stdout, /release/);
   assert.match(result.stdout, /Launch OpenCode and perform first-time setup if needed/);
   assert.equal(result.stderr, '');
 });

@@ -44,6 +44,18 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - `openkit install-global`, `openkit install`, and `openkit init` remain available as manual or compatibility commands.
 - The package intentionally avoids npm `postinstall` side effects; setup happens inside the OpenKit CLI where failures and recovery steps are easier to explain.
 
+## Release Process
+
+- Historical release notes live in `RELEASES.md`.
+- New release notes should start from `RELEASE_NOTES_TEMPLATE.md`.
+- Fastest maintainer path:
+  1. `openkit release prepare <version> --summary "<short summary>"`
+  2. Fill in `RELEASE_NOTES_<version>.md`
+  3. `openkit release verify`
+  4. `openkit release publish`
+- `openkit release publish` tags, pushes, publishes to npm, and creates a GitHub release automatically when `gh` is installed.
+- If `gh` is unavailable, the publish step still completes npm release work and points maintainers at the generated release notes file for manual GitHub release drafting.
+
 ## Historical And Roadmap Notes
 
 - Most historical planning and archive docs were intentionally pruned from the working tree during cleanup.
