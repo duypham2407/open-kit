@@ -44,6 +44,12 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - `openkit install-global`, `openkit install`, and `openkit init` remain available as manual or compatibility commands.
 - The package intentionally avoids npm `postinstall` side effects; setup happens inside the OpenKit CLI where failures and recovery steps are easier to explain.
 
+## Tool Delivery Boundary
+
+- OpenKit currently has one first-class tool adapter: OpenCode.
+- The canonical workflow, lane semantics, and runtime state remain tool-agnostic concepts, but delivery is currently implemented only for the OpenCode path.
+- Adapter-friendly groundwork now exists in the codebase so future tool support can wrap the same workflow model without flattening OpenKit's lane-based architecture.
+
 ## Release Process
 
 - Historical release notes live in `RELEASES.md`.

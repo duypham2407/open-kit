@@ -37,6 +37,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Lane examples and tie-breakers: `context/core/workflow.md`
 - Session resume: `context/core/session-resume.md`
 - Command and runtime reality: `context/core/project-config.md`
+- Supported product and compatibility surfaces: `docs/operator/supported-surfaces.md`
 - Detailed usage walkthrough: `docs/operations/runbooks/openkit-daily-usage.md`
 - Runtime smoke tests: `docs/operations/runbooks/workflow-state-smoke-tests.md`
 - Governance policy: `docs/governance/README.md`
@@ -48,6 +49,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Global diagnostics: `openkit doctor`
 - Global launcher: `openkit run`
 - Global lifecycle: `npm install -g @duypham93/openkit`, `openkit upgrade`, `openkit uninstall`
+- Onboarding helper: `openkit onboard`
 - Runtime inspection: `node .opencode/workflow-state.js status`
 - Compatibility diagnostics: `node .opencode/workflow-state.js doctor`
 - Current state view: `node .opencode/workflow-state.js show`

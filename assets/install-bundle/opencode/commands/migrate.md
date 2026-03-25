@@ -42,6 +42,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 ## Expected action
 
 - The Master Orchestrator records `mode = migration` and `mode_reason`
+- Tell the user the next action in migration language: freeze preserved invariants, capture the baseline, and then define staged upgrade slices
 - Initialize `migration_intake`
 - Route to the migration baseline and strategy stages defined in `context/core/workflow.md`
 - Freeze the preserved invariants before major edits, then identify only the framework-coupled blockers that must be decoupled
@@ -66,3 +67,11 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - Prefer `migration_report` when baseline notes, execution log, and verification evidence need to stay in one continuously updated file
 - If repository-native validation commands do not exist, record the missing validation path and the baseline evidence honestly
 - Do not claim TDD-first validation for migration work unless the migration plan explicitly identifies a safe test-first sub-slice with working tooling
+
+## Example transcript
+
+```text
+User: /migrate move the app from React 18 to React 19 while preserving screens and flows
+OpenKit: This is migration work because compatibility risk dominates while the target behavior should stay the same.
+OpenKit: Next action: capture preserved invariants and baseline evidence before planning the upgrade slices.
+```

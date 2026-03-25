@@ -5,6 +5,8 @@ import { readJsonIfPresent, validateGlobalInstallState } from './install-state.j
 import { inspectWorkspaceMeta } from './workspace-state.js';
 import { getGlobalPaths, getWorkspacePaths } from './paths.js';
 import { isCommandAvailable } from '../command-detection.js';
+import { DEFAULT_ENTRY_COMMAND, getCommandInstructionContract } from '../runtime/instruction-contracts.js';
+import { readAgentModelSettings } from './agent-models.js';
 
 function isOpenCodeAvailable(env = process.env) {
   return isCommandAvailable('opencode', { env });
@@ -59,6 +61,11 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
     issues.push('OpenCode executable is not available on PATH.');
   }
 
+  const agentModelSettings = readAgentModelSettings(globalPaths.agentModelSettingsPath);
+  for (const warning of agentModelSettings.warnings ?? []) {
+    issues.push(`Agent model settings warning: ${warning}`);
+  }
+
   const workspace = inspectWorkspaceMeta({ projectRoot, env });
 
   return withGuidance({
@@ -94,6 +101,12 @@ export function renderGlobalDoctorSummary(result) {
 
   if (result.recommendedCommand) {
     lines.push(`Recommended command: ${result.recommendedCommand}`);
+  }
+
+  const defaultEntry = getCommandInstructionContract('task');
+  if (defaultEntry) {
+    lines.push(`Default session entrypoint: ${DEFAULT_ENTRY_COMMAND}`);
+    lines.push(`Next action after launch: ${defaultEntry.nextAction}`);
   }
 
   return `${lines.join('\n')}\n`;

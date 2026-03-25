@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { validateAgentModelSettings } from '../runtime/config-validation.js';
+
 const AGENT_MODEL_SETTINGS_SCHEMA = 'openkit/agent-model-settings@1';
 
 function isPlainObject(value) {
@@ -66,12 +68,15 @@ export function readAgentModelSettings(settingsPath) {
     return createEmptyAgentModelSettings();
   }
 
+  const warnings = validateAgentModelSettings(settings);
+
   const agentModels = isPlainObject(settings.agentModels) ? settings.agentModels : {};
   return {
     schema: AGENT_MODEL_SETTINGS_SCHEMA,
     stateVersion: 1,
     updatedAt: typeof settings.updatedAt === 'string' ? settings.updatedAt : null,
     agentModels,
+    warnings,
   };
 }
 

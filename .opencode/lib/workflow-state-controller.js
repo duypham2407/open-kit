@@ -56,6 +56,7 @@ const {
   validateWorktreeMetadata,
 } = require("./parallel-execution-rules")
 const { validateTaskBoard, validateTaskShape, validateTaskStatus, validateTaskTransition } = require("./task-board-rules")
+const { flattenArtifactRefs, getArtifactReadiness, getNextAction } = require("./runtime-guidance")
 
 function fail(message) {
   const error = new Error(message)
@@ -981,7 +982,79 @@ function listWorkItems(customStatePath) {
   return {
     projectRoot,
     index,
-    workItems: index.work_items,
+    workItems: index.work_items.map((entry) => {
+      const state = readWorkItemState(projectRoot, entry.work_item_id)
+      return {
+        ...entry,
+        next_action: getNextAction(state),
+        artifact_readiness: getArtifactReadiness(state),
+      }
+    }),
+  }
+}
+
+function getWorkItemCloseoutSummary(workItemId, customStatePath) {
+  const context = readWorkItemContext(workItemId, customStatePath)
+  const { state } = context
+  validateStateObject(state)
+
+  const artifactReadiness = getArtifactReadiness(state)
+  const missingRequiredArtifacts = artifactReadiness.filter((entry) => entry.status === "missing-required")
+  const recommendedArtifacts = artifactReadiness.filter((entry) => entry.status === "recommended-now")
+  const linkedArtifacts = flattenArtifactRefs(state)
+  const unresolvedIssues = Array.isArray(state.issues) ? state.issues : []
+  const board = state.mode === "full" ? readTaskBoardIfExists(context.projectRoot, workItemId) : null
+  const activeTasks = Array.isArray(board?.tasks)
+    ? board.tasks.filter((task) => ["claimed", "in_progress", "qa_in_progress"].includes(task.status))
+    : []
+
+  return {
+    ...context,
+    artifactReadiness,
+    linkedArtifacts,
+    missingRequiredArtifacts,
+    recommendedArtifacts,
+    unresolvedIssues,
+    activeTasks,
+    readyToClose:
+      state.status === "done" &&
+      missingRequiredArtifacts.length === 0 &&
+      unresolvedIssues.length === 0 &&
+      activeTasks.length === 0,
+  }
+}
+
+function reconcileCompletedWorkItems(customStatePath, workItemIds = []) {
+  if (!Array.isArray(workItemIds) || workItemIds.length === 0) {
+    fail("reconcile-work-items requires at least one work_item_id")
+  }
+
+  const workItems = workItemIds.map((workItemId) => getWorkItemCloseoutSummary(workItemId, customStatePath))
+  const ownership = new Map()
+  const conflicts = []
+
+  for (const item of workItems) {
+    for (const artifact of item.linkedArtifacts) {
+      const existing = ownership.get(artifact.path)
+      if (existing && existing.workItemId !== item.workItemId) {
+        conflicts.push({
+          path: artifact.path,
+          first: existing.workItemId,
+          second: item.workItemId,
+        })
+      } else if (!existing) {
+        ownership.set(artifact.path, {
+          workItemId: item.workItemId,
+          artifact: artifact.artifact,
+        })
+      }
+    }
+  }
+
+  return {
+    workItems,
+    conflicts,
+    allReadyToClose: conflicts.length === 0 && workItems.every((item) => item.readyToClose),
   }
 }
 
@@ -1709,6 +1782,7 @@ module.exports = {
   getInstallManifest,
   getProfile,
   getRegistry,
+  getWorkItemCloseoutSummary,
   getRuntimeStatus,
   getVersionInfo,
   linkArtifact,
@@ -1717,6 +1791,7 @@ module.exports = {
   listProfiles,
   readState,
   recordIssue,
+  reconcileCompletedWorkItems,
   reassignTask,
   releaseTask,
   resolveStatePath,

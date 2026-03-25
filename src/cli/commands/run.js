@@ -1,5 +1,6 @@
 import { ensureGlobalInstall } from '../../global/ensure-install.js';
 import { launchGlobalOpenKit } from '../../global/launcher.js';
+import { DEFAULT_ENTRY_COMMAND, getCommandInstructionContract } from '../../runtime/instruction-contracts.js';
 
 function runHelp() {
   return [
@@ -27,6 +28,7 @@ export const runCommand = {
       io.stdout.write(`Installed OpenKit globally.\n`);
       io.stdout.write(`Kit root: ${ensured.install.kitRoot}\n`);
       io.stdout.write(`Profile root: ${ensured.install.profilesRoot}\n`);
+      io.stdout.write(`Next action after launch: start with ${DEFAULT_ENTRY_COMMAND}.\n`);
     }
 
     if (ensured.action === 'blocked' || (!ensured.doctor.canRunCleanly && ensured.doctor.status !== 'workspace-ready-with-issues')) {
@@ -43,6 +45,11 @@ export const runCommand = {
 
     if (ensured.doctor.status === 'workspace-ready-with-issues') {
       io.stderr.write('OpenKit setup is usable, but the workspace has issues.\n');
+    }
+
+    const defaultEntry = getCommandInstructionContract('task');
+    if (defaultEntry) {
+      io.stdout.write(`Recommended entrypoint: ${defaultEntry.command} — ${defaultEntry.whenToUse}\n`);
     }
 
     const result = launchGlobalOpenKit(args, {

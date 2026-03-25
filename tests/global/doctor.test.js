@@ -42,6 +42,7 @@ test('global doctor reports next steps for install-missing', () => {
   const output = renderGlobalDoctorSummary(result);
   assert.match(output, /Next: Run openkit run for first-time setup\./);
   assert.match(output, /Recommended command: openkit run/);
+  assert.match(output, /Default session entrypoint: \/task/);
 });
 
 test('global doctor reports next steps for healthy installs', () => {
@@ -74,6 +75,10 @@ test('global doctor reports next steps for healthy installs', () => {
   assert.equal(result.workspace.index, null);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode')), false);
   assert.equal(fs.existsSync(path.join(tempHome, 'workspaces')), false);
+
+  const output = renderGlobalDoctorSummary(result);
+  assert.match(output, /Default session entrypoint: \/task/);
+  assert.match(output, /Next action after launch:/);
 });
 
 test('global doctor recommends upgrade for invalid installs', () => {

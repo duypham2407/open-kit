@@ -9,6 +9,7 @@ import { doctorCommand } from './commands/doctor.js';
 import { detectVietnameseCommand } from './commands/detect-vietnamese.js';
 import { configureAgentModelsCommand } from './commands/configure-agent-models.js';
 import { releaseCommand } from './commands/release.js';
+import { onboardCommand } from './commands/onboard.js';
 
 const commands = {
   help: helpCommand,
@@ -19,6 +20,7 @@ const commands = {
   upgrade: upgradeCommand,
   uninstall: uninstallCommand,
   doctor: doctorCommand,
+  onboard: onboardCommand,
   'configure-agent-models': configureAgentModelsCommand,
   release: releaseCommand,
   'internal-audit-vietnamese': detectVietnameseCommand,

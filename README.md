@@ -2,6 +2,8 @@
 
 OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines explicit artifacts, approval gates, resumable workflow state, and a bounded full-delivery task runtime with a global OpenKit kit layered over OpenCode.
 
+If you only remember one command after launch, remember this: start with `/task`. It is the safest default entrypoint and lets the Master Orchestrator choose the right lane for you.
+
 ## Audience Navigation
 
 Use the top-level docs as routing layers before diving into detailed references:
@@ -40,9 +42,21 @@ Historical planning and example docs have been intentionally pruned from the wor
 
 Historical release notes for published OpenKit packages are tracked in `RELEASES.md`, with `RELEASE_NOTES_TEMPLATE.md` available for new releases.
 
+OpenKit is currently delivered through OpenCode as its first-class tool surface. The underlying workflow model stays lane-based and tool-agnostic so future adapters can wrap the same semantics without flattening Quick, Migration, and Full Delivery into one generic flow.
+
 If you only need the live checked-in workflow/runtime behavior, prefer the current runtime docs and commands over older repository history.
 
 The repository currently runs on the live `Quick Task+` successor semantics for the `quick` lane together with dedicated `Migration` and `Full Delivery` lanes. The system now supports three live modes: `quick`, `migration`, and `full`.
+
+## Default Path
+
+For most users, the safest path is action-oriented and short:
+
+1. `npm install -g @duypham93/openkit`
+2. `openkit run`
+3. inside OpenCode, start with `/task`
+
+Use `/task` unless you already know with high confidence that the request must begin in `Quick Task`, `Migration`, or `Full Delivery`.
 
 ## Workflow Lanes
 
@@ -104,6 +118,30 @@ First session:
 3. Run `/task` for the safest default entrypoint.
 4. Use `/quick-task`, `/migrate`, or `/delivery` only when you already know the right lane.
 
+Example first session:
+
+```text
+You: /task update the migration report template to match the current workflow
+OpenKit: I will classify the request first. This looks like bounded documentation work with low local uncertainty, so I am keeping it in Quick Task.
+OpenKit: Next action: confirm the bounded checklist and verification path, then route to quick_build.
+```
+
+Example migration entry:
+
+```text
+You: /task upgrade the app from React 18 to React 19 without changing behavior
+OpenKit: The dominant uncertainty is compatibility and modernization risk while behavior should stay the same, so I am routing this to Migration.
+OpenKit: Next action: capture preserved invariants and baseline evidence before planning the upgrade slices.
+```
+
+Example full-delivery entry:
+
+```text
+You: /task add a new billing approval workflow for enterprise accounts
+OpenKit: The request changes product behavior and needs definition across requirements and architecture, so I am routing this to Full Delivery.
+OpenKit: Next action: initialize full_intake and route to the PM Agent for the brief.
+```
+
 Per-agent model setup:
 
 - OpenKit now supports official per-agent model overrides.
@@ -124,6 +162,8 @@ OpenKit currently exposes two related but not identical surfaces:
 
 - the global kit surface used for installation, readiness checks, launch, upgrade, and uninstall
 - the checked-in repository-local runtime surface that exists today in this worktree
+
+See `docs/operator/supported-surfaces.md` for the operator-facing matrix of supported product and compatibility surfaces.
 
 On first run, `openkit run` materializes the managed global kit into the OpenCode home directory automatically.
 

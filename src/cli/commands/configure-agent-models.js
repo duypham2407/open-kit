@@ -616,7 +616,11 @@ export const configureAgentModelsCommand = {
     const registryPath = `${globalPaths.kitRoot}/registry.json`;
     const settingsPath = globalPaths.agentModelSettingsPath;
     const agents = readAgentCatalog(registryPath);
-    const settings = readAgentModelSettings(settingsPath);
+  const settings = readAgentModelSettings(settingsPath);
+
+    for (const warning of settings.warnings ?? []) {
+      io.stderr.write(`Warning: ${warning}\n`);
+    }
 
     if (parsed.interactive) {
       try {

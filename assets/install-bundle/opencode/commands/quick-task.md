@@ -33,6 +33,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 - The Master Orchestrator confirms quick eligibility
 - Record `mode = quick` and `mode_reason`
+- Tell the user the next action in quick language: confirm the bounded checklist, acceptance bullets, and short verification path
 - Initialize `quick_intake`, prepare the quick intake context, then advance to `quick_plan`
 - Once the required `quick_plan` context is ready, route into `quick_build` with the Fullstack Agent
 - Create an optional task card only when traceability is genuinely useful
@@ -50,3 +51,11 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - Keep quick-task validation short and real, following `context/core/project-config.md`
 - If no app-native test or lint command exists, document the manual or artifact-based verification path clearly
 - Use `node .opencode/openkit/workflow-state.js validate` only for workflow-state checks, not as a substitute for application testing
+
+## Example transcript
+
+```text
+User: /quick-task update the operator README wording for the new command
+OpenKit: The request stays bounded, low-risk, and quick to verify, so quick entry is valid.
+OpenKit: Next action: confirm the checklist and direct verification path, then route to quick_build.
+```

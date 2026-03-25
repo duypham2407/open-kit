@@ -239,7 +239,7 @@ test("status command prints workflow and runtime summary", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /OpenKit runtime status:/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.9/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.13/)
   assert.match(result.stdout, /entry agent: MasterOrchestrator/)
   assert.match(result.stdout, /active profile: openkit-core/)
   assert.match(result.stdout, /registry: .*registry\.json/)
@@ -577,7 +577,7 @@ test("version command prints kit metadata version", () => {
   })
 
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /OpenKit version: 0\.2\.9/)
+  assert.match(result.stdout, /OpenKit version: 0\.2\.13/)
   assert.match(result.stdout, /active profile: openkit-core/)
 })
 
@@ -621,6 +621,8 @@ test("help output includes multi-work-item and task-board commands", () => {
   assert.match(result.stdout, /create-work-item/)
   assert.match(result.stdout, /list-work-items/)
   assert.match(result.stdout, /show-work-item <work_item_id>/)
+  assert.match(result.stdout, /closeout-summary <work_item_id>/)
+  assert.match(result.stdout, /reconcile-work-items <work_item_id>/)
   assert.match(result.stdout, /activate-work-item <work_item_id>/)
   assert.match(result.stdout, /list-tasks <work_item_id>/)
   assert.match(result.stdout, /create-task <work_item_id> <task_id> <title> <kind>/)
@@ -958,6 +960,8 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Work item: feature-900/)
   assert.match(result.stdout, /feature: FEATURE-900 \(parallel-rollout\)/)
+  assert.match(result.stdout, /next action:/)
+  assert.match(result.stdout, /artifact readiness:/)
 
   result = runCli(projectRoot, [
     "create-task",
@@ -1028,6 +1032,16 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
   result = runCli(projectRoot, ["validate-work-item-board", "feature-900"])
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Task board is valid for work item 'feature-900'/)
+
+  result = runCli(projectRoot, ["closeout-summary", "feature-900"])
+  assert.equal(result.status, 1)
+  assert.equal(result.stderr, '')
+  assert.match(result.stdout, /ready to close: no/)
+
+  result = runCli(projectRoot, ["reconcile-work-items", "feature-900"])
+  assert.equal(result.status, 1)
+  assert.match(result.stdout, /Work items checked: 1/)
+  assert.match(result.stdout, /all ready to close: no/)
 })
 
 test("CLI rejects quick items carrying task data through managed validation", () => {

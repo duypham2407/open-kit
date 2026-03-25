@@ -2,6 +2,7 @@ const fs = require("fs")
 const path = require("path")
 
 const { readWorkItemIndex, resolveWorkItemPaths } = require("./work-item-store")
+const { getArtifactReadiness, getNextAction, summarizeArtifactReadinessLines } = require("./runtime-guidance")
 
 const ACTIVE_TASK_STATUSES = new Set(["claimed", "in_progress", "qa_in_progress"])
 
@@ -68,12 +69,16 @@ function getTaskBoardDetails(projectRoot, state) {
 function getRuntimeContext(projectRoot, state) {
   const index = getWorkItemIndexIfExists(projectRoot)
   const taskBoard = getTaskBoardDetails(projectRoot, state)
+  const artifactReadiness = getArtifactReadiness(state)
 
   return {
     activeWorkItemId: index?.active_work_item_id ?? state?.work_item_id ?? null,
     workItemCount: index?.work_items?.length ?? null,
     taskBoardPresent: taskBoard.present,
     taskBoardSummary: taskBoard.summary,
+    nextAction: getNextAction(state),
+    artifactReadiness,
+    artifactReadinessLines: summarizeArtifactReadinessLines(state),
   }
 }
 

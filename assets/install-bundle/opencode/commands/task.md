@@ -6,6 +6,11 @@ description: "Default entry command. Lets the Master Orchestrator classify work 
 
 Use `/task` when the user wants the default entrypoint and expects the Master Orchestrator to choose the lane.
 
+Default-path rule:
+
+- Treat `/task` as the safest first command unless the lane is already obvious.
+- Prefer telling the user the next action after routing, not only the chosen lane name.
+
 ## Global OpenKit path rule
 
 - In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
@@ -34,6 +39,10 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 - The Master Orchestrator chooses `quick`, `migration`, or `full` using the canonical workflow rules
 - Record `mode` and `mode_reason` in workflow state
+- Tell the user the next action after routing:
+  - quick -> confirm the bounded checklist and verification path
+  - migration -> capture preserved invariants and baseline evidence before upgrade slices
+  - full -> initialize full intake and route into the full artifact chain
 - If the task enters the quick lane, initialize quick intake context and continue through the canonical quick stage chain
 - If the task enters the migration lane, initialize `migration_intake` and continue through the canonical migration stage chain
 - If the task enters the full lane, initialize `full_intake` and route to the PM agent
@@ -52,3 +61,12 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - Use `node .opencode/openkit/workflow-state.js status` or `node .opencode/openkit/workflow-state.js show` to inspect resumable state before rerouting when needed
 - Use `node .opencode/openkit/workflow-state.js validate` to validate stale or manually edited state when needed
 - Do not imply repo-native app build, lint, or test commands exist when this repository has not defined them
+
+## Example transcript
+
+```text
+User: /task replace the deprecated helper in one module without changing behavior
+OpenKit: I am treating /task as the default entrypoint and classifying the work first.
+OpenKit: The dominant uncertainty is low and local, so I am routing this to Quick Task.
+OpenKit: Next action: confirm the bounded checklist and verification path, then continue into quick_build.
+```

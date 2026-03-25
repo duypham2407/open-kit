@@ -11,6 +11,7 @@ const {
   createTask,
   createWorkItem,
   getProfile,
+  getWorkItemCloseoutSummary,
   getRuntimeStatus,
   getVersionInfo,
   linkArtifact,
@@ -19,6 +20,7 @@ const {
   listProfiles,
   reassignTask,
   recordIssue,
+  reconcileCompletedWorkItems,
   releaseTask,
   resolveStatePath,
   routeRework,
@@ -55,6 +57,8 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] create-work-item <mode> <feature_id> <feature_slug> <mode_reason>
   node .opencode/workflow-state.js [--state <path>] list-work-items
   node .opencode/workflow-state.js [--state <path>] show-work-item <work_item_id>
+  node .opencode/workflow-state.js [--state <path>] closeout-summary <work_item_id>
+  node .opencode/workflow-state.js [--state <path>] reconcile-work-items <work_item_id> [additional_work_item_ids...]
   node .opencode/workflow-state.js [--state <path>] activate-work-item <work_item_id>
   node .opencode/workflow-state.js [--state <path>] advance-stage <stage>
   node .opencode/workflow-state.js [--state <path>] set-approval <gate> <status> [approved_by] [approved_at] [notes]
@@ -117,6 +121,14 @@ function printRuntimeTaskContext(context) {
       console.log(`active tasks: ${context.taskBoardSummary.activeTasks.join("; ")}`)
     }
   }
+
+  if (context.nextAction) {
+    console.log(`next action: ${context.nextAction}`)
+  }
+
+  if (Array.isArray(context.artifactReadinessLines) && context.artifactReadinessLines.length > 0) {
+    console.log(`artifact readiness: ${context.artifactReadinessLines.join(" | ")}`)
+  }
 }
 
 function printRuntimeStatus(runtime) {
@@ -176,6 +188,9 @@ function printWorkItems(result) {
   for (const item of result.workItems) {
     const marker = item.work_item_id === result.index.active_work_item_id ? "*" : " "
     console.log(`${marker} ${item.work_item_id} | ${item.feature_id} | ${item.mode} | ${item.status}`)
+    if (item.next_action) {
+      console.log(`  next action: ${item.next_action}`)
+    }
   }
 }
 
@@ -185,12 +200,50 @@ function printWorkItem(result) {
   console.log(`mode: ${result.state.mode}`)
   console.log(`stage: ${result.state.current_stage}`)
   console.log(`status: ${result.state.status}`)
+  const runtimeContext = getRuntimeContext(path.dirname(path.dirname(result.statePath)), result.state)
+  if (runtimeContext.nextAction) {
+    console.log(`next action: ${runtimeContext.nextAction}`)
+  }
+  if (runtimeContext.artifactReadinessLines.length > 0) {
+    console.log(`artifact readiness: ${runtimeContext.artifactReadinessLines.join(" | ")}`)
+  }
 }
 
 function printTasks(result) {
   console.log(`Tasks for ${result.workItemId}:`)
   for (const task of result.tasks) {
     console.log(`${task.task_id} | ${task.status} | ${task.kind} | ${task.title}`)
+  }
+}
+
+function printCloseoutSummary(result) {
+  console.log(`Work item: ${result.workItemId}`)
+  console.log(`ready to close: ${result.readyToClose ? "yes" : "no"}`)
+  if (result.missingRequiredArtifacts.length > 0) {
+    console.log(`missing required artifacts: ${result.missingRequiredArtifacts.map((entry) => entry.artifact).join(", ")}`)
+  }
+  if (result.recommendedArtifacts.length > 0) {
+    console.log(`recommended artifacts now: ${result.recommendedArtifacts.map((entry) => entry.artifact).join(", ")}`)
+  }
+  if (result.unresolvedIssues.length > 0) {
+    console.log(`unresolved issues: ${result.unresolvedIssues.length}`)
+  }
+  if (result.activeTasks.length > 0) {
+    console.log(`active tasks: ${result.activeTasks.map((task) => task.task_id).join(", ")}`)
+  }
+}
+
+function printReconcileReport(result) {
+  console.log(`Work items checked: ${result.workItems.length}`)
+  console.log(`all ready to close: ${result.allReadyToClose ? "yes" : "no"}`)
+  if (result.conflicts.length > 0) {
+    console.log("artifact conflicts:")
+    for (const conflict of result.conflicts) {
+      console.log(`- ${conflict.path}: ${conflict.first} vs ${conflict.second}`)
+    }
+  }
+  for (const item of result.workItems) {
+    console.log(`- ${item.workItemId}: ${item.readyToClose ? "ready" : "needs attention"}`)
   }
 }
 
@@ -348,6 +401,16 @@ async function main() {
     case "show-work-item":
       result = showWorkItemState(rest[0], statePath)
       printWorkItem(result)
+      return
+    case "closeout-summary":
+      result = getWorkItemCloseoutSummary(rest[0], statePath)
+      printCloseoutSummary(result)
+      process.exit(result.readyToClose ? 0 : 1)
+      return
+    case "reconcile-work-items":
+      result = reconcileCompletedWorkItems(statePath, rest)
+      printReconcileReport(result)
+      process.exit(result.allReadyToClose ? 0 : 1)
       return
     case "activate-work-item":
       result = selectActiveWorkItem(rest[0], statePath)
