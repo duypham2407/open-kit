@@ -14,6 +14,7 @@ Phase-1 docs layout also routes supporting material through dedicated hubs:
 
 - `docs/operations/README.md`: operational support split into `runbooks/` and `internal-records/`
 - `docs/templates/README.md`: template inventory and artifact-shape guardrails
+- `RELEASES.md`: index of in-repo release notes and release-note workflow
 
 Phase-1 authority rule:
 
@@ -36,6 +37,8 @@ This repository currently contains two active surface types:
    - those checked-in files remain the authoring source and compatibility path while the global install model matures
 
 Historical planning and example docs have been intentionally pruned from the working tree. If you need older rationale, use git history rather than treating removed docs as part of the live contract.
+
+Historical release notes for published OpenKit packages are tracked in `RELEASES.md`, with `RELEASE_NOTES_TEMPLATE.md` available for new releases.
 
 If you only need the live checked-in workflow/runtime behavior, prefer the current runtime docs and commands over older repository history.
 
