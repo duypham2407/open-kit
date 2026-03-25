@@ -100,7 +100,7 @@ test('openkit install-global materializes global kit and profile files', () => {
   assert.equal(fs.existsSync(path.join(profileRoot, 'opencode.json')), true);
   assert.equal(readJson(path.join(profileRoot, 'opencode.json')).default_agent, 'master-orchestrator');
   assert.equal(fs.existsSync(path.join(kitRoot, 'opencode.json')), true);
-  assert.match(readJson(path.join(kitRoot, 'install-state.json')).kit.version, /^0\.2\.13$/);
+  assert.match(readJson(path.join(kitRoot, 'install-state.json')).kit.version, /^0\.2\.14$/);
   assert.match(readJson(path.join(profileRoot, 'hooks.json')).hooks.SessionStart[0].hooks[0].command, /session-start\.js/);
   assert.deepEqual(readJson(path.join(tempHome, 'openkit', 'agent-models.json')).agentModels, {});
 });
@@ -504,7 +504,7 @@ test('openkit run blocks on invalid global install state and recommends upgrade'
     `${JSON.stringify({
       schema: 'wrong-schema',
       stateVersion: 1,
-      kit: { name: 'OpenKit', version: '0.2.13' },
+      kit: { name: 'OpenKit', version: '0.2.14' },
       installation: {
         profile: 'openkit',
         status: 'installed',

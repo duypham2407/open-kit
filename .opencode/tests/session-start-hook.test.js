@@ -58,7 +58,7 @@ function makeQuickState(overrides = {}) {
   }
 }
 
-function writeManifest(projectRoot, version = "0.2.13") {
+function writeManifest(projectRoot, version = "0.2.14") {
   const opencodeDir = path.join(projectRoot, ".opencode")
   fs.mkdirSync(opencodeDir, { recursive: true })
   fs.writeFileSync(
