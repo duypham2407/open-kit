@@ -121,6 +121,8 @@ The interactive flow now supports numbered provider and model pickers, so you do
 
 If `opencode models --verbose` exposes variants for the selected model, the interactive flow will also offer a numbered variant picker before saving the override.
 
+If verbose discovery is unavailable, OpenKit falls back to plain provider/model selection so setup can still continue without variant metadata.
+
 ### 3. Start or resume work
 
 If no work is active, start from chat with `/task`, `/quick-task`, or `/delivery`.

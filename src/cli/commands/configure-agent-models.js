@@ -219,6 +219,13 @@ function parseVerboseModelCatalog(output) {
   return entries;
 }
 
+function toPlainModelEntries(modelIds) {
+  return modelIds.map((modelId) => ({
+    modelId,
+    variants: {},
+  }));
+}
+
 function describeVariantOptions(variantConfig) {
   if (!variantConfig || typeof variantConfig !== 'object' || Array.isArray(variantConfig)) {
     return 'Custom variant';
@@ -357,22 +364,48 @@ async function chooseActionInteractively(rl, agent, settings, io) {
 }
 
 async function chooseModelInteractively(rl, io, { env, refresh, verbose }) {
-  const modelResult = runOpenCodeModels('', { env, refresh, verbose: true });
+  const verboseResult = runOpenCodeModels('', { env, refresh, verbose: true });
 
-  if (modelResult.stderr) {
-    io.stderr.write(modelResult.stderr);
-  }
-
-  if (modelResult.error?.code === 'ENOENT') {
+  if (verboseResult.error?.code === 'ENOENT') {
     throw new Error('Could not find `opencode` on your PATH. Install OpenCode or add it to PATH first.');
   }
 
-  if ((modelResult.status ?? 1) !== 0) {
-    throw new Error('`opencode models` failed, so interactive model selection could not continue.');
+  let modelEntries = [];
+  let allModelIds = [];
+
+  if ((verboseResult.status ?? 1) === 0) {
+    if (verboseResult.stderr) {
+      io.stderr.write(verboseResult.stderr);
+    }
+
+    modelEntries = parseVerboseModelCatalog(verboseResult.stdout ?? '');
+    allModelIds = modelEntries.map((entry) => entry.modelId);
+  } else {
+    if (verboseResult.stderr) {
+      io.stderr.write(verboseResult.stderr);
+    }
+    io.stderr.write('Falling back to plain `opencode models` output because verbose model discovery was unavailable. Variant selection will be skipped unless a later retry succeeds.\n');
   }
 
-  const modelEntries = parseVerboseModelCatalog(modelResult.stdout ?? '');
-  const allModelIds = modelEntries.map((entry) => entry.modelId);
+  if (allModelIds.length === 0) {
+    const plainResult = runOpenCodeModels('', { env, refresh, verbose: false });
+
+    if (plainResult.error?.code === 'ENOENT') {
+      throw new Error('Could not find `opencode` on your PATH. Install OpenCode or add it to PATH first.');
+    }
+
+    if ((plainResult.status ?? 1) !== 0) {
+      throw new Error('`opencode models` failed, so interactive model selection could not continue.');
+    }
+
+    if (plainResult.stderr) {
+      io.stderr.write(plainResult.stderr);
+    }
+
+    allModelIds = parseModelIdsFromOutput(plainResult.stdout ?? '');
+    modelEntries = toPlainModelEntries(allModelIds);
+  }
+
   const providerGroups = groupModelsByProvider(allModelIds);
 
   if (providerGroups.length === 0) {

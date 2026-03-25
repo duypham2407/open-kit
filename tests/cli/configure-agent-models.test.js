@@ -237,3 +237,33 @@ test('configure-agent-models interactive flow can save a variant for supported p
   assert.equal(settings.agentModels['qa-agent'].model, 'openai/gpt-5');
   assert.equal(settings.agentModels['qa-agent'].variant, 'xhigh');
 });
+
+test('configure-agent-models falls back to plain model selection when verbose discovery is unusable', async () => {
+  const tempHome = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(
+    path.join(fakeBinDir, 'opencode'),
+    '#!/bin/sh\nif [ "$1" = "models" ]; then\n  if [ "$2" = "--verbose" ]; then\n    printf "model catalog unavailable\\n" >&2\n    exit 1\n  fi\n  printf "openai/gpt-5\\nopenai/gpt-5-mini\\nanthropic/claude-sonnet-4-5\\n"\n  exit 0\nfi\nexit 0\n'
+  );
+
+  const answers = ['7', '3', '2', 'n'];
+  const result = await runCli(['configure-agent-models', '--interactive'], {
+    cwd: worktreeRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+    prompt: async () => answers.shift() ?? '',
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stderr, /Falling back to plain `opencode models` output/);
+  assert.doesNotMatch(result.stdout, /Available variants/);
+  assert.match(result.stdout, /Saved openai\/gpt-5-mini for qa-agent/);
+
+  const settings = readJson(path.join(tempHome, 'openkit', 'agent-models.json'));
+  assert.equal(settings.agentModels['qa-agent'].model, 'openai/gpt-5-mini');
+  assert.equal(settings.agentModels['qa-agent'].variant, undefined);
+});
