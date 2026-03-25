@@ -2,6 +2,7 @@
 
 Historical release notes tracked in-repo:
 
+- [`0.2.13`](RELEASE_NOTES_0.2.13.md) - trim published package contents
 - [`0.2.12`](RELEASE_NOTES_0.2.12.md) - soft fallback for interactive model discovery when verbose metadata is unavailable
 - [`0.2.11`](RELEASE_NOTES_0.2.11.md) - dynamic model variant discovery from `opencode models --verbose`
 - [`0.2.10`](RELEASE_NOTES_0.2.10.md) - interactive per-agent model setup and persisted overrides
