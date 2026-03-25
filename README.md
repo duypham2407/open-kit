@@ -40,7 +40,7 @@ This repository currently contains two active surface types:
 
 Historical planning and example docs have been intentionally pruned from the working tree. If you need older rationale, use git history rather than treating removed docs as part of the live contract.
 
-Historical release notes for published OpenKit packages are tracked in `RELEASES.md`, with `RELEASE_NOTES_TEMPLATE.md` available for new releases.
+Historical release notes for published OpenKit packages are tracked in `RELEASES.md`, with per-version notes stored under `release-notes/` and `release-notes/TEMPLATE.md` available for new releases.
 
 OpenKit is currently delivered through OpenCode as its first-class tool surface. The underlying workflow model stays lane-based and tool-agnostic so future adapters can wrap the same semantics without flattening Quick, Migration, and Full Delivery into one generic flow.
 

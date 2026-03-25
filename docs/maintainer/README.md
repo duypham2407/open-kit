@@ -53,10 +53,10 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 ## Release Process
 
 - Historical release notes live in `RELEASES.md`.
-- New release notes should start from `RELEASE_NOTES_TEMPLATE.md`.
+- New release notes should start from `release-notes/TEMPLATE.md`.
 - Fastest maintainer path:
   1. `openkit release prepare <version> --summary "<short summary>"`
-  2. Fill in `RELEASE_NOTES_<version>.md`
+  2. Fill in `release-notes/<version>.md`
   3. `openkit release verify`
   4. `openkit release publish`
 - `openkit release publish` tags, pushes, publishes to npm, and creates a GitHub release automatically when `gh` is installed.

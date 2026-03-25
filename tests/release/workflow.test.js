@@ -31,8 +31,8 @@ function createFixtureRepo(version = '0.2.12') {
   write(path.join(repoRoot, 'package.json'), JSON.stringify({ name: '@duypham93/openkit', version }, null, 2) + '\n');
   write(path.join(repoRoot, 'registry.json'), JSON.stringify({ kit: { version } }, null, 2) + '\n');
   write(path.join(repoRoot, '.opencode', 'install-manifest.json'), JSON.stringify({ kit: { version } }, null, 2) + '\n');
-  write(path.join(repoRoot, 'RELEASES.md'), '# Releases\n\nHistorical release notes tracked in-repo:\n\n- [`0.2.12`](RELEASE_NOTES_0.2.12.md) - latest release\n');
-  write(path.join(repoRoot, 'RELEASE_NOTES_TEMPLATE.md'), '## Published package\n\n- npm: `@duypham93/openkit@<version>`\n');
+  write(path.join(repoRoot, 'RELEASES.md'), '# Releases\n\nHistorical release notes tracked in-repo:\n\n- [`0.2.12`](release-notes/0.2.12.md) - latest release\n');
+  write(path.join(repoRoot, 'release-notes', 'TEMPLATE.md'), '## Published package\n\n- npm: `@duypham93/openkit@<version>`\n');
   for (const relativePath of [
     '.opencode/tests/session-start-hook.test.js',
     '.opencode/tests/workflow-behavior.test.js',
@@ -45,7 +45,7 @@ function createFixtureRepo(version = '0.2.12') {
   ]) {
     write(path.join(repoRoot, relativePath), `version fixture ${version}\n`);
   }
-  write(path.join(repoRoot, 'RELEASE_NOTES_0.2.12.md'), '## Published package\n\n- npm: `@duypham93/openkit@0.2.12`\n');
+  write(path.join(repoRoot, 'release-notes', '0.2.12.md'), '## Published package\n\n- npm: `@duypham93/openkit@0.2.12`\n');
   return repoRoot;
 }
 
@@ -62,7 +62,7 @@ test('releasePrepare updates version metadata and scaffolds release notes', () =
 
   assert.equal(result.nextVersion, '0.2.13');
   assert.equal(fs.existsSync(getReleaseNotesPath(repoRoot, '0.2.13')), true);
-  assert.match(read(path.join(repoRoot, 'RELEASES.md')), /RELEASE_NOTES_0\.2\.13\.md/);
+  assert.match(read(path.join(repoRoot, 'RELEASES.md')), /release-notes\/0\.2\.13\.md/);
   assert.match(read(path.join(repoRoot, 'package.json')), /0\.2\.13/);
 });
 

@@ -45,12 +45,13 @@ export function getReleasePaths(repoRoot = process.cwd()) {
     registryPath: path.join(repoRoot, 'registry.json'),
     installManifestPath: path.join(repoRoot, '.opencode', 'install-manifest.json'),
     releasesIndexPath: path.join(repoRoot, 'RELEASES.md'),
-    releaseTemplatePath: path.join(repoRoot, 'RELEASE_NOTES_TEMPLATE.md'),
+    releaseNotesDir: path.join(repoRoot, 'release-notes'),
+    releaseTemplatePath: path.join(repoRoot, 'release-notes', 'TEMPLATE.md'),
   };
 }
 
 export function getReleaseNotesPath(repoRoot = process.cwd(), version) {
-  return path.join(repoRoot, `RELEASE_NOTES_${version}.md`);
+  return path.join(repoRoot, 'release-notes', `${version}.md`);
 }
 
 export function readCurrentVersion(repoRoot = process.cwd()) {
@@ -132,9 +133,9 @@ export function createReleaseNotes(repoRoot = process.cwd(), version) {
 export function updateReleasesIndex(repoRoot = process.cwd(), version, summary = 'pending release summary') {
   const releasesPath = getReleasePaths(repoRoot).releasesIndexPath;
   const current = readText(releasesPath);
-  const entry = `- [\`${version}\`](RELEASE_NOTES_${version}.md) - ${summary}`;
+  const entry = `- [\`${version}\`](release-notes/${version}.md) - ${summary}`;
 
-  if (current.includes(`RELEASE_NOTES_${version}.md`)) {
+  if (current.includes(`release-notes/${version}.md`)) {
     return { updated: false, entry };
   }
 
@@ -150,7 +151,7 @@ export function updateReleasesIndex(repoRoot = process.cwd(), version, summary =
 
 export function readReleaseSummaryStatus(repoRoot = process.cwd(), version) {
   const releasesContent = readText(getReleasePaths(repoRoot).releasesIndexPath);
-  const hasEntry = releasesContent.includes(`RELEASE_NOTES_${version}.md`);
+  const hasEntry = releasesContent.includes(`release-notes/${version}.md`);
   const notesPath = getReleaseNotesPath(repoRoot, version);
 
   return {
