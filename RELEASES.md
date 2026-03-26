@@ -2,14 +2,16 @@
 
 ## Latest
 
-- [`0.2.14`](release-notes/0.2.14.md) - OpenSpec-inspired UX and runtime guidance uplift
-- npm latest: `@duypham93/openkit@0.2.14`
-- git tag: `v0.2.14`
+- [`0.2.15`](release-notes/0.2.15.md) - conditional parallel execution for full and migration
+- npm latest: `@duypham93/openkit@0.2.15`
+- git tag: `v0.2.15`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.2.15`](release-notes/0.2.15.md) - conditional parallel execution for full and migration
+- [`0.2.14`](release-notes/0.2.14.md) - OpenSpec-inspired UX and runtime guidance uplift
 - [`0.2.13`](release-notes/0.2.13.md) - trim published package contents
 - [`0.2.12`](release-notes/0.2.12.md) - soft fallback for interactive model discovery when verbose metadata is unavailable
 - [`0.2.11`](release-notes/0.2.11.md) - dynamic model variant discovery from `opencode models --verbose`
