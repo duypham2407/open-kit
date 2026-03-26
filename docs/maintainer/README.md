@@ -25,6 +25,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - Issue routing: `context/core/issue-routing.md`
 - Session resume: `context/core/session-resume.md`
 - Workflow-state schema: `context/core/workflow-state-schema.md`
+- Conditional parallel execution boundary: `docs/maintainer/conditional-parallel-execution-note.md`
 - Governance policy: `docs/governance/README.md`
 - Operations and diagnostics: `docs/operations/README.md`
 - Artifact guidance: `docs/briefs/README.md`, `docs/specs/README.md`, `docs/architecture/README.md`, `docs/plans/README.md`, `docs/qa/README.md`, `docs/adr/README.md`, `docs/templates/README.md`

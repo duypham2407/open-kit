@@ -4,6 +4,8 @@ Use this runbook when a `Tech Lead` needs to decide whether `Full Delivery` or `
 
 The purpose of this runbook is not to maximize parallelism at all costs. Its purpose is to maximize safe throughput without breaking OpenKit's lane semantics, approval chain, or runtime guarantees.
 
+For the maintainer-facing boundary and product intent behind this model, see `docs/maintainer/conditional-parallel-execution-note.md`.
+
 ## Team Model
 
 This runbook assumes the intended OpenKit team topology:
