@@ -30,7 +30,7 @@ function setupTempRuntime(projectRoot) {
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
-        version: "0.3.1",
+        version: "0.3.2",
         entryAgent: "MasterOrchestrator",
         registry: {
           path: "registry.json",
@@ -253,7 +253,7 @@ test("status command prints workflow and runtime summary", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /OpenKit runtime status:/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.1/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.2/)
   assert.match(result.stdout, /entry agent: MasterOrchestrator/)
   assert.match(result.stdout, /active profile: openkit-core/)
   assert.match(result.stdout, /registry: .*registry\.json/)
@@ -765,7 +765,7 @@ test("version command prints kit metadata version", () => {
   })
 
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /OpenKit version: 0\.3\.1/)
+  assert.match(result.stdout, /OpenKit version: 0\.3\.2/)
   assert.match(result.stdout, /active profile: openkit-core/)
 })
 
