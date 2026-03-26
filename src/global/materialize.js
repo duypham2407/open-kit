@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { createGlobalInstallState, writeJson } from './install-state.js';
-import { createEmptyAgentModelSettings } from './agent-models.js';
+import { createEmptyAgentModelSettings, readAgentModelSettings, writeAgentModelSettings } from './agent-models.js';
 import { getGlobalPaths } from './paths.js';
 import { getOpenKitVersion } from '../version.js';
 
@@ -69,6 +69,9 @@ function createOpenCodeConfig() {
 
 export function materializeGlobalInstall({ env = process.env, kitVersion = getOpenKitVersion() } = {}) {
   const paths = getGlobalPaths({ env });
+  const existingAgentModelSettings = fs.existsSync(paths.agentModelSettingsPath)
+    ? readAgentModelSettings(paths.agentModelSettingsPath)
+    : createEmptyAgentModelSettings();
 
   removePathIfPresent(paths.kitRoot);
   removePathIfPresent(paths.profilesRoot);
@@ -86,7 +89,7 @@ export function materializeGlobalInstall({ env = process.env, kitVersion = getOp
   writeJson(paths.kitConfigPath, openCodeConfig);
   writeJson(paths.installStatePath, installState);
   writeJson(paths.profileManifestPath, openCodeConfig);
-  writeJson(paths.agentModelSettingsPath, createEmptyAgentModelSettings());
+  writeAgentModelSettings(paths.agentModelSettingsPath, existingAgentModelSettings);
   writeJson(paths.profileHooksPath, {
     hooks: {
       SessionStart: [

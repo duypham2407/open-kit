@@ -16,6 +16,10 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+}
+
 test('ensureGlobalInstall returns none when install is healthy', () => {
   const tempHome = makeTempDir();
   const projectRoot = makeTempDir();
@@ -103,4 +107,36 @@ test('ensureGlobalInstall returns blocked when install state is invalid', () => 
   assert.equal(result.installed, false);
   assert.equal(result.doctor.status, 'install-invalid');
   assert.equal(result.doctor.recommendedCommand, 'openkit upgrade');
+});
+
+test('materializeGlobalInstall preserves existing agent model overrides during upgrade-style refresh', () => {
+  const tempHome = makeTempDir();
+  const settingsPath = path.join(tempHome, 'openkit', 'agent-models.json');
+
+  writeJson(settingsPath, {
+    schema: 'openkit/agent-model-settings@1',
+    stateVersion: 1,
+    updatedAt: '2026-03-26T00:00:00.000Z',
+    agentModels: {
+      'qa-agent': {
+        model: 'openai/gpt-5',
+        variant: 'high',
+      },
+      'fullstack-agent': {
+        model: 'anthropic/claude-sonnet-4-5',
+      },
+    },
+  });
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+
+  const settings = readJson(settingsPath);
+  assert.equal(settings.agentModels['qa-agent'].model, 'openai/gpt-5');
+  assert.equal(settings.agentModels['qa-agent'].variant, 'high');
+  assert.equal(settings.agentModels['fullstack-agent'].model, 'anthropic/claude-sonnet-4-5');
 });

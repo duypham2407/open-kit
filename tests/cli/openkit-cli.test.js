@@ -29,6 +29,11 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+function writeJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
 function writeExecutable(filePath, content) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, content, 'utf8');
@@ -540,6 +545,18 @@ test('openkit upgrade refreshes the global kit install', () => {
   });
   assert.equal(installResult.status, 0);
 
+  writeJson(path.join(tempHome, 'openkit', 'agent-models.json'), {
+    schema: 'openkit/agent-model-settings@1',
+    stateVersion: 1,
+    updatedAt: '2026-03-26T00:00:00.000Z',
+    agentModels: {
+      'qa-agent': {
+        model: 'openai/gpt-5',
+        variant: 'high',
+      },
+    },
+  });
+
   const result = runCli(['upgrade'], {
     env: {
       ...process.env,
@@ -549,6 +566,10 @@ test('openkit upgrade refreshes the global kit install', () => {
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /Upgraded OpenKit global install/);
+
+  const settings = readJson(path.join(tempHome, 'openkit', 'agent-models.json'));
+  assert.equal(settings.agentModels['qa-agent'].model, 'openai/gpt-5');
+  assert.equal(settings.agentModels['qa-agent'].variant, 'high');
 });
 
 test('openkit uninstall removes the global kit and profile and can remove workspace state', () => {
