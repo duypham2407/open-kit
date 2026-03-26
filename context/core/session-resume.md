@@ -13,6 +13,11 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 5. Read the mode-appropriate artifact or task context
 6. Read any related QA issues, approval notes, or escalation metadata
 
+Fast path:
+
+- run `node .opencode/workflow-state.js resume-summary` when you need a human-readable snapshot before diving into raw state or linked artifacts
+- run `node .opencode/workflow-state.js resume-summary --json` when tooling or automation needs the resumable context in machine-readable form
+
 ## Mode-Aware Resume Rules
 
 ### Quick Task
@@ -41,6 +46,7 @@ If `mode` is `full`:
 - if the current full-delivery stage is `full_plan`, `full_implementation`, or `full_qa`, inspect the task board when it exists and confirm it belongs only to this full work item
 - restore both feature-level and task-level context: current stage owner, active work item id, ready/active task summary, and any task-specific evidence tied to the next decision
 - if `current_stage` is `full_qa`, read the current QA report and related plan first
+- if `current_stage` is `full_done`, confirm the QA report, verification evidence, and issue state are all inspectable before trusting closure
 - preserve the approval-gate context before advancing or rerouting
 - if resuming at a handoff boundary, inspect the latest approved gate notes before starting new work
 
@@ -65,6 +71,9 @@ If `mode` is `migration`:
 - If the referenced artifact file is missing, report the mismatch and repair the docs/state before proceeding.
 - If `escalated_from` is `quick` or `migration`, resume from the current full-delivery stage, not from the abandoned earlier stage.
 - Use `.opencode/workflow-state.js show` or `.opencode/workflow-state.js validate` when explicit state inspection helps resume work.
+- Use `.opencode/workflow-state.js resume-summary` when you need the next safe action, linked artifacts, pending approvals, and open issues in one place.
+- Use `.opencode/workflow-state.js check-stage-readiness` when you need to know whether the current stage can honestly close.
+- Use `.opencode/workflow-state.js issue-aging-report` or `list-stale-issues` when repeated findings or blocked issues may be driving the next action.
 - Use `node .opencode/workflow-state.js list-work-items`, `show-work-item`, `list-tasks`, or `validate-work-item-board` when full-delivery resume depends on task-aware state.
 - Inspect whether the recorded evidence is sufficient for the current stage before acting; if not, repair the handoff context first.
 - Preserve explicit validation history when resuming; do not replace prior evidence with vague restatements.

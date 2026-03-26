@@ -108,7 +108,10 @@ const ARTIFACT_KINDS = ["task_card", "brief", "spec", "architecture", "plan", "m
 
 const ISSUE_TYPES = ["bug", "design_flaw", "requirement_gap"]
 const ISSUE_SEVERITIES = ["critical", "high", "medium", "low"]
+const ISSUE_STATUS_VALUES = ["open", "in_progress", "resolved", "closed"]
 const ROOTED_IN_VALUES = ["implementation", "architecture", "requirements"]
+
+const VERIFICATION_EVIDENCE_KINDS = ["automated", "manual", "runtime", "review"]
 
 const RECOMMENDED_OWNERS = {
   bug: ["FullstackAgent"],
@@ -314,6 +317,7 @@ module.exports = {
   ESCALATION_RETRY_THRESHOLD,
   FULL_STAGE_SEQUENCE,
   ISSUE_SEVERITIES,
+  ISSUE_STATUS_VALUES,
   ISSUE_TYPES,
   MIGRATION_STAGE_SEQUENCE,
   MODE_APPROVAL_GATES,
@@ -330,6 +334,7 @@ module.exports = {
   STAGE_SEQUENCE,
   STATUS_VALUES,
   TRANSITION_GATES,
+  VERIFICATION_EVIDENCE_KINDS,
   createDefaultRoutingProfile,
   createEmptyApprovals,
   createEmptyArtifacts,

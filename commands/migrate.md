@@ -6,12 +6,9 @@ description: "Starts the Migration lane for upgrades, framework migrations, and 
 
 Use `/migrate` when work is primarily a project migration or upgrade effort such as framework version jumps, dependency replacement, legacy API removal, or compatibility remediation.
 
-## Global OpenKit path rule
+## Shared prompt contract
 
-- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs, templates, and workflow tools.
-- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
-- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
-- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
+- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
 
 Core migration principle:
 
@@ -33,6 +30,7 @@ Core migration principle:
 - `.opencode/openkit/context/core/lane-selection.md`
 - `.opencode/openkit/context/core/approval-gates.md`
 - `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/docs/templates/migration-baseline-checklist.md`
 - `.opencode/openkit/docs/templates/migration-verify-checklist.md`
 - `.opencode/openkit/workflow-state.json` when resuming
@@ -65,6 +63,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - Prefer real build, test, codemod, type-check, smoke-test, and manual regression evidence from the target project
 - Prefer parity checks against the preserved baseline: screenshots, behavior notes, contracts, smoke paths, and targeted regression evidence
 - Prefer `migration_report` when baseline notes, execution log, and verification evidence need to stay in one continuously updated file
+- For small, well-understood upgrades, keep the migration artifact set lightweight: baseline notes, staged plan, and parity evidence are enough unless the change reveals broader compatibility risk
 - If repository-native validation commands do not exist, record the missing validation path and the baseline evidence honestly
 - Do not claim TDD-first validation for migration work unless the migration plan explicitly identifies a safe test-first sub-slice with working tooling
 

@@ -63,6 +63,7 @@ Use `context/core/workflow.md` when you need the current live workflow semantics
 | Any implementation | `core/code-quality.md` |
 | Understanding team workflow | `core/workflow.md` |
 | Choosing the correct lane | `core/lane-selection.md` |
+| Understanding product vs compatibility surfaces | `core/runtime-surfaces.md` |
 | Recording approvals | `core/approval-gates.md` |
 | Routing QA issues | `core/issue-routing.md` |
 | Resuming a session | `core/session-resume.md` |
@@ -90,5 +91,6 @@ Use `context/core/workflow.md` when you need the current live workflow semantics
 - **Critical**: `core/code-quality.md` before any code generation
 - **High**: `core/workflow.md` before any agent delegation
 - **High**: `core/session-resume.md` before continuing an in-flight feature
+- **High**: `core/runtime-surfaces.md` before explaining operator vs maintainer command choices
 - **Medium**: `../docs/operator/README.md` and `../docs/maintainer/README.md` for audience-specific routing
 - **Medium**: Task-specific context discovered through agent instructions

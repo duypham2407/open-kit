@@ -33,8 +33,8 @@ These checks validate OpenKit's supported wrapper operator path plus the workflo
 When you are validating operator-facing behavior, treat this order as primary:
 
 1. `npm install -g @duypham93/openkit`
-2. `openkit run`
-3. `openkit doctor`
+2. `openkit doctor`
+3. `openkit run`
 4. `node .opencode/workflow-state.js ...` only when you need raw repository/runtime inspection
 
 ## Automated Checks
@@ -98,6 +98,9 @@ This covers:
 - `profiles` output for checked-in profile listing
 - `show-profile` output for profile detail inspection
 - `sync-install-manifest` behavior for local manifest updates
+- `resume-summary` output for resumable workflow snapshots
+- compact `--short` runtime views for fast operator and maintainer inspection
+- workflow telemetry, stage-readiness checks, and issue lifecycle inspection
 - non-zero `doctor` exit behavior when required runtime files are missing
 - quick-lane stage behavior such as `quick_plan` when live contract changes land in runtime tests
 - work-item and task-board summaries in `status` and `doctor` output when full-delivery parallel state is active
@@ -161,12 +164,19 @@ Expected outcome after `openkit doctor` in a new repository:
 
 ```bash
 node .opencode/workflow-state.js status
+node .opencode/workflow-state.js status --short
+node .opencode/workflow-state.js resume-summary
+node .opencode/workflow-state.js resume-summary --short
 node .opencode/workflow-state.js doctor
+node .opencode/workflow-state.js doctor --short
 ```
 
 Expected outcome:
 
 - `status` prints the active runtime summary using the current state file, including the active profile plus registry and install-manifest paths
+- `resume-summary` prints the next safe action, linked artifacts, pending approvals, and open issues for quick operator or maintainer resume
+- `resume-summary --json` exposes the same resumable context for automation-friendly consumers
+- short views trade detail for speed while staying grounded in the same runtime state
 - `doctor` reports repository runtime checks instead of application-tooling health
 - `doctor` includes contract-consistency checks for declared runtime surfaces and schema alignment
 - `doctor` also checks active work-item pointer resolution, compatibility-mirror alignment, and task-board validity when the active full-delivery stage depends on task-board state
@@ -176,14 +186,22 @@ Expected outcome:
 
 ```bash
 node .opencode/workflow-state.js list-work-items
+node .opencode/workflow-state.js task-aging-report
 node .opencode/workflow-state.js show-work-item feature-001
+node .opencode/workflow-state.js workflow-metrics
+node .opencode/workflow-state.js approval-bottlenecks
+node .opencode/workflow-state.js issue-aging-report
 ```
 
 Expected outcome:
 
 - `list-work-items` prints `Active work item:` and marks the active item with `*`
+- `task-aging-report` shows which tracked work items still carry stale execution tasks
 - `show-work-item feature-001` prints `Work item: feature-001`
 - `show-work-item feature-001` prints the work item's mode, stage, and status
+- `workflow-metrics` reports retry count, issue telemetry, and readiness blockers
+- `approval-bottlenecks` reports pending gates that still block forward movement
+- `issue-aging-report` reports open, repeated, and stale issue signals
 
 ### Profile inspection
 
@@ -234,6 +252,7 @@ node .opencode/workflow-state.js start-task quick TASK-900 copy-fix "Scoped text
 node .opencode/workflow-state.js advance-stage quick_plan
 node .opencode/workflow-state.js advance-stage quick_build
 node .opencode/workflow-state.js advance-stage quick_verify
+node .opencode/workflow-state.js record-verification-evidence quick-qa manual quick_verify "Manual QA Lite pass" qa-lite
 node .opencode/workflow-state.js set-approval quick_verified approved system 2026-03-21 "QA Lite passed"
 node .opencode/workflow-state.js advance-stage quick_done
 node .opencode/workflow-state.js show
@@ -244,6 +263,7 @@ Expected outcome:
 - `mode = quick`
 - `current_stage = quick_done`
 - `status = done`
+- `advance-stage quick_done` should fail if the verification evidence step is skipped
 
 ### Quick Task escalation path
 

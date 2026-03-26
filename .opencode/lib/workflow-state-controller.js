@@ -21,9 +21,20 @@ const {
   writeWorkItemState,
 } = require("./work-item-store")
 const {
+  bootstrapReleaseStore,
+  readReleaseCandidate,
+  readReleaseIndex,
+  resolveReleaseCandidatePaths,
+  resolveReleasePaths,
+  upsertReleaseIndexEntry,
+  writeReleaseCandidate,
+  writeReleaseIndex,
+} = require("./release-store")
+const {
   ARTIFACT_KINDS,
   ESCALATION_RETRY_THRESHOLD,
   ISSUE_SEVERITIES,
+  ISSUE_STATUS_VALUES,
   ISSUE_TYPES,
   MODE_VALUES,
   PARALLEL_MODES,
@@ -36,6 +47,7 @@ const {
   STAGE_OWNERS,
   STAGE_SEQUENCE,
   STATUS_VALUES,
+  VERIFICATION_EVIDENCE_KINDS,
   createDefaultRoutingProfile,
   createEmptyApprovals,
   createEmptyArtifacts,
@@ -64,7 +76,14 @@ const {
   validateMigrationSliceStatus,
   validateMigrationSliceTransition,
 } = require("./migration-slice-rules")
-const { flattenArtifactRefs, getArtifactReadiness, getNextAction } = require("./runtime-guidance")
+const {
+  flattenArtifactRefs,
+  getArtifactReadiness,
+  getDodRule,
+  getIssueTelemetry,
+  getNextAction,
+  getVerificationReadiness,
+} = require("./runtime-guidance")
 
 function fail(message) {
   const error = new Error(message)
@@ -78,6 +97,111 @@ function formatModeLabel(mode) {
 
 function timestamp() {
   return new Date().toISOString()
+}
+
+const RELEASE_STATUS_VALUES = ["draft", "candidate", "approved", "released", "rolled_back", "cancelled"]
+const RELEASE_RISK_VALUES = ["low", "medium", "high"]
+const RELEASE_APPROVAL_GATES = ["qa_to_release", "release_to_ship"]
+
+function getReleaseNotesPath(projectRoot, releaseId) {
+  return path.join(projectRoot, "release-notes", `${releaseId}.md`)
+}
+
+function createEmptyReleaseApprovals() {
+  return RELEASE_APPROVAL_GATES.reduce((approvals, gate) => {
+    approvals[gate] = {
+      status: "pending",
+      approved_by: null,
+      approved_at: null,
+      notes: null,
+    }
+    return approvals
+  }, {})
+}
+
+function createReleaseCandidateShape(releaseId, title) {
+  return {
+    release_id: releaseId,
+    title,
+    status: "draft",
+    created_at: timestamp(),
+    updated_at: timestamp(),
+    target_window: null,
+    included_work_items: [],
+    risk_level: "medium",
+    notes_path: path.posix.join("release-notes", `${releaseId}.md`),
+    rollback_plan: null,
+    approvals: createEmptyReleaseApprovals(),
+    blockers: [],
+    hotfix_work_items: [],
+  }
+}
+
+function ensureReleaseApprovalShape(gate, approval) {
+  ensureObject(approval, `release.approvals.${gate}`)
+  for (const key of ["status", "approved_by", "approved_at", "notes"]) {
+    if (!(key in approval)) {
+      fail(`release.approvals.${gate}.${key} is required`)
+    }
+  }
+  ensureKnown(approval.status, ["pending", "approved", "rejected"], `release.approvals.${gate}.status`)
+  ensureNullableString(approval.approved_by, `release.approvals.${gate}.approved_by`)
+  ensureNullableString(approval.approved_at, `release.approvals.${gate}.approved_at`)
+  ensureNullableString(approval.notes, `release.approvals.${gate}.notes`)
+}
+
+function validateReleaseCandidate(candidate) {
+  ensureObject(candidate, "release candidate")
+  for (const key of [
+    "release_id",
+    "title",
+    "status",
+    "created_at",
+    "updated_at",
+    "target_window",
+    "included_work_items",
+    "risk_level",
+    "notes_path",
+    "rollback_plan",
+    "approvals",
+    "blockers",
+    "hotfix_work_items",
+  ]) {
+    if (!(key in candidate)) {
+      fail(`release candidate.${key} is required`)
+    }
+  }
+
+  ensureString(candidate.release_id, "release candidate.release_id")
+  ensureString(candidate.title, "release candidate.title")
+  ensureKnown(candidate.status, RELEASE_STATUS_VALUES, "release candidate.status")
+  ensureString(candidate.created_at, "release candidate.created_at")
+  ensureString(candidate.updated_at, "release candidate.updated_at")
+  ensureNullableString(candidate.target_window, "release candidate.target_window")
+  ensureArray(candidate.included_work_items, "release candidate.included_work_items")
+  ensureKnown(candidate.risk_level, RELEASE_RISK_VALUES, "release candidate.risk_level")
+  ensureString(candidate.notes_path, "release candidate.notes_path")
+  ensureArray(candidate.blockers, "release candidate.blockers")
+  ensureArray(candidate.hotfix_work_items, "release candidate.hotfix_work_items")
+  ensureObject(candidate.approvals, "release candidate.approvals")
+  for (const gate of RELEASE_APPROVAL_GATES) {
+    if (!(gate in candidate.approvals)) {
+      fail(`release candidate.approvals.${gate} is required`)
+    }
+    ensureReleaseApprovalShape(gate, candidate.approvals[gate])
+  }
+  if (candidate.rollback_plan !== null) {
+    ensureObject(candidate.rollback_plan, "release candidate.rollback_plan")
+    for (const key of ["summary", "owner", "trigger_signals", "recorded_at"]) {
+      if (!(key in candidate.rollback_plan)) {
+        fail(`release candidate.rollback_plan.${key} is required`)
+      }
+    }
+    ensureString(candidate.rollback_plan.summary, "release candidate.rollback_plan.summary")
+    ensureString(candidate.rollback_plan.owner, "release candidate.rollback_plan.owner")
+    ensureArray(candidate.rollback_plan.trigger_signals, "release candidate.rollback_plan.trigger_signals")
+    ensureString(candidate.rollback_plan.recorded_at, "release candidate.rollback_plan.recorded_at")
+  }
 }
 
 function readState(customStatePath) {
@@ -553,6 +677,7 @@ function validateManagedState(state, projectRoot, workItemId, options = {}) {
 
 function requireValidTaskBoard(state, projectRoot, workItemId, boardStage, reason) {
   const taskBoard = readTaskBoardIfExists(projectRoot, workItemId)
+  const effectiveParallelization = state.parallelization ?? createDefaultParallelization(state.mode)
 
   if (state.mode !== "full") {
     if (taskBoard !== null) {
@@ -577,6 +702,8 @@ function requireValidTaskBoard(state, projectRoot, workItemId, boardStage, reaso
       fail("parallel_mode 'none' does not allow multiple active execution tasks")
     }
   }
+
+  return taskBoard
 }
 
 function readJsonIfExists(filePath) {
@@ -756,6 +883,12 @@ function ensureIssueShape(issue, index) {
     "recommended_owner",
     "evidence",
     "artifact_refs",
+    "current_status",
+    "opened_at",
+    "last_updated_at",
+    "reopen_count",
+    "repeat_count",
+    "blocked_since",
   ]) {
     if (!(key in issue)) {
       fail(`issues[${index}].${key} is required`)
@@ -769,6 +902,19 @@ function ensureIssueShape(issue, index) {
   ensureKnown(issue.rooted_in, ROOTED_IN_VALUES, `issues[${index}].rooted_in`)
   ensureString(issue.recommended_owner, `issues[${index}].recommended_owner`)
   ensureString(issue.evidence, `issues[${index}].evidence`)
+  ensureKnown(issue.current_status, ISSUE_STATUS_VALUES, `issues[${index}].current_status`)
+  ensureString(issue.opened_at, `issues[${index}].opened_at`)
+  ensureString(issue.last_updated_at, `issues[${index}].last_updated_at`)
+
+  if (typeof issue.reopen_count !== "number" || Number.isNaN(issue.reopen_count) || issue.reopen_count < 0) {
+    fail(`issues[${index}].reopen_count must be a non-negative number`)
+  }
+
+  if (typeof issue.repeat_count !== "number" || Number.isNaN(issue.repeat_count) || issue.repeat_count < 0) {
+    fail(`issues[${index}].repeat_count must be a non-negative number`)
+  }
+
+  ensureNullableString(issue.blocked_since, `issues[${index}].blocked_since`)
 
   const allowedOwners = RECOMMENDED_OWNERS[issue.type] ?? []
   if (!allowedOwners.includes(issue.recommended_owner)) {
@@ -780,6 +926,37 @@ function ensureIssueShape(issue, index) {
   }
 
   ensureArray(issue.artifact_refs, `issues[${index}].artifact_refs`)
+}
+
+function ensureVerificationEvidenceEntry(entry, index) {
+  ensureObject(entry, `verification_evidence[${index}]`)
+
+  for (const key of ["id", "kind", "scope", "summary", "recorded_at", "source"]) {
+    if (!(key in entry)) {
+      fail(`verification_evidence[${index}].${key} is required`)
+    }
+  }
+
+  ensureString(entry.id, `verification_evidence[${index}].id`)
+  ensureKnown(entry.kind, VERIFICATION_EVIDENCE_KINDS, `verification_evidence[${index}].kind`)
+  ensureString(entry.scope, `verification_evidence[${index}].scope`)
+  ensureString(entry.summary, `verification_evidence[${index}].summary`)
+  ensureString(entry.recorded_at, `verification_evidence[${index}].recorded_at`)
+  ensureString(entry.source, `verification_evidence[${index}].source`)
+
+  if (entry.command !== undefined && entry.command !== null) {
+    ensureString(entry.command, `verification_evidence[${index}].command`)
+  }
+
+  if (entry.exit_status !== undefined && entry.exit_status !== null) {
+    if (typeof entry.exit_status !== "number" || Number.isNaN(entry.exit_status)) {
+      fail(`verification_evidence[${index}].exit_status must be a number or null`)
+    }
+  }
+
+  if (entry.artifact_refs !== undefined) {
+    ensureArray(entry.artifact_refs, `verification_evidence[${index}].artifact_refs`)
+  }
 }
 
 function validateArtifacts(artifacts) {
@@ -983,6 +1160,7 @@ function validateStateObject(state, options = {}) {
     "artifacts",
     "approvals",
     "issues",
+    "verification_evidence",
     "retry_count",
     "escalated_from",
     "escalation_reason",
@@ -1030,6 +1208,8 @@ function validateStateObject(state, options = {}) {
 
   ensureArray(state.issues, "issues")
   state.issues.forEach((issue, index) => ensureIssueShape(issue, index))
+  ensureArray(state.verification_evidence, "verification_evidence")
+  state.verification_evidence.forEach((entry, index) => ensureVerificationEvidenceEntry(entry, index))
 
   if (typeof state.retry_count !== "number" || Number.isNaN(state.retry_count) || state.retry_count < 0) {
     fail("retry_count must be a non-negative number")
@@ -1070,11 +1250,61 @@ function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason
     artifacts: createEmptyArtifacts(),
     approvals: createEmptyApprovals(mode),
     issues: [],
+    verification_evidence: [],
     retry_count: 0,
     escalated_from: null,
     escalation_reason: null,
     updated_at: updatedAt,
   }
+}
+
+function buildReadinessSummary(state, context = {}) {
+  const artifactReadiness = getArtifactReadiness(state)
+  const verificationReadiness = getVerificationReadiness(state)
+  const missingRequiredArtifacts = artifactReadiness.filter((entry) => entry.status === "missing-required")
+  const unresolvedIssues = Array.isArray(state.issues)
+    ? state.issues.filter((issue) => issue.current_status !== "resolved" && issue.current_status !== "closed")
+    : []
+  const issueTelemetry = getIssueTelemetry(state)
+  const blockers = []
+
+  if (missingRequiredArtifacts.length > 0) {
+    blockers.push(
+      `missing required artifacts: ${missingRequiredArtifacts.map((entry) => entry.artifact).join(", ")}`,
+    )
+  }
+
+  if (verificationReadiness.status === "missing-evidence") {
+    blockers.push(
+      `missing verification evidence${verificationReadiness.missingKinds.length > 0 ? ` (${verificationReadiness.missingKinds.join(", ")})` : ""}`,
+    )
+  }
+
+  if (unresolvedIssues.length > 0) {
+    blockers.push(`unresolved issues: ${unresolvedIssues.length}`)
+  }
+
+  if (context.requireTaskBoard === true && context.taskBoardValid !== true) {
+    blockers.push("task board readiness not satisfied")
+  }
+
+  return {
+    ready: blockers.length === 0,
+    blockers,
+    artifactReadiness,
+    verificationReadiness,
+    unresolvedIssues,
+    issueTelemetry,
+  }
+}
+
+function assertStageExitReadiness(state, context = {}) {
+  const summary = buildReadinessSummary(state, context)
+  if (!summary.ready) {
+    fail(`Stage readiness failed for '${state.current_stage}': ${summary.blockers.join("; ")}`)
+  }
+
+  return summary
 }
 
 function setRoutingProfile(workIntent, behaviorDelta, dominantUncertainty, scopeShape, selectionReason, customStatePath) {
@@ -1204,11 +1434,627 @@ function getWorkItemCloseoutSummary(workItemId, customStatePath) {
     recommendedArtifacts,
     unresolvedIssues,
     activeTasks,
+    verificationReadiness: getVerificationReadiness(state),
     readyToClose:
       state.status === "done" &&
       missingRequiredArtifacts.length === 0 &&
+      getVerificationReadiness(state).status !== "missing-evidence" &&
       unresolvedIssues.length === 0 &&
       activeTasks.length === 0,
+  }
+}
+
+function recordVerificationEvidence(entry, customStatePath) {
+  return mutate(customStatePath, (state) => {
+    const nextEntry = {
+      artifact_refs: [],
+      command: null,
+      exit_status: null,
+      ...entry,
+    }
+
+    ensureVerificationEvidenceEntry(nextEntry, state.verification_evidence.length)
+    state.verification_evidence.push(nextEntry)
+    return state
+  })
+}
+
+function clearVerificationEvidence(customStatePath) {
+  return mutate(customStatePath, (state) => {
+    state.verification_evidence = []
+    return state
+  })
+}
+
+function updateIssueStatus(issueId, nextStatus, customStatePath) {
+  ensureString(issueId, "issue_id")
+  ensureKnown(nextStatus, ISSUE_STATUS_VALUES, "issue_status")
+
+  return mutate(customStatePath, (state) => {
+    const issue = state.issues.find((entry) => entry.issue_id === issueId)
+    if (!issue) {
+      fail(`Unknown issue '${issueId}'`)
+    }
+
+    if (issue.current_status === "resolved" && nextStatus === "open") {
+      issue.reopen_count += 1
+    }
+
+    issue.current_status = nextStatus
+    issue.last_updated_at = timestamp()
+    if (nextStatus === "open" && issue.blocked_since === null) {
+      issue.blocked_since = timestamp()
+    }
+    if (nextStatus === "resolved" || nextStatus === "closed") {
+      issue.blocked_since = null
+    }
+
+    if (state.issues.every((entry) => entry.current_status === "resolved" || entry.current_status === "closed")) {
+      state.status = state.current_stage.endsWith("_done") ? "done" : "in_progress"
+    }
+
+    return state
+  })
+}
+
+function listStaleIssues(customStatePath) {
+  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
+
+  const staleIssues = state.issues.filter(
+    (issue) => issue.current_status === "open" && (issue.reopen_count > 0 || issue.repeat_count > 0 || issue.blocked_since),
+  )
+
+  return {
+    statePath,
+    state,
+    issues: staleIssues,
+  }
+}
+
+function getIssueAgingReport(customStatePath) {
+  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
+
+  return {
+    statePath,
+    state,
+    telemetry: getIssueTelemetry(state),
+    issues: state.issues,
+  }
+}
+
+function getWorkflowMetrics(customStatePath) {
+  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
+
+  const board = state.mode === "full" ? readTaskBoardIfExists(projectRoot, workItemId) : null
+  const migrationBoard = state.mode === "migration" ? readMigrationSliceBoardIfExists(projectRoot, workItemId) : null
+  const readiness = buildReadinessSummary(state, {
+    requireTaskBoard: state.mode === "full" && ["full_implementation", "full_qa", "full_done"].includes(state.current_stage),
+    taskBoardValid: state.mode !== "full" || state.current_stage === "full_plan" ? true : Boolean(board),
+  })
+
+  return {
+    statePath,
+    workItemId,
+    mode: state.mode,
+    stage: state.current_stage,
+    retryCount: state.retry_count,
+    issueTelemetry: readiness.issueTelemetry,
+    verificationReadiness: readiness.verificationReadiness,
+    artifactReadiness: readiness.artifactReadiness,
+    taskCount: Array.isArray(board?.tasks) ? board.tasks.length : 0,
+    activeTaskCount: Array.isArray(board?.tasks)
+      ? board.tasks.filter((task) => ["claimed", "in_progress", "qa_in_progress"].includes(task.status)).length
+      : 0,
+    migrationSliceCount: Array.isArray(migrationBoard?.slices) ? migrationBoard.slices.length : 0,
+    blocked: readiness.blockers,
+  }
+}
+
+function getApprovalBottlenecks(customStatePath) {
+  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
+
+  const pending = Object.entries(state.approvals)
+    .filter(([, approval]) => approval.status === "pending")
+    .map(([gate, approval]) => ({ gate, notes: approval.notes }))
+
+  return {
+    statePath,
+    workItemId,
+    pending,
+  }
+}
+
+function getQaFailureSummary(customStatePath) {
+  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
+
+  const qaIssues = state.issues.filter((issue) => issue.rooted_in === "implementation" || issue.rooted_in === "architecture")
+
+  return {
+    statePath,
+    workItemId,
+    retryCount: state.retry_count,
+    qaIssues,
+  }
+}
+
+function getTaskAgingReport(customStatePath) {
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const index = readWorkItemIndex(projectRoot)
+  const reports = []
+
+  for (const item of index.work_items) {
+    const state = readWorkItemState(projectRoot, item.work_item_id)
+    const board = state.mode === "full" ? readTaskBoardIfExists(projectRoot, item.work_item_id) : null
+    const tasks = Array.isArray(board?.tasks) ? board.tasks : []
+    const staleTasks = tasks.filter((task) => ["claimed", "in_progress", "qa_in_progress", "blocked"].includes(task.status))
+    reports.push({
+      work_item_id: item.work_item_id,
+      mode: state.mode,
+      stale_task_count: staleTasks.length,
+      stale_tasks: staleTasks.map((task) => ({ task_id: task.task_id, status: task.status, updated_at: task.updated_at })),
+    })
+  }
+
+  return {
+    projectRoot,
+    reports,
+  }
+}
+
+function getRuntimeShortSummary(customStatePath) {
+  const runtime = getRuntimeStatus(customStatePath)
+  const readiness = buildReadinessSummary(runtime.state, {
+    requireTaskBoard: runtime.state.mode === "full" && ["full_implementation", "full_qa", "full_done"].includes(runtime.state.current_stage),
+    taskBoardValid: true,
+  })
+
+  return {
+    mode: runtime.state.mode,
+    stage: runtime.state.current_stage,
+    owner: runtime.state.current_owner,
+    nextAction: getNextAction(runtime.state),
+    readiness: readiness.ready ? "ready" : `blocked: ${readiness.blockers.join("; ")}`,
+  }
+}
+
+function getDefinitionOfDone(customStatePath) {
+  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  validateStateObject(state)
+  validateManagedState(state, projectRoot, workItemId)
+
+  const rule = getDodRule(state.mode)
+  const readiness = buildReadinessSummary(state, {
+    requireTaskBoard: state.mode === "full" && ["full_implementation", "full_qa", "full_done"].includes(state.current_stage),
+    taskBoardValid: true,
+  })
+  const approvals = Object.entries(state.approvals)
+  const missingApprovals = (rule?.requiredApprovals ?? []).filter(
+    (gate) => state.approvals?.[gate]?.status !== "approved",
+  )
+  const missingArtifacts = (rule?.requiredArtifacts ?? []).filter((artifactId) => {
+    const entry = readiness.artifactReadiness.find((artifact) => artifact.artifact === artifactId)
+    return !entry || entry.status !== "present"
+  })
+
+  return {
+    statePath,
+    workItemId,
+    mode: state.mode,
+    stage: state.current_stage,
+    summary: rule?.summary ?? null,
+    requiredApprovals: rule?.requiredApprovals ?? [],
+    requiredArtifacts: rule?.requiredArtifacts ?? [],
+    requiredEvidenceStages: rule?.requiredEvidenceStages ?? [],
+    missingApprovals,
+    missingArtifacts,
+    verificationReadiness: readiness.verificationReadiness,
+    unresolvedIssues: readiness.unresolvedIssues,
+    ready: missingApprovals.length === 0 && missingArtifacts.length === 0 && readiness.ready,
+  }
+}
+
+function getReleaseReadiness(customStatePath) {
+  const managed = readManagedState(customStatePath)
+  const closeout = getWorkItemCloseoutSummary(managed.workItemId ?? managed.state.work_item_id, customStatePath)
+  const dod = getDefinitionOfDone(customStatePath)
+  const blockers = []
+
+  if (!dod.ready) {
+    blockers.push("definition-of-done not satisfied")
+  }
+  if (!closeout.readyToClose) {
+    blockers.push("work item is not ready to close")
+  }
+  if (closeout.unresolvedIssues.some((issue) => issue.severity === "critical" || issue.severity === "high")) {
+    blockers.push("high-severity or critical issues remain open")
+  }
+
+  return {
+    workItemId: closeout.workItemId,
+    mode: closeout.state.mode,
+    stage: closeout.state.current_stage,
+    releaseReady: blockers.length === 0,
+    blockers,
+    dod,
+    closeout,
+  }
+}
+
+function getWorkflowAnalytics(customStatePath) {
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const index = readWorkItemIndex(projectRoot)
+  const analytics = {
+    totalWorkItems: index.work_items.length,
+    byMode: { quick: 0, migration: 0, full: 0 },
+    totalOpenIssues: 0,
+    totalRepeatedIssues: 0,
+    totalRetries: 0,
+    totalEscalations: 0,
+    stageCounts: {},
+  }
+
+  for (const item of index.work_items) {
+    const state = readWorkItemState(projectRoot, item.work_item_id)
+    analytics.byMode[state.mode] += 1
+    analytics.totalRetries += state.retry_count ?? 0
+    analytics.totalEscalations += state.escalated_from ? 1 : 0
+    analytics.stageCounts[state.current_stage] = (analytics.stageCounts[state.current_stage] ?? 0) + 1
+    const telemetry = getIssueTelemetry(state)
+    analytics.totalOpenIssues += telemetry.open
+    analytics.totalRepeatedIssues += telemetry.repeated
+  }
+
+  return {
+    projectRoot,
+    analytics,
+  }
+}
+
+function getOpsSummary(customStatePath) {
+  const runtime = getRuntimeStatus(customStatePath)
+  const readiness = buildReadinessSummary(runtime.state, {
+    requireTaskBoard: runtime.state.mode === "full" && ["full_implementation", "full_qa", "full_done"].includes(runtime.state.current_stage),
+    taskBoardValid: true,
+  })
+  const pendingApprovals = Object.entries(runtime.state.approvals)
+    .filter(([, approval]) => approval.status === "pending")
+    .map(([gate]) => gate)
+
+  return {
+    mode: runtime.state.mode,
+    stage: runtime.state.current_stage,
+    owner: runtime.state.current_owner,
+    nextAction: getNextAction(runtime.state),
+    blockers: readiness.blockers,
+    pendingApprovals,
+    openIssues: readiness.issueTelemetry.open,
+  }
+}
+
+function getPolicyExecutionTrace() {
+  return {
+    policies: [
+      {
+        id: "verification-before-completion",
+        docs: [
+          "skills/verification-before-completion/SKILL.md",
+          "context/core/project-config.md",
+          "context/core/workflow-state-schema.md",
+        ],
+        runtime: [
+          ".opencode/lib/runtime-guidance.js#getVerificationReadiness",
+          ".opencode/lib/workflow-state-controller.js#assertStageExitReadiness",
+        ],
+        tests: [
+          ".opencode/tests/workflow-state-controller.test.js",
+          "tests/runtime/governance-enforcement.test.js",
+        ],
+      },
+      {
+        id: "issue-lifecycle-and-escalation",
+        docs: [
+          "context/core/workflow-state-schema.md",
+          "context/core/session-resume.md",
+        ],
+        runtime: [
+          ".opencode/lib/workflow-state-controller.js#recordIssue",
+          ".opencode/lib/workflow-state-controller.js#updateIssueStatus",
+          ".opencode/lib/workflow-state-controller.js#routeRework",
+        ],
+        tests: [
+          ".opencode/tests/workflow-state-controller.test.js",
+        ],
+      },
+      {
+        id: "task-board-only-for-full",
+        docs: [
+          "context/core/workflow.md",
+          "docs/maintainer/parallel-execution-matrix.md",
+        ],
+        runtime: [
+          ".opencode/lib/workflow-state-controller.js#requireValidTaskBoard",
+          ".opencode/lib/task-board-rules.js",
+        ],
+        tests: [
+          ".opencode/tests/workflow-state-controller.test.js",
+          ".opencode/tests/workflow-contract-consistency.test.js",
+        ],
+      },
+    ],
+  }
+}
+
+function createReleaseCandidate(releaseId, title, customStatePath) {
+  ensureString(releaseId, "release_id")
+  ensureString(title, "title")
+
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const index = bootstrapReleaseStore(projectRoot)
+  if (index.releases.some((entry) => entry.release_id === releaseId)) {
+    fail(`Release candidate '${releaseId}' already exists`)
+  }
+
+  const candidate = createReleaseCandidateShape(releaseId, title)
+  validateReleaseCandidate(candidate)
+  const paths = resolveReleaseCandidatePaths(projectRoot, releaseId)
+  writeReleaseCandidate(projectRoot, releaseId, candidate)
+  upsertReleaseIndexEntry(index, candidate, releaseId, paths.relativeReleasePath)
+  index.active_release_id = releaseId
+  writeReleaseIndex(projectRoot, index)
+
+  return { projectRoot, candidate }
+}
+
+function listReleaseCandidates(customStatePath) {
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const index = bootstrapReleaseStore(projectRoot)
+  return { projectRoot, index }
+}
+
+function showReleaseCandidate(releaseId, customStatePath) {
+  ensureString(releaseId, "release_id")
+  const projectRoot = resolveProjectRoot(customStatePath)
+  bootstrapReleaseStore(projectRoot)
+  const candidate = readReleaseCandidate(projectRoot, releaseId)
+  validateReleaseCandidate(candidate)
+  return { projectRoot, candidate }
+}
+
+function mutateReleaseCandidate(releaseId, customStatePath, mutator) {
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const index = bootstrapReleaseStore(projectRoot)
+  const current = readReleaseCandidate(projectRoot, releaseId)
+  validateReleaseCandidate(current)
+  const next = mutator(JSON.parse(JSON.stringify(current)))
+  next.updated_at = timestamp()
+  validateReleaseCandidate(next)
+  writeReleaseCandidate(projectRoot, releaseId, next)
+  const paths = resolveReleaseCandidatePaths(projectRoot, releaseId)
+  upsertReleaseIndexEntry(index, next, releaseId, paths.relativeReleasePath)
+  if (!index.active_release_id) {
+    index.active_release_id = releaseId
+  }
+  writeReleaseIndex(projectRoot, index)
+  return { projectRoot, candidate: next }
+}
+
+function addReleaseWorkItem(releaseId, workItemId, customStatePath) {
+  ensureString(workItemId, "work_item_id")
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  readWorkItemState(projectRoot, workItemId)
+  return mutateReleaseCandidate(releaseId, customStatePath, (candidate) => {
+    if (!candidate.included_work_items.includes(workItemId)) {
+      candidate.included_work_items.push(workItemId)
+    }
+    return candidate
+  })
+}
+
+function removeReleaseWorkItem(releaseId, workItemId, customStatePath) {
+  ensureString(workItemId, "work_item_id")
+  return mutateReleaseCandidate(releaseId, customStatePath, (candidate) => {
+    candidate.included_work_items = candidate.included_work_items.filter((entry) => entry !== workItemId)
+    return candidate
+  })
+}
+
+function setReleaseStatus(releaseId, status, customStatePath) {
+  ensureKnown(status, RELEASE_STATUS_VALUES, "release_status")
+  return mutateReleaseCandidate(releaseId, customStatePath, (candidate) => {
+    candidate.status = status
+    return candidate
+  })
+}
+
+function setReleaseApproval(releaseId, gate, status, approvedBy, approvedAt, notes, customStatePath) {
+  ensureKnown(gate, RELEASE_APPROVAL_GATES, "release_approval_gate")
+  ensureKnown(status, ["pending", "approved", "rejected"], "release_approval_status")
+  return mutateReleaseCandidate(releaseId, customStatePath, (candidate) => {
+    candidate.approvals[gate] = {
+      status,
+      approved_by: approvedBy ?? null,
+      approved_at: approvedAt ?? null,
+      notes: notes ?? null,
+    }
+    return candidate
+  })
+}
+
+function recordRollbackPlan(releaseId, summary, owner, triggerSignals, customStatePath) {
+  return mutateReleaseCandidate(releaseId, customStatePath, (candidate) => {
+    candidate.rollback_plan = {
+      summary,
+      owner,
+      trigger_signals: triggerSignals,
+      recorded_at: timestamp(),
+    }
+    return candidate
+  })
+}
+
+function draftReleaseNotes(releaseId, customStatePath) {
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const candidate = readReleaseCandidate(projectRoot, releaseId)
+  validateReleaseCandidate(candidate)
+
+  const notesPath = path.join(projectRoot, candidate.notes_path)
+  const bullets = candidate.included_work_items.map((workItemId) => {
+    const state = readWorkItemState(projectRoot, workItemId)
+    return `- ${state.feature_id ?? workItemId}: ${state.feature_slug ?? "work item"} (${state.mode})`
+  })
+  const content = [
+    "## What's changed",
+    "",
+    ...(bullets.length > 0 ? bullets : ["- pending release summary"]),
+    "",
+    "## Validation",
+    "",
+    "- release gates reviewed",
+    "- runtime verification and quality gates passed",
+    "",
+    "## Published package",
+    "",
+    "- npm: `@duypham93/openkit@<candidate-version>`",
+    "",
+    "## Notes",
+    "",
+    `- Release candidate: ${releaseId}`,
+    "",
+  ].join("\n")
+  fs.mkdirSync(path.dirname(notesPath), { recursive: true })
+  fs.writeFileSync(notesPath, content, "utf8")
+  return { projectRoot, releaseId, notesPath }
+}
+
+function validateReleaseNotes(releaseId, customStatePath) {
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const candidate = readReleaseCandidate(projectRoot, releaseId)
+  validateReleaseCandidate(candidate)
+  const notesPath = path.join(projectRoot, candidate.notes_path)
+  const exists = fs.existsSync(notesPath)
+  const blockers = []
+  if (!exists) {
+    blockers.push("release notes file missing")
+  } else {
+    const content = fs.readFileSync(notesPath, "utf8")
+    if (!content.includes("## What's changed")) {
+      blockers.push("release notes missing What's changed section")
+    }
+    if (!content.includes("## Validation")) {
+      blockers.push("release notes missing Validation section")
+    }
+  }
+  return { releaseId, notesPath, ready: blockers.length === 0, blockers }
+}
+
+function getReleaseCandidateReadiness(releaseId, customStatePath) {
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const candidate = readReleaseCandidate(projectRoot, releaseId)
+  validateReleaseCandidate(candidate)
+  const blockers = []
+  const warnings = []
+  const workItems = candidate.included_work_items.map((workItemId) => getWorkItemCloseoutSummary(workItemId, customStatePath))
+  const notReadyItems = workItems.filter((item) => item.readyToClose !== true)
+  const severeIssues = workItems.flatMap((item) => item.unresolvedIssues).filter((issue) => issue.severity === "critical" || issue.severity === "high")
+  const notes = validateReleaseNotes(releaseId, customStatePath)
+
+  if (candidate.included_work_items.length === 0) {
+    blockers.push("release candidate has no included work items")
+  }
+  if (notReadyItems.length > 0) {
+    blockers.push(`included work items not ready: ${notReadyItems.map((item) => item.workItemId).join(", ")}`)
+  }
+  if (severeIssues.length > 0) {
+    blockers.push(`high-severity or critical issues remain: ${severeIssues.map((issue) => issue.issue_id).join(", ")}`)
+  }
+  if (!notes.ready) {
+    blockers.push(...notes.blockers)
+  }
+  if (candidate.risk_level === "high" && candidate.rollback_plan === null) {
+    blockers.push("high-risk release candidate requires a rollback plan")
+  }
+  for (const gate of RELEASE_APPROVAL_GATES) {
+    if (candidate.approvals[gate].status !== "approved") {
+      warnings.push(`approval '${gate}' is not approved`)
+    }
+  }
+
+  return {
+    releaseId,
+    candidate,
+    workItems,
+    blockers,
+    warnings,
+    ready: blockers.length === 0,
+  }
+}
+
+function getReleaseDashboard(customStatePath) {
+  const projectRoot = resolveProjectRoot(customStatePath)
+  const index = bootstrapReleaseStore(projectRoot)
+  const dashboard = {
+    total: index.releases.length,
+    byStatus: {},
+    ready: 0,
+    blocked: 0,
+    rollbackCovered: 0,
+    notesReady: 0,
+  }
+
+  for (const entry of index.releases) {
+    dashboard.byStatus[entry.status] = (dashboard.byStatus[entry.status] ?? 0) + 1
+    const readiness = getReleaseCandidateReadiness(entry.release_id, customStatePath)
+    if (readiness.ready) {
+      dashboard.ready += 1
+    } else {
+      dashboard.blocked += 1
+    }
+    if (readiness.candidate.rollback_plan) {
+      dashboard.rollbackCovered += 1
+    }
+    if (validateReleaseNotes(entry.release_id, customStatePath).ready) {
+      dashboard.notesReady += 1
+    }
+  }
+
+  return { projectRoot, dashboard, index }
+}
+
+function startHotfix(releaseId, mode, featureId, featureSlug, reason, customStatePath) {
+  const workItemResult = startTask(mode, featureId, featureSlug, reason, customStatePath)
+  const hotfixWorkItemId = workItemResult.state.work_item_id
+  mutateReleaseCandidate(releaseId, customStatePath, (candidate) => {
+    if (!candidate.hotfix_work_items.includes(hotfixWorkItemId)) {
+      candidate.hotfix_work_items.push(hotfixWorkItemId)
+    }
+    if (!candidate.included_work_items.includes(hotfixWorkItemId)) {
+      candidate.included_work_items.push(hotfixWorkItemId)
+    }
+    return candidate
+  })
+  return {
+    releaseId,
+    workItemId: hotfixWorkItemId,
+    state: workItemResult.state,
+  }
+}
+
+function validateHotfix(workItemId, customStatePath) {
+  const closeout = getWorkItemCloseoutSummary(workItemId, customStatePath)
+  return {
+    workItemId,
+    ready: closeout.readyToClose,
+    closeout,
   }
 }
 
@@ -1959,6 +2805,21 @@ function advanceStage(targetStage, customStatePath) {
       fail(`Cannot advance from '${state.current_stage}' to '${targetStage}' until gate '${requiredGate}' is approved`)
     }
 
+    if (targetStage === "quick_done") {
+      assertStageExitReadiness(state)
+    }
+
+    if (targetStage === "migration_done") {
+      assertStageExitReadiness(state)
+    }
+
+    if (targetStage === "full_done") {
+      assertStageExitReadiness(state, {
+        requireTaskBoard: state.mode === "full",
+        taskBoardValid: true,
+      })
+    }
+
     state.current_stage = targetStage
     state.current_owner = STAGE_OWNERS[targetStage]
     state.status = targetStage.endsWith("_done") ? "done" : "in_progress"
@@ -2088,6 +2949,12 @@ function recordIssue(issue, customStatePath) {
     if (typeof nextIssue.artifact_refs === "string") {
       nextIssue.artifact_refs = [nextIssue.artifact_refs]
     }
+    nextIssue.current_status = nextIssue.current_status ?? "open"
+    nextIssue.opened_at = nextIssue.opened_at ?? timestamp()
+    nextIssue.last_updated_at = nextIssue.last_updated_at ?? nextIssue.opened_at
+    nextIssue.reopen_count = nextIssue.reopen_count ?? 0
+    nextIssue.repeat_count = nextIssue.repeat_count ?? 0
+    nextIssue.blocked_since = nextIssue.blocked_since ?? nextIssue.opened_at
     ensureIssueShape(nextIssue, state.issues.length)
     state.issues.push(nextIssue)
     state.status = "blocked"
@@ -2133,8 +3000,28 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 
     if (repeatFailedFix) {
       state.retry_count += 1
+      const mostRecentIssue = Array.isArray(state.issues) && state.issues.length > 0 ? state.issues[state.issues.length - 1] : null
+      if (mostRecentIssue) {
+        mostRecentIssue.repeat_count += 1
+        mostRecentIssue.last_updated_at = timestamp()
+      }
       if (state.retry_count >= ESCALATION_RETRY_THRESHOLD) {
         state.status = "blocked"
+        if (state.mode === "quick") {
+          state.mode = "full"
+          state.mode_reason = `Promoted from quick mode after repeated '${issueType}' failures`
+          state.routing_profile = createDefaultRoutingProfile("full", state.mode_reason)
+          state.current_stage = "full_intake"
+          state.current_owner = STAGE_OWNERS.full_intake
+          state.approvals = createEmptyApprovals("full")
+          state.escalated_from = "quick"
+          state.escalation_reason = `quick work escalated to Full Delivery after repeated '${issueType}' failures`
+          state.status = "in_progress"
+        } else if (state.mode === "migration") {
+          state.current_stage = "migration_strategy"
+          state.current_owner = STAGE_OWNERS.migration_strategy
+          state.status = "blocked"
+        }
       }
     }
 
@@ -2144,31 +3031,52 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 
 module.exports = {
   advanceStage,
+  addReleaseWorkItem,
   assignMigrationQaOwner,
   assignQaOwner,
   clearIssues,
+  clearVerificationEvidence,
   claimTask,
   claimMigrationSlice,
   createTask,
   createMigrationSlice,
+  createReleaseCandidate,
   createWorkItem,
   ESCALATION_RETRY_THRESHOLD,
   getContractConsistencyReport,
   getInstallManifest,
+  getIssueAgingReport,
   getProfile,
   getRegistry,
+  getApprovalBottlenecks,
+  getDefinitionOfDone,
+  getQaFailureSummary,
+  getPolicyExecutionTrace,
+  getReleaseCandidateReadiness,
+  getReleaseDashboard,
+  getReleaseReadiness,
+  getRuntimeShortSummary,
   getWorkItemCloseoutSummary,
+  getTaskAgingReport,
   getRuntimeStatus,
+  getWorkflowAnalytics,
+  getWorkflowMetrics,
+  getOpsSummary,
   getVersionInfo,
   integrationCheck,
   linkArtifact,
   listMigrationSlices,
+  listReleaseCandidates,
+  listStaleIssues,
   listTasks,
   listWorkItems,
   listProfiles,
   readState,
+  recordRollbackPlan,
   recordIssue,
+  recordVerificationEvidence,
   reconcileCompletedWorkItems,
+  removeReleaseWorkItem,
   reassignTask,
   releaseTask,
   resolveStatePath,
@@ -2178,16 +3086,24 @@ module.exports = {
   selectActiveWorkItem,
   setParallelization,
   setMigrationSliceStatus,
+  setReleaseApproval,
+  setReleaseStatus,
   setRoutingProfile,
   setTaskStatus,
   setApproval,
+  updateIssueStatus,
   showState,
+  showReleaseCandidate,
   showWorkItemState,
+  startHotfix,
   syncInstallManifest,
   startFeature,
   startTask,
+  draftReleaseNotes,
   validateMigrationSliceBoardForWorkItem,
+  validateReleaseNotes,
   validateTaskAllocation,
+  validateHotfix,
   validateWorkItemBoard,
   validateState,
   validateStateObject,

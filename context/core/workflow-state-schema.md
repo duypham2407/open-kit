@@ -25,6 +25,7 @@ Internal runtime note:
 - `artifacts`
 - `approvals`
 - `issues`
+- `verification_evidence`
 - `retry_count`
 - `escalated_from`
 - `escalation_reason`
@@ -247,3 +248,143 @@ Approval-entry expectations:
 These fields allow the repository to preserve history when a quick or migration item becomes a full-delivery item.
 
 That compatibility rule stays in place unless a later approved migration changes it deliberately.
+
+## `resume-summary` Machine-Readable Output
+
+`node .opencode/workflow-state.js resume-summary --json` exposes a resumable runtime snapshot for operators, maintainers, and automation.
+
+Expected top-level keys:
+
+- `state_file`
+- `mode`
+- `stage`
+- `status`
+- `owner`
+- `feature_id`
+- `feature_slug`
+- `active_work_item_id`
+- `next_safe_action`
+- `approvals`
+- `linked_artifacts`
+- `artifact_readiness`
+- `task_board`
+- `parallelization`
+- `escalated_from`
+- `escalation_reason`
+- `issues`
+- `read_next`
+- `diagnostics`
+
+Shape notes:
+
+- `approvals` groups gates by `pending`, `approved`, `rejected`, and `other`
+- `linked_artifacts` is the flattened artifact reference list used by runtime guidance
+- `artifact_readiness` is the same readiness summary surfaced by `status`
+- `task_board` is `null` unless the active work item carries task-aware context
+- `diagnostics.global` points to `openkit doctor`
+- `diagnostics.runtime` points to `node .opencode/workflow-state.js doctor`
+
+Guardrail:
+
+- this payload is a summary surface, not a replacement for the canonical workflow-state mirror or per-item backing store
+
+## `issues` Lifecycle Shape
+
+Each issue still requires:
+
+- `issue_id`
+- `title`
+- `type`
+- `severity`
+- `rooted_in`
+- `recommended_owner`
+- `evidence`
+- `artifact_refs`
+
+The live lifecycle layer now also requires:
+
+- `current_status`: `open` | `in_progress` | `resolved` | `closed`
+- `opened_at`: ISO-like timestamp string
+- `last_updated_at`: ISO-like timestamp string
+- `reopen_count`: non-negative number
+- `repeat_count`: non-negative number
+- `blocked_since`: string or `null`
+
+Lifecycle guardrail:
+
+- issues are no longer treated as one-shot snapshots only; they support stale, repeated, and reopened signals used by runtime telemetry
+
+## `verification_evidence` Shape
+
+`verification_evidence` must be an array.
+
+Each entry must contain:
+
+- `id`
+- `kind`: `automated` | `manual` | `runtime` | `review`
+- `scope`
+- `summary`
+- `recorded_at`
+- `source`
+
+Optional fields:
+
+- `command`: string or `null`
+- `exit_status`: number or `null`
+- `artifact_refs`: array of strings
+
+Guardrail:
+
+- approval alone is not the same thing as verification evidence for closure-sensitive stages
+- `quick_done`, `migration_done`, and `full_done` should only be reached when the stage-appropriate verification evidence is already inspectable
+
+## Definition Of Done And Release Readiness
+
+Runtime surfaces now distinguish:
+
+- stage readiness
+- definition of done
+- release readiness
+
+Current reporting commands:
+
+- `node .opencode/workflow-state.js check-stage-readiness`
+- `node .opencode/workflow-state.js show-dod`
+- `node .opencode/workflow-state.js validate-dod`
+- `node .opencode/workflow-state.js release-readiness`
+
+Guardrail:
+
+- `done` in workflow state, `DoD ready`, and `release ready` are related but not interchangeable concepts
+
+## Release Candidate State
+
+Release candidates live under `.opencode/releases/`.
+
+Expected top-level fields:
+
+- `release_id`
+- `title`
+- `status`
+- `created_at`
+- `updated_at`
+- `target_window`
+- `included_work_items`
+- `risk_level`
+- `notes_path`
+- `rollback_plan`
+- `approvals`
+- `blockers`
+- `hotfix_work_items`
+
+Current release approval gates:
+
+- `qa_to_release`
+- `release_to_ship`
+
+Guardrails:
+
+- release readiness is evaluated across all included work items
+- high-risk release candidates require a rollback plan
+- release notes are part of the release-level readiness story
+- hotfix work items can be linked to a release candidate without creating a new lane enum

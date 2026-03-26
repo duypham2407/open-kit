@@ -6,12 +6,9 @@ description: "Starts Migration or Full Delivery design exploration with the brai
 
 Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode and the team needs to refine design direction before implementation planning.
 
-## Global OpenKit path rule
+## Shared prompt contract
 
-- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
-- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
-- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
-- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
+- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
 
 ## Preconditions
 
@@ -25,6 +22,7 @@ Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode an
 - `.opencode/openkit/context/navigation.md`
 - `.opencode/openkit/context/core/workflow.md`
 - `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/workflow-state.json` when resuming
 - skill `brainstorming`
 

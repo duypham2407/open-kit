@@ -1,5 +1,26 @@
 const { FULL_STAGE_SEQUENCE, MIGRATION_STAGE_SEQUENCE, QUICK_STAGE_SEQUENCE } = require("./workflow-state-rules")
 
+const EVIDENCE_RULES = {
+  quick: {
+    quick_verify: {
+      requiredKinds: ["manual", "runtime", "automated"],
+      summary: "QA Lite evidence proving each quick acceptance bullet was checked.",
+    },
+  },
+  migration: {
+    migration_verify: {
+      requiredKinds: ["manual", "runtime", "automated", "review"],
+      summary: "Parity, compatibility, and regression evidence for the migration.",
+    },
+  },
+  full: {
+    full_qa: {
+      requiredKinds: ["manual", "runtime", "automated", "review"],
+      summary: "Implementation, QA, or requirements evidence supporting feature closure.",
+    },
+  },
+}
+
 const NEXT_ACTION_BY_STAGE = {
   quick_intake: "Confirm quick eligibility and bound the work before planning.",
   quick_plan: "Record the bounded checklist, acceptance bullets, and short verification path.",
@@ -109,6 +130,27 @@ const ARTIFACT_RULES = {
       summary: "Optional architecture decision records.",
     },
   ],
+}
+
+const DOD_RULES = {
+  quick: {
+    requiredArtifacts: [],
+    requiredApprovals: ["quick_verified"],
+    requiredEvidenceStages: ["quick_verify"],
+    summary: "Quick work is done when QA Lite evidence exists, approval is explicit, and no unresolved issues remain.",
+  },
+  migration: {
+    requiredArtifacts: [],
+    requiredApprovals: ["migration_verified"],
+    requiredEvidenceStages: ["migration_verify"],
+    summary: "Migration work is done when parity or compatibility evidence exists, migration approval is explicit, and unresolved issues are closed.",
+  },
+  full: {
+    requiredArtifacts: ["brief", "spec", "architecture", "plan", "qa_report"],
+    requiredApprovals: ["pm_to_ba", "ba_to_architect", "architect_to_tech_lead", "tech_lead_to_fullstack", "fullstack_to_qa", "qa_to_done"],
+    requiredEvidenceStages: ["full_qa"],
+    summary: "Full delivery is done when required artifacts, approvals, QA evidence, and issue closure all exist together.",
+  },
 }
 
 const SEQUENCES = {
@@ -235,10 +277,95 @@ function flattenArtifactRefs(state) {
   return refs
 }
 
+function getVerificationEvidence(state) {
+  return Array.isArray(state?.verification_evidence) ? state.verification_evidence : []
+}
+
+function summarizeVerificationEvidence(state) {
+  return getVerificationEvidence(state).map((entry) => {
+    const label = `${entry.kind}:${entry.scope}`
+    return entry.exit_status === null || entry.exit_status === undefined
+      ? `${label}`
+      : `${label}:${entry.exit_status}`
+  })
+}
+
+function getEvidenceRequirement(state) {
+  if (!state?.mode || !state?.current_stage) {
+    return null
+  }
+
+  return EVIDENCE_RULES[state.mode]?.[state.current_stage] ?? null
+}
+
+function getVerificationReadiness(state) {
+  const requirement = getEvidenceRequirement(state)
+  const evidence = getVerificationEvidence(state)
+
+  if (!requirement) {
+    return {
+      status: "not-required-yet",
+      requiredKinds: [],
+      evidenceCount: evidence.length,
+      missingKinds: [],
+      summary: "No explicit verification evidence requirement at the current stage.",
+    }
+  }
+
+  const availableKinds = new Set(evidence.map((entry) => entry.kind))
+  const missingKinds = evidence.length > 0 ? [] : requirement.requiredKinds.filter((kind) => !availableKinds.has(kind))
+
+  return {
+    status: missingKinds.length === 0 && evidence.length > 0 ? "ready" : "missing-evidence",
+    requiredKinds: requirement.requiredKinds,
+    evidenceCount: evidence.length,
+    missingKinds,
+    summary: requirement.summary,
+  }
+}
+
+function summarizeVerificationReadinessLine(state) {
+  const readiness = getVerificationReadiness(state)
+  if (readiness.status === "not-required-yet") {
+    return "verification: not-required-yet"
+  }
+
+  if (readiness.status === "ready") {
+    return `verification: ready (${readiness.evidenceCount} evidence item${readiness.evidenceCount === 1 ? "" : "s"})`
+  }
+
+  return `verification: missing-evidence${readiness.missingKinds.length > 0 ? ` (${readiness.missingKinds.join(", ")})` : ""}`
+}
+
+function getIssueTelemetry(state) {
+  const issues = Array.isArray(state?.issues) ? state.issues : []
+  const openIssues = issues.filter((issue) => issue.current_status !== "closed" && issue.current_status !== "resolved")
+  const repeatedIssues = issues.filter((issue) => (issue.repeat_count ?? 0) > 0)
+  const staleIssues = issues.filter((issue) => typeof issue.blocked_since === "string" || (issue.reopen_count ?? 0) > 0)
+
+  return {
+    total: issues.length,
+    open: openIssues.length,
+    repeated: repeatedIssues.length,
+    staleSignals: staleIssues.length,
+  }
+}
+
+function getDodRule(mode) {
+  return DOD_RULES[mode] ?? null
+}
+
 module.exports = {
+  getDodRule,
   flattenArtifactRefs,
   getArtifactReadiness,
+  getEvidenceRequirement,
+  getIssueTelemetry,
   getNextAction,
   getParallelizationSummary,
+  getVerificationEvidence,
+  getVerificationReadiness,
   summarizeArtifactReadinessLines,
+  summarizeVerificationEvidence,
+  summarizeVerificationReadinessLine,
 }

@@ -6,12 +6,9 @@ description: "Starts the Quick Task lane for narrow, low-risk work."
 
 Use `/quick-task` when the user wants to enter the quick lane directly for bounded small-to-medium work that stays within the quick-lane limits, remains lower risk, and uses a short verification path.
 
-## Global OpenKit path rule
+## Shared prompt contract
 
-- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
-- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/` or repo-root `.opencode/`.
-- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
-- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
+- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
 
 ## Preconditions
 
@@ -25,6 +22,7 @@ Use `/quick-task` when the user wants to enter the quick lane directly for bound
 - `.opencode/openkit/context/core/workflow.md`
 - `.opencode/openkit/context/core/lane-selection.md`
 - `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/workflow-state.json` when resuming
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.

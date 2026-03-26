@@ -6,12 +6,9 @@ description: "Triggers the writing-plans skill to create bite-sized tasks from s
 
 Use `/write-plan` to create an implementation plan for work currently in `Full Delivery` or `Migration` mode.
 
-## Global OpenKit path rule
+## Shared prompt contract
 
-- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs, templates, and workflow tools.
-- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
-- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
-- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
+- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
 
 ## Preconditions
 
@@ -26,6 +23,7 @@ Use `/write-plan` to create an implementation plan for work currently in `Full D
 - `.opencode/openkit/context/navigation.md`
 - `.opencode/openkit/context/core/workflow.md`
 - `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/workflow-state.json`
 - `.opencode/openkit/docs/templates/implementation-plan-template.md`
 - `.opencode/openkit/docs/templates/migration-report-template.md` when migration work benefits from one running artifact

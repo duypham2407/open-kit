@@ -15,6 +15,12 @@ What lives here:
 - `.opencode/lib/`: runtime internals
 - `.opencode/tests/`: runtime regression tests
 
+Fast maintainer commands:
+
+- `node .opencode/workflow-state.js status`
+- `node .opencode/workflow-state.js resume-summary`
+- `node .opencode/workflow-state.js doctor`
+
 Related routing layers outside this directory:
 
 - `README.md`: top-level repository boundary and current docs layout

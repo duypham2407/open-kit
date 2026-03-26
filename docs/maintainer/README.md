@@ -17,6 +17,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - Read `AGENTS.md` first for repository rules, tooling caveats, and authority order
 - Read `context/navigation.md` next for context discovery across live docs and retained artifact surfaces
 - Read `context/core/project-config.md` when you need the maintained workflow-state command inventory
+- Read `docs/maintainer/command-matrix.md` when you need a fast mapping from intent to command surface
 
 ## Maintainer Routes
 
@@ -25,9 +26,17 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - Issue routing: `context/core/issue-routing.md`
 - Session resume: `context/core/session-resume.md`
 - Workflow-state schema: `context/core/workflow-state-schema.md`
+- Runtime surface contract: `context/core/runtime-surfaces.md`
+- Command matrix: `docs/maintainer/command-matrix.md`
 - Conditional parallel execution boundary: `docs/maintainer/conditional-parallel-execution-note.md`
+- Parallel execution matrix: `docs/maintainer/parallel-execution-matrix.md`
+- Test matrix: `docs/maintainer/test-matrix.md`
+- Role and skill matrix: `docs/maintainer/role-skill-matrix.md`
+- Architecture overview: `docs/maintainer/architecture-overview.md`
+- Policy traceability: `docs/maintainer/policy-execution-traceability.md`
 - Governance policy: `docs/governance/README.md`
 - Operations and diagnostics: `docs/operations/README.md`
+- Release workflow smoke tests: `docs/operations/runbooks/release-workflow-smoke-tests.md`
 - Artifact guidance: `docs/briefs/README.md`, `docs/specs/README.md`, `docs/architecture/README.md`, `docs/plans/README.md`, `docs/qa/README.md`, `docs/adr/README.md`, `docs/templates/README.md`
 
 ## Repository Internals To Keep Honest
@@ -50,6 +59,19 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - OpenKit currently has one first-class tool adapter: OpenCode.
 - The canonical workflow, lane semantics, and runtime state remain tool-agnostic concepts, but delivery is currently implemented only for the OpenCode path.
 - Adapter-friendly groundwork now exists in the codebase so future tool support can wrap the same workflow model without flattening OpenKit's lane-based architecture.
+
+## Validation Story
+
+- OpenKit validates its own runtime, CLI, install, and launch behavior through `tests/` and `.opencode/tests/`
+- This repository still does not define repo-native build, lint, or test commands for arbitrary generated application code
+- Keep those stories separate in docs, prompts, and reports so operators do not confuse kit health with target-project app validation
+
+## One-Command Verification
+
+- Run `npm run verify:all` for the current maintainer quality gate
+- This command runs bundle drift checks, governance/enforcement checks, runtime CLI tests, install tests, global tests, and CLI tests
+- Use `npm run verify:governance` when you only changed prompt contracts, metadata, or anti-hallucination docs
+- Use `npm run verify:install-bundle` after prompt or bundle-source changes to ensure the derived install bundle is still aligned
 
 ## Release Process
 

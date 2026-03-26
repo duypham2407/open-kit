@@ -27,14 +27,18 @@ Phase-1 authority rule:
 
 ## What Is Live Here
 
-This repository currently contains two active surface types:
+This repository currently contains three live surfaces:
 
 1. **Global managed kit path**
    - the `openkit` CLI now installs the kit into the OpenCode home directory
-   - install the CLI with `npm install -g @duypham93/openkit`, then use `openkit run` and `openkit doctor` as the intended operator path
+   - install the CLI with `npm install -g @duypham93/openkit`, then use `openkit doctor` and `openkit run` as the intended operator path
    - global workspace state is created per project under the OpenCode home directory instead of copying the kit into each repository
 
-2. **Checked-in authoring and compatibility runtime**
+2. **In-session workflow surface**
+   - once OpenCode is running, use slash commands such as `/task`, `/quick-task`, `/migrate`, and `/delivery`
+   - `/task` remains the safest default entrypoint because the Master Orchestrator chooses the lane for you
+
+3. **Checked-in authoring and compatibility runtime**
    - this repository still carries the source-of-truth `agents/`, `commands/`, `skills/`, `hooks/`, `context/`, docs, and the legacy `.opencode/` runtime surface
    - those checked-in files remain the authoring source and compatibility path while the global install model matures
 
@@ -53,10 +57,17 @@ The repository currently runs on the live `Quick Task+` successor semantics for 
 For most users, the safest path is action-oriented and short:
 
 1. `npm install -g @duypham93/openkit`
-2. `openkit run`
-3. inside OpenCode, start with `/task`
+2. `openkit doctor`
+3. `openkit run`
+4. inside OpenCode, start with `/task`
 
 Use `/task` unless you already know with high confidence that the request must begin in `Quick Task`, `Migration`, or `Full Delivery`.
+
+If workflow state already exists and you need a plain-language resume view, run `node .opencode/workflow-state.js resume-summary`.
+
+For the shortest operational view once state exists, use `node .opencode/workflow-state.js ops-summary`.
+
+For release-governance work, OpenKit now supports release candidates, release notes drafting, release gates, rollback plans, and release-linked hotfixes through `node .opencode/workflow-state.js`.
 
 ## Workflow Lanes
 
@@ -94,11 +105,19 @@ Live quick-lane guardrails:
 
 The preferred product path is now the globally installed OpenKit kit. This repository still keeps the checked-in authoring and compatibility runtime needed to build, inspect, and validate that kit.
 
+Fast surface split:
+
+- product path: `openkit doctor`, `openkit run`, `openkit upgrade`, `openkit uninstall`
+- in-session path: `/task`, `/quick-task`, `/migrate`, `/delivery`
+- compatibility and maintainer path: `node .opencode/workflow-state.js ...`
+
+Use `docs/operator/surface-contract.md` for the short surface-selection guide.
+
 Preferred global path:
 
 1. Run `npm install -g @duypham93/openkit` to install the CLI once on the machine.
-2. Run `openkit run <args>` to launch OpenCode with the OpenKit-managed kit directory injected as the active config for the current project; on first run, OpenKit materializes the global kit into the OpenCode home directory automatically.
-3. Run `openkit doctor` to confirm the global install and current workspace are healthy.
+2. Run `openkit doctor` to confirm the global install and current workspace are healthy.
+3. Run `openkit run <args>` to launch OpenCode with the OpenKit-managed kit directory injected as the active config for the current project; on first run, OpenKit materializes the global kit into the OpenCode home directory automatically.
 4. Run `openkit upgrade` to refresh the installed global kit when a newer package version is available.
 5. Run `openkit uninstall [--remove-workspaces]` when you need to remove the global kit and optionally clear workspace state.
 
@@ -108,6 +127,7 @@ Quickstart:
 
 ```bash
 npm install -g @duypham93/openkit
+openkit doctor
 openkit run
 ```
 
@@ -352,14 +372,14 @@ The command surface above is the current live interface. The live contract keeps
 
 For normal day-to-day use:
 
-- prefer `npm install -g @duypham93/openkit`, then `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall`
+- prefer `npm install -g @duypham93/openkit`, then `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall`
 - use the lower-level checked-in runtime path below when you are maintaining or validating this repository itself
 
-1. Run `node .opencode/workflow-state.js status` to see whether work is already in progress.
-2. Run `node .opencode/workflow-state.js doctor` if the runtime looks off or you are entering a repo for the first time.
+1. Run `openkit doctor` before launch if you need a readiness check.
+2. Run `openkit run` to open OpenCode with the managed profile.
 3. Start with `/task` unless you already know the work must be `Quick Task`, `Migration`, or `Full Delivery`.
-4. Use `node .opencode/workflow-state.js show` when you need the current state object or linked artifact paths.
-5. Use `node .opencode/workflow-state.js validate` before trusting a resumed or manually edited workflow state.
+4. Use `node .opencode/workflow-state.js resume-summary` when you need a human-readable resume snapshot.
+5. Use `node .opencode/workflow-state.js doctor`, `show`, or `validate` only when you need lower-level workflow-runtime inspection.
 
 For the step-by-step operator walkthrough, use `docs/operations/runbooks/openkit-daily-usage.md`.
 
@@ -395,6 +415,7 @@ Current checked-in operator entrypoints in this repository are:
 
 - slash commands such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, `/execute-plan`, and `/configure-agent-models`
 - `node .opencode/workflow-state.js status`
+- `node .opencode/workflow-state.js resume-summary`
 - `node .opencode/workflow-state.js doctor`
 - `node .opencode/workflow-state.js show`
 - `node .opencode/workflow-state.js validate`
@@ -411,6 +432,7 @@ For the authoritative workflow-state command inventory, use `context/core/projec
 In this README, keep only the concise operator-facing surface:
 
 - `node .opencode/workflow-state.js status`
+- `node .opencode/workflow-state.js resume-summary`
 - `node .opencode/workflow-state.js doctor`
 - `node .opencode/workflow-state.js show`
 - `node .opencode/workflow-state.js validate`
@@ -423,6 +445,7 @@ Use lower-level mutation commands only when you are intentionally operating the 
 Operational guidance:
 
 - `status` prints the project root, kit metadata, state file path, active mode, stage, workflow status, owner, and work item when present.
+- `resume-summary` prints the next safe action, linked artifacts, pending approvals, and open issues for resume-friendly inspection.
 - `doctor` reports repository runtime checks such as the registry, install manifest, compatibility mirror, active work-item pointer, task-board validity, workflow-state CLI, hooks config, session-start hook, and lightweight contract-consistency checks for declared runtime surfaces and schema alignment.
 - `profiles` lists the local registry profiles known to this repository and marks the repository default with `*`.
 - `show-profile <name>` prints the profile name, whether it is the repository default, and the component categories referenced by that profile.
@@ -469,4 +492,9 @@ Rely on the current workflow contract and runtime surfaces that exist in the rep
 
 ## Current Validation Reality
 
-This repository does not yet define a repo-native build, lint, or test command for application code. Agents must not invent stack-specific commands unless the repository later adopts them and documents them in `AGENTS.md` and `context/core/project-config.md`.
+Keep two validation stories separate:
+
+- OpenKit runtime and CLI validation does exist in this repository through `tests/`, `.opencode/tests/`, `openkit doctor`, and `node .opencode/workflow-state.js doctor`.
+- This repository does not yet define a repo-native build, lint, or test command for arbitrary target application code.
+
+Agents must not invent stack-specific application commands unless the repository later adopts them and documents them in `AGENTS.md` and `context/core/project-config.md`.

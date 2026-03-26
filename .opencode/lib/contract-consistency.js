@@ -52,6 +52,7 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
   const workflowPath = path.join(projectRoot, "context", "core", "workflow.md")
   const schemaPath = path.join(projectRoot, "context", "core", "workflow-state-schema.md")
   const sessionResumePath = path.join(projectRoot, "context", "core", "session-resume.md")
+  const runtimeSurfacesPath = path.join(projectRoot, "context", "core", "runtime-surfaces.md")
   const fullDeliverySpecPath = path.join(
     projectRoot,
     "docs",
@@ -67,6 +68,7 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
   const workflowText = readTextIfExists(workflowPath)
   const schemaText = readTextIfExists(schemaPath)
   const sessionResumeText = readTextIfExists(sessionResumePath) ?? ""
+  const runtimeSurfacesText = readTextIfExists(runtimeSurfacesPath) ?? ""
   const fullDeliverySpecText = readTextIfExists(fullDeliverySpecPath) ?? ""
   const fullDeliveryPlanText = readTextIfExists(fullDeliveryPlanPath) ?? ""
   const surfacePaths = getManifestSurfacePaths(projectRoot, manifest)
@@ -81,6 +83,7 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
   const checks = [
     makeCheck("workflow contract doc found", Boolean(workflowText)),
     makeCheck("workflow schema doc found", Boolean(schemaText)),
+    makeCheck("runtime surfaces doc found", Boolean(runtimeSurfacesText)),
     makeCheck(
       "declared primary agent exists",
       !surfacePaths.primaryAgentPath || fs.existsSync(surfacePaths.primaryAgentPath),
@@ -191,6 +194,15 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
           /compatibility mirror/i,
           /compatibility rule/i,
         ]),
+    ),
+    makeCheck(
+      "runtime surfaces doc distinguishes product and compatibility doctor commands",
+      includesAllTerms(runtimeSurfacesText, ["openkit doctor"]) &&
+        includesAllTerms(runtimeSurfacesText, ["workflow-state.js doctor"]),
+    ),
+    makeCheck(
+      "session resume guidance mentions resume-summary",
+      includesAllTerms(sessionResumeText, ["resume-summary"]),
     ),
   )
 

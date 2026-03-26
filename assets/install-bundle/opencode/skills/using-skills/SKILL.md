@@ -27,6 +27,8 @@ When you identify a situation (for example: need to write a plan, fix a bug, or 
 3. **Read**: use `view_file` (or the equivalent tool) to read the ENTIRE `SKILL.md`
 4. **Execute**: apply the steps from that file
 
+When choosing between multiple plausible skills, use `.opencode/openkit/docs/maintainer/role-skill-matrix.md` when that matrix is available in the active kit surface.
+
 ## Warning: Rationalization Prevention
 
 LLM instinct often tries to short-circuit the process. Watch for these faulty thoughts:

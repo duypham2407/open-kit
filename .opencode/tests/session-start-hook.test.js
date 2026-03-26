@@ -149,7 +149,7 @@ test("session-start emits mode-aware resume hint for quick tasks", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /<openkit_runtime_status>/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.9/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.15/)
   assert.match(result.stdout, /startup skill: skipped/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js status/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js doctor/)
@@ -250,8 +250,9 @@ test("session-start prints canonical resume guidance and inspection commands", (
   assert.match(result.stdout, /help: node \.opencode\/workflow-state\.js status/)
   assert.match(result.stdout, /doctor: node \.opencode\/workflow-state\.js doctor/)
   assert.match(result.stdout, /show: node \.opencode\/workflow-state\.js show/)
+  assert.match(result.stdout, /resume: node \.opencode\/workflow-state\.js resume-summary/)
   assert.match(result.stdout, /Read first: AGENTS\.md -> context\/navigation\.md -> context\/core\/workflow\.md -> \.opencode\/workflow-state\.json/)
-  assert.match(result.stdout, /Then load resume guidance from context\/core\/session-resume\.md\./)
+  assert.match(result.stdout, /Then run `node \.opencode\/workflow-state\.js resume-summary` or load resume guidance from context\/core\/session-resume\.md\./)
 })
 
 test("session-start degrades gracefully when the JSON helper fails", () => {

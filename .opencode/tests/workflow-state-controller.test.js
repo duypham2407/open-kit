@@ -7,20 +7,48 @@ const path = require("path")
 const {
   advanceStage,
   assignQaOwner,
+  addReleaseWorkItem,
+  clearVerificationEvidence,
   claimTask,
+  createReleaseCandidate,
   createTask: createBoardTask,
+  draftReleaseNotes,
+  getDefinitionOfDone,
+  getIssueAgingReport,
+  getOpsSummary,
+  getPolicyExecutionTrace,
+  getReleaseCandidateReadiness,
+  getReleaseDashboard,
+  getReleaseReadiness,
+  getRuntimeShortSummary,
+  getTaskAgingReport,
+  getWorkflowAnalytics,
+  getWorkflowMetrics,
   linkArtifact,
+  listReleaseCandidates,
+  listStaleIssues,
+  recordRollbackPlan,
+  recordIssue,
+  recordVerificationEvidence,
+  removeReleaseWorkItem,
   reassignTask,
   releaseTask,
   routeRework,
+  setReleaseApproval,
+  setReleaseStatus,
   setRoutingProfile,
   setTaskStatus,
   showState,
+  showReleaseCandidate,
   showWorkItemState,
   selectActiveWorkItem,
   setApproval,
+  startHotfix,
   startFeature,
   startTask,
+  updateIssueStatus,
+  validateHotfix,
+  validateReleaseNotes,
   validateState,
   validateWorkItemBoard,
 } = require("../lib/workflow-state-controller")
@@ -168,10 +196,48 @@ test("quick_done requires quick_verified approval", () => {
   assert.throws(() => advanceStage("quick_done", statePath), /quick_verified/)
 
   setApproval("quick_verified", "approved", "system", "2026-03-21", "QA Lite passed", statePath)
+  recordVerificationEvidence(
+    {
+      id: "quick-qa-lite-gate",
+      kind: "manual",
+      scope: "quick_verify",
+      summary: "Manual QA Lite pass",
+      source: "qa-lite",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
   const result = advanceStage("quick_done", statePath)
 
   assert.equal(result.state.current_stage, "quick_done")
   assert.equal(result.state.status, "done")
+})
+
+test("quick_done also requires verification evidence", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-131", "verify-evidence", "Quick QA evidence gate", statePath)
+  advanceStage("quick_plan", statePath)
+  advanceStage("quick_build", statePath)
+  advanceStage("quick_verify", statePath)
+  setApproval("quick_verified", "approved", "QAAgent", "2026-03-21", "QA Lite passed", statePath)
+
+  assert.throws(() => advanceStage("quick_done", statePath), /missing verification evidence/)
+
+  recordVerificationEvidence(
+    {
+      id: "quick-qa-lite",
+      kind: "manual",
+      scope: "quick_verify",
+      summary: "Checked bounded acceptance bullets manually",
+      source: "qa-lite",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+
+  const result = advanceStage("quick_done", statePath)
+  assert.equal(result.state.current_stage, "quick_done")
 })
 
 test("linkArtifact supports quick task cards", () => {
@@ -263,6 +329,17 @@ test("migration mode advances through its canonical stage chain", () => {
   assert.equal(result.state.current_owner, "QAAgent")
 
   setApproval("migration_verified", "approved", "QAAgent", "2026-03-21", "Migration verified", statePath)
+  recordVerificationEvidence(
+    {
+      id: "migration-parity-check",
+      kind: "manual",
+      scope: "migration_verify",
+      summary: "Parity and compatibility checks reviewed",
+      source: "migration-qa",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
   result = advanceStage("migration_done", statePath)
   assert.equal(result.state.current_stage, "migration_done")
   assert.equal(result.state.status, "done")
@@ -304,6 +381,206 @@ test("routeRework blocks after reaching the retry threshold", () => {
   assert.equal(result.state.retry_count, 3)
   assert.equal(result.state.status, "blocked")
   assert.equal(result.state.current_stage, "full_implementation")
+})
+
+test("repeated quick failures escalate into full delivery", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-300", "repeat-quick", "Repeated quick failure", statePath)
+  routeRework("bug", true, statePath)
+  routeRework("bug", true, statePath)
+  const result = routeRework("bug", true, statePath)
+
+  assert.equal(result.state.mode, "full")
+  assert.equal(result.state.current_stage, "full_intake")
+  assert.equal(result.state.escalated_from, "quick")
+})
+
+test("recordIssue stores lifecycle metadata and updateIssueStatus tracks reopen state", () => {
+  const statePath = createTempStateFile()
+
+  startTask("full", "FEATURE-400", "issue-lifecycle", "Feature workflow", statePath)
+  recordIssue(
+    {
+      issue_id: "ISSUE-1",
+      title: "QA regression",
+      type: "bug",
+      severity: "high",
+      rooted_in: "implementation",
+      recommended_owner: "FullstackAgent",
+      evidence: "Failing smoke path",
+      artifact_refs: [],
+    },
+    statePath,
+  )
+
+  let report = getIssueAgingReport(statePath)
+  assert.equal(report.telemetry.total, 1)
+  assert.equal(report.issues[0].current_status, "open")
+
+  updateIssueStatus("ISSUE-1", "resolved", statePath)
+  updateIssueStatus("ISSUE-1", "open", statePath)
+  report = getIssueAgingReport(statePath)
+  assert.equal(report.issues[0].reopen_count, 1)
+})
+
+test("listStaleIssues returns repeated or reopened open issues", () => {
+  const statePath = createTempStateFile()
+
+  startTask("full", "FEATURE-401", "stale-issues", "Feature workflow", statePath)
+  recordIssue(
+    {
+      issue_id: "ISSUE-2",
+      title: "Repeated bug",
+      type: "bug",
+      severity: "medium",
+      rooted_in: "implementation",
+      recommended_owner: "FullstackAgent",
+      evidence: "Repeat failure",
+      artifact_refs: [],
+      repeat_count: 1,
+      current_status: "open",
+      opened_at: "2026-03-21T00:00:00.000Z",
+      last_updated_at: "2026-03-21T00:00:00.000Z",
+      blocked_since: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+
+  const result = listStaleIssues(statePath)
+  assert.equal(result.issues.length, 1)
+  assert.equal(result.issues[0].issue_id, "ISSUE-2")
+})
+
+test("workflow metrics and short runtime summary expose readiness state", () => {
+  const statePath = createTempStateFile()
+  const metrics = getWorkflowMetrics(statePath)
+  const shortSummary = getRuntimeShortSummary(statePath)
+
+  assert.equal(metrics.mode, "full")
+  assert.equal(typeof metrics.verificationReadiness.status, "string")
+  assert.equal(typeof shortSummary.readiness, "string")
+})
+
+test("task aging report scans tracked work items", () => {
+  const statePath = createTempStateFile()
+  const report = getTaskAgingReport(statePath)
+
+  assert.ok(Array.isArray(report.reports))
+  assert.ok(report.reports.length >= 1)
+})
+
+test("definition of done reports required gates and readiness", () => {
+  const statePath = createTempStateFile()
+  startTask("quick", "TASK-500", "dod-check", "Quick DoD check", statePath)
+
+  const dod = getDefinitionOfDone(statePath)
+
+  assert.equal(dod.mode, "quick")
+  assert.equal(dod.ready, false)
+  assert.ok(dod.requiredApprovals.includes("quick_verified"))
+})
+
+test("release readiness reports blockers for incomplete work", () => {
+  const statePath = createTempStateFile()
+  startTask("quick", "TASK-501", "release-ready", "Quick release check", statePath)
+
+  const readiness = getReleaseReadiness(statePath)
+
+  assert.equal(readiness.releaseReady, false)
+  assert.ok(readiness.blockers.length > 0)
+})
+
+test("workflow analytics aggregates cross-work-item telemetry", () => {
+  const statePath = createTempStateFile()
+  const analytics = getWorkflowAnalytics(statePath)
+
+  assert.ok(analytics.analytics.totalWorkItems >= 1)
+  assert.equal(typeof analytics.analytics.totalRetries, "number")
+})
+
+test("ops summary returns compact operational overview", () => {
+  const statePath = createTempStateFile()
+  const summary = getOpsSummary(statePath)
+
+  assert.equal(typeof summary.mode, "string")
+  assert.equal(typeof summary.stage, "string")
+  assert.ok(Array.isArray(summary.pendingApprovals))
+})
+
+test("policy execution trace lists docs runtime and tests", () => {
+  const trace = getPolicyExecutionTrace()
+
+  assert.ok(Array.isArray(trace.policies))
+  assert.ok(trace.policies.some((policy) => policy.id === "verification-before-completion"))
+})
+
+test("release candidate lifecycle supports work items, notes, approvals, and dashboard visibility", () => {
+  const statePath = createTempStateFile()
+
+  createReleaseCandidate("rc-001", "Spring candidate", statePath)
+  let releases = listReleaseCandidates(statePath)
+  assert.equal(releases.index.releases.length, 1)
+
+  addReleaseWorkItem("rc-001", "feature-001", statePath)
+  let candidate = showReleaseCandidate("rc-001", statePath)
+  assert.ok(candidate.candidate.included_work_items.includes("feature-001"))
+
+  draftReleaseNotes("rc-001", statePath)
+  let notes = validateReleaseNotes("rc-001", statePath)
+  assert.equal(notes.ready, true)
+
+  setReleaseApproval("rc-001", "qa_to_release", "approved", "QAAgent", "2026-03-22", "QA passed", statePath)
+  setReleaseApproval("rc-001", "release_to_ship", "approved", "ReleaseManager", "2026-03-22", "Approved", statePath)
+  recordRollbackPlan("rc-001", "Rollback to previous tag", "ReleaseManager", ["critical regression"], statePath)
+  setReleaseStatus("rc-001", "candidate", statePath)
+
+  const readiness = getReleaseCandidateReadiness("rc-001", statePath)
+  assert.equal(readiness.ready, true)
+
+  const dashboard = getReleaseDashboard(statePath)
+  assert.ok(dashboard.dashboard.total >= 1)
+
+  removeReleaseWorkItem("rc-001", "feature-001", statePath)
+  candidate = showReleaseCandidate("rc-001", statePath)
+  assert.equal(candidate.candidate.included_work_items.length, 0)
+})
+
+test("high-risk release candidate requires rollback plan", () => {
+  const statePath = createTempStateFile()
+  createReleaseCandidate("rc-002", "Risky release", statePath)
+  addReleaseWorkItem("rc-002", "feature-001", statePath)
+  setReleaseStatus("rc-002", "candidate", statePath)
+  draftReleaseNotes("rc-002", statePath)
+  setReleaseApproval("rc-002", "qa_to_release", "approved", "QAAgent", "2026-03-22", "QA passed", statePath)
+  setReleaseApproval("rc-002", "release_to_ship", "approved", "ReleaseManager", "2026-03-22", "Approved", statePath)
+
+  let candidate = showReleaseCandidate("rc-002", statePath)
+  candidate = { candidate: { ...candidate.candidate, risk_level: "high" } }
+  setReleaseStatus("rc-002", "candidate", statePath)
+  const projectRoot = path.dirname(path.dirname(statePath))
+  const releasePath = path.join(projectRoot, ".opencode", "releases", "rc-002", "release.json")
+  const releaseJson = JSON.parse(fs.readFileSync(releasePath, "utf8"))
+  releaseJson.risk_level = "high"
+  fs.writeFileSync(releasePath, `${JSON.stringify(releaseJson, null, 2)}\n`, "utf8")
+
+  const readiness = getReleaseCandidateReadiness("rc-002", statePath)
+  assert.equal(readiness.ready, false)
+  assert.match(readiness.blockers.join("\n"), /rollback plan/)
+})
+
+test("startHotfix creates a release-linked work item and validateHotfix reports readiness", () => {
+  const statePath = createTempStateFile()
+  createReleaseCandidate("rc-003", "Hotfix release", statePath)
+
+  const hotfix = startHotfix("rc-003", "quick", "TASK-900", "hotfix-login", "Hotfix login issue", statePath)
+  assert.equal(hotfix.state.mode, "quick")
+
+  const candidate = showReleaseCandidate("rc-003", statePath)
+  assert.ok(candidate.candidate.hotfix_work_items.includes(hotfix.workItemId))
+
+  const validation = validateHotfix(hotfix.workItemId, statePath)
+  assert.equal(typeof validation.ready, "boolean")
 })
 
 test("quick mode rejects full-delivery approvals", () => {

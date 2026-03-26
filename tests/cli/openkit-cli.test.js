@@ -44,6 +44,7 @@ test('openkit --help shows global-install oriented help', () => {
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /npm install -g @duypham93\/openkit/);
+  assert.match(result.stdout, /openkit doctor/);
   assert.match(result.stdout, /perform first-time setup if needed/);
   assert.match(result.stdout, /install-global/);
   assert.match(result.stdout, /upgrade/);

@@ -19,6 +19,8 @@ The current operations surface includes both the global OpenKit install path and
 
 - `runbooks/openkit-daily-usage.md`: detailed day-to-day usage guidance for the global install path plus the checked-in compatibility runtime
 - `runbooks/workflow-state-smoke-tests.md`: smoke checks for both the global install path and the workflow-state/session-start internals
+- `runbooks/release-workflow-smoke-tests.md`: smoke checks for release candidates, release notes, rollback planning, and hotfix linkage
+- `../maintainer/test-matrix.md`: fastest map from changed OpenKit surface to the right automated tests
 - `internal-records/README.md`: policy for when to keep a sparse durable operational record in-tree
 
 ## Primary Operator Path
@@ -41,6 +43,7 @@ When the global layer is not installed or when you are maintaining the checked-i
 Current repository/runtime command surface under the checked-in compatibility runtime:
 
 - inspection and diagnostics: `show`, `status`, `doctor`, `version`, `profiles`, `show-profile <name>`, `validate`
+- resume support: `resume-summary`
 - install-manifest metadata: `sync-install-manifest <name>`
 - compatibility entrypoints: `start-feature <feature_id> <feature_slug>` and `start-task <mode> <feature_id> <feature_slug> <mode_reason>`
 - work-item management: `create-work-item <mode> <feature_id> <feature_slug> <mode_reason>`, `list-work-items`, `show-work-item <work_item_id>`, `activate-work-item <work_item_id>`

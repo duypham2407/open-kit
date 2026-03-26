@@ -5,26 +5,47 @@ const path = require("path")
 
 const {
   ESCALATION_RETRY_THRESHOLD,
+  addReleaseWorkItem,
   advanceStage,
   clearIssues,
+  clearVerificationEvidence,
   claimTask,
   claimMigrationSlice,
   createTask,
   createMigrationSlice,
+  createReleaseCandidate,
   createWorkItem,
+  getApprovalBottlenecks,
+  getDefinitionOfDone,
+  getIssueAgingReport,
+  getOpsSummary,
+  getPolicyExecutionTrace,
   getProfile,
+  getQaFailureSummary,
+  getReleaseCandidateReadiness,
+  getReleaseDashboard,
+  getReleaseReadiness,
+  getRuntimeShortSummary,
   getWorkItemCloseoutSummary,
+  getTaskAgingReport,
   getRuntimeStatus,
+  getWorkflowAnalytics,
+  getWorkflowMetrics,
   getVersionInfo,
   integrationCheck,
   linkArtifact,
   listMigrationSlices,
+  listReleaseCandidates,
+  listStaleIssues,
   listTasks,
   listWorkItems,
   listProfiles,
   reassignTask,
+  recordRollbackPlan,
   recordIssue,
+  recordVerificationEvidence,
   reconcileCompletedWorkItems,
+  removeReleaseWorkItem,
   releaseTask,
   resolveStatePath,
   routeRework,
@@ -35,27 +56,40 @@ const {
   assignQaOwner,
   setParallelization,
   setMigrationSliceStatus,
+  setReleaseApproval,
+  setReleaseStatus,
   setRoutingProfile,
   setTaskStatus,
   setApproval,
   showState,
+  showReleaseCandidate,
   showWorkItemState,
+  startHotfix,
   syncInstallManifest,
   startFeature,
   startTask,
+  updateIssueStatus,
+  draftReleaseNotes,
   validateMigrationSliceBoardForWorkItem,
+  validateReleaseNotes,
   validateTaskAllocation,
+  validateHotfix,
   validateWorkItemBoard,
   validateState,
 } = require("./lib/workflow-state-controller")
 const { resolveWorkItemPaths, validateActiveMirror } = require("./lib/work-item-store")
 const { getRuntimeContext } = require("./lib/runtime-summary")
+const { flattenArtifactRefs } = require("./lib/runtime-guidance")
 
 function printUsage() {
   console.log(`Usage:
   node .opencode/workflow-state.js [--state <path>] show
   node .opencode/workflow-state.js [--state <path>] status
+  node .opencode/workflow-state.js [--state <path>] status --short
+  node .opencode/workflow-state.js [--state <path>] resume-summary
+  node .opencode/workflow-state.js [--state <path>] resume-summary --short
   node .opencode/workflow-state.js [--state <path>] doctor
+  node .opencode/workflow-state.js [--state <path>] doctor --short
   node .opencode/workflow-state.js [--state <path>] version
   node .opencode/workflow-state.js [--state <path>] profiles
   node .opencode/workflow-state.js [--state <path>] show-profile <name>
@@ -65,8 +99,28 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] start-task <mode> <feature_id> <feature_slug> <mode_reason>
   node .opencode/workflow-state.js [--state <path>] create-work-item <mode> <feature_id> <feature_slug> <mode_reason>
   node .opencode/workflow-state.js [--state <path>] list-work-items
+  node .opencode/workflow-state.js [--state <path>] task-aging-report
+  node .opencode/workflow-state.js [--state <path>] workflow-analytics
+  node .opencode/workflow-state.js [--state <path>] ops-summary
+  node .opencode/workflow-state.js [--state <path>] create-release-candidate <release_id> <title>
+  node .opencode/workflow-state.js [--state <path>] list-release-candidates
+  node .opencode/workflow-state.js [--state <path>] show-release-candidate <release_id>
+  node .opencode/workflow-state.js [--state <path>] add-release-work-item <release_id> <work_item_id>
+  node .opencode/workflow-state.js [--state <path>] remove-release-work-item <release_id> <work_item_id>
+  node .opencode/workflow-state.js [--state <path>] set-release-status <release_id> <status>
+  node .opencode/workflow-state.js [--state <path>] set-release-approval <release_id> <gate> <status> [approved_by] [approved_at] [notes]
+  node .opencode/workflow-state.js [--state <path>] record-rollback-plan <release_id> <summary> <owner> <trigger_signals_csv>
+  node .opencode/workflow-state.js [--state <path>] draft-release-notes <release_id>
+  node .opencode/workflow-state.js [--state <path>] validate-release-notes <release_id>
+  node .opencode/workflow-state.js [--state <path>] check-release-gates <release_id>
+  node .opencode/workflow-state.js [--state <path>] release-dashboard
+  node .opencode/workflow-state.js [--state <path>] start-hotfix <release_id> <mode> <feature_id> <feature_slug> <reason>
+  node .opencode/workflow-state.js [--state <path>] validate-hotfix <work_item_id>
   node .opencode/workflow-state.js [--state <path>] show-work-item <work_item_id>
   node .opencode/workflow-state.js [--state <path>] closeout-summary <work_item_id>
+  node .opencode/workflow-state.js [--state <path>] release-readiness
+  node .opencode/workflow-state.js [--state <path>] show-dod
+  node .opencode/workflow-state.js [--state <path>] validate-dod
   node .opencode/workflow-state.js [--state <path>] reconcile-work-items <work_item_id> [additional_work_item_ids...]
   node .opencode/workflow-state.js [--state <path>] activate-work-item <work_item_id>
   node .opencode/workflow-state.js [--state <path>] advance-stage <stage>
@@ -92,6 +146,16 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] set-migration-slice-status <work_item_id> <slice_id> <status>
   node .opencode/workflow-state.js [--state <path>] validate-migration-slice-board <work_item_id>
   node .opencode/workflow-state.js [--state <path>] record-issue <issue_id> <title> <type> <severity> <rooted_in> <recommended_owner> <evidence> <artifact_refs>
+  node .opencode/workflow-state.js [--state <path>] update-issue-status <issue_id> <status>
+  node .opencode/workflow-state.js [--state <path>] list-stale-issues
+  node .opencode/workflow-state.js [--state <path>] issue-aging-report
+  node .opencode/workflow-state.js [--state <path>] record-verification-evidence <id> <kind> <scope> <summary> <source> [command] [exit_status] [artifact_refs]
+  node .opencode/workflow-state.js [--state <path>] clear-verification-evidence
+  node .opencode/workflow-state.js [--state <path>] check-stage-readiness
+  node .opencode/workflow-state.js [--state <path>] workflow-metrics
+  node .opencode/workflow-state.js [--state <path>] approval-bottlenecks
+  node .opencode/workflow-state.js [--state <path>] qa-failure-summary
+  node .opencode/workflow-state.js [--state <path>] policy-trace
   node .opencode/workflow-state.js [--state <path>] clear-issues
   node .opencode/workflow-state.js [--state <path>] route-rework <issue_type> [repeat_failed_fix=true|false]`)
 }
@@ -170,6 +234,188 @@ function printRuntimeStatus(runtime) {
     console.log(`work item: ${runtime.state.feature_id} (${runtime.state.feature_slug})`)
   }
   printRuntimeTaskContext(runtime.runtimeContext)
+  if (runtime.runtimeContext.verificationReadinessLine) {
+    console.log(runtime.runtimeContext.verificationReadinessLine)
+  }
+  if (runtime.runtimeContext.issueTelemetry) {
+    console.log(
+      `issues: ${runtime.runtimeContext.issueTelemetry.total} total | ${runtime.runtimeContext.issueTelemetry.open} open | ${runtime.runtimeContext.issueTelemetry.repeated} repeated`,
+    )
+  }
+}
+
+function printRuntimeStatusShort(summary) {
+  console.log(`${summary.mode} | ${summary.stage} | ${summary.owner}`)
+  if (summary.nextAction) {
+    console.log(`next: ${summary.nextAction}`)
+  }
+  console.log(summary.readiness)
+}
+
+function summarizeApprovalStatuses(state) {
+  const summary = {
+    pending: [],
+    approved: [],
+    rejected: [],
+    other: [],
+  }
+
+  for (const [gate, approval] of Object.entries(state?.approvals ?? {})) {
+    const status = approval?.status ?? "other"
+    if (status === "pending") {
+      summary.pending.push(gate)
+    } else if (status === "approved") {
+      summary.approved.push(gate)
+    } else if (status === "rejected") {
+      summary.rejected.push(gate)
+    } else {
+      summary.other.push(`${gate}:${status}`)
+    }
+  }
+
+  return summary
+}
+
+function buildResumeSummary(runtime) {
+  const { state, runtimeContext } = runtime
+  const approvals = summarizeApprovalStatuses(state)
+  const artifacts = flattenArtifactRefs(state)
+  const issues = Array.isArray(state?.issues) ? state.issues : []
+
+  return {
+    state_file: runtime.statePath,
+    mode: state.mode,
+    stage: state.current_stage,
+    status: state.status,
+    owner: state.current_owner,
+    feature_id: state.feature_id ?? null,
+    feature_slug: state.feature_slug ?? null,
+    active_work_item_id: runtimeContext.activeWorkItemId ?? null,
+    next_safe_action: runtimeContext.nextAction ?? null,
+    approvals,
+    linked_artifacts: artifacts,
+    artifact_readiness: runtimeContext.artifactReadinessLines ?? [],
+    verification_readiness: runtimeContext.verificationReadiness ?? null,
+    verification_evidence: runtimeContext.verificationEvidenceLines ?? [],
+    issue_telemetry: runtimeContext.issueTelemetry ?? null,
+    task_board: runtimeContext.taskBoardSummary ?? null,
+    parallelization: runtimeContext.parallelization ?? null,
+    escalated_from: state.escalated_from ?? null,
+    escalation_reason: state.escalation_reason ?? null,
+    issues,
+    read_next: [
+      "AGENTS.md",
+      "context/navigation.md",
+      "context/core/workflow.md",
+      "context/core/session-resume.md",
+    ],
+    diagnostics: {
+      global: "openkit doctor",
+      runtime: "node .opencode/workflow-state.js doctor",
+    },
+  }
+}
+
+function printResumeSummary(runtime) {
+  const { state, runtimeContext } = runtime
+  const approvals = summarizeApprovalStatuses(state)
+  const artifacts = flattenArtifactRefs(state)
+  const issues = Array.isArray(state?.issues) ? state.issues : []
+
+  console.log("OpenKit resume summary:")
+  console.log(`state file: ${runtime.statePath}`)
+  console.log(`mode: ${state.mode}`)
+  console.log(`stage: ${state.current_stage}`)
+  console.log(`status: ${state.status}`)
+  console.log(`owner: ${state.current_owner}`)
+  if (state.feature_id && state.feature_slug) {
+    console.log(`work item: ${state.feature_id} (${state.feature_slug})`)
+  }
+  if (runtimeContext.activeWorkItemId) {
+    console.log(`active work item id: ${runtimeContext.activeWorkItemId}`)
+  }
+  if (runtimeContext.nextAction) {
+    console.log(`next safe action: ${runtimeContext.nextAction}`)
+  }
+  console.log(
+    `pending approvals: ${approvals.pending.length > 0 ? approvals.pending.join(", ") : "none"}`,
+  )
+  if (approvals.approved.length > 0) {
+    console.log(`approved gates: ${approvals.approved.join(", ")}`)
+  }
+  if (approvals.rejected.length > 0) {
+    console.log(`rejected gates: ${approvals.rejected.join(", ")}`)
+  }
+  if (approvals.other.length > 0) {
+    console.log(`other gate states: ${approvals.other.join(", ")}`)
+  }
+  if (artifacts.length > 0) {
+    console.log("linked artifacts:")
+    for (const artifact of artifacts) {
+      console.log(`- ${artifact.artifact}: ${artifact.path}`)
+    }
+  } else {
+    console.log("linked artifacts: none")
+  }
+  if (Array.isArray(runtimeContext.artifactReadinessLines) && runtimeContext.artifactReadinessLines.length > 0) {
+    console.log(`artifact readiness: ${runtimeContext.artifactReadinessLines.join(" | ")}`)
+  }
+  if (runtimeContext.verificationReadinessLine) {
+    console.log(runtimeContext.verificationReadinessLine)
+  }
+  if (Array.isArray(runtimeContext.verificationEvidenceLines) && runtimeContext.verificationEvidenceLines.length > 0) {
+    console.log(`verification evidence: ${runtimeContext.verificationEvidenceLines.join(" | ")}`)
+  }
+  if (runtimeContext.taskBoardSummary) {
+    console.log(
+      `task board: ${runtimeContext.taskBoardSummary.total} tasks | ready ${runtimeContext.taskBoardSummary.ready} | active ${runtimeContext.taskBoardSummary.active}`,
+    )
+    if (runtimeContext.taskBoardSummary.activeTasks.length > 0) {
+      console.log(`active tasks: ${runtimeContext.taskBoardSummary.activeTasks.join("; ")}`)
+    }
+  }
+  if (runtimeContext.parallelization?.parallel_mode) {
+    console.log(`parallel mode: ${runtimeContext.parallelization.parallel_mode}`)
+  }
+  if (state.escalated_from) {
+    console.log(`escalated from: ${state.escalated_from}`)
+  }
+  if (state.escalation_reason) {
+    console.log(`escalation reason: ${state.escalation_reason}`)
+  }
+  if (issues.length > 0) {
+    console.log("open issues:")
+    for (const issue of issues) {
+      const title = issue?.title ?? issue?.issue_id ?? "unknown issue"
+      const type = issue?.type ? ` | ${issue.type}` : ""
+      const severity = issue?.severity ? ` | ${issue.severity}` : ""
+      console.log(`- ${title}${type}${severity}`)
+    }
+  } else {
+    console.log("open issues: none")
+  }
+  if (runtimeContext.issueTelemetry) {
+    console.log(
+      `issue telemetry: ${runtimeContext.issueTelemetry.total} total | ${runtimeContext.issueTelemetry.open} open | ${runtimeContext.issueTelemetry.repeated} repeated | ${runtimeContext.issueTelemetry.staleSignals} stale-signals`,
+    )
+  }
+  console.log(
+    "read next: AGENTS.md -> context/navigation.md -> context/core/workflow.md -> context/core/session-resume.md",
+  )
+  console.log(
+    "diagnostics: openkit doctor for global readiness | node .opencode/workflow-state.js doctor for runtime diagnostics",
+  )
+}
+
+function printResumeSummaryShort(runtime) {
+  const summary = buildResumeSummary(runtime)
+  console.log(`${summary.mode} | ${summary.stage} | ${summary.owner}`)
+  if (summary.next_safe_action) {
+    console.log(`next: ${summary.next_safe_action}`)
+  }
+  console.log(
+    `approvals pending: ${summary.approvals.pending.length > 0 ? summary.approvals.pending.join(", ") : "none"}`,
+  )
 }
 
 function printDoctorReport(report) {
@@ -184,6 +430,10 @@ function printDoctorReport(report) {
   console.log(
     `Summary: ${report.summary.ok} ok, ${report.summary.warn} warn, ${report.summary.error} error`,
   )
+}
+
+function printDoctorReportShort(report) {
+  console.log(`doctor | ok ${report.summary.ok} | error ${report.summary.error}`)
 }
 
 function printProfiles(profiles) {
@@ -260,6 +510,9 @@ function printCloseoutSummary(result) {
   if (result.activeTasks.length > 0) {
     console.log(`active tasks: ${result.activeTasks.map((task) => task.task_id).join(", ")}`)
   }
+  if (result.verificationReadiness?.status) {
+    console.log(`verification readiness: ${result.verificationReadiness.status}`)
+  }
 }
 
 function printReconcileReport(result) {
@@ -286,6 +539,156 @@ function printIntegrationCheck(result) {
   if (result.incompleteTasks.length > 0) {
     console.log(`incomplete tasks: ${result.incompleteTasks.map((task) => task.task_id).join(", ")}`)
   }
+}
+
+function printStageReadiness(result) {
+  console.log(`stage: ${result.state.current_stage}`)
+  console.log(`ready: ${result.ready ? "yes" : "no"}`)
+  if (result.blockers.length > 0) {
+    console.log(`blockers: ${result.blockers.join("; ")}`)
+  }
+}
+
+function printIssueList(result) {
+  console.log(`issues: ${result.issues.length}`)
+  for (const issue of result.issues) {
+    console.log(`${issue.issue_id} | ${issue.current_status} | repeats ${issue.repeat_count} | reopens ${issue.reopen_count} | ${issue.title}`)
+  }
+}
+
+function printIssueAgingReport(result) {
+  console.log(`issue totals: ${result.telemetry.total} total | ${result.telemetry.open} open | ${result.telemetry.repeated} repeated`) 
+  for (const issue of result.issues) {
+    console.log(`${issue.issue_id} | ${issue.current_status} | blocked_since ${issue.blocked_since ?? "none"} | last_updated ${issue.last_updated_at}`)
+  }
+}
+
+function printWorkflowMetrics(result) {
+  console.log(`work item: ${result.workItemId}`)
+  console.log(`mode: ${result.mode}`)
+  console.log(`stage: ${result.stage}`)
+  console.log(`retry count: ${result.retryCount}`)
+  console.log(`issues: ${result.issueTelemetry.total} total | ${result.issueTelemetry.open} open | ${result.issueTelemetry.repeated} repeated`)
+  console.log(`verification: ${result.verificationReadiness.status}`)
+  console.log(`tasks: ${result.taskCount} total | ${result.activeTaskCount} active`)
+  console.log(`migration slices: ${result.migrationSliceCount}`)
+  if (result.blocked.length > 0) {
+    console.log(`blockers: ${result.blocked.join("; ")}`)
+  }
+}
+
+function printApprovalBottlenecks(result) {
+  console.log(`pending approvals: ${result.pending.length}`)
+  for (const gate of result.pending) {
+    console.log(`${gate.gate}${gate.notes ? ` | ${gate.notes}` : ""}`)
+  }
+}
+
+function printQaFailureSummary(result) {
+  console.log(`retry count: ${result.retryCount}`)
+  console.log(`qa-linked issues: ${result.qaIssues.length}`)
+  for (const issue of result.qaIssues) {
+    console.log(`${issue.issue_id} | ${issue.type} | ${issue.rooted_in} | repeats ${issue.repeat_count}`)
+  }
+}
+
+function printTaskAgingReport(result) {
+  console.log(`work items scanned: ${result.reports.length}`)
+  for (const report of result.reports) {
+    console.log(`${report.work_item_id} | ${report.mode} | stale tasks ${report.stale_task_count}`)
+  }
+}
+
+function printDefinitionOfDone(result) {
+  console.log(`mode: ${result.mode}`)
+  console.log(`stage: ${result.stage}`)
+  console.log(`ready: ${result.ready ? "yes" : "no"}`)
+  if (result.summary) {
+    console.log(`summary: ${result.summary}`)
+  }
+  console.log(`required approvals: ${result.requiredApprovals.join(", ") || "none"}`)
+  console.log(`required artifacts: ${result.requiredArtifacts.join(", ") || "none"}`)
+  if (result.missingApprovals.length > 0) {
+    console.log(`missing approvals: ${result.missingApprovals.join(", ")}`)
+  }
+  if (result.missingArtifacts.length > 0) {
+    console.log(`missing artifacts: ${result.missingArtifacts.join(", ")}`)
+  }
+  console.log(`verification readiness: ${result.verificationReadiness.status}`)
+  console.log(`unresolved issues: ${result.unresolvedIssues.length}`)
+}
+
+function printReleaseReadiness(result) {
+  console.log(`work item: ${result.workItemId}`)
+  console.log(`mode: ${result.mode}`)
+  console.log(`stage: ${result.stage}`)
+  console.log(`release ready: ${result.releaseReady ? "yes" : "no"}`)
+  if (result.blockers.length > 0) {
+    console.log(`blockers: ${result.blockers.join("; ")}`)
+  }
+}
+
+function printWorkflowAnalytics(result) {
+  console.log(`total work items: ${result.analytics.totalWorkItems}`)
+  console.log(`by mode: quick ${result.analytics.byMode.quick} | migration ${result.analytics.byMode.migration} | full ${result.analytics.byMode.full}`)
+  console.log(`open issues: ${result.analytics.totalOpenIssues}`)
+  console.log(`repeated issues: ${result.analytics.totalRepeatedIssues}`)
+  console.log(`total retries: ${result.analytics.totalRetries}`)
+  console.log(`total escalations: ${result.analytics.totalEscalations}`)
+}
+
+function printOpsSummary(result) {
+  console.log(`${result.mode} | ${result.stage} | ${result.owner}`)
+  if (result.nextAction) {
+    console.log(`next: ${result.nextAction}`)
+  }
+  console.log(`pending approvals: ${result.pendingApprovals.length > 0 ? result.pendingApprovals.join(", ") : "none"}`)
+  console.log(`open issues: ${result.openIssues}`)
+  console.log(`blockers: ${result.blockers.length > 0 ? result.blockers.join("; ") : "none"}`)
+}
+
+function printPolicyTrace(result) {
+  console.log(`policies: ${result.policies.length}`)
+  for (const policy of result.policies) {
+    console.log(`${policy.id}`)
+    console.log(`  docs: ${policy.docs.join(", ")}`)
+    console.log(`  runtime: ${policy.runtime.join(", ")}`)
+    console.log(`  tests: ${policy.tests.join(", ")}`)
+  }
+}
+
+function printReleaseCandidates(result) {
+  console.log(`active release: ${result.index.active_release_id ?? "none"}`)
+  for (const release of result.index.releases) {
+    console.log(`${release.release_id} | ${release.status} | risk ${release.risk_level} | ${release.title}`)
+  }
+}
+
+function printReleaseCandidate(result) {
+  console.log(`release: ${result.candidate.release_id}`)
+  console.log(`title: ${result.candidate.title}`)
+  console.log(`status: ${result.candidate.status}`)
+  console.log(`risk: ${result.candidate.risk_level}`)
+  console.log(`work items: ${result.candidate.included_work_items.join(", ") || "none"}`)
+  console.log(`hotfix work items: ${result.candidate.hotfix_work_items.join(", ") || "none"}`)
+}
+
+function printReleaseGateResult(result) {
+  console.log(`release: ${result.releaseId}`)
+  console.log(`ready: ${result.ready ? "yes" : "no"}`)
+  if (result.blockers.length > 0) {
+    console.log(`blockers: ${result.blockers.join("; ")}`)
+  }
+  if (result.warnings.length > 0) {
+    console.log(`warnings: ${result.warnings.join("; ")}`)
+  }
+}
+
+function printReleaseDashboard(result) {
+  console.log(`release candidates: ${result.dashboard.total}`)
+  console.log(`ready: ${result.dashboard.ready} | blocked: ${result.dashboard.blocked}`)
+  console.log(`rollback covered: ${result.dashboard.rollbackCovered}`)
+  console.log(`notes ready: ${result.dashboard.notesReady}`)
 }
 
 function toBoolean(value) {
@@ -390,12 +793,34 @@ async function main() {
       printState("Workflow state:", result)
       return
     case "status":
+      if (rest.includes("--short")) {
+        printRuntimeStatusShort(getRuntimeShortSummary(statePath))
+        return
+      }
       result = getRuntimeStatus(statePath)
       result.runtimeContext = getRuntimeContext(result.runtimeRoot, result.state)
       printRuntimeStatus(result)
       return
+    case "resume-summary":
+      result = getRuntimeStatus(statePath)
+      result.runtimeContext = getRuntimeContext(result.runtimeRoot, result.state)
+      if (rest.includes("--json")) {
+        console.log(JSON.stringify(buildResumeSummary(result), null, 2))
+        return
+      }
+      if (rest.includes("--short")) {
+        printResumeSummaryShort(result)
+        return
+      }
+      printResumeSummary(result)
+      return
     case "doctor":
       result = extendDoctorReport(runDoctor(statePath), resolveStatePath(statePath))
+      if (rest.includes("--short")) {
+        printDoctorReportShort(result)
+        process.exit(result.summary.error > 0 ? 1 : 0)
+        return
+      }
       printDoctorReport(result)
       process.exit(result.summary.error > 0 ? 1 : 0)
       return
@@ -439,6 +864,80 @@ async function main() {
       result = listWorkItems(statePath)
       printWorkItems(result)
       return
+    case "task-aging-report":
+      result = getTaskAgingReport(statePath)
+      printTaskAgingReport(result)
+      return
+    case "workflow-analytics":
+      result = getWorkflowAnalytics(statePath)
+      printWorkflowAnalytics(result)
+      return
+    case "ops-summary":
+      result = getOpsSummary(statePath)
+      printOpsSummary(result)
+      return
+    case "create-release-candidate":
+      result = createReleaseCandidate(rest[0], rest[1], statePath)
+      console.log(`Created release candidate '${result.candidate.release_id}'`)
+      return
+    case "list-release-candidates":
+      result = listReleaseCandidates(statePath)
+      printReleaseCandidates(result)
+      return
+    case "show-release-candidate":
+      result = showReleaseCandidate(rest[0], statePath)
+      printReleaseCandidate(result)
+      return
+    case "add-release-work-item":
+      result = addReleaseWorkItem(rest[0], rest[1], statePath)
+      console.log(`Added work item '${rest[1]}' to release '${rest[0]}'`)
+      return
+    case "remove-release-work-item":
+      result = removeReleaseWorkItem(rest[0], rest[1], statePath)
+      console.log(`Removed work item '${rest[1]}' from release '${rest[0]}'`)
+      return
+    case "set-release-status":
+      result = setReleaseStatus(rest[0], rest[1], statePath)
+      console.log(`Updated release '${rest[0]}' to '${rest[1]}'`)
+      return
+    case "set-release-approval":
+      result = setReleaseApproval(rest[0], rest[1], rest[2], rest[3], rest[4], rest[5], statePath)
+      console.log(`Updated release approval '${rest[1]}' on '${rest[0]}'`)
+      return
+    case "record-rollback-plan":
+      result = recordRollbackPlan(rest[0], rest[1], rest[2], rest[3].split(","), statePath)
+      console.log(`Recorded rollback plan for release '${rest[0]}'`)
+      return
+    case "draft-release-notes":
+      result = draftReleaseNotes(rest[0], statePath)
+      console.log(`Drafted release notes at '${result.notesPath}'`)
+      return
+    case "validate-release-notes":
+      result = validateReleaseNotes(rest[0], statePath)
+      console.log(`release notes ready: ${result.ready ? "yes" : "no"}`)
+      if (result.blockers.length > 0) {
+        console.log(`blockers: ${result.blockers.join("; ")}`)
+      }
+      process.exit(result.ready ? 0 : 1)
+      return
+    case "check-release-gates":
+      result = getReleaseCandidateReadiness(rest[0], statePath)
+      printReleaseGateResult(result)
+      process.exit(result.ready ? 0 : 1)
+      return
+    case "release-dashboard":
+      result = getReleaseDashboard(statePath)
+      printReleaseDashboard(result)
+      return
+    case "start-hotfix":
+      result = startHotfix(rest[0], rest[1], rest[2], rest[3], rest[4], statePath)
+      console.log(`Started hotfix work item '${result.workItemId}' for release '${rest[0]}'`)
+      return
+    case "validate-hotfix":
+      result = validateHotfix(rest[0], statePath)
+      console.log(`hotfix ready: ${result.ready ? "yes" : "no"}`)
+      process.exit(result.ready ? 0 : 1)
+      return
     case "show-work-item":
       result = showWorkItemState(rest[0], statePath)
       printWorkItem(result)
@@ -447,6 +946,20 @@ async function main() {
       result = getWorkItemCloseoutSummary(rest[0], statePath)
       printCloseoutSummary(result)
       process.exit(result.readyToClose ? 0 : 1)
+      return
+    case "release-readiness":
+      result = getReleaseReadiness(statePath)
+      printReleaseReadiness(result)
+      process.exit(result.releaseReady ? 0 : 1)
+      return
+    case "show-dod":
+      result = getDefinitionOfDone(statePath)
+      printDefinitionOfDone(result)
+      return
+    case "validate-dod":
+      result = getDefinitionOfDone(statePath)
+      printDefinitionOfDone(result)
+      process.exit(result.ready ? 0 : 1)
       return
     case "reconcile-work-items":
       result = reconcileCompletedWorkItems(statePath, rest)
@@ -462,6 +975,12 @@ async function main() {
       result = advanceStage(rest[0], statePath)
       console.log(`Advanced workflow to stage '${result.state.current_stage}'`)
       console.log(`State file: ${result.statePath}`)
+      return
+    case "check-stage-readiness":
+      result = getWorkflowMetrics(statePath)
+      const ready = result.blocked.length === 0
+      printStageReadiness({ state: { current_stage: result.stage }, ready, blockers: result.blocked })
+      process.exit(ready ? 0 : 1)
       return
     case "set-approval":
       result = setApproval(rest[0], rest[1], rest[2], rest[3], rest[4], statePath)
@@ -523,6 +1042,23 @@ async function main() {
       result = integrationCheck(rest[0], statePath)
       printIntegrationCheck(result)
       process.exit(result.integrationReady ? 0 : 1)
+      return
+    case "workflow-metrics":
+      result = getWorkflowMetrics(statePath)
+      printWorkflowMetrics(result)
+      return
+    case "approval-bottlenecks":
+      result = getApprovalBottlenecks(statePath)
+      printApprovalBottlenecks(result)
+      process.exit(result.pending.length === 0 ? 0 : 1)
+      return
+    case "qa-failure-summary":
+      result = getQaFailureSummary(statePath)
+      printQaFailureSummary(result)
+      return
+    case "policy-trace":
+      result = getPolicyExecutionTrace()
+      printPolicyTrace(result)
       return
     case "claim-task":
       result = claimTask(rest[0], rest[1], rest[2], statePath, {
@@ -618,6 +1154,43 @@ async function main() {
         statePath,
       )
       console.log(`Recorded issue '${rest[0]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "update-issue-status":
+      result = updateIssueStatus(rest[0], rest[1], statePath)
+      console.log(`Updated issue '${rest[0]}' to '${rest[1]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "list-stale-issues":
+      result = listStaleIssues(statePath)
+      printIssueList(result)
+      process.exit(result.issues.length === 0 ? 0 : 1)
+      return
+    case "issue-aging-report":
+      result = getIssueAgingReport(statePath)
+      printIssueAgingReport(result)
+      return
+    case "record-verification-evidence":
+      result = recordVerificationEvidence(
+        {
+          id: rest[0],
+          kind: rest[1],
+          scope: rest[2],
+          summary: rest[3],
+          source: rest[4],
+          command: rest[5] ?? null,
+          exit_status: rest[6] === undefined ? null : Number(rest[6]),
+          artifact_refs: rest[7] ? rest[7].split(",") : [],
+          recorded_at: new Date().toISOString(),
+        },
+        statePath,
+      )
+      console.log(`Recorded verification evidence '${rest[0]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "clear-verification-evidence":
+      result = clearVerificationEvidence(statePath)
+      console.log("Cleared verification evidence")
       console.log(`State file: ${result.statePath}`)
       return
     case "clear-issues":

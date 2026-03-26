@@ -9,6 +9,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - There is no repo-native build command for generated application code yet.
 - There is no repo-native lint command for generated application code yet.
 - There is no repo-native test command for generated application code yet.
+- OpenKit does have repo-native validation for its own runtime, CLI, install, and launch surfaces through `tests/` and `.opencode/tests/`.
 - There is no single canonical package manager or language toolchain for future applications yet.
 - OpenKit uses the mode-aware workflow documented in `context/core/workflow.md`; keep tooling and command guidance here aligned with that live contract instead of re-stating lane policy in full.
 - The active compatibility mirror uses a mode-aware schema and `.opencode/workflow-state.js` supports that workflow model.
@@ -45,7 +46,11 @@ These are repository workflow commands, not application build/lint/test commands
 - `openkit uninstall [--remove-workspaces]`
 
 - `node .opencode/workflow-state.js status`
+- `node .opencode/workflow-state.js status --short`
+- `node .opencode/workflow-state.js resume-summary`
+- `node .opencode/workflow-state.js resume-summary --short`
 - `node .opencode/workflow-state.js doctor`
+- `node .opencode/workflow-state.js doctor --short`
 - `node .opencode/workflow-state.js version`
 - `node .opencode/workflow-state.js profiles`
 - `node .opencode/workflow-state.js show-profile <name>`
@@ -56,9 +61,31 @@ These are repository workflow commands, not application build/lint/test commands
 - `node .opencode/workflow-state.js start-task <mode> <feature_id> <feature_slug> <mode_reason>`
 - `node .opencode/workflow-state.js create-work-item <mode> <feature_id> <feature_slug> <mode_reason>`
 - `node .opencode/workflow-state.js list-work-items`
+- `node .opencode/workflow-state.js task-aging-report`
+- `node .opencode/workflow-state.js workflow-analytics`
+- `node .opencode/workflow-state.js ops-summary`
+- `node .opencode/workflow-state.js create-release-candidate <release_id> <title>`
+- `node .opencode/workflow-state.js list-release-candidates`
+- `node .opencode/workflow-state.js show-release-candidate <release_id>`
+- `node .opencode/workflow-state.js add-release-work-item <release_id> <work_item_id>`
+- `node .opencode/workflow-state.js remove-release-work-item <release_id> <work_item_id>`
+- `node .opencode/workflow-state.js set-release-status <release_id> <status>`
+- `node .opencode/workflow-state.js set-release-approval <release_id> <gate> <status> [approved_by] [approved_at] [notes]`
+- `node .opencode/workflow-state.js record-rollback-plan <release_id> <summary> <owner> <trigger_signals_csv>`
+- `node .opencode/workflow-state.js draft-release-notes <release_id>`
+- `node .opencode/workflow-state.js validate-release-notes <release_id>`
+- `node .opencode/workflow-state.js check-release-gates <release_id>`
+- `node .opencode/workflow-state.js release-dashboard`
+- `node .opencode/workflow-state.js start-hotfix <release_id> <mode> <feature_id> <feature_slug> <reason>`
+- `node .opencode/workflow-state.js validate-hotfix <work_item_id>`
 - `node .opencode/workflow-state.js show-work-item <work_item_id>`
+- `node .opencode/workflow-state.js closeout-summary <work_item_id>`
+- `node .opencode/workflow-state.js release-readiness`
+- `node .opencode/workflow-state.js show-dod`
+- `node .opencode/workflow-state.js validate-dod`
 - `node .opencode/workflow-state.js activate-work-item <work_item_id>`
 - `node .opencode/workflow-state.js advance-stage <stage>`
+- `node .opencode/workflow-state.js check-stage-readiness`
 - `node .opencode/workflow-state.js set-approval <gate> <status> [approved_by] [approved_at] [notes]`
 - `node .opencode/workflow-state.js set-routing-profile <work_intent> <behavior_delta> <dominant_uncertainty> <scope_shape> <selection_reason>`
 - `node .opencode/workflow-state.js link-artifact <kind> <path>`
@@ -67,6 +94,10 @@ These are repository workflow commands, not application build/lint/test commands
 - `node .opencode/workflow-state.js create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`
 - `node .opencode/workflow-state.js validate-task-allocation <work_item_id>`
 - `node .opencode/workflow-state.js integration-check <work_item_id>`
+- `node .opencode/workflow-state.js workflow-metrics`
+- `node .opencode/workflow-state.js approval-bottlenecks`
+- `node .opencode/workflow-state.js qa-failure-summary`
+- `node .opencode/workflow-state.js policy-trace`
 - `node .opencode/workflow-state.js claim-task <work_item_id> <task_id> <owner> <requested_by>`
 - `node .opencode/workflow-state.js release-task <work_item_id> <task_id> <requested_by>`
 - `node .opencode/workflow-state.js reassign-task <work_item_id> <task_id> <owner> <requested_by>`
@@ -80,6 +111,11 @@ These are repository workflow commands, not application build/lint/test commands
 - `node .opencode/workflow-state.js set-migration-slice-status <work_item_id> <slice_id> <status>`
 - `node .opencode/workflow-state.js validate-migration-slice-board <work_item_id>`
 - `node .opencode/workflow-state.js record-issue <issue_id> <title> <type> <severity> <rooted_in> <recommended_owner> <evidence> <artifact_refs>`
+- `node .opencode/workflow-state.js update-issue-status <issue_id> <status>`
+- `node .opencode/workflow-state.js list-stale-issues`
+- `node .opencode/workflow-state.js issue-aging-report`
+- `node .opencode/workflow-state.js record-verification-evidence <id> <kind> <scope> <summary> <source> [command] [exit_status] [artifact_refs]`
+- `node .opencode/workflow-state.js clear-verification-evidence`
 - `node .opencode/workflow-state.js clear-issues`
 - `node .opencode/workflow-state.js route-rework <issue_type> [repeat_failed_fix]`
 
@@ -93,7 +129,8 @@ Current workflow-state behavior:
 - `openkit run` launches OpenCode with the OpenKit-managed config directory and workspace-specific environment.
 - `openkit upgrade` refreshes the global managed kit bundle in place.
 - `openkit uninstall` removes the global managed kit and profile, with optional workspace cleanup.
-- `status`, `doctor`, `version`, `profiles`, `show-profile`, and `sync-install-manifest` are part of the current runtime inspection surface.
+- `status`, `resume-summary`, `doctor`, `version`, `profiles`, `show-profile`, and `sync-install-manifest` are part of the current runtime inspection surface.
+- `status --short`, `resume-summary --short`, and `doctor --short` provide compact runtime views for fast operational decisions.
 - `start-feature` remains available as a compatibility shortcut and initializes `Full Delivery` mode.
 - `start-task` is the preferred explicit entrypoint for new mode-aware state.
 - `create-work-item`, `list-work-items`, `show-work-item`, and `activate-work-item` are the live work-item coordination commands.
@@ -105,6 +142,12 @@ Current workflow-state behavior:
 - `plan` scaffolding requires `full` mode at `full_plan` or `migration` mode at `migration_strategy`, and it always requires a linked architecture artifact.
 - `migration_report` scaffolding requires `migration` mode at `migration_baseline` or `migration_strategy` and is intended for one-file migration tracking.
 - `doctor` now checks active-work-item pointer integrity, compatibility-mirror alignment, and task-board validity when the active full-delivery stage depends on a task board.
+- `check-stage-readiness` and `workflow-metrics` expose whether the current stage is blocked by missing artifacts, missing evidence, unresolved issues, or task-board prerequisites.
+- `show-dod`, `validate-dod`, and `release-readiness` expose closure criteria and ship-readiness criteria as explicit runtime surfaces.
+- `workflow-analytics` and `ops-summary` compress multi-work-item and daily operator insights into inspectable reports.
+- release candidate commands add release-level governance over multiple work items, release notes, approvals, rollback planning, and hotfix linkage.
+- `record-verification-evidence` and `clear-verification-evidence` keep verification claims inspectable and machine-readable.
+- `update-issue-status`, `list-stale-issues`, and `issue-aging-report` support issue lifecycle tracking instead of one-shot issue snapshots.
 - Task-board support is bounded: only full-delivery work items may use it, and it does not imply unrestricted parallel safety outside the validated command surface.
 - Migration remains sequential by default; migration slice execution, when enabled, is strategy-driven and parity-oriented rather than a copy of the full-delivery task board.
 
@@ -119,17 +162,24 @@ Current workflow-state behavior:
 
 ## Validation Reality By Mode
 
+Validation split to keep explicit:
+
+- OpenKit runtime and CLI validation: yes, through runtime checks and automated tests in this repository
+- target-project app validation: only when the target project actually defines the relevant commands
+
 ### Quick Task
 
 - Use the closest real verification path available.
 - If no test framework exists, manual verification is acceptable when reported clearly.
 - Do not invent commands that the repository has not adopted.
+- Record QA Lite evidence before `quick_done`; approval alone is not enough.
 
 ### Full Delivery
 
 - Prefer the strongest real validation path available.
 - If no test or build tooling exists, explicitly record that the validation path is unavailable.
 - Do not claim TDD or automated QA evidence unless the supporting commands actually exist.
+- Before `full_done`, keep verification evidence and unresolved issue state inspectable in workflow state.
 
 ### Migration
 
@@ -137,6 +187,7 @@ Current workflow-state behavior:
 - Refactor only to create seams, adapters, or compatibility boundaries that make the migration safer; do not treat migration as an excuse for a rewrite.
 - If suitable test tooling exists, add focused tests only where they clarify behavior during the migration; do not force greenfield TDD semantics onto broad upgrades by default.
 - If no repo-native validation commands exist, state the missing validation path and record manual before/after evidence honestly.
+- Before `migration_done`, keep parity or compatibility evidence inspectable in workflow state.
 
 ## Future Update Rule
 

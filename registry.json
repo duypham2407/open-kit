@@ -48,138 +48,205 @@
         "id": "agent.master-orchestrator",
         "name": "Master Orchestrator",
         "role": "primary",
-        "path": "agents/master-orchestrator.md"
+        "path": "agents/master-orchestrator.md",
+        "audience": "runtime",
+        "modes": ["quick", "migration", "full"]
       },
       {
         "id": "agent.pm-agent",
         "name": "PM Agent",
         "role": "team",
-        "path": "agents/pm-agent.md"
+        "path": "agents/pm-agent.md",
+        "audience": "runtime",
+        "modes": ["full"]
       },
       {
         "id": "agent.ba-agent",
         "name": "BA Agent",
         "role": "team",
-        "path": "agents/ba-agent.md"
+        "path": "agents/ba-agent.md",
+        "audience": "runtime",
+        "modes": ["full"]
       },
       {
         "id": "agent.architect-agent",
         "name": "Architect Agent",
         "role": "team",
-        "path": "agents/architect-agent.md"
+        "path": "agents/architect-agent.md",
+        "audience": "runtime",
+        "modes": ["migration", "full"]
       },
       {
         "id": "agent.tech-lead-agent",
         "name": "Tech Lead Agent",
         "role": "team",
-        "path": "agents/tech-lead-agent.md"
+        "path": "agents/tech-lead-agent.md",
+        "audience": "runtime",
+        "modes": ["migration", "full"]
       },
       {
         "id": "agent.fullstack-agent",
         "name": "Fullstack Agent",
         "role": "team",
-        "path": "agents/fullstack-agent.md"
+        "path": "agents/fullstack-agent.md",
+        "audience": "runtime",
+        "modes": ["quick", "migration", "full"]
       },
       {
         "id": "agent.qa-agent",
         "name": "QA Agent",
         "role": "team",
-        "path": "agents/qa-agent.md"
+        "path": "agents/qa-agent.md",
+        "audience": "runtime",
+        "modes": ["quick", "migration", "full"]
       },
       {
         "id": "agent.code-reviewer",
         "name": "Code Reviewer",
         "role": "helper",
-        "path": "agents/code-reviewer.md"
+        "path": "agents/code-reviewer.md",
+        "audience": "runtime",
+        "modes": ["full"]
       }
     ],
     "skills": [
       {
         "id": "skill.brainstorming",
         "name": "brainstorming",
-        "path": "skills/brainstorming/SKILL.md"
+        "path": "skills/brainstorming/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Master Orchestrator", "PM Agent", "Architect Agent"],
+        "modes": ["migration", "full"]
       },
       {
         "id": "skill.code-review",
         "name": "code-review",
-        "path": "skills/code-review/SKILL.md"
+        "path": "skills/code-review/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Code Reviewer"],
+        "modes": ["full"]
       },
       {
         "id": "skill.subagent-driven-development",
         "name": "subagent-driven-development",
-        "path": "skills/subagent-driven-development/SKILL.md"
+        "path": "skills/subagent-driven-development/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Fullstack Agent"],
+        "modes": ["full"]
       },
       {
         "id": "skill.systematic-debugging",
         "name": "systematic-debugging",
-        "path": "skills/systematic-debugging/SKILL.md"
+        "path": "skills/systematic-debugging/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Fullstack Agent"],
+        "modes": ["quick", "migration", "full"]
       },
       {
         "id": "skill.test-driven-development",
         "name": "test-driven-development",
-        "path": "skills/test-driven-development/SKILL.md"
+        "path": "skills/test-driven-development/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Fullstack Agent"],
+        "modes": ["full"]
       },
       {
         "id": "skill.verification-before-completion",
         "name": "verification-before-completion",
-        "path": "skills/verification-before-completion/SKILL.md"
+        "path": "skills/verification-before-completion/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Fullstack Agent", "QA Agent"],
+        "modes": ["quick", "migration", "full"]
       },
       {
         "id": "skill.using-skills",
         "name": "using-skills",
-        "path": "skills/using-skills/SKILL.md"
+        "path": "skills/using-skills/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["all"],
+        "modes": ["quick", "migration", "full"]
       },
       {
         "id": "skill.writing-plans",
         "name": "writing-plans",
-        "path": "skills/writing-plans/SKILL.md"
+        "path": "skills/writing-plans/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Tech Lead Agent"],
+        "modes": ["migration", "full"]
       },
       {
         "id": "skill.writing-specs",
         "name": "writing-specs",
-        "path": "skills/writing-specs/SKILL.md"
+        "path": "skills/writing-specs/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["BA Agent"],
+        "modes": ["full"]
       }
     ],
     "commands": [
       {
         "id": "command.task",
         "name": "/task",
-        "path": "commands/task.md"
+        "path": "commands/task.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
       },
       {
         "id": "command.quick-task",
         "name": "/quick-task",
-        "path": "commands/quick-task.md"
+        "path": "commands/quick-task.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick"]
       },
       {
         "id": "command.migrate",
         "name": "/migrate",
-        "path": "commands/migrate.md"
+        "path": "commands/migrate.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["migration"]
       },
       {
         "id": "command.delivery",
         "name": "/delivery",
-        "path": "commands/delivery.md"
+        "path": "commands/delivery.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["full"]
       },
       {
         "id": "command.brainstorm",
         "name": "/brainstorm",
-        "path": "commands/brainstorm.md"
+        "path": "commands/brainstorm.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["migration", "full"]
       },
       {
         "id": "command.write-plan",
         "name": "/write-plan",
-        "path": "commands/write-plan.md"
+        "path": "commands/write-plan.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["migration", "full"]
       },
       {
         "id": "command.execute-plan",
         "name": "/execute-plan",
-        "path": "commands/execute-plan.md"
+        "path": "commands/execute-plan.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["migration", "full"]
       },
       {
         "id": "command.configure-agent-models",
         "name": "/configure-agent-models",
-        "path": "commands/configure-agent-models.md"
+        "path": "commands/configure-agent-models.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
       }
     ],
     "artifacts": [
@@ -284,6 +351,12 @@
         "id": "doc.navigation",
         "name": "Navigation",
         "path": "context/navigation.md",
+        "surface": "repository-internal"
+      },
+      {
+        "id": "doc.runtime-surfaces",
+        "name": "Runtime Surfaces",
+        "path": "context/core/runtime-surfaces.md",
         "surface": "repository-internal"
       },
       {

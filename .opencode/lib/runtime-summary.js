@@ -2,7 +2,16 @@ const fs = require("fs")
 const path = require("path")
 
 const { readWorkItemIndex, resolveWorkItemPaths } = require("./work-item-store")
-const { getArtifactReadiness, getNextAction, getParallelizationSummary, summarizeArtifactReadinessLines } = require("./runtime-guidance")
+const {
+  getArtifactReadiness,
+  getIssueTelemetry,
+  getNextAction,
+  getParallelizationSummary,
+  getVerificationReadiness,
+  summarizeArtifactReadinessLines,
+  summarizeVerificationEvidence,
+  summarizeVerificationReadinessLine,
+} = require("./runtime-guidance")
 
 const ACTIVE_TASK_STATUSES = new Set(["claimed", "in_progress", "qa_in_progress"])
 
@@ -70,6 +79,8 @@ function getRuntimeContext(projectRoot, state) {
   const index = getWorkItemIndexIfExists(projectRoot)
   const taskBoard = getTaskBoardDetails(projectRoot, state)
   const artifactReadiness = getArtifactReadiness(state)
+  const verificationReadiness = getVerificationReadiness(state)
+  const issueTelemetry = getIssueTelemetry(state)
 
   return {
     activeWorkItemId: index?.active_work_item_id ?? state?.work_item_id ?? null,
@@ -79,6 +90,10 @@ function getRuntimeContext(projectRoot, state) {
     nextAction: getNextAction(state),
     artifactReadiness,
     artifactReadinessLines: summarizeArtifactReadinessLines(state),
+    verificationReadiness,
+    verificationReadinessLine: summarizeVerificationReadinessLine(state),
+    verificationEvidenceLines: summarizeVerificationEvidence(state),
+    issueTelemetry,
     parallelization: getParallelizationSummary(state),
   }
 }

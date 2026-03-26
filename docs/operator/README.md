@@ -16,6 +16,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 
 - Read `README.md` for the top-level product and runtime boundary summary
 - Read `docs/operations/runbooks/openkit-daily-usage.md` for the detailed day-to-day usage path in this repository
+- Read `docs/operator/surface-contract.md` when you need a fast answer to "which OpenKit surface should I use right now?"
 - Install the CLI with `npm install -g @duypham93/openkit`, then run `openkit run` for first-time setup and `openkit doctor` to verify readiness
 - Once OpenCode is open, use `Ctrl+P` and choose `/task`, `/quick-task`, `/migrate`, or `/delivery` to enter the right workflow lane
 - If you want different providers or models per agent, run `/configure-agent-models`, `openkit configure-agent-models --interactive`, or `openkit configure-agent-models --models` before starting the session you care about
@@ -25,11 +26,13 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 ## Minimal First Session
 
 - `npm install -g @duypham93/openkit`
+- `openkit doctor`
 - `openkit run`
 - Wait for OpenCode to open with `master-orchestrator`
 - Press `Ctrl+P`
 - Run `/task <what you want to do>`
 - Fall back to `/quick-task`, `/migrate`, or `/delivery` only when the lane is obvious
+- If workflow context already exists and you need a plain-language resume snapshot, use `node .opencode/workflow-state.js resume-summary`
 
 ## Operator Routes
 
@@ -37,6 +40,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Lane examples and tie-breakers: `context/core/workflow.md`
 - Session resume: `context/core/session-resume.md`
 - Command and runtime reality: `context/core/project-config.md`
+- Surface contract: `docs/operator/surface-contract.md`
 - Supported product and compatibility surfaces: `docs/operator/supported-surfaces.md`
 - Detailed usage walkthrough: `docs/operations/runbooks/openkit-daily-usage.md`
 - Runtime smoke tests: `docs/operations/runbooks/workflow-state-smoke-tests.md`
@@ -51,9 +55,16 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Global lifecycle: `npm install -g @duypham93/openkit`, `openkit upgrade`, `openkit uninstall`
 - Onboarding helper: `openkit onboard`
 - Runtime inspection: `node .opencode/workflow-state.js status`
+- Runtime resume snapshot: `node .opencode/workflow-state.js resume-summary`
 - Compatibility diagnostics: `node .opencode/workflow-state.js doctor`
 - Current state view: `node .opencode/workflow-state.js show`
 - Validation: `node .opencode/workflow-state.js validate`
+
+## Validation Story
+
+- OpenKit does have validation for its own runtime and CLI surfaces through `tests/` and `.opencode/tests/`
+- This repository still does not define repo-native build, lint, or test commands for arbitrary generated application code
+- Treat `openkit doctor` and `node .opencode/workflow-state.js doctor` as OpenKit/runtime verification, not as substitutes for target-project app testing
 
 ## Boundary Notes
 

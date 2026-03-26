@@ -24,10 +24,13 @@ Use this document to understand which OpenKit surfaces are intended for end user
 For everyday use, prefer this path:
 
 1. `npm install -g @duypham93/openkit`
-2. `openkit onboard` if you want a dry onboarding summary first
-3. `openkit run`
-4. inside OpenCode, start with `/task`
-5. use `/quick-task`, `/migrate`, or `/delivery` only when the lane is already obvious
+2. `openkit doctor`
+3. `openkit onboard` if you want a dry onboarding summary first
+4. `openkit run`
+5. inside OpenCode, start with `/task`
+6. use `/quick-task`, `/migrate`, or `/delivery` only when the lane is already obvious
+
+If workflow state already exists and you need the next safe action, use `node .opencode/workflow-state.js resume-summary`.
 
 ## Boundary Rules
 
@@ -35,3 +38,4 @@ For everyday use, prefer this path:
 - The checked-in `.opencode/` runtime remains live and important, but it is primarily the authoring and compatibility surface.
 - Quick and migration work stay task-board free.
 - Full-delivery work may carry task boards, but parallel support stays bounded by the runtime commands and validations that actually exist.
+- `openkit doctor` answers product/workspace readiness questions; `node .opencode/workflow-state.js doctor` answers workflow-runtime integrity questions.

@@ -120,11 +120,34 @@ function setupTempRuntime(projectRoot) {
       "Migration stages: `migration_intake`, `migration_baseline`, `migration_strategy`, `migration_upgrade`, `migration_verify`, `migration_done`.",
       "Full stages: `full_intake`, `full_brief`, `full_spec`, `full_architecture`, `full_plan`, `full_implementation`, `full_qa`, `full_done`.",
       "Artifact keys: `task_card`, `brief`, `spec`, `architecture`, `plan`, `migration_report`, `qa_report`, `adr`.",
+      "Resume summary JSON includes verification_readiness, verification_evidence, and issue_telemetry.",
       "Routing profile keys: `work_intent`, `behavior_delta`, `dominant_uncertainty`, `scope_shape`, `selection_reason`.",
       "Quick approvals: `quick_verified`.",
       "Migration approvals: `baseline_to_strategy`, `strategy_to_upgrade`, `upgrade_to_verify`, `migration_verified`.",
       "Full approvals: `pm_to_ba`, `ba_to_architect`, `architect_to_tech_lead`, `tech_lead_to_fullstack`, `fullstack_to_qa`, `qa_to_done`.",
       "Compatibility mirror behavior remains active for the current work item.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
+  fs.writeFileSync(
+    path.join(contextCoreDir, "runtime-surfaces.md"),
+    [
+      "# Runtime Surfaces",
+      "",
+      "Use `openkit doctor` for product and workspace readiness.",
+      "Use `node .opencode/workflow-state.js doctor` for workflow runtime integrity.",
+      "Use `node .opencode/workflow-state.js resume-summary` for resumable context.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
+  fs.writeFileSync(
+    path.join(contextCoreDir, "session-resume.md"),
+    [
+      "# Session Resume Protocol",
+      "",
+      "Run `node .opencode/workflow-state.js resume-summary` when you need the next safe action before reading raw state.",
       "",
     ].join("\n"),
     "utf8",
@@ -239,7 +262,7 @@ test("status command prints workflow and runtime summary", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /OpenKit runtime status:/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.14/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.15/)
   assert.match(result.stdout, /entry agent: MasterOrchestrator/)
   assert.match(result.stdout, /active profile: openkit-core/)
   assert.match(result.stdout, /registry: .*registry\.json/)
@@ -248,6 +271,174 @@ test("status command prints workflow and runtime summary", () => {
   assert.match(result.stdout, /stage: full_done/)
   assert.match(result.stdout, /status: done/)
   assert.match(result.stdout, /work item: FEATURE-001 \(task-intake-dashboard\)/)
+})
+
+test("resume-summary prints resumable context and next safe action", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const result = spawnSync("node", [path.resolve(__dirname, "../workflow-state.js"), "resume-summary"], {
+    cwd: projectRoot,
+    encoding: "utf8",
+  })
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /OpenKit resume summary:/)
+  assert.match(result.stdout, /mode: full/)
+  assert.match(result.stdout, /stage: full_done/)
+  assert.match(result.stdout, /next safe action:/)
+  assert.match(result.stdout, /pending approvals: none/)
+  assert.match(result.stdout, /linked artifacts:/)
+  assert.match(result.stdout, /read next: AGENTS\.md -> context\/navigation\.md -> context\/core\/workflow\.md -> context\/core\/session-resume\.md/)
+})
+
+test("resume-summary supports machine-readable JSON output", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const result = spawnSync(
+    "node",
+    [path.resolve(__dirname, "../workflow-state.js"), "resume-summary", "--json"],
+    {
+      cwd: projectRoot,
+      encoding: "utf8",
+    },
+  )
+
+  assert.equal(result.status, 0)
+  const payload = JSON.parse(result.stdout)
+  assert.equal(payload.mode, "full")
+  assert.equal(payload.stage, "full_done")
+  assert.equal(payload.status, "done")
+  assert.equal(payload.feature_id, "FEATURE-001")
+  assert.equal(payload.feature_slug, "task-intake-dashboard")
+  assert.equal(payload.active_work_item_id, "feature-001")
+  assert.equal(typeof payload.next_safe_action, "string")
+  assert.ok(Array.isArray(payload.linked_artifacts))
+  assert.ok(Array.isArray(payload.read_next))
+  assert.equal(payload.diagnostics.global, "openkit doctor")
+  assert.equal(typeof payload.verification_readiness, "object")
+  assert.ok(Array.isArray(payload.verification_evidence))
+  assert.equal(typeof payload.issue_telemetry, "object")
+})
+
+test("status --short prints compact runtime summary", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const result = runCli(projectRoot, ["status", "--short"])
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /full \| full_done \| MasterOrchestrator/)
+  assert.match(result.stdout, /next:/)
+})
+
+test("doctor --short prints compact doctor summary", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const result = runCli(projectRoot, ["doctor", "--short"])
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /doctor \| ok [0-9]+ \| error 0/)
+})
+
+test("workflow-metrics reports readiness and issue telemetry", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const result = runCli(projectRoot, ["workflow-metrics"])
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /work item: feature-001/)
+  assert.match(result.stdout, /verification: ready|verification: not-required-yet/)
+})
+
+test("show-dod, validate-dod, and release-readiness expose closure contracts", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, ["show-dod"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /required approvals:/)
+
+  result = runCli(projectRoot, ["validate-dod"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /ready: yes/)
+
+  result = runCli(projectRoot, ["release-readiness"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /release ready: yes/)
+})
+
+test("workflow-analytics, ops-summary, and policy-trace print management views", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, ["workflow-analytics"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /total work items:/)
+
+  result = runCli(projectRoot, ["ops-summary"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /pending approvals:/)
+
+  result = runCli(projectRoot, ["policy-trace"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /verification-before-completion/)
+})
+
+test("release candidate CLI commands support creation, readiness checks, and dashboard output", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, ["create-release-candidate", "rc-001", "Spring-candidate"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["add-release-work-item", "rc-001", "feature-001"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["draft-release-notes", "rc-001"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["validate-release-notes", "rc-001"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /release notes ready: yes/)
+
+  result = runCli(projectRoot, ["set-release-approval", "rc-001", "qa_to_release", "approved", "QAAgent", "2026-03-22", "QA passed"])
+  assert.equal(result.status, 0)
+  result = runCli(projectRoot, ["set-release-approval", "rc-001", "release_to_ship", "approved", "ReleaseManager", "2026-03-22", "Approved"])
+  assert.equal(result.status, 0)
+  result = runCli(projectRoot, ["record-rollback-plan", "rc-001", "Rollback-to-previous-tag", "ReleaseManager", "critical-regression"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["check-release-gates", "rc-001"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /ready: yes/)
+
+  result = runCli(projectRoot, ["release-dashboard"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /release candidates:/)
+})
+
+test("start-hotfix and validate-hotfix commands work with a release candidate", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, ["create-release-candidate", "rc-003", "Hotfix-release"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["start-hotfix", "rc-003", "quick", "TASK-901", "hotfix-login", "Hotfix-login-issue"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Started hotfix work item/)
+
+  result = runCli(projectRoot, ["show-release-candidate", "rc-003"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /hotfix work items:/)
+
+  result = runCli(projectRoot, ["validate-hotfix", "task-901"])
+  assert.ok([0, 1].includes(result.status))
+  assert.match(result.stdout, /hotfix ready:/)
 })
 
 test("status command reflects quick_plan as a live quick stage", () => {
@@ -577,7 +768,7 @@ test("version command prints kit metadata version", () => {
   })
 
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /OpenKit version: 0\.2\.14/)
+  assert.match(result.stdout, /OpenKit version: 0\.2\.15/)
   assert.match(result.stdout, /active profile: openkit-core/)
 })
 
@@ -622,8 +813,13 @@ test("help output includes multi-work-item and task-board commands", () => {
   assert.match(result.stdout, /list-work-items/)
   assert.match(result.stdout, /show-work-item <work_item_id>/)
   assert.match(result.stdout, /closeout-summary <work_item_id>/)
+  assert.match(result.stdout, /release-readiness/)
+  assert.match(result.stdout, /show-dod/)
+  assert.match(result.stdout, /validate-dod/)
   assert.match(result.stdout, /reconcile-work-items <work_item_id>/)
   assert.match(result.stdout, /activate-work-item <work_item_id>/)
+  assert.match(result.stdout, /workflow-analytics/)
+  assert.match(result.stdout, /ops-summary/)
   assert.match(result.stdout, /list-tasks <work_item_id>/)
   assert.match(result.stdout, /create-task <work_item_id> <task_id> <title> <kind>/)
   assert.match(result.stdout, /claim-task <work_item_id> <task_id> <owner>/)
@@ -1295,6 +1491,7 @@ test("help output includes explicit release and reassign task commands", () => {
   assert.equal(result.status, 0)
   assert.match(result.stdout, /release-task <work_item_id> <task_id> <requested_by>/)
   assert.match(result.stdout, /reassign-task <work_item_id> <task_id> <owner> <requested_by>/)
+  assert.match(result.stdout, /policy-trace/)
 })
 
 test("CLI rejects invalid worktree metadata when creating a task", () => {

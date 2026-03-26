@@ -2,6 +2,8 @@
 
 This note explains the intended parallel-execution model for OpenKit after introducing bounded worker-pool support for `Full Delivery` and `Migration`.
 
+For the shortest reference, use `docs/maintainer/parallel-execution-matrix.md`.
+
 ## Core Rule
 
 Parallel execution is conditional.

@@ -6,12 +6,9 @@ description: "Starts the Full Delivery lane for feature work and higher-risk cha
 
 Use `/delivery` when work needs the full lane from the start or when quick or migration work has already escalated.
 
-## Global OpenKit path rule
+## Shared prompt contract
 
-- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
-- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
-- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
-- Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
+- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
 
 ## Preconditions
 
@@ -26,6 +23,7 @@ Use `/delivery` when work needs the full lane from the start or when quick or mi
 - `.opencode/openkit/context/core/lane-selection.md`
 - `.opencode/openkit/context/core/approval-gates.md`
 - `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/workflow-state.json` when resuming
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.

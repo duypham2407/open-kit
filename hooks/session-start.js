@@ -139,7 +139,7 @@ function renderResumeHint(state, runtimeSummaryModulePath, statePath) {
     print(`active tasks: ${activeTasks.join('; ')}`);
   }
   print('Read first: AGENTS.md -> context/navigation.md -> context/core/workflow.md -> .opencode/workflow-state.json');
-  print('Then load resume guidance from context/core/session-resume.md.');
+  print('Then run `node .opencode/workflow-state.js resume-summary` or load resume guidance from context/core/session-resume.md.');
   if (mode === 'full' && activeTasks.length > 0) {
     print('Parallel task support is not yet assumed safe by this hook; confirm with `node .opencode/workflow-state.js doctor` before relying on it.');
   }
@@ -190,6 +190,7 @@ print(`json helper: ${jsonHelperStatus}`);
 print('help: node .opencode/workflow-state.js status');
 print('doctor: node .opencode/workflow-state.js doctor');
 print('show: node .opencode/workflow-state.js show');
+print('resume: node .opencode/workflow-state.js resume-summary');
 print('</openkit_runtime_status>');
 
 if (!process.env.OPENKIT_SESSION_START_NO_SKILL && fs.existsSync(metaSkillPath)) {

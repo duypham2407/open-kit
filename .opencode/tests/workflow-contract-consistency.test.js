@@ -152,6 +152,28 @@ function setupTempRuntime(projectRoot) {
     ].join("\n"),
     "utf8",
   )
+  fs.writeFileSync(
+    path.join(contextCoreDir, "runtime-surfaces.md"),
+    [
+      "# Runtime Surfaces",
+      "",
+      "Use `openkit doctor` for product and workspace readiness.",
+      "Use `node .opencode/workflow-state.js doctor` for workflow runtime integrity.",
+      "Use `node .opencode/workflow-state.js resume-summary` for resumable context.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
+  fs.writeFileSync(
+    path.join(contextCoreDir, "session-resume.md"),
+    [
+      "# Session Resume Protocol",
+      "",
+      "Run `node .opencode/workflow-state.js resume-summary` when you need the next safe action before reading raw state.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
 
   for (const commandName of ["task", "quick-task", "migrate", "delivery", "brainstorm", "write-plan", "execute-plan", "configure-agent-models"]) {
     fs.writeFileSync(path.join(commandsDir, `${commandName}.md`), `# ${commandName}\n`, "utf8")

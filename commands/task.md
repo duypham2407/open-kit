@@ -11,13 +11,9 @@ Default-path rule:
 - Treat `/task` as the safest first command unless the lane is already obvious.
 - Prefer telling the user the next action after routing, not only the chosen lane name.
 
-## Global OpenKit path rule
+## Shared prompt contract
 
-- In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs and workflow tools.
-- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/workflow-state.json`.
-- Use `.opencode/openkit/workflow-state.json` for resumable workflow state.
-- For workflow-state CLI operations in global mode, use `node .opencode/openkit/workflow-state.js <command>`.
-- Use the target repository only for product/application code, local build tooling, and project-specific docs.
+- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
 
 ## Preconditions
 
@@ -31,6 +27,7 @@ Default-path rule:
 - `.opencode/openkit/context/core/workflow.md`
 - `.opencode/openkit/context/core/lane-selection.md`
 - `.opencode/openkit/context/core/project-config.md`
+- `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/workflow-state.json` when resuming
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.

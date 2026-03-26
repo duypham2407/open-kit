@@ -48,10 +48,15 @@ export const onboardCommand = {
     } else if (!doctor.canRunCleanly) {
       lines.push('- Fix the doctor issues below before relying on the workspace.');
     } else {
+      lines.push('- Run `openkit doctor` whenever you want to re-check global or workspace readiness.');
       lines.push('- Run `openkit run` to open OpenCode with the managed OpenKit profile.');
     }
 
+    if (doctor.status === 'install-missing') {
+      lines.push('- Run `openkit doctor` after setup if you want an explicit readiness check before relaunching.');
+    }
     lines.push(`- Once OpenCode opens, start with ${DEFAULT_ENTRY_COMMAND} unless the lane is already obvious.`);
+    lines.push('- If workflow state already exists later, use `node .opencode/workflow-state.js resume-summary` for a plain-language resume snapshot.');
     lines.push('- Use `openkit configure-agent-models --interactive` if you want agent-specific models before launch.');
     lines.push('');
     lines.push(renderLaneGuidance());

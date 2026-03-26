@@ -5,6 +5,7 @@ Defines the canonical live workflow contract for OpenKit.
 Use this file as the source of truth for workflow semantics. Companion docs such as `context/core/approval-gates.md`, `context/core/issue-routing.md`, `context/core/session-resume.md`, `context/core/project-config.md`, and `context/core/workflow-state-schema.md` must align to it and should focus on their local concerns.
 
 For the stricter routing rubric, examples, and anti-patterns behind lane choice, use `context/core/lane-selection.md`.
+For product-vs-compatibility runtime boundaries, use `context/core/runtime-surfaces.md`.
 
 The current live contract uses `Quick Task+` successor semantics for the existing quick lane while supporting three runtime modes: `quick`, `migration`, and `full`.
 
@@ -284,6 +285,8 @@ Parallel execution rule for migration:
 - migration remains sequential by default
 - migration slices may run in parallel only after `migration_strategy` records a `Parallelization Assessment` that blesses slice-based execution
 - migration parallelism must preserve baseline invariants, rollback checkpoints, and parity verification targets for every approved slice
+
+Use `docs/maintainer/parallel-execution-matrix.md` when you need the shortest maintained reference for these rules.
 
 ## Escalation Rule
 

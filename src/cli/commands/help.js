@@ -4,6 +4,7 @@ function topLevelHelp() {
     '',
     'Quickstart:',
     '  npm install -g @duypham93/openkit',
+    '  openkit doctor',
     '  openkit run',
     '',
     'Commands:',

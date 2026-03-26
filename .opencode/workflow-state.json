@@ -62,6 +62,21 @@
     }
   },
   "issues": [],
+  "verification_evidence": [
+    {
+      "id": "qa-report-golden-path",
+      "kind": "review",
+      "scope": "full_qa",
+      "summary": "Golden path QA report reviewed and accepted",
+      "source": "docs/qa/2026-03-20-task-intake-dashboard.md",
+      "command": null,
+      "exit_status": null,
+      "artifact_refs": [
+        "docs/qa/2026-03-20-task-intake-dashboard.md"
+      ],
+      "recorded_at": "2026-03-20T12:00:00.000Z"
+    }
+  ],
   "retry_count": 0,
   "escalated_from": null,
   "escalation_reason": null,
