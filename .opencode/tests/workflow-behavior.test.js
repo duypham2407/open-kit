@@ -58,7 +58,7 @@ test("quick requirement gaps escalate to full_intake with full-mode approvals", 
   assert.equal(result.state.escalated_from, "quick")
   assert.match(result.state.escalation_reason, /requirement_gap/)
   assert.equal(Object.hasOwn(result.state.approvals, "quick_verified"), false)
-  assert.equal(result.state.approvals.pm_to_ba.status, "pending")
+  assert.equal(result.state.approvals.product_to_solution.status, "pending")
   assert.equal(result.state.approvals.qa_to_done.status, "pending")
 })
 

@@ -1,10 +1,10 @@
 ---
-description: "Starts Migration or Full Delivery design exploration with the brainstorming skill."
+description: "Starts ambiguity-driven Migration or Full Delivery exploration with the brainstorming skill."
 ---
 
 # Command: `/brainstorm`
 
-Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode and the team needs to refine design direction before implementation planning.
+Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode and meaningful ambiguity still needs exploration before scope or solution work can continue safely.
 
 ## Shared prompt contract
 
@@ -34,6 +34,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - Use the brainstorming skill to explore the problem, compare approaches, and converge on a design
 - In migration mode, use brainstorming to identify preserved invariants, migration blockers, seams, adapters, and slice boundaries before implementation planning
 - Create or refine the appropriate artifact for the active mode only when the skill outcome requires it
+- Do not use brainstorming as the default first move when the request is already clear enough for `Product Lead` or `Solution Lead` to proceed directly
 - Point back to `context/core/workflow.md` for stage order, approvals, and escalation rules instead of restating them here
 
 ## Rejection or escalation behavior

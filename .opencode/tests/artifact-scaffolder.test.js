@@ -214,16 +214,15 @@ test("scaffold-artifact substitutes real checked-in templates correctly", () => 
     scope_shape: "cross_boundary",
     selection_reason: "Real template plan scaffold",
   }
-  state.current_stage = "full_plan"
-  state.current_owner = "TechLeadAgent"
+  state.current_stage = "full_solution"
+  state.current_owner = "SolutionLead"
   state.artifacts.task_card = null
   state.artifacts.architecture = "docs/architecture/2026-03-21-real-template-plan.md"
   state.approvals = {
-    pm_to_ba: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    ba_to_architect: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    architect_to_tech_lead: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    tech_lead_to_fullstack: { status: "pending", approved_by: null, approved_at: null, notes: null },
-    fullstack_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    product_to_solution: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
+    solution_to_fullstack: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    fullstack_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    code_review_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
     qa_to_done: { status: "pending", approved_by: null, approved_at: null, notes: null },
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
@@ -265,15 +264,14 @@ test("scaffold-artifact creates an implementation plan and links it into state",
     scope_shape: "cross_boundary",
     selection_reason: "Plan scaffold testing",
   }
-  state.current_stage = "full_plan"
-  state.current_owner = "TechLeadAgent"
+  state.current_stage = "full_solution"
+  state.current_owner = "SolutionLead"
   state.artifacts.architecture = "docs/architecture/2026-03-21-scaffold-plan.md"
   state.approvals = {
-    pm_to_ba: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    ba_to_architect: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    architect_to_tech_lead: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    tech_lead_to_fullstack: { status: "pending", approved_by: null, approved_at: null, notes: null },
-    fullstack_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    product_to_solution: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
+    solution_to_fullstack: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    fullstack_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    code_review_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
     qa_to_done: { status: "pending", approved_by: null, approved_at: null, notes: null },
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
@@ -417,14 +415,13 @@ test("scaffold-artifact rejects task cards outside quick mode", () => {
     scope_shape: "cross_boundary",
     selection_reason: "wrong lane task card",
   }
-  state.current_stage = "full_plan"
-  state.current_owner = "TechLeadAgent"
+  state.current_stage = "full_solution"
+  state.current_owner = "SolutionLead"
   state.approvals = {
-    pm_to_ba: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    ba_to_architect: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    architect_to_tech_lead: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    tech_lead_to_fullstack: { status: "pending", approved_by: null, approved_at: null, notes: null },
-    fullstack_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    product_to_solution: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
+    solution_to_fullstack: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    fullstack_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    code_review_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
     qa_to_done: { status: "pending", approved_by: null, approved_at: null, notes: null },
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
@@ -457,15 +454,14 @@ test("scaffold-artifact rejects plans without a linked architecture artifact", (
     scope_shape: "cross_boundary",
     selection_reason: "missing architecture",
   }
-  state.current_stage = "full_plan"
-  state.current_owner = "TechLeadAgent"
+  state.current_stage = "full_solution"
+  state.current_owner = "SolutionLead"
   state.artifacts.architecture = null
   state.approvals = {
-    pm_to_ba: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    ba_to_architect: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    architect_to_tech_lead: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    tech_lead_to_fullstack: { status: "pending", approved_by: null, approved_at: null, notes: null },
-    fullstack_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    product_to_solution: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
+    solution_to_fullstack: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    fullstack_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    code_review_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
     qa_to_done: { status: "pending", approved_by: null, approved_at: null, notes: null },
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
@@ -484,7 +480,7 @@ test("scaffold-artifact rejects plans without a linked architecture artifact", (
   assert.equal(fs.readdirSync(path.join(projectRoot, "docs", "plans")).length, 0)
 })
 
-test("scaffold-artifact rejects plans outside full_plan stage", () => {
+test("scaffold-artifact rejects plans outside full_solution stage", () => {
   const projectRoot = makeTempProject()
   setupTempRuntime(projectRoot)
   const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
@@ -499,15 +495,14 @@ test("scaffold-artifact rejects plans outside full_plan stage", () => {
     scope_shape: "cross_boundary",
     selection_reason: "wrong plan stage",
   }
-  state.current_stage = "full_architecture"
-  state.current_owner = "ArchitectAgent"
+  state.current_stage = "full_product"
+  state.current_owner = "ProductLead"
   state.artifacts.architecture = "docs/architecture/2026-03-21-wrong-plan-stage.md"
   state.approvals = {
-    pm_to_ba: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    ba_to_architect: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
-    architect_to_tech_lead: { status: "pending", approved_by: null, approved_at: null, notes: null },
-    tech_lead_to_fullstack: { status: "pending", approved_by: null, approved_at: null, notes: null },
-    fullstack_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    product_to_solution: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
+    solution_to_fullstack: { status: "approved", approved_by: "user", approved_at: "2026-03-21", notes: null },
+    fullstack_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    code_review_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
     qa_to_done: { status: "pending", approved_by: null, approved_at: null, notes: null },
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
@@ -522,7 +517,7 @@ test("scaffold-artifact rejects plans outside full_plan stage", () => {
   )
 
   assert.equal(result.status, 1)
-  assert.match(result.stderr, /Artifact scaffold kind 'plan' requires current stage 'full_plan'/)
+  assert.match(result.stderr, /Artifact scaffold kind 'plan' requires current stage 'full_solution'/)
   assert.equal(fs.readdirSync(path.join(projectRoot, "docs", "plans")).length, 0)
 })
 
@@ -544,7 +539,7 @@ test("scaffold-artifact creates a migration plan in migration_strategy stage", (
     selection_reason: "Migration scaffold testing",
   }
   state.current_stage = "migration_strategy"
-  state.current_owner = "TechLeadAgent"
+  state.current_owner = "SolutionLead"
   state.artifacts.task_card = null
   state.artifacts.brief = null
   state.artifacts.spec = null
@@ -553,9 +548,10 @@ test("scaffold-artifact creates a migration plan in migration_strategy stage", (
   state.artifacts.qa_report = null
   state.artifacts.adr = []
   state.approvals = {
-    baseline_to_strategy: { status: "approved", approved_by: "TechLeadAgent", approved_at: "2026-03-21", notes: null },
+    baseline_to_strategy: { status: "approved", approved_by: "SolutionLead", approved_at: "2026-03-21", notes: null },
     strategy_to_upgrade: { status: "pending", approved_by: null, approved_at: null, notes: null },
-    upgrade_to_verify: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    upgrade_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    code_review_to_verify: { status: "pending", approved_by: null, approved_at: null, notes: null },
     migration_verified: { status: "pending", approved_by: null, approved_at: null, notes: null },
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
@@ -596,7 +592,7 @@ test("scaffold-artifact rejects migration plans outside migration_strategy stage
     selection_reason: "wrong migration stage",
   }
   state.current_stage = "migration_baseline"
-  state.current_owner = "ArchitectAgent"
+  state.current_owner = "SolutionLead"
   state.artifacts.task_card = null
   state.artifacts.brief = null
   state.artifacts.spec = null
@@ -608,7 +604,8 @@ test("scaffold-artifact rejects migration plans outside migration_strategy stage
   state.approvals = {
     baseline_to_strategy: { status: "pending", approved_by: null, approved_at: null, notes: null },
     strategy_to_upgrade: { status: "pending", approved_by: null, approved_at: null, notes: null },
-    upgrade_to_verify: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    upgrade_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    code_review_to_verify: { status: "pending", approved_by: null, approved_at: null, notes: null },
     migration_verified: { status: "pending", approved_by: null, approved_at: null, notes: null },
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
@@ -644,7 +641,7 @@ test("scaffold-artifact creates a migration report in migration_baseline stage",
     selection_reason: "Migration report scaffold testing",
   }
   state.current_stage = "migration_baseline"
-  state.current_owner = "ArchitectAgent"
+  state.current_owner = "SolutionLead"
   state.artifacts.task_card = null
   state.artifacts.brief = null
   state.artifacts.spec = null
@@ -656,7 +653,8 @@ test("scaffold-artifact creates a migration report in migration_baseline stage",
   state.approvals = {
     baseline_to_strategy: { status: "pending", approved_by: null, approved_at: null, notes: null },
     strategy_to_upgrade: { status: "pending", approved_by: null, approved_at: null, notes: null },
-    upgrade_to_verify: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    upgrade_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    code_review_to_verify: { status: "pending", approved_by: null, approved_at: null, notes: null },
     migration_verified: { status: "pending", approved_by: null, approved_at: null, notes: null },
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
@@ -709,9 +707,10 @@ test("scaffold-artifact rejects migration reports outside migration baseline or 
   state.artifacts.qa_report = null
   state.artifacts.adr = []
   state.approvals = {
-    baseline_to_strategy: { status: "approved", approved_by: "TechLeadAgent", approved_at: "2026-03-21", notes: null },
+    baseline_to_strategy: { status: "approved", approved_by: "SolutionLead", approved_at: "2026-03-21", notes: null },
     strategy_to_upgrade: { status: "approved", approved_by: "FullstackAgent", approved_at: "2026-03-21", notes: null },
-    upgrade_to_verify: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    upgrade_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    code_review_to_verify: { status: "pending", approved_by: null, approved_at: null, notes: null },
     migration_verified: { status: "pending", approved_by: null, approved_at: null, notes: null },
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")

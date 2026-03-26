@@ -50,38 +50,65 @@
         "role": "primary",
         "path": "agents/master-orchestrator.md",
         "audience": "runtime",
+        "status": "active",
         "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "agent.product-lead-agent",
+        "name": "Product Lead",
+        "role": "team",
+        "path": "agents/product-lead-agent.md",
+        "audience": "runtime",
+        "status": "active",
+        "modes": ["full"]
+      },
+      {
+        "id": "agent.solution-lead-agent",
+        "name": "Solution Lead",
+        "role": "team",
+        "path": "agents/solution-lead-agent.md",
+        "audience": "runtime",
+        "status": "active",
+        "modes": ["migration", "full"]
       },
       {
         "id": "agent.pm-agent",
         "name": "PM Agent",
-        "role": "team",
+        "role": "compatibility",
         "path": "agents/pm-agent.md",
-        "audience": "runtime",
+        "audience": "compatibility",
+        "status": "compatibility-only",
+        "supersededBy": "Product Lead",
         "modes": ["full"]
       },
       {
         "id": "agent.ba-agent",
         "name": "BA Agent",
-        "role": "team",
+        "role": "compatibility",
         "path": "agents/ba-agent.md",
-        "audience": "runtime",
+        "audience": "compatibility",
+        "status": "compatibility-only",
+        "supersededBy": "Product Lead",
         "modes": ["full"]
       },
       {
         "id": "agent.architect-agent",
         "name": "Architect Agent",
-        "role": "team",
+        "role": "compatibility",
         "path": "agents/architect-agent.md",
-        "audience": "runtime",
+        "audience": "compatibility",
+        "status": "compatibility-only",
+        "supersededBy": "Solution Lead",
         "modes": ["migration", "full"]
       },
       {
         "id": "agent.tech-lead-agent",
         "name": "Tech Lead Agent",
-        "role": "team",
+        "role": "compatibility",
         "path": "agents/tech-lead-agent.md",
-        "audience": "runtime",
+        "audience": "compatibility",
+        "status": "compatibility-only",
+        "supersededBy": "Solution Lead",
         "modes": ["migration", "full"]
       },
       {
@@ -90,6 +117,7 @@
         "role": "team",
         "path": "agents/fullstack-agent.md",
         "audience": "runtime",
+        "status": "active",
         "modes": ["quick", "migration", "full"]
       },
       {
@@ -98,6 +126,7 @@
         "role": "team",
         "path": "agents/qa-agent.md",
         "audience": "runtime",
+        "status": "active",
         "modes": ["quick", "migration", "full"]
       },
       {
@@ -106,7 +135,8 @@
         "role": "helper",
         "path": "agents/code-reviewer.md",
         "audience": "runtime",
-        "modes": ["full"]
+        "status": "active",
+        "modes": ["migration", "full"]
       }
     ],
     "skills": [
@@ -115,7 +145,7 @@
         "name": "brainstorming",
         "path": "skills/brainstorming/SKILL.md",
         "audience": "runtime",
-        "typicalRoles": ["Master Orchestrator", "PM Agent", "Architect Agent"],
+        "typicalRoles": ["Master Orchestrator", "Product Lead", "Solution Lead"],
         "modes": ["migration", "full"]
       },
       {
@@ -171,7 +201,7 @@
         "name": "writing-plans",
         "path": "skills/writing-plans/SKILL.md",
         "audience": "runtime",
-        "typicalRoles": ["Tech Lead Agent"],
+        "typicalRoles": ["Solution Lead"],
         "modes": ["migration", "full"]
       },
       {
@@ -179,7 +209,7 @@
         "name": "writing-specs",
         "path": "skills/writing-specs/SKILL.md",
         "audience": "runtime",
-        "typicalRoles": ["BA Agent"],
+        "typicalRoles": ["Product Lead"],
         "modes": ["full"]
       }
     ],

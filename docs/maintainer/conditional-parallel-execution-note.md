@@ -14,10 +14,8 @@ OpenKit does not assume that `Full Delivery` or `Migration` should always run wi
 
 OpenKit now models the intended team shape this way:
 
-- one `PM Agent`
-- one `BA Agent`
-- one `Architect Agent`
-- one `Tech Lead Agent`
+- one `Product Lead`
+- one `Solution Lead`
 - multiple `Fullstack` workers
 - multiple `QA` workers
 
@@ -25,8 +23,8 @@ Planning roles remain singleton. Worker pools apply only to execution after plan
 
 ## What This Means For Full Delivery
 
-- `full_intake`, `full_brief`, `full_spec`, `full_architecture`, and `full_plan` remain singleton-led stages.
-- Parallel implementation and task-level QA can happen only after `full_plan` records a `Parallelization Assessment`.
+- `full_intake`, `full_product`, and `full_solution` remain singleton-led stages.
+- Parallel implementation and task-level QA can happen only after `full_solution` records a `Parallelization Assessment`.
 - Even then, runtime checks still enforce bounded task allocation, overlap rules, and integration checkpoints.
 
 ## What This Means For Migration
@@ -37,7 +35,7 @@ Planning roles remain singleton. Worker pools apply only to execution after plan
 
 ## What OpenKit Intentionally Does Not Do
 
-- It does not parallelize PM, BA, Architect, or Tech Lead ownership.
+- It does not parallelize Product Lead or Solution Lead ownership.
 - It does not turn quick work into a task-board workflow.
 - It does not make migration parallel by default.
 - It does not treat more workers as automatic permission to split the work.

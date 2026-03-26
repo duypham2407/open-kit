@@ -42,9 +42,10 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - The Master Orchestrator records `mode = migration` and `mode_reason`
 - Tell the user the next action in migration language: freeze preserved invariants, capture the baseline, and then define staged upgrade slices
 - Initialize `migration_intake`
-- Route to the migration baseline and strategy stages defined in `context/core/workflow.md`
+- Route to `Solution Lead` for the migration baseline and strategy stages defined in `context/core/workflow.md`
 - Freeze the preserved invariants before major edits, then identify only the framework-coupled blockers that must be decoupled
 - Use adapters, seams, or compatibility shims when they make the migration safer
+- Route upgraded code through `migration_code_review` before final verification
 - Use `docs/templates/migration-baseline-checklist.md` during `migration_baseline` and `docs/templates/migration-verify-checklist.md` during `migration_verify`
 - If the team wants one living migration artifact, scaffold `migration_report` during `migration_baseline` or `migration_strategy`
 - Keep validation focused on baseline capture, compatibility evidence, staged execution, and regression checks rather than defaulting to TDD-first execution

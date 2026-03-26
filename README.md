@@ -69,9 +69,9 @@ Master Orchestrator chooses mode
    |
    +--> Quick ------> bounded implementation -> QA Lite -> done
    |
-   +--> Migration --> baseline -> strategy -> upgrade -> verify -> done
-   |
-   +--> Full -------> PM -> BA -> Architect -> Tech Lead -> Fullstack -> QA -> done
+   +--> Migration --> baseline -> strategy -> upgrade -> code review -> verify -> done
+    |
+   +--> Full -------> Product Lead -> Solution Lead -> Fullstack -> Code Reviewer -> QA -> done
    |
    v
 Workflow state, approvals, issues, and evidence stored in .opencode/
@@ -89,10 +89,11 @@ Example: you ask OpenKit to add a new feature.
 
 1. You launch OpenKit and start with `/task add export support to the dashboard`.
 2. `Master Orchestrator` inspects the request and chooses `Full` mode.
-3. `PM Agent` clarifies the product goal, then `BA Agent` writes the behavior spec.
-4. `Architect Agent` defines the technical shape and `Tech Lead Agent` turns it into an execution plan.
-5. `Fullstack Agent` implements the approved plan and records verification evidence.
-6. `QA Agent` validates the result, routes any issues, and the workflow only closes when the gates are satisfied.
+3. `Product Lead` defines the problem, scope, and acceptance expectations.
+4. `Solution Lead` defines the technical direction, sequencing, and validation strategy.
+5. `Fullstack Agent` implements the approved work and records verification evidence.
+6. `Code Reviewer` checks scope compliance first and code quality second.
+7. `QA Agent` validates runtime behavior, routes any issues, and the workflow only closes when the gates are satisfied.
 
 For a narrow bugfix, the same entrypoint may route to `Quick`.
 For a framework upgrade, it may route to `Migration`.
@@ -145,16 +146,14 @@ It chooses the mode, manages handoffs, tracks feedback loops, and keeps work mov
 
 ### Agents
 
-OpenKit currently ships 8 agents:
+OpenKit currently ships active orchestration and delivery roles plus compatibility split-role views:
 
 1. **Master Orchestrator**: chooses the mode, routes handoffs, and manages feedback loops
-2. **PM Agent**: defines product goals, priorities, and brief scope
-3. **BA Agent**: writes detailed specifications and acceptance criteria
-4. **Architect Agent**: designs system boundaries, architecture, and migration approach
-5. **Tech Lead Agent**: turns approved architecture into executable plans
-6. **Fullstack Agent**: implements, debugs, and verifies approved work
-7. **QA Agent**: validates implementation evidence and classifies issues
-8. **Code Reviewer**: performs independent review findings for quality and compliance
+2. **Product Lead**: defines scope, business rules, and acceptance criteria for full delivery
+3. **Solution Lead**: defines technical direction, migration strategy, sequencing, and validation expectations
+4. **Fullstack Agent**: implements, debugs, and verifies approved work
+5. **Code Reviewer**: performs independent scope-compliance and code-quality review before QA
+6. **QA Agent**: validates implementation evidence and classifies issues
 
 ### Workflow State
 

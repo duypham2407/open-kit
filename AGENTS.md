@@ -171,12 +171,10 @@ Required artifact outputs by mode:
 
 - Quick Task -> optional `docs/tasks/YYYY-MM-DD-<task>.md`; bounded planning happens in the live `quick_plan` stage and does not require a separate mandatory doc artifact
 - Migration -> optional `docs/architecture/YYYY-MM-DD-<migration>.md` and `docs/plans/YYYY-MM-DD-<migration>.md` when baseline and staged strategy need durable artifacts
-- Full Delivery / PM -> `docs/briefs/YYYY-MM-DD-<feature>.md`
-- Full Delivery / BA -> `docs/specs/YYYY-MM-DD-<feature>.md`
-- Full Delivery / Architect -> `docs/architecture/YYYY-MM-DD-<feature>.md`
-- Full Delivery / Tech Lead -> `docs/plans/YYYY-MM-DD-<feature>.md`
+- Full Delivery / Product Lead -> `docs/briefs/YYYY-MM-DD-<feature>.md` and/or `docs/specs/YYYY-MM-DD-<feature>.md`
+- Full Delivery / Solution Lead -> `docs/architecture/YYYY-MM-DD-<feature>.md` and/or `docs/plans/YYYY-MM-DD-<feature>.md`
 - Full Delivery / QA -> `docs/qa/YYYY-MM-DD-<feature>.md`
-- Architect decisions -> `docs/adr/YYYY-MM-DD-<decision>.md`
+- Solution decisions -> `docs/adr/YYYY-MM-DD-<decision>.md`
 - Full Delivery execution task board -> `.opencode/work-items/<work_item_id>/tasks.json` when the implemented runtime creates one
 
 Quick lane note:
@@ -188,7 +186,7 @@ Quick lane note:
 
 Migration lane note:
 
-- migration mode uses `migration_*` stages for baseline, strategy, upgrade, and verification work
+- migration mode uses `migration_*` stages for baseline, strategy, upgrade, code review, and verification work
 - migration mode is the right lane when compatibility risk and staged upgrade sequencing dominate the task
 - migration mode is not TDD-first by default; validation centers on baseline evidence, regression checks, and compatibility verification
 - migration mode is behavior-preserving by default; refactor only to create seams or adapters that make the upgrade safe
@@ -230,6 +228,7 @@ Use `context/core/workflow.md` as the canonical workflow reference and adapt it 
 - Treat `Quick Task+` as the live successor semantics of the existing quick lane, not as permission to invent a third mode, rename commands, or change enums unless the repository explicitly does so
 - Plan before coding. Even quick tasks need a clear objective, acceptance bullets, and validation path
 - Keep responsibilities explicit. Quick mode follows the canonical `quick_*` stage chain in `context/core/workflow.md`, migration mode follows the canonical `migration_*` stage chain, and full mode uses the broader delivery team
+- Treat `Master Orchestrator` as a procedural controller only: route, dispatch, record state, and escalate, but do not let it author business or technical content artifacts
 - In the implemented full runtime, feature-level ownership still follows the stage owner while task-level ownership may be distributed through the full-delivery execution task board
 - Use feedback loops. Implementation is not complete until validation has run or the lack of validation tooling has been called out clearly
 - Do not skip review or validation because a task looks simple

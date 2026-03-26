@@ -139,7 +139,7 @@ Current workflow-state behavior:
 - `scaffold-artifact` is a narrow helper for creating and linking `task_card`, `plan`, and `migration_report` artifacts from checked-in templates.
 - `set-routing-profile` updates the explicit routing metadata used to justify and validate lane selection.
 - `task_card` scaffolding requires `quick` mode and is intentionally allowed as optional traceability in the quick lane.
-- `plan` scaffolding requires `full` mode at `full_plan` or `migration` mode at `migration_strategy`, and it always requires a linked architecture artifact.
+- `plan` scaffolding requires `full` mode at `full_solution` or `migration` mode at `migration_strategy`, and it always requires a linked architecture artifact.
 - `migration_report` scaffolding requires `migration` mode at `migration_baseline` or `migration_strategy` and is intended for one-file migration tracking.
 - `doctor` now checks active-work-item pointer integrity, compatibility-mirror alignment, and task-board validity when the active full-delivery stage depends on a task board.
 - `check-stage-readiness` and `workflow-metrics` expose whether the current stage is blocked by missing artifacts, missing evidence, unresolved issues, or task-board prerequisites.

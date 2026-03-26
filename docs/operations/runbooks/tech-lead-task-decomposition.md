@@ -1,6 +1,6 @@
-# Tech Lead Task Decomposition
+# Solution Lead Task Decomposition
 
-Use this runbook when a `Tech Lead` needs to decide whether `Full Delivery` or `Migration` work can use multiple `Fullstack` and `QA` workers safely.
+Use this runbook when `Solution Lead` needs to decide whether `Full Delivery` or `Migration` work can use multiple `Fullstack` and `QA` workers safely.
 
 The purpose of this runbook is not to maximize parallelism at all costs. Its purpose is to maximize safe throughput without breaking OpenKit's lane semantics, approval chain, or runtime guarantees.
 
@@ -10,10 +10,8 @@ For the maintainer-facing boundary and product intent behind this model, see `do
 
 This runbook assumes the intended OpenKit team topology:
 
-- one `PM Agent`
-- one `BA Agent`
-- one `Architect Agent`
-- one `Tech Lead Agent`
+- one `Product Lead`
+- one `Solution Lead`
 - multiple `Fullstack` workers
 - multiple `QA` workers
 
@@ -29,7 +27,7 @@ If the work cannot be decomposed without unsafe overlap, keep it sequential.
 
 ## Planning Decision
 
-Every `full_plan` and every migration plan/strategy should answer this question explicitly:
+Every `full_solution` and every migration plan/strategy should answer this question explicitly:
 
 - can this work run in parallel safely?
 
@@ -88,7 +86,7 @@ Even in `enabled` mode, do not treat the worker pool as unrestricted. The runtim
 
 ## Full Delivery Decomposition Rules
 
-Use `Full Delivery` task boards for implementation work only after `full_plan` blesses them.
+Use `Full Delivery` task boards for implementation work only after `full_solution` blesses them.
 
 ### A good full-delivery task should have:
 

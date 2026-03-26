@@ -113,7 +113,7 @@ function createTask(overrides = {}) {
     artifact_refs: [],
     plan_refs: ["docs/plans/2026-03-21-feature.md"],
     branch_or_worktree: null,
-    created_by: "TechLeadAgent",
+    created_by: "SolutionLead",
     created_at: "2026-03-21T00:00:00.000Z",
     updated_at: "2026-03-21T00:00:00.000Z",
     ...overrides,
@@ -129,13 +129,9 @@ function writeTaskBoard(statePath, workItemId, board) {
 }
 
 function advanceFullWorkItemToPlan(statePath) {
-  advanceStage("full_brief", statePath)
-  setApproval("pm_to_ba", "approved", "user", "2026-03-21", "Approved", statePath)
-  advanceStage("full_spec", statePath)
-  setApproval("ba_to_architect", "approved", "user", "2026-03-21", "Approved", statePath)
-  advanceStage("full_architecture", statePath)
-  setApproval("architect_to_tech_lead", "approved", "user", "2026-03-21", "Approved", statePath)
-  advanceStage("full_plan", statePath)
+  advanceStage("full_product", statePath)
+  setApproval("product_to_solution", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_solution", statePath)
 }
 
 test("validateState accepts the shipped hard-split example state", () => {
@@ -265,11 +261,10 @@ test("routeRework escalates quick design flaws into full delivery", () => {
   assert.equal(result.state.escalated_from, "quick")
   assert.match(result.state.escalation_reason, /design_flaw/)
   assert.deepEqual(Object.keys(result.state.approvals), [
-    "pm_to_ba",
-    "ba_to_architect",
-    "architect_to_tech_lead",
-    "tech_lead_to_fullstack",
-    "fullstack_to_qa",
+    "product_to_solution",
+    "solution_to_fullstack",
+    "fullstack_to_code_review",
+    "code_review_to_qa",
     "qa_to_done",
   ])
 })
@@ -303,7 +298,8 @@ test("startTask initializes migration mode with migration approvals", () => {
   assert.deepEqual(Object.keys(result.state.approvals), [
     "baseline_to_strategy",
     "strategy_to_upgrade",
-    "upgrade_to_verify",
+    "upgrade_to_code_review",
+    "code_review_to_verify",
     "migration_verified",
   ])
 })
@@ -314,17 +310,21 @@ test("migration mode advances through its canonical stage chain", () => {
   startTask("migration", "MIGRATE-101", "legacy-refresh", "Legacy stack refresh", statePath)
 
   let result = advanceStage("migration_baseline", statePath)
-  assert.equal(result.state.current_owner, "ArchitectAgent")
+  assert.equal(result.state.current_owner, "SolutionLead")
 
-  setApproval("baseline_to_strategy", "approved", "TechLeadAgent", "2026-03-21", "Baseline approved", statePath)
+  setApproval("baseline_to_strategy", "approved", "SolutionLead", "2026-03-21", "Baseline approved", statePath)
   result = advanceStage("migration_strategy", statePath)
-  assert.equal(result.state.current_owner, "TechLeadAgent")
+  assert.equal(result.state.current_owner, "SolutionLead")
 
   setApproval("strategy_to_upgrade", "approved", "FullstackAgent", "2026-03-21", "Strategy approved", statePath)
   result = advanceStage("migration_upgrade", statePath)
   assert.equal(result.state.current_owner, "FullstackAgent")
 
-  setApproval("upgrade_to_verify", "approved", "QAAgent", "2026-03-21", "Upgrade ready for QA", statePath)
+  setApproval("upgrade_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Upgrade ready for review", statePath)
+  result = advanceStage("migration_code_review", statePath)
+  assert.equal(result.state.current_owner, "CodeReviewer")
+
+  setApproval("code_review_to_verify", "approved", "QAAgent", "2026-03-21", "Reviewed and ready for QA", statePath)
   result = advanceStage("migration_verify", statePath)
   assert.equal(result.state.current_owner, "QAAgent")
 
@@ -353,7 +353,7 @@ test("migration design flaws reroute within migration strategy", () => {
 
   assert.equal(result.state.mode, "migration")
   assert.equal(result.state.current_stage, "migration_strategy")
-  assert.equal(result.state.current_owner, "TechLeadAgent")
+  assert.equal(result.state.current_owner, "SolutionLead")
 })
 
 test("migration requirement gaps escalate into full delivery", () => {
@@ -589,7 +589,7 @@ test("quick mode rejects full-delivery approvals", () => {
   startTask("quick", "TASK-127", "bad-gate", "Quick workflow gate validation", statePath)
 
   assert.throws(
-    () => setApproval("pm_to_ba", "approved", "user", "2026-03-21", "Wrong gate", statePath),
+    () => setApproval("product_to_solution", "approved", "user", "2026-03-21", "Wrong gate", statePath),
     /mode 'quick'/,
   )
 })
@@ -762,50 +762,51 @@ test("selectActiveWorkItem restores the previous active pointer when mirror writ
   assert.equal(mirrorState.work_item_id, "task-500")
 })
 
-test("approving tech_lead_to_fullstack without a valid task board fails", () => {
+test("approving code_review_to_qa without a valid task board fails", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-600", "board-gate", statePath)
   advanceFullWorkItemToPlan(statePath)
 
   assert.throws(
-    () => setApproval("tech_lead_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath),
+    () => setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath),
     /valid task board|tasks\.json/,
   )
 })
 
-test("approving tech_lead_to_fullstack succeeds with a valid initial full_plan task board", () => {
+test("approving code_review_to_qa succeeds with a valid initial full_solution task board", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-601", "board-gate-pass", statePath)
   advanceFullWorkItemToPlan(statePath)
   writeTaskBoard(statePath, "feature-601", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [createTask({ status: "queued" }), createTask({ task_id: "TASK-2", title: "Queued follow-up", status: "queued" })],
     issues: [],
   })
 
-  const result = setApproval("tech_lead_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  const result = setApproval("code_review_to_qa", "approved", "user", "2026-03-21", "Approved", statePath)
 
-  assert.equal(result.state.approvals.tech_lead_to_fullstack.status, "approved")
+  assert.equal(result.state.approvals.code_review_to_qa.status, "approved")
 })
 
-test("advancing full_plan to full_implementation without a valid task board fails", () => {
+test("advancing full_solution to full_implementation without a valid task board fails", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-602", "missing-board", statePath)
   advanceFullWorkItemToPlan(statePath)
   writeTaskBoard(statePath, "feature-602", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [createTask({ status: "ready" })],
     issues: [],
   })
-  setApproval("tech_lead_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
   writeTaskBoard(statePath, "feature-602", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [],
     issues: [],
   })
@@ -820,13 +821,15 @@ test("advancing full_implementation to full_qa fails when task board has incompl
   advanceFullWorkItemToPlan(statePath)
   writeTaskBoard(statePath, "feature-603", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [createTask({ status: "in_progress", primary_owner: "DevA" })],
     issues: [],
   })
-  setApproval("tech_lead_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
   advanceStage("full_implementation", statePath)
-  setApproval("fullstack_to_qa", "approved", "system", "2026-03-21", "Ready for QA", statePath)
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+  advanceStage("full_code_review", statePath)
+  setApproval("code_review_to_qa", "approved", "QAAgent", "2026-03-21", "Ready for QA", statePath)
 
   assert.throws(() => advanceStage("full_qa", statePath), /full_qa/)
 })
@@ -837,7 +840,7 @@ test("quick mode state with tasks.json present is rejected at controller validat
   startTask("quick", "TASK-700", "stale-board", "Quick task should reject task boards", statePath)
   writeTaskBoard(statePath, "task-700", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [createTask()],
     issues: [],
   })
@@ -852,7 +855,7 @@ test("migration mode state with tasks.json present is rejected at controller val
   startTask("migration", "MIGRATE-700", "stale-board", "Migration should reject task boards", statePath)
   writeTaskBoard(statePath, "migrate-700", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [createTask()],
     issues: [],
   })
@@ -868,11 +871,11 @@ test("valid full-delivery task board passes implementation and QA stage enforcem
   advanceFullWorkItemToPlan(statePath)
   writeTaskBoard(statePath, "feature-604", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [createTask({ status: "ready" })],
     issues: [],
   })
-  setApproval("tech_lead_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
 
   let result = advanceStage("full_implementation", statePath)
   assert.equal(result.state.current_stage, "full_implementation")
@@ -883,7 +886,9 @@ test("valid full-delivery task board passes implementation and QA stage enforcem
     tasks: [createTask({ status: "qa_ready", primary_owner: "DevA", qa_owner: "QAAgent" })],
     issues: [],
   })
-  setApproval("fullstack_to_qa", "approved", "system", "2026-03-21", "Ready for QA", statePath)
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+  advanceStage("full_code_review", statePath)
+  setApproval("code_review_to_qa", "approved", "QAAgent", "2026-03-21", "Ready for QA", statePath)
 
   result = advanceStage("full_qa", statePath)
   assert.equal(result.state.current_stage, "full_qa")
@@ -901,15 +906,15 @@ test("claimTask rejects implicit reassignment and requires explicit reassignTask
       title: "Safe assignment",
       summary: "Reject unauthorized reassignment",
       kind: "implementation",
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
 
-  claimTask("feature-605", "TASK-605", "Dev-A", statePath, { requestedBy: "TechLeadAgent" })
+  claimTask("feature-605", "TASK-605", "Dev-A", statePath, { requestedBy: "SolutionLead" })
 
   assert.throws(
-    () => claimTask("feature-605", "TASK-605", "Dev-B", statePath, { requestedBy: "TechLeadAgent" }),
+    () => claimTask("feature-605", "TASK-605", "Dev-B", statePath, { requestedBy: "SolutionLead" }),
     /Implicit reassignment is not allowed; use reassignTask/,
   )
 })
@@ -926,19 +931,19 @@ test("reassignTask enforces authority and updates the claimed owner explicitly",
       title: "Explicit reassignment",
       summary: "Use explicit reassignment flow",
       kind: "implementation",
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
 
-  claimTask("feature-609", "TASK-609", "Dev-A", statePath, { requestedBy: "TechLeadAgent" })
+  claimTask("feature-609", "TASK-609", "Dev-A", statePath, { requestedBy: "SolutionLead" })
 
   assert.throws(
     () => reassignTask("feature-609", "TASK-609", "Dev-B", statePath, { requestedBy: "QAAgent" }),
-    /Only MasterOrchestrator or TechLeadAgent can reassign primary_owner/,
+    /Only MasterOrchestrator or SolutionLead can reassign primary_owner/,
   )
 
-  const result = reassignTask("feature-609", "TASK-609", "Dev-B", statePath, { requestedBy: "TechLeadAgent" })
+  const result = reassignTask("feature-609", "TASK-609", "Dev-B", statePath, { requestedBy: "SolutionLead" })
 
   assert.equal(result.board.tasks[0].primary_owner, "Dev-B")
   assert.equal(result.board.tasks[0].status, "claimed")
@@ -956,19 +961,19 @@ test("releaseTask enforces authority and clears claimed ownership explicitly", (
       title: "Explicit release",
       summary: "Use explicit release flow",
       kind: "implementation",
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
 
-  claimTask("feature-610", "TASK-610", "Dev-A", statePath, { requestedBy: "TechLeadAgent" })
+  claimTask("feature-610", "TASK-610", "Dev-A", statePath, { requestedBy: "SolutionLead" })
 
   assert.throws(
     () => releaseTask("feature-610", "TASK-610", statePath, { requestedBy: "QAAgent" }),
-    /Only MasterOrchestrator or TechLeadAgent can release primary_owner/,
+    /Only MasterOrchestrator or SolutionLead can release primary_owner/,
   )
 
-  const result = releaseTask("feature-610", "TASK-610", statePath, { requestedBy: "TechLeadAgent" })
+  const result = releaseTask("feature-610", "TASK-610", statePath, { requestedBy: "SolutionLead" })
 
   assert.equal(result.board.tasks[0].primary_owner, null)
   assert.equal(result.board.tasks[0].status, "ready")
@@ -986,12 +991,12 @@ test("releaseTask allows the current task owner to release their claimed task", 
       title: "Owner release",
       summary: "Current owner can explicitly release task",
       kind: "implementation",
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
 
-  claimTask("feature-612", "TASK-612", "Dev-A", statePath, { requestedBy: "TechLeadAgent" })
+  claimTask("feature-612", "TASK-612", "Dev-A", statePath, { requestedBy: "SolutionLead" })
 
   const result = releaseTask("feature-612", "TASK-612", statePath, { requestedBy: "Dev-A" })
 
@@ -1011,19 +1016,19 @@ test("assignQaOwner rejects reassignment from the wrong authority", () => {
       title: "Safe QA assignment",
       summary: "Reject unauthorized QA reassignment",
       kind: "implementation",
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
 
-  claimTask("feature-606", "TASK-606", "Dev-A", statePath, { requestedBy: "TechLeadAgent" })
+  claimTask("feature-606", "TASK-606", "Dev-A", statePath, { requestedBy: "SolutionLead" })
   setTaskStatus("feature-606", "TASK-606", "in_progress", statePath)
   setTaskStatus("feature-606", "TASK-606", "dev_done", statePath)
-  assignQaOwner("feature-606", "TASK-606", "QA-Agent", statePath, { requestedBy: "TechLeadAgent" })
+  assignQaOwner("feature-606", "TASK-606", "QA-Agent", statePath, { requestedBy: "SolutionLead" })
 
   assert.throws(
     () => assignQaOwner("feature-606", "TASK-606", "QA-Agent-2", statePath, { requestedBy: "QAAgent" }),
-    /Only MasterOrchestrator or TechLeadAgent can reassign qa_owner/,
+    /Only MasterOrchestrator or SolutionLead can reassign qa_owner/,
   )
 })
 
@@ -1042,7 +1047,7 @@ test("setTaskStatus rejects QA-fail local rework without a task-scoped finding a
       status: "qa_in_progress",
       primary_owner: "Dev-A",
       qa_owner: "QA-Agent",
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
@@ -1090,7 +1095,7 @@ test("QA-fail local rework applies the reroute decision to work-item runtime sta
       status: "qa_in_progress",
       primary_owner: "Dev-A",
       qa_owner: "QA-Agent",
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
@@ -1114,7 +1119,7 @@ test("QA-fail local rework applies the reroute decision to work-item runtime sta
     rerouteDecision: {
       stage: "full_implementation",
       owner: "FullstackAgent",
-      decided_by: "TechLeadAgent",
+      decided_by: "SolutionLead",
       reason: "Return only the failing task to implementation",
     },
   })
@@ -1140,7 +1145,7 @@ test("QA-fail local rework rejects invalid reroute decisions atomically before a
       status: "qa_in_progress",
       primary_owner: "Dev-A",
       qa_owner: "QA-Agent",
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
@@ -1166,7 +1171,7 @@ test("QA-fail local rework rejects invalid reroute decisions atomically before a
         rerouteDecision: {
           stage: "full_done",
           owner: "MasterOrchestrator",
-          decided_by: "TechLeadAgent",
+          decided_by: "SolutionLead",
           reason: "Invalid reroute target",
         },
       }),
@@ -1174,8 +1179,8 @@ test("QA-fail local rework rejects invalid reroute decisions atomically before a
   )
 
   const workItem = validateWorkItemBoard("feature-613", statePath)
-  assert.equal(workItem.state.current_stage, "full_plan")
-  assert.equal(workItem.state.current_owner, "TechLeadAgent")
+  assert.equal(workItem.state.current_stage, "full_solution")
+  assert.equal(workItem.state.current_owner, "SolutionLead")
   assert.equal(workItem.board.tasks[0].status, "qa_in_progress")
   assert.equal(workItem.board.tasks[0].primary_owner, "Dev-A")
 })
@@ -1195,7 +1200,7 @@ test("createTask rejects invalid parallel worktree metadata", () => {
           title: "Parallel worktree metadata",
           summary: "Reject invalid protected branch metadata",
           kind: "implementation",
-          created_by: "TechLeadAgent",
+          created_by: "SolutionLead",
           worktree_metadata: {
             task_id: "TASK-608",
             branch: "main",
@@ -1208,7 +1213,7 @@ test("createTask rejects invalid parallel worktree metadata", () => {
   )
 })
 
-test("createTask rejects task-board creation before full_plan", () => {
+test("createTask rejects task-board creation before full_solution", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-614", "board-stage-gate", statePath)
@@ -1222,11 +1227,11 @@ test("createTask rejects task-board creation before full_plan", () => {
           title: "Too early task board",
           summary: "Task boards should wait until planning",
           kind: "implementation",
-          created_by: "TechLeadAgent",
+          created_by: "SolutionLead",
         },
         statePath,
       ),
-    /full_plan/,
+    /full_solution/,
   )
 })
 

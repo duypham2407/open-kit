@@ -43,8 +43,9 @@ If `mode` is `full`:
 
 - read the artifact referenced by the current stage when it exists
 - if `work_item_id` is present, inspect `.opencode/work-items/index.json` and the active work-item state before trusting task-aware full-delivery context
-- if the current full-delivery stage is `full_plan`, `full_implementation`, or `full_qa`, inspect the task board when it exists and confirm it belongs only to this full work item
+- if the current full-delivery stage is `full_solution`, `full_implementation`, `full_code_review`, `full_qa`, or `full_done`, inspect the task board when it exists and confirm it belongs only to this full work item
 - restore both feature-level and task-level context: current stage owner, active work item id, ready/active task summary, and any task-specific evidence tied to the next decision
+- if `current_stage` is `full_code_review`, inspect the latest implementation evidence and review findings before rerouting or advancing
 - if `current_stage` is `full_qa`, read the current QA report and related plan first
 - if `current_stage` is `full_done`, confirm the QA report, verification evidence, and issue state are all inspectable before trusting closure
 - preserve the approval-gate context before advancing or rerouting
@@ -59,6 +60,7 @@ If `mode` is `migration`:
 - if `current_stage` is `migration_baseline`, inspect `docs/templates/migration-baseline-checklist.md` and the recorded current versions, preserved invariants, compatibility hotspots, and likely breakpoints before planning
 - if `current_stage` is `migration_strategy`, inspect the staged upgrade sequence, seam or adapter decisions, rollback notes, and validation path before resuming implementation
 - if `current_stage` is `migration_upgrade`, inspect the migration strategy and latest execution evidence before continuing
+- if `current_stage` is `migration_code_review`, inspect preserved invariants, migration strategy, and latest execution evidence before rerouting or advancing
 - if `current_stage` is `migration_verify`, inspect `docs/templates/migration-verify-checklist.md` and the latest regression, smoke, compatibility, and parity evidence before deciding closure or reroute
 - if `current_stage` is `migration_done`, confirm `migration_verified` is approved and the closing evidence remains inspectable on resume
 - migration mode still has no task board in the live contract

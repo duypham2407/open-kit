@@ -78,8 +78,10 @@ test("asset manifest defines the explicit OpenCode-native phase 1 bundle", () =>
     "opencode.agent.CodeReviewer",
     "opencode.agent.FullstackAgent",
     "opencode.agent.MasterOrchestrator",
+    "opencode.agent.ProductLead",
     "opencode.agent.PMAgent",
     "opencode.agent.QAAgent",
+    "opencode.agent.SolutionLead",
     "opencode.agent.TechLeadAgent",
     "opencode.command.brainstorm",
     "opencode.command.delivery",
@@ -100,6 +102,18 @@ test("asset manifest defines the explicit OpenCode-native phase 1 bundle", () =>
     "opencode.skill.writing-plans",
     "opencode.skill.writing-specs",
   ])
+
+  const productLead = OPENKIT_ASSET_MANIFEST.bundle.assets.find((asset) => asset.id === "opencode.agent.ProductLead")
+  const pmAgent = OPENKIT_ASSET_MANIFEST.bundle.assets.find((asset) => asset.id === "opencode.agent.PMAgent")
+  const solutionLead = OPENKIT_ASSET_MANIFEST.bundle.assets.find((asset) => asset.id === "opencode.agent.SolutionLead")
+  const techLead = OPENKIT_ASSET_MANIFEST.bundle.assets.find((asset) => asset.id === "opencode.agent.TechLeadAgent")
+
+  assert.equal(productLead.status, "active")
+  assert.equal(solutionLead.status, "active")
+  assert.equal(pmAgent.status, "compatibility-only")
+  assert.equal(pmAgent.supersededBy, "opencode.agent.ProductLead")
+  assert.equal(techLead.status, "compatibility-only")
+  assert.equal(techLead.supersededBy, "opencode.agent.SolutionLead")
 })
 
 test("install state factory records managed assets, adopted assets, warnings, and conflicts", () => {
@@ -318,7 +332,7 @@ test("bundled asset manifest matches the derived asset bundle on disk", () => {
 
   assert.deepEqual(validation.missingFiles, [])
   assert.deepEqual(validation.mismatchedFiles, [])
-  assert.equal(validation.bundleFileCount, 27)
+  assert.equal(validation.bundleFileCount, 29)
   assert.deepEqual(validation.extraBundledFiles, [])
 })
 

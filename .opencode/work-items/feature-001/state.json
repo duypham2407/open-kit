@@ -2,13 +2,13 @@
   "feature_id": "FEATURE-001",
   "feature_slug": "task-intake-dashboard",
   "mode": "full",
-  "mode_reason": "Feature-sized workflow example with full artifact chain and approvals",
+  "mode_reason": "Feature-sized workflow example with product, solution, review, and QA approvals",
   "routing_profile": {
     "work_intent": "feature",
     "behavior_delta": "extend",
     "dominant_uncertainty": "product",
     "scope_shape": "cross_boundary",
-    "selection_reason": "Feature-sized workflow example with full artifact chain and approvals"
+    "selection_reason": "Feature-sized workflow example with product, solution, review, and QA approvals"
   },
   "current_stage": "full_done",
   "status": "done",
@@ -24,35 +24,29 @@
     "adr": []
   },
   "approvals": {
-    "pm_to_ba": {
+    "product_to_solution": {
       "status": "approved",
-      "approved_by": "user",
+      "approved_by": "SolutionLead",
       "approved_at": "2026-03-20",
-      "notes": "Golden path brief approved"
+      "notes": "Golden path scope package approved for technical direction"
     },
-    "ba_to_architect": {
+    "solution_to_fullstack": {
       "status": "approved",
-      "approved_by": "user",
+      "approved_by": "FullstackAgent",
       "approved_at": "2026-03-20",
-      "notes": "Golden path spec approved"
+      "notes": "Golden path solution package approved for implementation"
     },
-    "architect_to_tech_lead": {
+    "fullstack_to_code_review": {
       "status": "approved",
-      "approved_by": "user",
+      "approved_by": "CodeReviewer",
       "approved_at": "2026-03-20",
-      "notes": "Golden path architecture approved"
+      "notes": "Golden path implementation reviewed for scope compliance"
     },
-    "tech_lead_to_fullstack": {
+    "code_review_to_qa": {
       "status": "approved",
-      "approved_by": "user",
+      "approved_by": "QAAgent",
       "approved_at": "2026-03-20",
-      "notes": "Golden path plan approved"
-    },
-    "fullstack_to_qa": {
-      "status": "approved",
-      "approved_by": "system",
-      "approved_at": "2026-03-20",
-      "notes": "Documentation-only golden path prepared for QA"
+      "notes": "Golden path review handoff accepted for QA"
     },
     "qa_to_done": {
       "status": "approved",

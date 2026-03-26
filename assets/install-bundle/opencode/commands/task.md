@@ -42,7 +42,8 @@ For operator checks, use the current workflow-state utility surface: `status`, `
   - full -> initialize full intake and route into the full artifact chain
 - If the task enters the quick lane, initialize quick intake context and continue through the canonical quick stage chain
 - If the task enters the migration lane, initialize `migration_intake` and continue through the canonical migration stage chain
-- If the task enters the full lane, initialize `full_intake` and route to the PM agent
+- If the task enters the full lane, initialize `full_intake` and route to `Product Lead`
+- Keep `Master Orchestrator` procedural: route, dispatch, record state, and ask for missing context, but do not define scope or solution content locally
 - When choosing migration, prefer a behavior-preserving path that decouples blockers before changing the stack broadly
 - Use the lane tie-breaker from `context/core/workflow.md`: product ambiguity goes to `full`, compatibility uncertainty with preserved behavior goes to `migration`, and only bounded low-risk work goes to `quick`
 

@@ -23,7 +23,7 @@ function makeTask(overrides = {}) {
     artifact_refs: [],
     plan_refs: ["docs/plans/2026-03-21-feature.md"],
     branch_or_worktree: null,
-    created_by: "TechLeadAgent",
+    created_by: "SolutionLead",
     created_at: "2026-03-21T00:00:00.000Z",
     updated_at: "2026-03-21T00:00:00.000Z",
     ...overrides,
@@ -33,7 +33,7 @@ function makeTask(overrides = {}) {
 function makeBoard(overrides = {}) {
   return {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [makeTask()],
     issues: [],
     ...overrides,

@@ -8,11 +8,10 @@ const QUICK_STAGE_SEQUENCE = [
 
 const FULL_STAGE_SEQUENCE = [
   "full_intake",
-  "full_brief",
-  "full_spec",
-  "full_architecture",
-  "full_plan",
+  "full_product",
+  "full_solution",
   "full_implementation",
+  "full_code_review",
   "full_qa",
   "full_done",
 ]
@@ -22,6 +21,7 @@ const MIGRATION_STAGE_SEQUENCE = [
   "migration_baseline",
   "migration_strategy",
   "migration_upgrade",
+  "migration_code_review",
   "migration_verify",
   "migration_done",
 ]
@@ -35,17 +35,17 @@ const STAGE_OWNERS = {
   quick_verify: "QAAgent",
   quick_done: "MasterOrchestrator",
   migration_intake: "MasterOrchestrator",
-  migration_baseline: "ArchitectAgent",
-  migration_strategy: "TechLeadAgent",
+  migration_baseline: "SolutionLead",
+  migration_strategy: "SolutionLead",
   migration_upgrade: "FullstackAgent",
+  migration_code_review: "CodeReviewer",
   migration_verify: "QAAgent",
   migration_done: "MasterOrchestrator",
   full_intake: "MasterOrchestrator",
-  full_brief: "PMAgent",
-  full_spec: "BAAgent",
-  full_architecture: "ArchitectAgent",
-  full_plan: "TechLeadAgent",
+  full_product: "ProductLead",
+  full_solution: "SolutionLead",
   full_implementation: "FullstackAgent",
+  full_code_review: "CodeReviewer",
   full_qa: "QAAgent",
   full_done: "MasterOrchestrator",
 }
@@ -68,15 +68,15 @@ const MODE_APPROVAL_GATES = {
   migration: [
     "baseline_to_strategy",
     "strategy_to_upgrade",
-    "upgrade_to_verify",
+    "upgrade_to_code_review",
+    "code_review_to_verify",
     "migration_verified",
   ],
   full: [
-    "pm_to_ba",
-    "ba_to_architect",
-    "architect_to_tech_lead",
-    "tech_lead_to_fullstack",
-    "fullstack_to_qa",
+    "product_to_solution",
+    "solution_to_fullstack",
+    "fullstack_to_code_review",
+    "code_review_to_qa",
     "qa_to_done",
   ],
 }
@@ -88,15 +88,15 @@ const TRANSITION_GATES = {
   migration: {
     "migration_baseline->migration_strategy": "baseline_to_strategy",
     "migration_strategy->migration_upgrade": "strategy_to_upgrade",
-    "migration_upgrade->migration_verify": "upgrade_to_verify",
+    "migration_upgrade->migration_code_review": "upgrade_to_code_review",
+    "migration_code_review->migration_verify": "code_review_to_verify",
     "migration_verify->migration_done": "migration_verified",
   },
   full: {
-    "full_brief->full_spec": "pm_to_ba",
-    "full_spec->full_architecture": "ba_to_architect",
-    "full_architecture->full_plan": "architect_to_tech_lead",
-    "full_plan->full_implementation": "tech_lead_to_fullstack",
-    "full_implementation->full_qa": "fullstack_to_qa",
+    "full_product->full_solution": "product_to_solution",
+    "full_solution->full_implementation": "solution_to_fullstack",
+    "full_implementation->full_code_review": "fullstack_to_code_review",
+    "full_code_review->full_qa": "code_review_to_qa",
     "full_qa->full_done": "qa_to_done",
   },
 }
@@ -115,8 +115,8 @@ const VERIFICATION_EVIDENCE_KINDS = ["automated", "manual", "runtime", "review"]
 
 const RECOMMENDED_OWNERS = {
   bug: ["FullstackAgent"],
-  design_flaw: ["ArchitectAgent", "TechLeadAgent", "MasterOrchestrator"],
-  requirement_gap: ["BAAgent", "MasterOrchestrator"],
+  design_flaw: ["SolutionLead", "MasterOrchestrator"],
+  requirement_gap: ["ProductLead", "MasterOrchestrator"],
 }
 
 const ESCALATION_RETRY_THRESHOLD = 3
@@ -264,8 +264,8 @@ function getReworkRoute(mode, issueType) {
     if (issueType === "design_flaw") {
       return {
         mode: "full",
-        stage: "full_architecture",
-        owner: STAGE_OWNERS.full_architecture,
+        stage: "full_solution",
+        owner: STAGE_OWNERS.full_solution,
         escalate: false,
       }
     }
@@ -273,8 +273,8 @@ function getReworkRoute(mode, issueType) {
     if (issueType === "requirement_gap") {
       return {
         mode: "full",
-        stage: "full_spec",
-        owner: STAGE_OWNERS.full_spec,
+        stage: "full_product",
+        owner: STAGE_OWNERS.full_product,
         escalate: false,
       }
     }

@@ -3,9 +3,9 @@ description: "Product Manager agent. Converts user intent into an approval-ready
 mode: subagent
 ---
 
-# PM Agent - Product Manager
+# PM Agent - Product Manager (Compatibility View)
 
-You are the Product Manager for OpenKit full-delivery work. `.opencode/openkit/context/core/workflow.md` defines lane selection, stage order, and approval gates; this file defines only the runtime contract for `PMAgent`.
+This file is a compatibility view only. Active full-delivery scope ownership now belongs to `Product Lead`. `.opencode/openkit/context/core/workflow.md` defines the live workflow contract.
 
 ## Shared prompt contract
 

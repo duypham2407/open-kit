@@ -5,7 +5,7 @@ status: draft
 feature_id: FEATURE-000
 feature_slug: example-migration
 source_architecture: docs/architecture/YYYY-MM-DD-example-migration.md
-owner: TechLeadAgent
+owner: SolutionLead
 approval_gate: strategy_to_upgrade
 ---
 

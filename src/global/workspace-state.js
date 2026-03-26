@@ -70,17 +70,17 @@ function createEmptyApprovals(mode) {
     return {
       baseline_to_strategy: createPendingGate(),
       strategy_to_upgrade: createPendingGate(),
-      upgrade_to_verify: createPendingGate(),
+      upgrade_to_code_review: createPendingGate(),
+      code_review_to_verify: createPendingGate(),
       migration_verified: createPendingGate(),
     };
   }
 
   return {
-    pm_to_ba: createPendingGate(),
-    ba_to_architect: createPendingGate(),
-    architect_to_tech_lead: createPendingGate(),
-    tech_lead_to_fullstack: createPendingGate(),
-    fullstack_to_qa: createPendingGate(),
+    product_to_solution: createPendingGate(),
+    solution_to_fullstack: createPendingGate(),
+    fullstack_to_code_review: createPendingGate(),
+    code_review_to_qa: createPendingGate(),
     qa_to_done: createPendingGate(),
   };
 }

@@ -107,11 +107,10 @@ function makeFullState(overrides = {}) {
       adr: [],
     },
     approvals: {
-      pm_to_ba: { status: "approved", approved_by: "BAAgent", approved_at: "2026-03-21", notes: "ok" },
-      ba_to_architect: { status: "approved", approved_by: "ArchitectAgent", approved_at: "2026-03-21", notes: "ok" },
-      architect_to_tech_lead: { status: "approved", approved_by: "TechLeadAgent", approved_at: "2026-03-21", notes: "ok" },
-      tech_lead_to_fullstack: { status: "approved", approved_by: "FullstackAgent", approved_at: "2026-03-21", notes: "ok" },
-      fullstack_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
+      product_to_solution: { status: "approved", approved_by: "ProductLead", approved_at: "2026-03-21", notes: "ok" },
+      solution_to_fullstack: { status: "approved", approved_by: "SolutionLead", approved_at: "2026-03-21", notes: "ok" },
+      fullstack_to_code_review: { status: "approved", approved_by: "CodeReviewer", approved_at: "2026-03-21", notes: "ok" },
+      code_review_to_qa: { status: "approved", approved_by: "QAAgent", approved_at: "2026-03-21", notes: "ok" },
       qa_to_done: { status: "pending", approved_by: null, approved_at: null, notes: null },
     },
     issues: [],
@@ -149,7 +148,7 @@ test("session-start emits mode-aware resume hint for quick tasks", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /<openkit_runtime_status>/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.15/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.1/)
   assert.match(result.stdout, /startup skill: skipped/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js status/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js doctor/)
@@ -302,7 +301,7 @@ test("session-start emits task-aware resume hint for active full-delivery work",
         artifact_refs: [],
         plan_refs: ["docs/plans/2026-03-21-parallel-runtime-rollout.md"],
         branch_or_worktree: ".worktrees/parallel-agent-rollout/task-700-a",
-        created_by: "TechLeadAgent",
+        created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
         updated_at: "2026-03-21T00:00:00.000Z",
       },
@@ -319,7 +318,7 @@ test("session-start emits task-aware resume hint for active full-delivery work",
         artifact_refs: [],
         plan_refs: ["docs/plans/2026-03-21-parallel-runtime-rollout.md"],
         branch_or_worktree: ".worktrees/parallel-agent-rollout/task-700-b",
-        created_by: "TechLeadAgent",
+        created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
         updated_at: "2026-03-21T00:00:00.000Z",
       },

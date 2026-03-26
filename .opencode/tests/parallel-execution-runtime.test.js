@@ -74,20 +74,20 @@ test("qa-owner assignment validation is per task, not global across tasks", () =
 })
 
 test("reassignment authority allows initial assignment but restricts reassignment", () => {
-  assert.deepEqual(VALID_ASSIGNMENT_AUTHORITIES.primary_owner, ["MasterOrchestrator", "TechLeadAgent"])
-  assert.deepEqual(VALID_ASSIGNMENT_AUTHORITIES.qa_owner, ["MasterOrchestrator", "TechLeadAgent"])
+  assert.deepEqual(VALID_ASSIGNMENT_AUTHORITIES.primary_owner, ["MasterOrchestrator", "SolutionLead"])
+  assert.deepEqual(VALID_ASSIGNMENT_AUTHORITIES.qa_owner, ["MasterOrchestrator", "SolutionLead"])
 
   assert.doesNotThrow(() => validateReassignmentAuthority({
     task: makeTask({ primary_owner: null, status: "ready" }),
     ownerField: "primary_owner",
-    requestedBy: "TechLeadAgent",
+    requestedBy: "SolutionLead",
     nextOwner: "Dev-A",
   }))
 
   assert.doesNotThrow(() => validateReassignmentAuthority({
     task: makeTask({ primary_owner: "Dev-A", status: "in_progress" }),
     ownerField: "primary_owner",
-    requestedBy: "TechLeadAgent",
+    requestedBy: "SolutionLead",
     nextOwner: "Dev-B",
   }))
 
@@ -101,7 +101,7 @@ test("reassignment authority allows initial assignment but restricts reassignmen
   assert.doesNotThrow(() => validateReassignmentAuthority({
     task: makeTask({ qa_owner: "QA-Agent", status: "qa_ready" }),
     ownerField: "qa_owner",
-    requestedBy: "TechLeadAgent",
+    requestedBy: "SolutionLead",
     nextOwner: "QA-Agent-2",
   }))
 
@@ -110,7 +110,7 @@ test("reassignment authority allows initial assignment but restricts reassignmen
     ownerField: "qa_owner",
     requestedBy: "QAAgent",
     nextOwner: "QA-Agent",
-  }), /MasterOrchestrator or TechLeadAgent.*qa_owner/)
+  }), /MasterOrchestrator or SolutionLead.*qa_owner/)
 })
 
 test("task-scoped finding validation enforces routing-safe shape", () => {
@@ -129,7 +129,7 @@ test("QA fail local rework routing allows only isolated implementation bugs", ()
     rerouteDecision: {
       stage: "full_qa",
       owner: "QAAgent",
-      decided_by: "TechLeadAgent",
+      decided_by: "SolutionLead",
       reason: "Keep overall feature QA active while routing one task back for local rework",
     },
   })
@@ -139,7 +139,7 @@ test("QA fail local rework routing allows only isolated implementation bugs", ()
     route: {
       stage: "full_qa",
       owner: "QAAgent",
-      decided_by: "TechLeadAgent",
+      decided_by: "SolutionLead",
       reason: "Keep overall feature QA active while routing one task back for local rework",
     },
   })
@@ -172,7 +172,7 @@ test("QA fail local rework routing allows only isolated implementation bugs", ()
   assert.throws(() => decideQaFailLocalRework({
     mode: "full",
     task: makeTask({ status: "qa_in_progress" }),
-    finding: makeFinding({ type: "design_flaw", rooted_in: "architecture", recommended_owner: "ArchitectAgent" }),
+    finding: makeFinding({ type: "design_flaw", rooted_in: "architecture", recommended_owner: "SolutionLead" }),
   }), /design or requirements findings must not stay in local rework/)
 
   assert.throws(() => decideQaFailLocalRework({
@@ -185,7 +185,7 @@ test("QA fail local rework routing allows only isolated implementation bugs", ()
       decided_by: "QAAgent",
       reason: "QA should not self-authorize reroute decisions",
     },
-  }), /field 'decided_by'.*MasterOrchestrator.*TechLeadAgent.*QAAgent/)
+  }), /field 'decided_by'.*MasterOrchestrator.*SolutionLead.*QAAgent/)
 
   assert.throws(() => decideQaFailLocalRework({
     mode: "full",

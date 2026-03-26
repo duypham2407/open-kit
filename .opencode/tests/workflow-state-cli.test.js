@@ -100,11 +100,11 @@ function setupTempRuntime(projectRoot) {
       "Do not invent a quick task board; quick work stays task-board free.",
       "Full Delivery owns the execution task board when one exists.",
       "Quick stages: `quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`.",
-      "Migration stages: `migration_intake -> migration_baseline -> migration_strategy -> migration_upgrade -> migration_verify -> migration_done`.",
-      "Full stages: `full_intake -> full_brief -> full_spec -> full_architecture -> full_plan -> full_implementation -> full_qa -> full_done`.",
+      "Migration stages: `migration_intake -> migration_baseline -> migration_strategy -> migration_upgrade -> migration_code_review -> migration_verify -> migration_done`.",
+      "Full stages: `full_intake -> full_product -> full_solution -> full_implementation -> full_code_review -> full_qa -> full_done`.",
       "Quick approvals: `quick_verified`.",
-      "Migration approvals: `baseline_to_strategy`, `strategy_to_upgrade`, `upgrade_to_verify`, `migration_verified`.",
-      "Full approvals: `pm_to_ba`, `ba_to_architect`, `architect_to_tech_lead`, `tech_lead_to_fullstack`, `fullstack_to_qa`, `qa_to_done`.",
+      "Migration approvals: `baseline_to_strategy`, `strategy_to_upgrade`, `upgrade_to_code_review`, `code_review_to_verify`, `migration_verified`.",
+      "Full approvals: `product_to_solution`, `solution_to_fullstack`, `fullstack_to_code_review`, `code_review_to_qa`, `qa_to_done`.",
       "Quick artifacts: `task_card`; migration artifacts may include `architecture`, `plan`, `migration_report`; full artifacts: `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
       "",
     ].join("\n"),
@@ -117,14 +117,14 @@ function setupTempRuntime(projectRoot) {
       "",
       "Modes: `quick`, `migration`, `full`.",
       "Quick stages: `quick_intake`, `quick_plan`, `quick_build`, `quick_verify`, `quick_done`.",
-      "Migration stages: `migration_intake`, `migration_baseline`, `migration_strategy`, `migration_upgrade`, `migration_verify`, `migration_done`.",
-      "Full stages: `full_intake`, `full_brief`, `full_spec`, `full_architecture`, `full_plan`, `full_implementation`, `full_qa`, `full_done`.",
+      "Migration stages: `migration_intake`, `migration_baseline`, `migration_strategy`, `migration_upgrade`, `migration_code_review`, `migration_verify`, `migration_done`.",
+      "Full stages: `full_intake`, `full_product`, `full_solution`, `full_implementation`, `full_code_review`, `full_qa`, `full_done`.",
       "Artifact keys: `task_card`, `brief`, `spec`, `architecture`, `plan`, `migration_report`, `qa_report`, `adr`.",
       "Resume summary JSON includes verification_readiness, verification_evidence, and issue_telemetry.",
       "Routing profile keys: `work_intent`, `behavior_delta`, `dominant_uncertainty`, `scope_shape`, `selection_reason`.",
       "Quick approvals: `quick_verified`.",
-      "Migration approvals: `baseline_to_strategy`, `strategy_to_upgrade`, `upgrade_to_verify`, `migration_verified`.",
-      "Full approvals: `pm_to_ba`, `ba_to_architect`, `architect_to_tech_lead`, `tech_lead_to_fullstack`, `fullstack_to_qa`, `qa_to_done`.",
+      "Migration approvals: `baseline_to_strategy`, `strategy_to_upgrade`, `upgrade_to_code_review`, `code_review_to_verify`, `migration_verified`.",
+      "Full approvals: `product_to_solution`, `solution_to_fullstack`, `fullstack_to_code_review`, `code_review_to_qa`, `qa_to_done`.",
       "Compatibility mirror behavior remains active for the current work item.",
       "",
     ].join("\n"),
@@ -165,21 +165,12 @@ function moveFullWorkItemToPlan(projectRoot, workItemId) {
   let result = runCli(projectRoot, ["activate-work-item", workItemId])
   assert.equal(result.status, 0)
 
-  const stageApprovals = new Map([
-    ["full_brief", ["pm_to_ba", "approved", "user", "2026-03-21", "Approved"]],
-    ["full_spec", ["ba_to_architect", "approved", "user", "2026-03-21", "Approved"]],
-    ["full_architecture", ["architect_to_tech_lead", "approved", "user", "2026-03-21", "Approved"]],
-  ])
+  result = runCli(projectRoot, ["advance-stage", "full_product"])
+  assert.equal(result.status, 0)
+  result = runCli(projectRoot, ["set-approval", "product_to_solution", "approved", "user", "2026-03-21", "Approved"])
+  assert.equal(result.status, 0)
 
-  for (const stage of ["full_brief", "full_spec", "full_architecture"]) {
-    result = runCli(projectRoot, ["advance-stage", stage])
-    assert.equal(result.status, 0)
-
-    result = runCli(projectRoot, ["set-approval", ...stageApprovals.get(stage)])
-    assert.equal(result.status, 0)
-  }
-
-  result = runCli(projectRoot, ["advance-stage", "full_plan"])
+  result = runCli(projectRoot, ["advance-stage", "full_solution"])
   assert.equal(result.status, 0)
 }
 
@@ -207,7 +198,7 @@ function makeFullTaskBoard(overrides = {}) {
         artifact_refs: [],
         plan_refs: ["docs/plans/2026-03-21-feature.md"],
         branch_or_worktree: ".worktrees/parallel-agent-rollout/task-board-1",
-        created_by: "TechLeadAgent",
+        created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
         updated_at: "2026-03-21T00:00:00.000Z",
       },
@@ -224,7 +215,7 @@ function makeFullTaskBoard(overrides = {}) {
         artifact_refs: [],
         plan_refs: ["docs/plans/2026-03-21-feature.md"],
         branch_or_worktree: ".worktrees/parallel-agent-rollout/task-board-2",
-        created_by: "TechLeadAgent",
+        created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
         updated_at: "2026-03-21T00:00:00.000Z",
       },
@@ -241,7 +232,7 @@ function makeFullTaskBoard(overrides = {}) {
         artifact_refs: [],
         plan_refs: ["docs/plans/2026-03-21-feature.md"],
         branch_or_worktree: null,
-        created_by: "TechLeadAgent",
+        created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
         updated_at: "2026-03-21T00:00:00.000Z",
       },
@@ -262,7 +253,7 @@ test("status command prints workflow and runtime summary", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /OpenKit runtime status:/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.15/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.1/)
   assert.match(result.stdout, /entry agent: MasterOrchestrator/)
   assert.match(result.stdout, /active profile: openkit-core/)
   assert.match(result.stdout, /registry: .*registry\.json/)
@@ -509,11 +500,11 @@ test("status command reflects migration_strategy as a live migration stage", () 
   }
   state.current_stage = "migration_strategy"
   state.status = "in_progress"
-  state.current_owner = "TechLeadAgent"
+  state.current_owner = "SolutionLead"
   state.approvals = {
     baseline_to_strategy: {
       status: "approved",
-      approved_by: "TechLeadAgent",
+      approved_by: "SolutionLead",
       approved_at: "2026-03-21",
       notes: null,
     },
@@ -523,7 +514,13 @@ test("status command reflects migration_strategy as a live migration stage", () 
       approved_at: null,
       notes: null,
     },
-    upgrade_to_verify: {
+    upgrade_to_code_review: {
+      status: "pending",
+      approved_by: null,
+      approved_at: null,
+      notes: null,
+    },
+    code_review_to_verify: {
       status: "pending",
       approved_by: null,
       approved_at: null,
@@ -553,7 +550,7 @@ test("status command reflects migration_strategy as a live migration stage", () 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /mode: migration/)
   assert.match(result.stdout, /stage: migration_strategy/)
-  assert.match(result.stdout, /owner: TechLeadAgent/)
+  assert.match(result.stdout, /owner: SolutionLead/)
   assert.match(result.stdout, /work item: MIGRATE-600 \(react-19-migration\)/)
 })
 
@@ -597,7 +594,7 @@ test("status command fails when the active managed work item is invalid", () => 
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
   writeTaskBoard(projectRoot, "task-601", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [
       {
         task_id: "TASK-1",
@@ -612,7 +609,7 @@ test("status command fails when the active managed work item is invalid", () => 
         artifact_refs: [],
         plan_refs: ["docs/plans/2026-03-21-feature.md"],
         branch_or_worktree: null,
-        created_by: "TechLeadAgent",
+        created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
         updated_at: "2026-03-21T00:00:00.000Z",
       },
@@ -768,7 +765,7 @@ test("version command prints kit metadata version", () => {
   })
 
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /OpenKit version: 0\.2\.15/)
+  assert.match(result.stdout, /OpenKit version: 0\.3\.1/)
   assert.match(result.stdout, /active profile: openkit-core/)
 })
 
@@ -975,7 +972,7 @@ test("doctor reports invalid active full task board as an error even when runtim
         artifact_refs: [],
         plan_refs: ["docs/plans/2026-03-21-feature.md"],
         branch_or_worktree: ".worktrees/parallel-agent-rollout/task-board-1",
-        created_by: "TechLeadAgent",
+        created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
         updated_at: "2026-03-21T00:00:00.000Z",
       },
@@ -1017,7 +1014,7 @@ test("doctor reports compatibility mirror divergence as an error", () => {
   )
 
   const mirrorState = JSON.parse(fs.readFileSync(path.join(projectRoot, ".opencode", "workflow-state.json"), "utf8"))
-  const workItemState = { ...mirrorState, current_stage: "full_plan", current_owner: "TechLeadAgent", status: "in_progress", work_item_id: "feature-001" }
+  const workItemState = { ...mirrorState, current_stage: "full_solution", current_owner: "SolutionLead", status: "in_progress", work_item_id: "feature-001" }
   fs.writeFileSync(workItemStatePath, `${JSON.stringify(workItemState, null, 2)}\n`, "utf8")
 
   const result = runCli(projectRoot, ["doctor"])
@@ -1186,11 +1183,11 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
   assert.equal(result.status, 1)
   assert.match(result.stderr, /requires <requested_by>/)
 
-  result = runCli(projectRoot, ["claim-task", "feature-900", "TASK-900", "FullstackAgent", "TechLeadAgent"])
+  result = runCli(projectRoot, ["claim-task", "feature-900", "TASK-900", "FullstackAgent", "SolutionLead"])
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Claimed task 'TASK-900' for 'FullstackAgent'/)
 
-  result = runCli(projectRoot, ["claim-task", "feature-900", "TASK-900", "AnotherDev", "TechLeadAgent"])
+  result = runCli(projectRoot, ["claim-task", "feature-900", "TASK-900", "AnotherDev", "SolutionLead"])
   assert.equal(result.status, 1)
   assert.match(result.stderr, /Implicit reassignment is not allowed; use reassignTask/)
 
@@ -1198,7 +1195,7 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
   assert.equal(result.status, 1)
   assert.match(result.stderr, /requires <requested_by>/)
 
-  result = runCli(projectRoot, ["reassign-task", "feature-900", "TASK-900", "AnotherDev", "TechLeadAgent"])
+  result = runCli(projectRoot, ["reassign-task", "feature-900", "TASK-900", "AnotherDev", "SolutionLead"])
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Reassigned task 'TASK-900' to 'AnotherDev'/)
 
@@ -1206,11 +1203,11 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
   assert.equal(result.status, 1)
   assert.match(result.stderr, /requires <requested_by>/)
 
-  result = runCli(projectRoot, ["release-task", "feature-900", "TASK-900", "TechLeadAgent"])
+  result = runCli(projectRoot, ["release-task", "feature-900", "TASK-900", "SolutionLead"])
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Released task 'TASK-900'/)
 
-  result = runCli(projectRoot, ["claim-task", "feature-900", "TASK-900", "FullstackAgent", "TechLeadAgent"])
+  result = runCli(projectRoot, ["claim-task", "feature-900", "TASK-900", "FullstackAgent", "SolutionLead"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["set-task-status", "feature-900", "TASK-900", "in_progress"])
@@ -1225,7 +1222,7 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
   assert.equal(result.status, 1)
   assert.match(result.stderr, /requires <requested_by>/)
 
-  result = runCli(projectRoot, ["assign-qa-owner", "feature-900", "TASK-900", "QAAgent", "TechLeadAgent"])
+  result = runCli(projectRoot, ["assign-qa-owner", "feature-900", "TASK-900", "QAAgent", "SolutionLead"])
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Assigned QA owner 'QAAgent' to task 'TASK-900'/)
 
@@ -1268,7 +1265,7 @@ test("CLI migration slice commands require explicit strategy blessing", () => {
   result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "TechLeadAgent"])
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
@@ -1286,11 +1283,11 @@ test("CLI migration slice commands require explicit strategy blessing", () => {
   assert.match(result.stdout, /Migration slices for migrate-950/)
   assert.match(result.stdout, /SLICE-1 \| ready \| compatibility \| Adapter seam/)
 
-  result = runCli(projectRoot, ["claim-migration-slice", "migrate-950", "SLICE-1", "FullstackAgent", "TechLeadAgent"])
+  result = runCli(projectRoot, ["claim-migration-slice", "migrate-950", "SLICE-1", "FullstackAgent", "SolutionLead"])
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Claimed migration slice 'SLICE-1'/)
 
-  result = runCli(projectRoot, ["assign-migration-qa-owner", "migrate-950", "SLICE-1", "QAAgent", "TechLeadAgent"])
+  result = runCli(projectRoot, ["assign-migration-qa-owner", "migrate-950", "SLICE-1", "QAAgent", "SolutionLead"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["set-migration-slice-status", "migrate-950", "SLICE-1", "in_progress"])
@@ -1312,7 +1309,7 @@ test("CLI rejects quick items carrying task data through managed validation", ()
 
   writeTaskBoard(projectRoot, "task-930", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [
       {
         task_id: "TASK-930-A",
@@ -1327,7 +1324,7 @@ test("CLI rejects quick items carrying task data through managed validation", ()
         artifact_refs: [],
         plan_refs: ["docs/plans/2026-03-21-feature.md"],
         branch_or_worktree: null,
-        created_by: "TechLeadAgent",
+        created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
         updated_at: "2026-03-21T00:00:00.000Z",
       },
@@ -1355,7 +1352,7 @@ test("CLI rejects migration items carrying task data through managed validation"
 
   writeTaskBoard(projectRoot, "migrate-930", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [
       {
         task_id: "TASK-930-A",
@@ -1370,7 +1367,7 @@ test("CLI rejects migration items carrying task data through managed validation"
         artifact_refs: [],
         plan_refs: ["docs/plans/2026-03-21-feature.md"],
         branch_or_worktree: null,
-        created_by: "TechLeadAgent",
+        created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
         updated_at: "2026-03-21T00:00:00.000Z",
       },
@@ -1395,7 +1392,7 @@ test("CLI rejects claim-task reassignment from the wrong authority", () => {
   result = runCli(projectRoot, ["create-task", "feature-931", "TASK-931", "Implement safety", "implementation"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["claim-task", "feature-931", "TASK-931", "Dev-A", "TechLeadAgent"])
+  result = runCli(projectRoot, ["claim-task", "feature-931", "TASK-931", "Dev-A", "SolutionLead"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["claim-task", "feature-931", "TASK-931", "Dev-B", "QAAgent"])
@@ -1415,12 +1412,12 @@ test("CLI reassign-task enforces authority explicitly", () => {
   result = runCli(projectRoot, ["create-task", "feature-934", "TASK-934", "Implement safety", "implementation"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["claim-task", "feature-934", "TASK-934", "Dev-A", "TechLeadAgent"])
+  result = runCli(projectRoot, ["claim-task", "feature-934", "TASK-934", "Dev-A", "SolutionLead"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["reassign-task", "feature-934", "TASK-934", "Dev-B", "QAAgent"])
   assert.equal(result.status, 1)
-  assert.match(result.stderr, /Only MasterOrchestrator or TechLeadAgent can reassign primary_owner/)
+  assert.match(result.stderr, /Only MasterOrchestrator or SolutionLead can reassign primary_owner/)
 })
 
 test("CLI rejects QA-fail local rework without task-scoped finding metadata", () => {
@@ -1449,7 +1446,7 @@ test("CLI rejects QA-fail local rework without task-scoped finding metadata", ()
         artifact_refs: [],
         plan_refs: ["docs/plans/2026-03-21-feature.md"],
         branch_or_worktree: null,
-        created_by: "TechLeadAgent",
+        created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
         updated_at: "2026-03-21T00:00:00.000Z",
       },
@@ -1474,7 +1471,7 @@ test("CLI release-task allows the current owner to release explicitly", () => {
   result = runCli(projectRoot, ["create-task", "feature-935", "TASK-935", "Owner release", "implementation"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["claim-task", "feature-935", "TASK-935", "Dev-A", "TechLeadAgent"])
+  result = runCli(projectRoot, ["claim-task", "feature-935", "TASK-935", "Dev-A", "SolutionLead"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["release-task", "feature-935", "TASK-935", "Dev-A"])

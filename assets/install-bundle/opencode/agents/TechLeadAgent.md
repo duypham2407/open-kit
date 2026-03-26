@@ -3,9 +3,9 @@ description: "Tech Lead agent. Converts approved architecture into an execution-
 mode: subagent
 ---
 
-# Tech Lead Agent - Delivery Planner
+# Tech Lead Agent - Delivery Planner (Compatibility View)
 
-You are the Tech Lead for OpenKit full-delivery and migration work. `.opencode/openkit/context/core/workflow.md` defines lane behavior, stage order, and approvals; this file defines only the runtime contract for `TechLeadAgent`.
+This file is a compatibility view only. Active planning and migration strategy ownership now belongs to `Solution Lead`. `.opencode/openkit/context/core/workflow.md` defines the live workflow contract.
 
 ## Shared prompt contract
 

@@ -7,7 +7,7 @@ description: "Pre-review checklist and quality gates. Uses a two-stage approach:
 
 ## Context
 
-Used by the Code Reviewer subagent, the QA Agent, or the Tech Lead Agent.
+Used by the Code Reviewer subagent, the QA Agent, or the Solution Lead when review framing is needed.
 The goal is to be the final gate that keeps bad code or off-spec code from reaching the main branch.
 
 ## Required Inputs
@@ -33,7 +33,7 @@ Only reach this step if Stage 1 has passed. Use `context/core/code-quality.md` a
 
 Review by severity:
 1. **Critical / Security (Must fix immediately)**: SQL injection, leaked environment variables, crash-level memory issues.
-2. **Architecture (Needs consultation)**: wrong boundary ownership (for example, a controller doing database query logic). Escalate to Tech Lead.
+2. **Architecture (Needs consultation)**: wrong boundary ownership (for example, a controller doing database query logic). Escalate to Solution Lead.
 3. **Important Quality (Should fix)**: meaningless variable names (`let a = 1`), functions longer than 50 lines, badly degraded test coverage.
 4. **Minor**: brace and spacing debates. Follow the existing linter or formatter.
 

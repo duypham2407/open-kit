@@ -481,13 +481,13 @@ function requireMigrationModeWorkItem(state, workItemId) {
 }
 
 function isTaskBoardStageAllowed(stage) {
-  return ["full_plan", "full_implementation", "full_qa", "full_done"].includes(stage)
+  return ["full_solution", "full_implementation", "full_code_review", "full_qa", "full_done"].includes(stage)
 }
 
 function requireTaskBoardStage(state, workItemId, action = "use a task board") {
   if (!isTaskBoardStageAllowed(state.current_stage)) {
     fail(
-      `Work item '${workItemId}' must reach 'full_plan' before it can ${action}; current stage is '${state.current_stage}'`,
+      `Work item '${workItemId}' must reach 'full_solution' before it can ${action}; current stage is '${state.current_stage}'`,
     )
   }
 }
@@ -592,7 +592,7 @@ function buildTaskRecord(taskInput) {
     artifact_refs: taskInput.artifact_refs ?? [],
     plan_refs: taskInput.plan_refs ?? [],
     branch_or_worktree: taskInput.branch_or_worktree ?? taskInput.worktree_metadata?.worktree_path ?? null,
-    created_by: taskInput.created_by ?? "TechLeadAgent",
+    created_by: taskInput.created_by ?? "SolutionLead",
     created_at: taskInput.created_at ?? now,
     updated_at: taskInput.updated_at ?? now,
   })
@@ -621,7 +621,7 @@ function buildMigrationSliceRecord(sliceInput) {
     compatibility_risks: sliceInput.compatibility_risks ?? [],
     verification_targets: sliceInput.verification_targets ?? [],
     rollback_notes: sliceInput.rollback_notes ?? [],
-    created_by: sliceInput.created_by ?? "TechLeadAgent",
+    created_by: sliceInput.created_by ?? "SolutionLead",
     created_at: sliceInput.created_at ?? now,
     updated_at: sliceInput.updated_at ?? now,
   })
@@ -1535,7 +1535,7 @@ function getWorkflowMetrics(customStatePath) {
   const migrationBoard = state.mode === "migration" ? readMigrationSliceBoardIfExists(projectRoot, workItemId) : null
   const readiness = buildReadinessSummary(state, {
     requireTaskBoard: state.mode === "full" && ["full_implementation", "full_qa", "full_done"].includes(state.current_stage),
-    taskBoardValid: state.mode !== "full" || state.current_stage === "full_plan" ? true : Boolean(board),
+    taskBoardValid: state.mode !== "full" || state.current_stage === "full_solution" ? true : Boolean(board),
   })
 
   return {
@@ -2742,13 +2742,13 @@ function setApproval(gate, status, approvedBy, approvedAt, notes, customStatePat
     ensureKnown(gate, allowedGates, `gate for mode '${state.mode}'`)
 
     const { projectRoot, workItemId } = context
-    if (status === "approved" && gate === "tech_lead_to_fullstack") {
+    if (status === "approved" && gate === "solution_to_fullstack" && state.current_stage === "full_solution") {
       requireValidTaskBoard(
         state,
         projectRoot,
         workItemId,
-        "full_plan",
-        "A valid task board is required before approving 'tech_lead_to_fullstack' or entering 'full_implementation'",
+        "full_solution",
+        "A valid task board is required before approving 'solution_to_fullstack' or entering 'full_implementation'",
       )
     }
 
@@ -2876,8 +2876,8 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
       fail(`Artifact scaffold kind 'plan' requires full or migration mode`)
     }
 
-    if (state.mode === "full" && state.current_stage !== "full_plan") {
-      fail(`Artifact scaffold kind 'plan' requires current stage 'full_plan'`)
+    if (state.mode === "full" && state.current_stage !== "full_solution") {
+      fail(`Artifact scaffold kind 'plan' requires current stage 'full_solution'`)
     }
 
     if (state.mode === "migration" && state.current_stage !== "migration_strategy") {

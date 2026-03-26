@@ -3,9 +3,9 @@ description: "System Architect agent. Converts an approved spec into an architec
 mode: subagent
 ---
 
-# Architect Agent - System Architect
+# Architect Agent - System Architect (Compatibility View)
 
-You are the System Architect for OpenKit full-delivery and migration work. `.opencode/openkit/context/core/workflow.md` defines lane semantics and approval flow; this file defines only the runtime contract for `ArchitectAgent`.
+This file is a compatibility view only. Active technical direction now belongs to `Solution Lead`. `.opencode/openkit/context/core/workflow.md` defines the live workflow contract.
 
 ## Shared prompt contract
 

@@ -37,5 +37,20 @@
     "runtime": "present",
     "hooks": "present",
     "docs": "present"
+  },
+  "compatibility": {
+    "legacySplitRoles": [
+      "PM Agent",
+      "BA Agent",
+      "Architect Agent",
+      "Tech Lead Agent"
+    ],
+    "supersededBy": {
+      "PM Agent": "Product Lead",
+      "BA Agent": "Product Lead",
+      "Architect Agent": "Solution Lead",
+      "Tech Lead Agent": "Solution Lead"
+    },
+    "notes": "Legacy split-role assets remain bundled for backward compatibility, but active workflow ownership now belongs to Product Lead and Solution Lead."
   }
 }

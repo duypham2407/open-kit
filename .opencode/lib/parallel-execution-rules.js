@@ -1,12 +1,12 @@
 const ALLOWED_WORKTREE_PREFIX = ".worktrees/"
 const PROTECTED_BRANCHES = new Set(["main", "master"])
 const VALID_QA_REWORK_STAGES = new Set(["full_qa", "full_implementation"])
-const VALID_QA_REWORK_DECIDERS = new Set(["MasterOrchestrator", "TechLeadAgent"])
+const VALID_QA_REWORK_DECIDERS = new Set(["MasterOrchestrator", "SolutionLead"])
 const VALID_QA_REWORK_OWNERS = new Set(["QAAgent", "FullstackAgent"])
 
 const VALID_ASSIGNMENT_AUTHORITIES = {
-  primary_owner: ["MasterOrchestrator", "TechLeadAgent"],
-  qa_owner: ["MasterOrchestrator", "TechLeadAgent"],
+  primary_owner: ["MasterOrchestrator", "SolutionLead"],
+  qa_owner: ["MasterOrchestrator", "SolutionLead"],
 }
 
 function fail(message) {
@@ -181,7 +181,7 @@ function validateQaFailRerouteDecision(rerouteDecision) {
   }
 
   if (!VALID_QA_REWORK_DECIDERS.has(rerouteDecision.decided_by)) {
-    fail(`QA fail local rework reroute field 'decided_by' must be 'MasterOrchestrator' or 'TechLeadAgent'; received '${String(rerouteDecision.decided_by)}'`)
+    fail(`QA fail local rework reroute field 'decided_by' must be 'MasterOrchestrator' or 'SolutionLead'; received '${String(rerouteDecision.decided_by)}'`)
   }
 
   if (!isNonEmptyString(rerouteDecision.reason)) {

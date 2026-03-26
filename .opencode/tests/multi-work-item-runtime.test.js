@@ -54,7 +54,7 @@ function createTask(overrides = {}) {
     artifact_refs: [],
     plan_refs: ["docs/plans/2026-03-21-feature.md"],
     branch_or_worktree: null,
-    created_by: "TechLeadAgent",
+    created_by: "SolutionLead",
     created_at: "2026-03-21T00:00:00.000Z",
     updated_at: "2026-03-21T00:00:00.000Z",
     ...overrides,
@@ -69,13 +69,9 @@ function writeTaskBoard(statePath, workItemId, board) {
 }
 
 function advanceFullWorkItemToPlan(statePath) {
-  advanceStage("full_brief", statePath)
-  setApproval("pm_to_ba", "approved", "user", "2026-03-21", "Approved", statePath)
-  advanceStage("full_spec", statePath)
-  setApproval("ba_to_architect", "approved", "user", "2026-03-21", "Approved", statePath)
-  advanceStage("full_architecture", statePath)
-  setApproval("architect_to_tech_lead", "approved", "user", "2026-03-21", "Approved", statePath)
-  advanceStage("full_plan", statePath)
+  advanceStage("full_product", statePath)
+  setApproval("product_to_solution", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_solution", statePath)
 }
 
 test("compatibility mirror refresh happens after the active work item pointer changes", () => {
@@ -135,11 +131,10 @@ test("selectActiveWorkItem rewrites a stale compatibility mirror from the active
         adr: [],
       },
       approvals: {
-        pm_to_ba: { status: "approved", approved_by: null, approved_at: null, notes: null },
-        ba_to_architect: { status: "approved", approved_by: null, approved_at: null, notes: null },
-        architect_to_tech_lead: { status: "approved", approved_by: null, approved_at: null, notes: null },
-        tech_lead_to_fullstack: { status: "approved", approved_by: null, approved_at: null, notes: null },
-        fullstack_to_qa: { status: "approved", approved_by: null, approved_at: null, notes: null },
+        product_to_solution: { status: "approved", approved_by: null, approved_at: null, notes: null },
+        solution_to_fullstack: { status: "approved", approved_by: null, approved_at: null, notes: null },
+        fullstack_to_code_review: { status: "approved", approved_by: null, approved_at: null, notes: null },
+        code_review_to_qa: { status: "approved", approved_by: null, approved_at: null, notes: null },
         qa_to_done: { status: "approved", approved_by: null, approved_at: null, notes: null },
       },
       issues: [],
@@ -187,7 +182,7 @@ test("active selection fails validation when switched to a quick work item carry
   startTask("quick", "TASK-302", "quick-invalid", "Quick item with stale board", statePath)
   writeTaskBoard(statePath, "task-302", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [createTask()],
     issues: [],
   })
@@ -205,7 +200,7 @@ test("active selection fails validation when switched to a migration work item c
   startTask("migration", "MIGRATE-302", "migration-invalid", "Migration item with stale board", statePath)
   writeTaskBoard(statePath, "migrate-302", {
     mode: "full",
-    current_stage: "full_plan",
+    current_stage: "full_solution",
     tasks: [createTask()],
     issues: [],
   })
@@ -232,7 +227,7 @@ test("task-board helpers operate on a specific full work item without changing a
       summary: "Keep board edits scoped to the selected work item",
       kind: "implementation",
       plan_refs: ["docs/plans/2026-03-21-feature.md"],
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
@@ -262,7 +257,7 @@ test("invalid worktree metadata does not persist partial task-board writes", () 
           title: "Unsafe worktree",
           summary: "Reject protected branch metadata",
           kind: "implementation",
-          created_by: "TechLeadAgent",
+          created_by: "SolutionLead",
           worktree_metadata: {
             task_id: "TASK-401",
             branch: "main",
@@ -295,7 +290,7 @@ test("qa-fail local rework keeps mutations scoped to the targeted work item", ()
       status: "qa_in_progress",
       primary_owner: "Dev-A",
       qa_owner: "QA-Agent",
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
@@ -319,7 +314,7 @@ test("qa-fail local rework keeps mutations scoped to the targeted work item", ()
     rerouteDecision: {
       stage: "full_implementation",
       owner: "FullstackAgent",
-      decided_by: "TechLeadAgent",
+      decided_by: "SolutionLead",
       reason: "Return only the failing task to implementation",
     },
   })
@@ -351,14 +346,14 @@ test("explicit release and reassign flows stay scoped to the targeted work item"
       title: "Scoped reassignment",
       summary: "Only mutate target work item assignments",
       kind: "implementation",
-      created_by: "TechLeadAgent",
+      created_by: "SolutionLead",
     },
     statePath,
   )
 
-  claimTask("feature-403", "TASK-403A", "Dev-A", statePath, { requestedBy: "TechLeadAgent" })
-  reassignTask("feature-403", "TASK-403A", "Dev-B", statePath, { requestedBy: "TechLeadAgent" })
-  const releaseResult = releaseTask("feature-403", "TASK-403A", statePath, { requestedBy: "TechLeadAgent" })
+  claimTask("feature-403", "TASK-403A", "Dev-A", statePath, { requestedBy: "SolutionLead" })
+  reassignTask("feature-403", "TASK-403A", "Dev-B", statePath, { requestedBy: "SolutionLead" })
+  const releaseResult = releaseTask("feature-403", "TASK-403A", statePath, { requestedBy: "SolutionLead" })
 
   const activeState = showState(statePath)
   const featureTasks = listTasks("feature-403", statePath)

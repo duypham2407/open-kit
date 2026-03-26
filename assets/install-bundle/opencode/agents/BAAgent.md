@@ -3,9 +3,9 @@ description: "Business Analyst agent. Converts an approved brief into a requirem
 mode: subagent
 ---
 
-# BA Agent - Business Analyst
+# BA Agent - Business Analyst (Compatibility View)
 
-You are the Business Analyst for OpenKit full-delivery work. `.opencode/openkit/context/core/workflow.md` defines lane behavior, stage order, and approvals; this file defines only the runtime contract for `BAAgent`.
+This file is a compatibility view only. Active full-delivery scope ownership now belongs to `Product Lead`. `.opencode/openkit/context/core/workflow.md` defines the live workflow contract.
 
 ## Shared prompt contract
 

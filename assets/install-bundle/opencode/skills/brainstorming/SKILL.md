@@ -7,9 +7,9 @@ description: "Socratic design refinement process. Used before writing any specs 
 
 ## Context
 
-When the user brings a new idea or request, or when the PM Agent or Architect Agent starts designing, this skill **must** be used before locking in a solution.
+When the user brings a new idea or request, or when `Product Lead` or `Solution Lead` encounters meaningful ambiguity, this skill should be used before locking in scope or solution decisions.
 
-Do NOT jump straight into writing a spec or code. You must go through the "ask questions - explore - converge" process first.
+Do not force brainstorming when the request is already clear enough for direct scope or solution work. Use it when ambiguity is still high enough that jumping straight into scope, planning, or code would be risky.
 
 ## Execution Process
 
@@ -48,4 +48,4 @@ After the user chooses an option, design the solution **one part at a time**.
 - Use visual tools when helpful (Mermaid diagrams, ASCII art).
 
 ### Phase 4: Handoff
-Finish brainstorming by moving into a Product Brief or Architecture Document (depending on which agent is active), then hand off to the next agent in the pipeline.
+Finish brainstorming by moving into a scope or solution artifact that the active role owns, then hand off to the next role in the pipeline.

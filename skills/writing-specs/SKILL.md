@@ -7,13 +7,13 @@ description: "Converts requirements into structured spec documents with concrete
 
 ## Context
 
-This skill is used by the BA Agent to turn a high-level Product Brief into a detailed low-level spec that is ready for the Architect and the development team.
+This skill is used by `Product Lead` to turn high-level intent into a detailed scope and acceptance artifact that is ready for `Solution Lead` and the delivery team.
 
 ## Execution Process
 
 ### 1. Verification (Input Check)
-- Make sure you already have a Product Brief.
-- If the Product Brief is still vague (for example: "make it faster"), go back to the PM Agent or user and get measurable detail.
+- Make sure you already have a clear problem statement or product brief.
+- If the scope is still vague (for example: "make it faster"), go back to the user or the active scope owner and get measurable detail.
 
 ### 2. User Stories Breakdown
 Break the feature into user flows (user stories).

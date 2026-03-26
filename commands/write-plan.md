@@ -1,5 +1,5 @@
 ---
-description: "Triggers the writing-plans skill to create bite-sized tasks from specs."
+description: "Triggers the writing-plans skill to turn approved scope into a solution package and execution slices."
 ---
 
 # Command: `/write-plan`
@@ -15,7 +15,7 @@ Use `/write-plan` to create an implementation plan for work currently in `Full D
 - The current `mode` must be `full` or `migration`
 - The required architecture artifact already exists for the current work item
 - If the work is in `full`, the required spec artifact already exists for the current feature
-- The Tech Lead Agent is at the stage where `docs/plans/...` should be created
+- `Solution Lead` is at the stage where the solution package and implementation plan should be created
 
 ## Canonical docs to load
 
@@ -35,6 +35,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 - Create or update `docs/plans/YYYY-MM-DD-<feature>.md`
 - Keep the plan aligned with the current stage and approval context for the active mode
+- Write feature-level solution slices, dependencies, validation strategy, and parallelization notes before any optional micro-task breakdown
 - In migration mode, record preserved invariants, seam or adapter steps, and parity checks explicitly
 - In migration mode, recommend scaffolding or updating `migration_report` when baseline, plan, execution, and verification should stay visible in one artifact
 - Record the real validation path, or a missing-validation-path note when the repository has no suitable command

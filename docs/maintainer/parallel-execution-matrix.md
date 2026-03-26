@@ -7,8 +7,8 @@ Use this matrix instead of reconstructing the parallel-execution rules from mult
 | Mode | Default | Board type | When parallel work is allowed | What stays singleton |
 | --- | --- | --- | --- | --- |
 | `quick` | sequential | none | never in the live contract | `Master Orchestrator`, `Fullstack Agent`, `QA Agent` stay in a single bounded loop |
-| `migration` | sequential | migration slice board when strategy enables it | only after `migration_strategy` records a `Parallelization Assessment` that blesses safe slices | `Master Orchestrator`, `Architect Agent`, and `Tech Lead Agent` remain singleton for baseline and strategy |
-| `full` | sequential until approved otherwise | execution task board | only after `full_plan` records a `Parallelization Assessment` and runtime checks allow task allocation | `PM Agent`, `BA Agent`, `Architect Agent`, and `Tech Lead Agent` remain singleton |
+| `migration` | sequential | migration slice board when strategy enables it | only after `migration_strategy` records a `Parallelization Assessment` that blesses safe slices | `Master Orchestrator` and `Solution Lead` remain singleton for baseline and strategy |
+| `full` | sequential until approved otherwise | execution task board | only after `full_solution` records a `Parallelization Assessment` and runtime checks allow task allocation | `Product Lead` and `Solution Lead` remain singleton |
 
 ## Safety Rules
 
@@ -30,4 +30,4 @@ Use this matrix instead of reconstructing the parallel-execution rules from mult
 
 - quick: no parallel
 - migration: sequential by default, optional slice parallelism after strategy approval
-- full: sequential by default, optional task-board parallelism after plan approval
+- full: sequential by default, optional task-board parallelism after solution approval

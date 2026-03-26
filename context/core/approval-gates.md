@@ -40,77 +40,63 @@ Transition rule:
 
 `quick_plan` does not add a second quick approval gate. It is a required planning stage, but quick-mode completion still depends on `quick_verified` after QA Lite passes.
 
-Readiness rule before `quick_verified` approval:
-
-- quick checklist and acceptance bullets are inspectable
-- intended verification path is inspectable
-- QA Lite evidence is inspectable in workflow state or session artifacts
-- unresolved design or requirement issues are escalated instead of approved through
-
 ## Migration Gates
 
-Migration mode uses four required gates:
+Migration mode uses five required gates:
 
 - `baseline_to_strategy`
 - `strategy_to_upgrade`
-- `upgrade_to_verify`
+- `upgrade_to_code_review`
+- `code_review_to_verify`
 - `migration_verified`
-
-Meaning:
-
-- `baseline_to_strategy` confirms the baseline, compatibility map, and likely breakpoints are inspectable enough for staged planning
-- `strategy_to_upgrade` confirms the staged upgrade sequence, rollback checkpoints, and validation path are ready for execution
-- `upgrade_to_verify` confirms upgrade execution evidence is inspectable enough for regression and compatibility QA
-- `migration_verified` becomes `approved` only after regression, smoke, and compatibility verification are judged sufficient
 
 Approval authorities:
 
-- `baseline_to_strategy`: `Tech Lead Agent`
-- `strategy_to_upgrade`: `Fullstack Agent`
-- `upgrade_to_verify`: `QA Agent`
-- `migration_verified`: `QA Agent`
+- `baseline_to_strategy`: `SolutionLead`
+- `strategy_to_upgrade`: `FullstackAgent`
+- `upgrade_to_code_review`: `CodeReviewer`
+- `code_review_to_verify`: `QAAgent`
+- `migration_verified`: `QAAgent`
 
 Transition rules:
 
 - `migration_baseline -> migration_strategy` uses `baseline_to_strategy`
 - `migration_strategy -> migration_upgrade` uses `strategy_to_upgrade`
-- `migration_upgrade -> migration_verify` uses `upgrade_to_verify`
+- `migration_upgrade -> migration_code_review` uses `upgrade_to_code_review`
+- `migration_code_review -> migration_verify` uses `code_review_to_verify`
 - `migration_verify -> migration_done` uses `migration_verified`
 
 Readiness rule before migration approvals:
 
 - current baseline and target upgrade intent are inspectable
 - staged execution notes and rollback checkpoints are inspectable
-- validation evidence uses real project commands or honest manual evidence
+- review or validation evidence uses real project commands or honest manual evidence
 - requirement ambiguity is escalated to full delivery instead of being approved through migration
 
 ## Full Delivery Gates
 
-Full mode keeps the explicit handoff chain:
+Full mode uses the active handoff chain:
 
-- `pm_to_ba`
-- `ba_to_architect`
-- `architect_to_tech_lead`
-- `tech_lead_to_fullstack`
-- `fullstack_to_qa`
+- `product_to_solution`
+- `solution_to_fullstack`
+- `fullstack_to_code_review`
+- `code_review_to_qa`
 - `qa_to_done`
 
 Approval authorities:
 
-- `pm_to_ba`: `BA Agent`
-- `ba_to_architect`: `Architect Agent`
-- `architect_to_tech_lead`: `Tech Lead Agent`
-- `tech_lead_to_fullstack`: `Fullstack Agent`
-- `fullstack_to_qa`: `QA Agent`
+- `product_to_solution`: `SolutionLead`
+- `solution_to_fullstack`: `FullstackAgent`
+- `fullstack_to_code_review`: `CodeReviewer`
+- `code_review_to_qa`: `QAAgent`
 - `qa_to_done`: `MasterOrchestrator`
 
 Transition rules:
 
-- `full_brief -> full_spec` uses `pm_to_ba`
-- `full_spec -> full_architecture` uses `ba_to_architect`
-- `full_architecture -> full_plan` uses `architect_to_tech_lead`
-- `full_plan -> full_implementation` uses `tech_lead_to_fullstack`
-- `full_implementation -> full_qa` uses `fullstack_to_qa`
+- `full_product -> full_solution` uses `product_to_solution`
+- `full_solution -> full_implementation` uses `solution_to_fullstack`
+- `full_implementation -> full_code_review` uses `fullstack_to_code_review`
+- `full_code_review -> full_qa` uses `code_review_to_qa`
 - `full_qa -> full_done` uses `qa_to_done`
 
 Readiness checklist for every full-delivery gate:
@@ -122,11 +108,10 @@ Readiness checklist for every full-delivery gate:
 
 Boundary-specific handoff focus:
 
-- `pm_to_ba`: problem statement, goals, constraints, and product unknowns are clear
-- `ba_to_architect`: scope, behaviors, and acceptance expectations are clear
-- `architect_to_tech_lead`: design decisions, boundaries, and dependencies are clear
-- `tech_lead_to_fullstack`: execution steps, sequencing, and validation expectations are clear
-- `fullstack_to_qa`: implementation evidence, changed surfaces, and known limitations are clear
+- `product_to_solution`: problem statement, scope, business rules, acceptance criteria, and edge cases are clear
+- `solution_to_fullstack`: technical approach, slices, dependencies, and validation expectations are clear
+- `fullstack_to_code_review`: changed surfaces and implementation evidence are clear
+- `code_review_to_qa`: scope compliance passed, important code-quality concerns are resolved or recorded, and QA has enough context to verify behavior
 - `qa_to_done`: verification outcome, remaining issue status, and closure recommendation are clear
 
 ## Operational Rule

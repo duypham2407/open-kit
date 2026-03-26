@@ -6,11 +6,9 @@ Use this matrix when deciding which skills each OpenKit role should invoke.
 
 | Role | Typical skills | Use them when | Expected output |
 | --- | --- | --- | --- |
-| `MasterOrchestrator` | `brainstorming` | design or migration direction needs clarification before planning | clarified direction, lane-safe framing |
-| `PMAgent` | `brainstorming` | product intent is still vague before brief completion | clearer brief-ready scope |
-| `BAAgent` | `writing-specs` | approved brief exists and a behavioral spec is needed | `docs/specs/...` |
-| `ArchitectAgent` | `brainstorming` | architecture or migration boundary needs exploration | architecture-ready approach |
-| `TechLeadAgent` | `writing-plans` | approved architecture needs to become executable work | `docs/plans/...` |
+| `MasterOrchestrator` | `brainstorming` | routing-safe clarification is still needed before dispatch | clarified direction, lane-safe framing |
+| `ProductLead` | `brainstorming`, `writing-specs` | product intent is still vague or needs explicit acceptance detail | scope package and compatibility requirements artifacts |
+| `SolutionLead` | `brainstorming`, `writing-plans` | solution direction, sequencing, or migration strategy needs to be made execution-ready | solution package and compatibility planning artifacts |
 | `FullstackAgent` | `test-driven-development`, `subagent-driven-development`, `systematic-debugging`, `verification-before-completion` | implementing, debugging, delegating focused work, and proving completion | code changes plus real verification evidence |
 | `QAAgent` | `verification-before-completion` | validating evidence before approval or closure claims | QA evidence and routing recommendation |
 | `Code Reviewer` | `code-review` | two-stage compliance and quality review is required | review findings only |

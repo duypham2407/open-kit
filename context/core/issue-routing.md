@@ -1,6 +1,6 @@
 # Issue Routing
 
-This file defines how QA findings are classified and routed.
+This file defines how review and QA findings are classified and routed.
 
 For the canonical workflow contract, including lane semantics, stage order, escalation policy, and artifact expectations, use `context/core/workflow.md`.
 
@@ -24,8 +24,8 @@ Each issue should record:
 | Type | Default Owner |
 | --- | --- |
 | `bug` | `FullstackAgent` |
-| `design_flaw` | `ArchitectAgent` |
-| `requirement_gap` | `BAAgent` |
+| `design_flaw` | `SolutionLead` |
+| `requirement_gap` | `ProductLead` |
 
 ## Routing By Mode
 
@@ -49,15 +49,15 @@ Quick-mode guardrail:
 
 | Type | Route to | Expected action |
 | --- | --- | --- |
-| `bug` | `full_implementation` / `FullstackAgent` | Fix implementation and return to QA |
-| `design_flaw` | `full_architecture` / `ArchitectAgent` | Repair the design or escalate implementation concerns through architecture review |
-| `requirement_gap` | `full_spec` / `BAAgent` | Clarify or repair requirements |
+| `bug` | `full_implementation` / `FullstackAgent` | Fix implementation and return to review or QA |
+| `design_flaw` | `full_solution` / `SolutionLead` | Repair the technical design, sequencing, or boundary decision |
+| `requirement_gap` | `full_product` / `ProductLead` | Clarify or repair scope, rules, or acceptance |
 
 Task-aware full-delivery note:
 
 - full-delivery execution tasks may carry task-local owners and findings, but routing still resolves to the feature-level stage owner above
 - task-local rework may stay within the task board only for implementation-rooted bugs that do not require a stage change
-- when a QA finding reveals a design flaw or requirement gap, the feature returns to `full_architecture` or `full_spec` even if the finding started from one execution task
+- when a review or QA finding reveals a design flaw or requirement gap, the feature returns to `full_solution` or `full_product` even if the finding started from one execution task
 - preserve task ids and task evidence in issue notes so the orchestrator can reconnect feature routing with task-board state
 - multiple Fullstack or QA owners are allowed only when the approved plan marks the work item as parallel-capable and the task graph passes runtime validation
 
@@ -65,8 +65,8 @@ Task-aware full-delivery note:
 
 | Type | Route to | Expected action |
 | --- | --- | --- |
-| `bug` | `migration_upgrade` / `FullstackAgent` | Fix upgrade fallout and re-verify |
-| `design_flaw` | `migration_strategy` / `TechLeadAgent` | Rework upgrade sequencing, compatibility assumptions, or rollback plan |
+| `bug` | `migration_upgrade` / `FullstackAgent` | Fix upgrade fallout and re-review |
+| `design_flaw` | `migration_strategy` / `SolutionLead` | Rework upgrade sequencing, compatibility assumptions, or rollback plan |
 | `requirement_gap` | `full_intake` / `MasterOrchestrator` | Escalate into full delivery because the issue is no longer primarily technical migration work |
 
 Migration mode treats compatibility or upgrade-path mistakes as migration-stage work, but it must not absorb product-definition ambiguity.
@@ -77,6 +77,13 @@ Migration-mode guardrail:
 - if migration slice execution is later enabled by the approved strategy, keep slice-level routing subordinate to the migration stage owner and do not absorb product ambiguity into migration-local rework
 
 ## Retry And Escalation
+
+## Review-Specific Finding Classes
+
+- `implementation_issue` -> route as `bug`
+- `solution_issue` -> route as `design_flaw`
+- `product_scope_issue` -> route as `requirement_gap`
+- `migration_parity_issue` -> route as `design_flaw` in `migration`, unless the evidence shows a true implementation-only regression
 
 - Increment `retry_count` when the same issue cycles back after a failed fix
 - In quick mode, repeated `bug` failures still stay in quick mode unless a design or requirement problem is uncovered and the work is no longer safely bounded
