@@ -90,7 +90,7 @@ test('global doctor recommends upgrade for invalid installs', () => {
     stateVersion: 1,
     kit: {
       name: 'OpenKit',
-      version: '0.2.15',
+      version: '0.3.0',
     },
     installation: {
       profile: 'openkit',

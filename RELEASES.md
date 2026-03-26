@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.2.15`](release-notes/0.2.15.md) - conditional parallel execution for full and migration
-- npm latest: `@duypham93/openkit@0.2.15`
-- git tag: `v0.2.15`
+- [`0.3.0`](release-notes/0.3.0.md) - harden runtime governance and add release workflow
+- npm latest: `@duypham93/openkit@0.3.0`
+- git tag: `v0.3.0`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.0`](release-notes/0.3.0.md) - harden runtime governance and add release workflow
 - [`0.2.15`](release-notes/0.2.15.md) - conditional parallel execution for full and migration
 - [`0.2.14`](release-notes/0.2.14.md) - OpenSpec-inspired UX and runtime guidance uplift
 - [`0.2.13`](release-notes/0.2.13.md) - trim published package contents

@@ -81,7 +81,7 @@ test('ensureGlobalInstall returns blocked when install state is invalid', () => 
     stateVersion: 1,
     kit: {
       name: 'OpenKit',
-      version: '0.2.15',
+      version: '0.3.0',
     },
     installation: {
       profile: 'openkit',
