@@ -27,6 +27,20 @@ approval_gate: tech_lead_to_fullstack
 - Validation:
 - Notes:
 
+## Parallelization Assessment
+
+- parallel_mode: `none | limited | enabled`
+- why:
+- safe_parallel_zones:
+- sequential_constraints:
+- integration_checkpoint:
+- max_active_execution_tracks:
+
+## Task Allocation Rules
+
+- Mark each implementation task with a concurrency class: `exclusive`, `parallel_limited`, or `parallel_safe`.
+- Record shared artifacts, risky integration surfaces, and the checkpoint that must run before feature QA.
+
 ## Risks
 
 ## Rollback Notes

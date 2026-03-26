@@ -9,6 +9,7 @@ Current runbooks:
 - `openkit-daily-usage.md`: practical day-to-day operator flow for the checked-in runtime
 - `cross-platform-validation.md`: repeatable Linux, macOS, and Windows validation checklist for the supported global OpenKit path
 - `cross-platform-validation-checklist.md`: tick-box matrix for recording Linux, macOS, and Windows validation results
+- `tech-lead-task-decomposition.md`: Tech Lead guidance for deciding when full-delivery or migration work can use parallel execution safely
 - `workflow-state-smoke-tests.md`: repeatable smoke checks for runtime and wrapper-related surfaces
 
 Related reusable migration checklists live under `docs/templates/`:

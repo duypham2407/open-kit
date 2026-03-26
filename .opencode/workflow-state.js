@@ -8,13 +8,17 @@ const {
   advanceStage,
   clearIssues,
   claimTask,
+  claimMigrationSlice,
   createTask,
+  createMigrationSlice,
   createWorkItem,
   getProfile,
   getWorkItemCloseoutSummary,
   getRuntimeStatus,
   getVersionInfo,
+  integrationCheck,
   linkArtifact,
+  listMigrationSlices,
   listTasks,
   listWorkItems,
   listProfiles,
@@ -27,7 +31,10 @@ const {
   runDoctor,
   scaffoldAndLinkArtifact,
   selectActiveWorkItem,
+  assignMigrationQaOwner,
   assignQaOwner,
+  setParallelization,
+  setMigrationSliceStatus,
   setRoutingProfile,
   setTaskStatus,
   setApproval,
@@ -36,6 +43,8 @@ const {
   syncInstallManifest,
   startFeature,
   startTask,
+  validateMigrationSliceBoardForWorkItem,
+  validateTaskAllocation,
   validateWorkItemBoard,
   validateState,
 } = require("./lib/workflow-state-controller")
@@ -65,14 +74,23 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] link-artifact <kind> <path>
   node .opencode/workflow-state.js [--state <path>] scaffold-artifact <task_card|plan|migration_report> <slug>
   node .opencode/workflow-state.js [--state <path>] set-routing-profile <work_intent> <behavior_delta> <dominant_uncertainty> <scope_shape> <selection_reason>
+  node .opencode/workflow-state.js [--state <path>] set-parallelization <parallel_mode> [why] [integration_checkpoint] [max_active_execution_tracks]
   node .opencode/workflow-state.js [--state <path>] list-tasks <work_item_id>
   node .opencode/workflow-state.js [--state <path>] create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]
+  node .opencode/workflow-state.js [--state <path>] validate-task-allocation <work_item_id>
+  node .opencode/workflow-state.js [--state <path>] integration-check <work_item_id>
   node .opencode/workflow-state.js [--state <path>] claim-task <work_item_id> <task_id> <owner> <requested_by>
   node .opencode/workflow-state.js [--state <path>] release-task <work_item_id> <task_id> <requested_by>
   node .opencode/workflow-state.js [--state <path>] reassign-task <work_item_id> <task_id> <owner> <requested_by>
   node .opencode/workflow-state.js [--state <path>] assign-qa-owner <work_item_id> <task_id> <qa_owner> <requested_by>
   node .opencode/workflow-state.js [--state <path>] set-task-status <work_item_id> <task_id> <status>
   node .opencode/workflow-state.js [--state <path>] validate-work-item-board <work_item_id>
+  node .opencode/workflow-state.js [--state <path>] list-migration-slices <work_item_id>
+  node .opencode/workflow-state.js [--state <path>] create-migration-slice <work_item_id> <slice_id> <title> <kind>
+  node .opencode/workflow-state.js [--state <path>] claim-migration-slice <work_item_id> <slice_id> <owner> <requested_by>
+  node .opencode/workflow-state.js [--state <path>] assign-migration-qa-owner <work_item_id> <slice_id> <qa_owner> <requested_by>
+  node .opencode/workflow-state.js [--state <path>] set-migration-slice-status <work_item_id> <slice_id> <status>
+  node .opencode/workflow-state.js [--state <path>] validate-migration-slice-board <work_item_id>
   node .opencode/workflow-state.js [--state <path>] record-issue <issue_id> <title> <type> <severity> <rooted_in> <recommended_owner> <evidence> <artifact_refs>
   node .opencode/workflow-state.js [--state <path>] clear-issues
   node .opencode/workflow-state.js [--state <path>] route-rework <issue_type> [repeat_failed_fix=true|false]`)
@@ -128,6 +146,10 @@ function printRuntimeTaskContext(context) {
 
   if (Array.isArray(context.artifactReadinessLines) && context.artifactReadinessLines.length > 0) {
     console.log(`artifact readiness: ${context.artifactReadinessLines.join(" | ")}`)
+  }
+
+  if (context.parallelization?.parallel_mode) {
+    console.log(`parallel mode: ${context.parallelization.parallel_mode}`)
   }
 }
 
@@ -216,6 +238,13 @@ function printTasks(result) {
   }
 }
 
+function printMigrationSlices(result) {
+  console.log(`Migration slices for ${result.workItemId}:`)
+  for (const slice of result.slices) {
+    console.log(`${slice.slice_id} | ${slice.status} | ${slice.kind} | ${slice.title}`)
+  }
+}
+
 function printCloseoutSummary(result) {
   console.log(`Work item: ${result.workItemId}`)
   console.log(`ready to close: ${result.readyToClose ? "yes" : "no"}`)
@@ -244,6 +273,18 @@ function printReconcileReport(result) {
   }
   for (const item of result.workItems) {
     console.log(`- ${item.workItemId}: ${item.readyToClose ? "ready" : "needs attention"}`)
+  }
+}
+
+function printTaskAllocation(result) {
+  console.log(`Task allocation is valid for work item '${result.workItemId}'`)
+  console.log(`active execution tasks: ${result.activeTasks.length}`)
+}
+
+function printIntegrationCheck(result) {
+  console.log(`Integration ready: ${result.integrationReady ? "yes" : "no"}`)
+  if (result.incompleteTasks.length > 0) {
+    console.log(`incomplete tasks: ${result.incompleteTasks.map((task) => task.task_id).join(", ")}`)
   }
 }
 
@@ -442,6 +483,11 @@ async function main() {
       console.log(`Updated routing profile for mode '${result.state.mode}'`)
       console.log(`State file: ${result.statePath}`)
       return
+    case "set-parallelization":
+      result = setParallelization(rest[0], rest[1] ?? null, rest[2] ?? null, rest[3] ?? null, statePath)
+      console.log(`Updated parallelization for mode '${result.state.mode}' to '${result.state.parallelization.parallel_mode}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
     case "list-tasks":
       result = listTasks(rest[0], statePath)
       printTasks(result)
@@ -462,11 +508,21 @@ async function main() {
                 },
               }
             : {}),
+          concurrency_class: rest[6] ?? "parallel_safe",
         },
         statePath,
       )
       console.log(`Created task '${rest[1]}' on work item '${rest[0]}'`)
       console.log(`State file: ${result.statePath}`)
+      return
+    case "validate-task-allocation":
+      result = validateTaskAllocation(rest[0], statePath)
+      printTaskAllocation(result)
+      return
+    case "integration-check":
+      result = integrationCheck(rest[0], statePath)
+      printIntegrationCheck(result)
+      process.exit(result.integrationReady ? 0 : 1)
       return
     case "claim-task":
       result = claimTask(rest[0], rest[1], rest[2], statePath, {
@@ -504,6 +560,47 @@ async function main() {
     case "validate-work-item-board":
       result = validateWorkItemBoard(rest[0], statePath)
       console.log(`Task board is valid for work item '${result.workItemId}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "list-migration-slices":
+      result = listMigrationSlices(rest[0], statePath)
+      printMigrationSlices(result)
+      return
+    case "create-migration-slice":
+      result = createMigrationSlice(
+        rest[0],
+        {
+          slice_id: rest[1],
+          title: rest[2],
+          kind: rest[3],
+        },
+        statePath,
+      )
+      console.log(`Created migration slice '${rest[1]}' on work item '${rest[0]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "claim-migration-slice":
+      result = claimMigrationSlice(rest[0], rest[1], rest[2], statePath, {
+        requestedBy: requireArgument(rest[3], "<requested_by>", "claim-migration-slice"),
+      })
+      console.log(`Claimed migration slice '${rest[1]}' for '${rest[2]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "assign-migration-qa-owner":
+      result = assignMigrationQaOwner(rest[0], rest[1], rest[2], statePath, {
+        requestedBy: requireArgument(rest[3], "<requested_by>", "assign-migration-qa-owner"),
+      })
+      console.log(`Assigned migration QA owner '${rest[2]}' to slice '${rest[1]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "set-migration-slice-status":
+      result = setMigrationSliceStatus(rest[0], rest[1], rest[2], statePath)
+      console.log(`Updated migration slice '${rest[1]}' to '${rest[2]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "validate-migration-slice-board":
+      result = validateMigrationSliceBoardForWorkItem(rest[0], statePath)
+      console.log(`Migration slice board is valid for work item '${result.workItemId}'`)
       console.log(`State file: ${result.statePath}`)
       return
     case "record-issue":

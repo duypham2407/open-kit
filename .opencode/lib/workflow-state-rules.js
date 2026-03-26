@@ -102,6 +102,7 @@ const TRANSITION_GATES = {
 }
 
 const STATUS_VALUES = ["idle", "in_progress", "blocked", "done"]
+const PARALLEL_MODES = ["none", "limited", "enabled"]
 
 const ARTIFACT_KINDS = ["task_card", "brief", "spec", "architecture", "plan", "migration_report", "qa_report", "adr"]
 
@@ -143,6 +144,17 @@ function createEmptyArtifacts() {
     migration_report: null,
     qa_report: null,
     adr: [],
+  }
+}
+
+function createDefaultParallelization(mode) {
+  return {
+    parallel_mode: mode === "quick" ? "none" : "none",
+    why: null,
+    safe_parallel_zones: [],
+    sequential_constraints: [],
+    integration_checkpoint: null,
+    max_active_execution_tracks: null,
   }
 }
 
@@ -328,4 +340,6 @@ module.exports = {
   getNextStage,
   getReworkRoute,
   getTransitionGate,
+  PARALLEL_MODES,
+  createDefaultParallelization,
 }

@@ -52,6 +52,8 @@ const FULL_QA_ALLOWED_STATUSES = new Set([
   "cancelled",
 ])
 
+const CONCURRENCY_CLASSES = new Set(["exclusive", "parallel_limited", "parallel_safe"])
+
 const TRANSITIONS = new Map([
   ["queued", new Set(["ready", "cancelled"])],
   ["ready", new Set(["claimed", "cancelled"])],
@@ -98,6 +100,10 @@ function validateTaskShape(task) {
     fail("Task must be an object")
   }
 
+  if (!("concurrency_class" in task) || task.concurrency_class === undefined || task.concurrency_class === null) {
+    task.concurrency_class = "parallel_safe"
+  }
+
   for (const [field, kind] of Object.entries(REQUIRED_TASK_FIELDS)) {
     if (!(field in task) || task[field] === undefined) {
       fail(`Task is missing required field '${field}'`)
@@ -134,6 +140,11 @@ function validateTaskShape(task) {
   }
 
   validateTaskStatus(task.status)
+
+  if (!CONCURRENCY_CLASSES.has(task.concurrency_class)) {
+    fail(`Task field 'concurrency_class' must be one of: ${[...CONCURRENCY_CLASSES].join(", ")}`)
+  }
+
   return task
 }
 

@@ -196,6 +196,10 @@ function getArtifactReadiness(state) {
   return getArtifactRulesForMode(state.mode).map((rule) => summarizeArtifactState(rule, state))
 }
 
+function getParallelizationSummary(state) {
+  return state?.parallelization ?? null
+}
+
 function summarizeArtifactReadinessLines(state) {
   return getArtifactReadiness(state).map((entry) => `${entry.artifact}: ${entry.status}`)
 }
@@ -235,5 +239,6 @@ module.exports = {
   flattenArtifactRefs,
   getArtifactReadiness,
   getNextAction,
+  getParallelizationSummary,
   summarizeArtifactReadinessLines,
 }

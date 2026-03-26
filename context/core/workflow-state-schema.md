@@ -174,6 +174,31 @@ Task-board location and scope:
 - full-delivery task boards are stored in `.opencode/work-items/<work_item_id>/tasks.json`
 - task-board fields are validated by runtime code and work-item-board commands rather than being embedded into `.opencode/workflow-state.json`
 
+Planned bounded parallelism note in the live contract:
+
+- full-delivery task boards are conditionally parallel and only after planning blesses them
+- migration slice boards are strategy-driven and remain distinct from full-delivery task boards
+- singleton role stages remain singleton even when worker pools are active later
+
+## Parallelization Metadata
+
+Work-item state may carry a `parallelization` object for migration and full modes. When absent, runtime behavior defaults to sequential execution.
+
+Expected shape:
+
+- `parallel_mode`: `none` | `limited` | `enabled`
+- `why`: string
+- `safe_parallel_zones`: array of strings
+- `sequential_constraints`: array of strings
+- `integration_checkpoint`: string or null
+- `max_active_execution_tracks`: number or null
+
+Rules:
+
+- `quick` mode must always use `parallel_mode = none`
+- `migration` and `full` may use `none`, `limited`, or `enabled`
+- absence of the object means sequential execution
+
 ## Approvals Shape
 
 Approval entries use the canonical shape:

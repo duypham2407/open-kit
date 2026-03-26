@@ -239,7 +239,7 @@ test("status command prints workflow and runtime summary", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /OpenKit runtime status:/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.13/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.2\.14/)
   assert.match(result.stdout, /entry agent: MasterOrchestrator/)
   assert.match(result.stdout, /active profile: openkit-core/)
   assert.match(result.stdout, /registry: .*registry\.json/)
@@ -577,7 +577,7 @@ test("version command prints kit metadata version", () => {
   })
 
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /OpenKit version: 0\.2\.13/)
+  assert.match(result.stdout, /OpenKit version: 0\.2\.14/)
   assert.match(result.stdout, /active profile: openkit-core/)
 })
 
@@ -951,6 +951,10 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
 
   moveFullWorkItemToPlan(projectRoot, "feature-900")
 
+  result = runCli(projectRoot, ["set-parallelization", "limited", "Parallel implementation approved", "integration smoke", "2"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Updated parallelization for mode 'full' to 'limited'/)
+
   result = runCli(projectRoot, ["list-work-items"])
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Active work item: feature-900/)
@@ -972,6 +976,10 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
   ])
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Created task 'TASK-900' on work item 'feature-900'/)
+
+  result = runCli(projectRoot, ["validate-task-allocation", "feature-900"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Task allocation is valid for work item 'feature-900'/)
 
   result = runCli(projectRoot, ["list-tasks", "feature-900"])
   assert.equal(result.status, 0)
@@ -1033,6 +1041,10 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Task board is valid for work item 'feature-900'/)
 
+  result = runCli(projectRoot, ["integration-check", "feature-900"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Integration ready: yes/)
+
   result = runCli(projectRoot, ["closeout-summary", "feature-900"])
   assert.equal(result.status, 1)
   assert.equal(result.stderr, '')
@@ -1042,6 +1054,57 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
   assert.equal(result.status, 1)
   assert.match(result.stdout, /Work items checked: 1/)
   assert.match(result.stdout, /all ready to close: no/)
+})
+
+test("CLI migration slice commands require explicit strategy blessing", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, [
+    "create-work-item",
+    "migration",
+    "MIGRATE-950",
+    "parallel-migration",
+    "Parallel migration setup",
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "TechLeadAgent"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-parallelization", "limited", "Safe migration slices", "parity smoke", "2"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["create-migration-slice", "migrate-950", "SLICE-1", "Adapter seam", "compatibility"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Created migration slice 'SLICE-1'/)
+
+  result = runCli(projectRoot, ["list-migration-slices", "migrate-950"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Migration slices for migrate-950/)
+  assert.match(result.stdout, /SLICE-1 \| ready \| compatibility \| Adapter seam/)
+
+  result = runCli(projectRoot, ["claim-migration-slice", "migrate-950", "SLICE-1", "FullstackAgent", "TechLeadAgent"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Claimed migration slice 'SLICE-1'/)
+
+  result = runCli(projectRoot, ["assign-migration-qa-owner", "migrate-950", "SLICE-1", "QAAgent", "TechLeadAgent"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-migration-slice-status", "migrate-950", "SLICE-1", "in_progress"])
+  assert.equal(result.status, 0)
+  result = runCli(projectRoot, ["set-migration-slice-status", "migrate-950", "SLICE-1", "parity_ready"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["validate-migration-slice-board", "migrate-950"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Migration slice board is valid for work item 'migrate-950'/)
 })
 
 test("CLI rejects quick items carrying task data through managed validation", () => {

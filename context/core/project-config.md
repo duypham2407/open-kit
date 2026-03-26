@@ -65,12 +65,20 @@ These are repository workflow commands, not application build/lint/test commands
 - `node .opencode/workflow-state.js scaffold-artifact <task_card|plan|migration_report> <slug>`
 - `node .opencode/workflow-state.js list-tasks <work_item_id>`
 - `node .opencode/workflow-state.js create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`
+- `node .opencode/workflow-state.js validate-task-allocation <work_item_id>`
+- `node .opencode/workflow-state.js integration-check <work_item_id>`
 - `node .opencode/workflow-state.js claim-task <work_item_id> <task_id> <owner> <requested_by>`
 - `node .opencode/workflow-state.js release-task <work_item_id> <task_id> <requested_by>`
 - `node .opencode/workflow-state.js reassign-task <work_item_id> <task_id> <owner> <requested_by>`
 - `node .opencode/workflow-state.js assign-qa-owner <work_item_id> <task_id> <qa_owner> <requested_by>`
 - `node .opencode/workflow-state.js set-task-status <work_item_id> <task_id> <status>`
 - `node .opencode/workflow-state.js validate-work-item-board <work_item_id>`
+- `node .opencode/workflow-state.js create-migration-slice <work_item_id> <slice_id> <title> <kind>`
+- `node .opencode/workflow-state.js list-migration-slices <work_item_id>`
+- `node .opencode/workflow-state.js claim-migration-slice <work_item_id> <slice_id> <owner> <requested_by>`
+- `node .opencode/workflow-state.js assign-migration-qa-owner <work_item_id> <slice_id> <qa_owner> <requested_by>`
+- `node .opencode/workflow-state.js set-migration-slice-status <work_item_id> <slice_id> <status>`
+- `node .opencode/workflow-state.js validate-migration-slice-board <work_item_id>`
 - `node .opencode/workflow-state.js record-issue <issue_id> <title> <type> <severity> <rooted_in> <recommended_owner> <evidence> <artifact_refs>`
 - `node .opencode/workflow-state.js clear-issues`
 - `node .opencode/workflow-state.js route-rework <issue_type> [repeat_failed_fix]`
@@ -90,6 +98,7 @@ Current workflow-state behavior:
 - `start-task` is the preferred explicit entrypoint for new mode-aware state.
 - `create-work-item`, `list-work-items`, `show-work-item`, and `activate-work-item` are the live work-item coordination commands.
 - `list-tasks`, `create-task`, `claim-task`, `release-task`, `reassign-task`, `assign-qa-owner`, `set-task-status`, and `validate-work-item-board` are the live full-delivery task-board commands.
+- `validate-task-allocation` and `integration-check` are the bounded full-delivery parallel-safety helpers for implementation and QA coordination.
 - `scaffold-artifact` is a narrow helper for creating and linking `task_card`, `plan`, and `migration_report` artifacts from checked-in templates.
 - `set-routing-profile` updates the explicit routing metadata used to justify and validate lane selection.
 - `task_card` scaffolding requires `quick` mode and is intentionally allowed as optional traceability in the quick lane.
@@ -97,6 +106,7 @@ Current workflow-state behavior:
 - `migration_report` scaffolding requires `migration` mode at `migration_baseline` or `migration_strategy` and is intended for one-file migration tracking.
 - `doctor` now checks active-work-item pointer integrity, compatibility-mirror alignment, and task-board validity when the active full-delivery stage depends on a task board.
 - Task-board support is bounded: only full-delivery work items may use it, and it does not imply unrestricted parallel safety outside the validated command surface.
+- Migration remains sequential by default; migration slice execution, when enabled, is strategy-driven and parity-oriented rather than a copy of the full-delivery task board.
 
 ## Global Kit Contract
 

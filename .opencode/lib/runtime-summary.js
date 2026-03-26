@@ -2,7 +2,7 @@ const fs = require("fs")
 const path = require("path")
 
 const { readWorkItemIndex, resolveWorkItemPaths } = require("./work-item-store")
-const { getArtifactReadiness, getNextAction, summarizeArtifactReadinessLines } = require("./runtime-guidance")
+const { getArtifactReadiness, getNextAction, getParallelizationSummary, summarizeArtifactReadinessLines } = require("./runtime-guidance")
 
 const ACTIVE_TASK_STATUSES = new Set(["claimed", "in_progress", "qa_in_progress"])
 
@@ -79,6 +79,7 @@ function getRuntimeContext(projectRoot, state) {
     nextAction: getNextAction(state),
     artifactReadiness,
     artifactReadinessLines: summarizeArtifactReadinessLines(state),
+    parallelization: getParallelizationSummary(state),
   }
 }
 

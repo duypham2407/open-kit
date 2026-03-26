@@ -26,6 +26,7 @@ const {
   ISSUE_SEVERITIES,
   ISSUE_TYPES,
   MODE_VALUES,
+  PARALLEL_MODES,
   RECOMMENDED_OWNERS,
   ROOTED_IN_VALUES,
   ROUTING_BEHAVIOR_DELTA_VALUES,
@@ -38,6 +39,7 @@ const {
   createDefaultRoutingProfile,
   createEmptyApprovals,
   createEmptyArtifacts,
+  createDefaultParallelization,
   getApprovalGatesForMode,
   getInitialStageForMode,
   getModeForStage,
@@ -56,6 +58,12 @@ const {
   validateWorktreeMetadata,
 } = require("./parallel-execution-rules")
 const { validateTaskBoard, validateTaskShape, validateTaskStatus, validateTaskTransition } = require("./task-board-rules")
+const {
+  validateMigrationSliceBoard,
+  validateMigrationSliceShape,
+  validateMigrationSliceStatus,
+  validateMigrationSliceTransition,
+} = require("./migration-slice-rules")
 const { flattenArtifactRefs, getArtifactReadiness, getNextAction } = require("./runtime-guidance")
 
 function fail(message) {
@@ -277,11 +285,45 @@ function writeTaskBoard(projectRoot, workItemId, board) {
   return board
 }
 
+function getMigrationSliceBoardPath(projectRoot, workItemId) {
+  return path.join(resolveWorkItemPaths(projectRoot, workItemId).workItemDir, "migration-slices.json")
+}
+
+function readMigrationSliceBoardIfExists(projectRoot, workItemId) {
+  const boardPath = getMigrationSliceBoardPath(projectRoot, workItemId)
+  if (!fs.existsSync(boardPath)) {
+    return null
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(boardPath, "utf8"))
+  } catch (error) {
+    fail(`Malformed JSON at '${boardPath}': ${error.message}`)
+  }
+}
+
+function writeMigrationSliceBoard(projectRoot, workItemId, board) {
+  const boardPath = getMigrationSliceBoardPath(projectRoot, workItemId)
+  fs.mkdirSync(path.dirname(boardPath), { recursive: true })
+  fs.writeFileSync(boardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
+  return board
+}
+
 function buildBoardView(state, board) {
   return {
     mode: state.mode,
     current_stage: state.current_stage,
     tasks: board?.tasks ?? [],
+    issues: board?.issues ?? [],
+  }
+}
+
+function buildMigrationSliceBoardView(state, board) {
+  return {
+    mode: state.mode,
+    current_stage: state.current_stage,
+    parallel_mode: state.parallelization?.parallel_mode ?? "none",
+    slices: board?.slices ?? [],
     issues: board?.issues ?? [],
   }
 }
@@ -308,6 +350,12 @@ function requireFullModeWorkItem(state, workItemId) {
   }
 }
 
+function requireMigrationModeWorkItem(state, workItemId) {
+  if (state.mode !== "migration") {
+    fail(`Work item '${workItemId}' must be in migration mode to use migration slices`)
+  }
+}
+
 function isTaskBoardStageAllowed(stage) {
   return ["full_plan", "full_implementation", "full_qa", "full_done"].includes(stage)
 }
@@ -316,6 +364,14 @@ function requireTaskBoardStage(state, workItemId, action = "use a task board") {
   if (!isTaskBoardStageAllowed(state.current_stage)) {
     fail(
       `Work item '${workItemId}' must reach 'full_plan' before it can ${action}; current stage is '${state.current_stage}'`,
+    )
+  }
+}
+
+function requireMigrationSliceBoardStage(state, workItemId, action = "use migration slices") {
+  if (!["migration_strategy", "migration_upgrade", "migration_verify", "migration_done"].includes(state.current_stage)) {
+    fail(
+      `Work item '${workItemId}' must reach 'migration_strategy' before it can ${action}; current stage is '${state.current_stage}'`,
     )
   }
 }
@@ -331,6 +387,16 @@ function buildBoardForValidation(state, board) {
   }
 }
 
+function buildMigrationBoardForValidation(state, board) {
+  return {
+    ...board,
+    mode: state.mode,
+    current_stage: state.current_stage,
+    parallel_mode: state.parallelization?.parallel_mode ?? "none",
+    issues: board.issues ?? [],
+  }
+}
+
 function withTaskBoard(workItemId, customStatePath, mutator) {
   const context = readWorkItemContext(workItemId, customStatePath)
   const { state, projectRoot } = context
@@ -342,6 +408,24 @@ function withTaskBoard(workItemId, customStatePath, mutator) {
   const nextBoard = mutator(JSON.parse(JSON.stringify(baseBoard)), context)
   const validatedBoard = validateTaskBoard(buildBoardForValidation(state, nextBoard))
   writeTaskBoard(projectRoot, workItemId, validatedBoard)
+
+  return {
+    ...context,
+    board: validatedBoard,
+  }
+}
+
+function withMigrationSliceBoard(workItemId, customStatePath, mutator) {
+  const context = readWorkItemContext(workItemId, customStatePath)
+  const { state, projectRoot } = context
+  requireMigrationModeWorkItem(state, workItemId)
+  requireMigrationSliceBoardStage(state, workItemId)
+
+  const existingBoard = readMigrationSliceBoardIfExists(projectRoot, workItemId)
+  const baseBoard = buildMigrationSliceBoardView(state, existingBoard)
+  const nextBoard = mutator(JSON.parse(JSON.stringify(baseBoard)), context)
+  const validatedBoard = validateMigrationSliceBoard(buildMigrationBoardForValidation(state, nextBoard))
+  writeMigrationSliceBoard(projectRoot, workItemId, validatedBoard)
 
   return {
     ...context,
@@ -375,6 +459,7 @@ function buildTaskRecord(taskInput) {
     title: taskInput.title,
     summary: taskInput.summary ?? taskInput.title,
     kind: taskInput.kind,
+    concurrency_class: taskInput.concurrency_class ?? "parallel_safe",
     status: taskInput.status ?? "ready",
     primary_owner: taskInput.primary_owner ?? null,
     qa_owner: taskInput.qa_owner ?? null,
@@ -389,13 +474,64 @@ function buildTaskRecord(taskInput) {
   })
 }
 
+function buildMigrationSliceRecord(sliceInput) {
+  ensureObject(sliceInput, "migration slice")
+  ensureString(sliceInput.slice_id, "migration_slice.slice_id")
+  ensureString(sliceInput.title, "migration_slice.title")
+  ensureString(sliceInput.kind, "migration_slice.kind")
+
+  const now = timestamp()
+
+  return validateMigrationSliceShape({
+    slice_id: sliceInput.slice_id,
+    title: sliceInput.title,
+    summary: sliceInput.summary ?? sliceInput.title,
+    kind: sliceInput.kind,
+    status: sliceInput.status ?? "ready",
+    primary_owner: sliceInput.primary_owner ?? null,
+    qa_owner: sliceInput.qa_owner ?? null,
+    depends_on: sliceInput.depends_on ?? [],
+    blocked_by: sliceInput.blocked_by ?? [],
+    artifact_refs: sliceInput.artifact_refs ?? [],
+    preserved_invariants: sliceInput.preserved_invariants ?? [],
+    compatibility_risks: sliceInput.compatibility_risks ?? [],
+    verification_targets: sliceInput.verification_targets ?? [],
+    rollback_notes: sliceInput.rollback_notes ?? [],
+    created_by: sliceInput.created_by ?? "TechLeadAgent",
+    created_at: sliceInput.created_at ?? now,
+    updated_at: sliceInput.updated_at ?? now,
+  })
+}
+
 function validateManagedState(state, projectRoot, workItemId, options = {}) {
   const taskBoard = readTaskBoardIfExists(projectRoot, workItemId)
+  const migrationSliceBoard = readMigrationSliceBoardIfExists(projectRoot, workItemId)
+  const effectiveParallelization = state.parallelization ?? createDefaultParallelization(state.mode)
 
   if (state.mode !== "full") {
     if (taskBoard !== null) {
       fail(`${formatModeLabel(state.mode)} mode cannot carry a task board; task boards are full-delivery only`)
     }
+  }
+
+  if (state.mode !== "migration" && migrationSliceBoard !== null) {
+    fail(`${formatModeLabel(state.mode)} mode cannot carry a migration slice board; migration slice boards are migration-only`)
+  }
+
+  if (state.mode === "migration" && migrationSliceBoard !== null) {
+    requireMigrationSliceBoardStage(state, workItemId, "carry migration slices")
+    validateMigrationSliceBoard(
+      buildMigrationBoardForValidation(
+        {
+          ...state,
+          parallelization: effectiveParallelization,
+        },
+        migrationSliceBoard,
+      ),
+    )
+  }
+
+  if (state.mode !== "full") {
     return null
   }
 
@@ -434,6 +570,13 @@ function requireValidTaskBoard(state, projectRoot, workItemId, boardStage, reaso
     mode: state.mode,
     current_stage: boardStage,
   })
+
+  if (effectiveParallelization.parallel_mode === "none") {
+    const activeTasks = (taskBoard.tasks ?? []).filter((task) => ["claimed", "in_progress", "qa_ready", "qa_in_progress"].includes(task.status))
+    if (activeTasks.length > 1) {
+      fail("parallel_mode 'none' does not allow multiple active execution tasks")
+    }
+  }
 }
 
 function readJsonIfExists(filePath) {
@@ -765,6 +908,46 @@ function validateArtifactSignatureForMode(mode, artifacts) {
   }
 }
 
+function validateParallelization(parallelization, mode) {
+  if (parallelization === null || parallelization === undefined) {
+    parallelization = createDefaultParallelization(mode)
+  }
+
+  ensureObject(parallelization, "parallelization")
+
+  for (const key of [
+    "parallel_mode",
+    "why",
+    "safe_parallel_zones",
+    "sequential_constraints",
+    "integration_checkpoint",
+    "max_active_execution_tracks",
+  ]) {
+    if (!(key in parallelization)) {
+      fail(`parallelization.${key} is required`)
+    }
+  }
+
+  ensureKnown(parallelization.parallel_mode, PARALLEL_MODES, "parallelization.parallel_mode")
+  ensureNullableString(parallelization.why, "parallelization.why")
+  ensureArray(parallelization.safe_parallel_zones, "parallelization.safe_parallel_zones")
+  ensureArray(parallelization.sequential_constraints, "parallelization.sequential_constraints")
+  ensureNullableString(parallelization.integration_checkpoint, "parallelization.integration_checkpoint")
+
+  if (
+    parallelization.max_active_execution_tracks !== null &&
+    (typeof parallelization.max_active_execution_tracks !== "number" ||
+      Number.isNaN(parallelization.max_active_execution_tracks) ||
+      parallelization.max_active_execution_tracks < 1)
+  ) {
+    fail("parallelization.max_active_execution_tracks must be a positive number or null")
+  }
+
+  if (mode === "quick" && parallelization.parallel_mode !== "none") {
+    fail("parallelization.parallel_mode must be 'none' in quick mode")
+  }
+}
+
 function validateApprovals(mode, approvals) {
   ensureObject(approvals, "approvals")
 
@@ -820,8 +1003,12 @@ function validateStateObject(state, options = {}) {
 
   ensureKnown(state.mode, MODE_VALUES, "mode")
   ensureString(state.mode_reason, "mode_reason")
+  if (!("parallelization" in state) || state.parallelization === undefined) {
+    state.parallelization = createDefaultParallelization(state.mode)
+  }
   validateRoutingProfile(state.routing_profile)
   validateRoutingProfileForMode(state.mode, state.routing_profile)
+  validateParallelization(state.parallelization, state.mode)
   ensureKnown(state.current_stage, STAGE_SEQUENCE, "current_stage")
   ensureKnown(state.status, STATUS_VALUES, "status")
 
@@ -876,6 +1063,7 @@ function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason
     mode,
     mode_reason: modeReason,
     routing_profile: createDefaultRoutingProfile(mode, modeReason),
+    parallelization: createDefaultParallelization(mode),
     current_stage: initialStage,
     status: "in_progress",
     current_owner: STAGE_OWNERS[initialStage],
@@ -1072,6 +1260,20 @@ function listTasks(workItemId, customStatePath) {
   }
 }
 
+function listMigrationSlices(workItemId, customStatePath) {
+  const context = readWorkItemContext(workItemId, customStatePath)
+  const { state, projectRoot } = context
+  requireMigrationModeWorkItem(state, workItemId)
+  requireMigrationSliceBoardStage(state, workItemId, "view migration slices")
+
+  const board = buildMigrationSliceBoardView(state, readMigrationSliceBoardIfExists(projectRoot, workItemId))
+  return {
+    ...context,
+    board,
+    slices: board.slices,
+  }
+}
+
 function createTask(workItemId, taskInput, customStatePath) {
   return withTaskBoard(workItemId, customStatePath, (board) => {
     const task = buildTaskRecord(taskInput)
@@ -1081,6 +1283,19 @@ function createTask(workItemId, taskInput, customStatePath) {
     }
 
     board.tasks.push(task)
+    return board
+  })
+}
+
+function createMigrationSlice(workItemId, sliceInput, customStatePath) {
+  return withMigrationSliceBoard(workItemId, customStatePath, (board) => {
+    const slice = buildMigrationSliceRecord(sliceInput)
+
+    if (board.slices.some((entry) => entry.slice_id === slice.slice_id)) {
+      fail(`Duplicate migration slice id '${slice.slice_id}' in migration slice board`)
+    }
+
+    board.slices.push(slice)
     return board
   })
 }
@@ -1172,6 +1387,72 @@ function releaseTask(workItemId, taskId, customStatePath, options = {}) {
   })
 }
 
+function claimMigrationSlice(workItemId, sliceId, owner, customStatePath, options = {}) {
+  ensureString(owner, "owner")
+
+  return withMigrationSliceBoard(workItemId, customStatePath, (board) => {
+    const slice = board.slices.find((entry) => entry.slice_id === sliceId)
+    if (!slice) {
+      fail(`Unknown migration slice '${sliceId}'`)
+    }
+
+    if (slice.primary_owner && slice.primary_owner !== owner) {
+      fail("Implicit reassignment is not allowed; define a new migration owner explicitly through strategy coordination")
+    }
+
+    validateReassignmentAuthority({
+      task: { task_id: slice.slice_id, primary_owner: slice.primary_owner },
+      ownerField: "primary_owner",
+      requestedBy: options.requestedBy,
+      nextOwner: owner,
+    })
+
+    validateMigrationSliceTransition(slice, "claimed")
+    slice.primary_owner = owner
+    slice.status = "claimed"
+    slice.updated_at = timestamp()
+    return board
+  })
+}
+
+function assignMigrationQaOwner(workItemId, sliceId, qaOwner, customStatePath, options = {}) {
+  ensureString(qaOwner, "qa_owner")
+
+  return withMigrationSliceBoard(workItemId, customStatePath, (board) => {
+    const slice = board.slices.find((entry) => entry.slice_id === sliceId)
+    if (!slice) {
+      fail(`Unknown migration slice '${sliceId}'`)
+    }
+
+    validateReassignmentAuthority({
+      task: { task_id: slice.slice_id, qa_owner: slice.qa_owner },
+      ownerField: "qa_owner",
+      requestedBy: options.requestedBy,
+      nextOwner: qaOwner,
+    })
+
+    slice.qa_owner = qaOwner
+    slice.updated_at = timestamp()
+    return board
+  })
+}
+
+function setMigrationSliceStatus(workItemId, sliceId, nextStatus, customStatePath) {
+  validateMigrationSliceStatus(nextStatus)
+
+  return withMigrationSliceBoard(workItemId, customStatePath, (board) => {
+    const slice = board.slices.find((entry) => entry.slice_id === sliceId)
+    if (!slice) {
+      fail(`Unknown migration slice '${sliceId}'`)
+    }
+
+    validateMigrationSliceTransition(slice, nextStatus)
+    slice.status = nextStatus
+    slice.updated_at = timestamp()
+    return board
+  })
+}
+
 function setTaskStatus(workItemId, taskId, nextStatus, customStatePath, options = {}) {
   validateTaskStatus(nextStatus)
 
@@ -1249,6 +1530,96 @@ function validateWorkItemBoard(workItemId, customStatePath) {
     ...context,
     board: validateTaskBoard(buildBoardForValidation(state, board)),
   }
+}
+
+function validateMigrationSliceBoardForWorkItem(workItemId, customStatePath) {
+  const context = readWorkItemContext(workItemId, customStatePath)
+  const { state, projectRoot } = context
+  requireMigrationModeWorkItem(state, workItemId)
+  const board = readMigrationSliceBoardIfExists(projectRoot, workItemId)
+
+  if (!board) {
+    fail(`Migration slice board missing for work item '${workItemId}'`)
+  }
+
+  return {
+    ...context,
+    board: validateMigrationSliceBoard(buildMigrationBoardForValidation(state, board)),
+  }
+}
+
+function validateTaskAllocation(workItemId, customStatePath) {
+  const context = validateWorkItemBoard(workItemId, customStatePath)
+  const { state, board } = context
+  const activeTasks = board.tasks.filter((task) => ["claimed", "in_progress", "qa_ready", "qa_in_progress"].includes(task.status))
+  const parallelMode = state.parallelization.parallel_mode
+  const maxTracks = state.parallelization.max_active_execution_tracks
+  const exclusiveActive = activeTasks.filter((task) => task.concurrency_class === "exclusive")
+
+  if (parallelMode === "none" && activeTasks.length > 1) {
+    fail("parallel_mode 'none' allows only one active execution task at a time")
+  }
+
+  if (exclusiveActive.length > 1 || (exclusiveActive.length === 1 && activeTasks.length > 1)) {
+    fail("exclusive tasks cannot run alongside any other active task")
+  }
+
+  if (typeof maxTracks === "number" && activeTasks.length > maxTracks) {
+    fail(`active execution tracks (${activeTasks.length}) exceed max_active_execution_tracks (${maxTracks})`)
+  }
+
+  const artifactUsage = new Map()
+  for (const task of activeTasks) {
+    for (const artifactPath of task.artifact_refs) {
+      const existing = artifactUsage.get(artifactPath)
+      if (existing && existing !== task.task_id) {
+        fail(`active tasks '${existing}' and '${task.task_id}' both claim artifact '${artifactPath}'`)
+      }
+      artifactUsage.set(artifactPath, task.task_id)
+    }
+  }
+
+  return {
+    ...context,
+    activeTasks,
+  }
+}
+
+function integrationCheck(workItemId, customStatePath) {
+  const context = validateTaskAllocation(workItemId, customStatePath)
+  const { board, state } = context
+  const incompleteTasks = board.tasks.filter((task) => !["done", "cancelled", "qa_in_progress", "qa_ready", "dev_done"].includes(task.status))
+
+  return {
+    ...context,
+    incompleteTasks,
+    integrationReady:
+      incompleteTasks.length === 0 &&
+      (state.parallelization.integration_checkpoint === null || typeof state.parallelization.integration_checkpoint === "string"),
+  }
+}
+
+function setParallelization(parallelMode, why, integrationCheckpoint, maxTracks, customStatePath) {
+  ensureKnown(parallelMode, PARALLEL_MODES, "parallelization.parallel_mode")
+
+  return mutate(customStatePath, (state) => {
+    if (state.mode === "quick") {
+      fail("Quick mode does not support parallel execution")
+    }
+
+    state.parallelization = {
+      ...state.parallelization,
+      parallel_mode: parallelMode,
+      why: why ?? null,
+      integration_checkpoint: integrationCheckpoint ?? null,
+      max_active_execution_tracks:
+        maxTracks === null || maxTracks === undefined || maxTracks === ""
+          ? null
+          : Number(maxTracks),
+    }
+
+    return state
+  })
 }
 
 function selectActiveWorkItem(workItemId, customStatePath) {
@@ -1333,6 +1704,7 @@ function getRuntimeStatus(customStatePath) {
     activeProfile: installManifest?.installation?.activeProfile ?? kit.activeProfile ?? "unknown",
     installManifest,
     state,
+    parallelization: state.parallelization,
   }
 }
 
@@ -1772,10 +2144,13 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 
 module.exports = {
   advanceStage,
+  assignMigrationQaOwner,
   assignQaOwner,
   clearIssues,
   claimTask,
+  claimMigrationSlice,
   createTask,
+  createMigrationSlice,
   createWorkItem,
   ESCALATION_RETRY_THRESHOLD,
   getContractConsistencyReport,
@@ -1785,7 +2160,9 @@ module.exports = {
   getWorkItemCloseoutSummary,
   getRuntimeStatus,
   getVersionInfo,
+  integrationCheck,
   linkArtifact,
+  listMigrationSlices,
   listTasks,
   listWorkItems,
   listProfiles,
@@ -1799,6 +2176,8 @@ module.exports = {
   runDoctor,
   scaffoldAndLinkArtifact,
   selectActiveWorkItem,
+  setParallelization,
+  setMigrationSliceStatus,
   setRoutingProfile,
   setTaskStatus,
   setApproval,
@@ -1807,6 +2186,8 @@ module.exports = {
   syncInstallManifest,
   startFeature,
   startTask,
+  validateMigrationSliceBoardForWorkItem,
+  validateTaskAllocation,
   validateWorkItemBoard,
   validateState,
   validateStateObject,

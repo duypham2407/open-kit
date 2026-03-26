@@ -41,6 +41,21 @@ approval_gate: strategy_to_upgrade
 - Rollback checkpoint:
 - Notes:
 
+## Parallelization Assessment
+
+- parallel_mode: `none | limited | enabled`
+- why:
+- safe_parallel_zones:
+- sequential_constraints:
+- integration_checkpoint:
+- max_active_execution_tracks:
+
+## Migration Slice Rules
+
+- Only create parallel slices after the preserved invariants and strategy are stable.
+- Every slice must record preserved invariants, compatibility risks, rollback notes, and parity verification targets.
+- If safe slices cannot be defined cleanly, keep the migration sequential.
+
 ## Compatibility Risks
 
 ## Parity Verification

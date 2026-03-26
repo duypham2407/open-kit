@@ -106,6 +106,9 @@ Implemented full-delivery task-runtime note:
 - task boards belong only to full-delivery work items
 - task-level ownership does not replace the feature-stage owner recorded in workflow state
 - operators must still treat parallel support conservatively and rely only on the runtime checks and commands that exist today
+- full-delivery parallel work is conditional, not automatic; the PM, BA, Architect, and Tech Lead chain must bless a plan that explicitly says parallel execution is safe
+- when the plan does not approve parallel execution, full-delivery work remains sequential even if multiple Fullstack or QA agents are available
+- singleton roles remain singleton: one PM, one BA, one Architect, and one Tech Lead define the work; worker pools apply only to Fullstack and QA execution after planning
 
 ## Migration Lane
 
@@ -146,6 +149,8 @@ Migration mode expectations:
 - verification based on real before/after evidence, smoke tests, builds, type checks, codemods, and regression passes
 - no assumption that the upgrader fully understands legacy logic up front
 - no task board in the current live contract
+- migration parallel execution is conditional, not automatic; baseline and strategy work stay singleton-led and sequential until the migration strategy explicitly blesses safe slices
+- even when parallel migration slices are approved later, one Architect and one Tech Lead still own baseline and strategy as singleton coordination stages
 
 Migration guardrails:
 
@@ -259,6 +264,12 @@ Fullstack → QA → (pass) → full_done
                 → (requirement gap) → full_spec
 ```
 
+Parallel execution rule for full delivery:
+
+- parallel implementation and per-task QA are allowed only after `full_plan` when the implementation plan explicitly records a `Parallelization Assessment`
+- if the plan says `parallel_mode = none`, task tracking may exist for traceability but execution must remain sequential
+- if the plan says `parallel_mode = limited` or `enabled`, the runtime may activate multiple Fullstack or QA owners only within the validated task graph and conflict rules
+
 ### Migration loop
 
 ```
@@ -267,6 +278,12 @@ Fullstack → QA → (pass) → migration_done
                 → (design flaw or compatibility flaw) → migration_strategy
                 → (requirement gap or product ambiguity) → escalate to Full Delivery
 ```
+
+Parallel execution rule for migration:
+
+- migration remains sequential by default
+- migration slices may run in parallel only after `migration_strategy` records a `Parallelization Assessment` that blesses slice-based execution
+- migration parallelism must preserve baseline invariants, rollback checkpoints, and parity verification targets for every approved slice
 
 ## Escalation Rule
 
