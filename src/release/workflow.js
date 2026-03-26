@@ -134,8 +134,15 @@ export function updateReleasesIndex(repoRoot = process.cwd(), version, summary =
   const releasesPath = getReleasePaths(repoRoot).releasesIndexPath;
   const current = readText(releasesPath);
   const entry = `- [\`${version}\`](release-notes/${version}.md) - ${summary}`;
+  const latestBlock = `## Latest\n\n- [\`${version}\`](release-notes/${version}.md) - ${summary}\n- npm latest: \`${PACKAGE_NAME}@${version}\`\n- git tag: \`v${version}\``;
 
-  if (current.includes(`release-notes/${version}.md`)) {
+  let updated = current.replace(/## Latest\n\n- \[`[^`]+`\]\(release-notes\/[0-9.]+\.md\) - .*\n- npm latest: `@duypham93\/openkit@[0-9.]+`\n- git tag: `v[0-9.]+`/, latestBlock);
+
+  if (updated.includes(`release-notes/${version}.md`) && current.includes(`release-notes/${version}.md`)) {
+    if (updated !== current) {
+      writeText(releasesPath, updated);
+      return { updated: true, entry };
+    }
     return { updated: false, entry };
   }
 
@@ -144,7 +151,7 @@ export function updateReleasesIndex(repoRoot = process.cwd(), version, summary =
     throw new Error('Could not find the historical release-notes section in RELEASES.md');
   }
 
-  const updated = current.replace(marker, `${marker}${entry}\n`);
+  updated = updated.replace(marker, `${marker}${entry}\n`);
   writeText(releasesPath, updated);
   return { updated: true, entry };
 }
