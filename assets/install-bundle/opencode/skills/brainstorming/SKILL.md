@@ -22,7 +22,10 @@ Do not force brainstorming when the request is already clear enough for direct s
    - Example: "Who is the primary user of this feature: Admin or Client?"
 
 ### Phase 2: Option Generation
-Once you have enough information (no major open questions remain), do NOT choose a single solution on your own. You must present 2-3 approaches:
+Once you have enough information (no major open questions remain), use judgment:
+
+- if the decision is still genuinely open, present 2-3 materially different approaches
+- if one approach is clearly better given the request and repository context, recommend it directly and state the main trade-off instead of forcing fake options
 
 **Proposal template:**
 ```markdown
@@ -42,10 +45,12 @@ Which direction do you prefer, or do you want to combine ideas from both?
 ```
 
 ### Phase 3: Incremental Design
-After the user chooses an option, design the solution **one part at a time**.
+After the direction is clear, design the solution **one part at a time**.
 - Do not drop one giant design block on the user.
 - For example, design the database first and get feedback. Then design the API and get feedback.
 - Use visual tools when helpful (Mermaid diagrams, ASCII art).
+
+If the request is already clear enough to move into `Product Lead` or `Solution Lead` output, keep this phase short and hand off quickly.
 
 ### Phase 4: Handoff
 Finish brainstorming by moving into a scope or solution artifact that the active role owns, then hand off to the next role in the pipeline.

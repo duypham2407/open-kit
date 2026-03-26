@@ -27,6 +27,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - Session resume: `context/core/session-resume.md`
 - Workflow-state schema: `context/core/workflow-state-schema.md`
 - Runtime surface contract: `context/core/runtime-surfaces.md`
+- Role operating policy: `docs/maintainer/2026-03-26-role-operating-policy.md`
 - Command matrix: `docs/maintainer/command-matrix.md`
 - Conditional parallel execution boundary: `docs/maintainer/conditional-parallel-execution-note.md`
 - Parallel execution matrix: `docs/maintainer/parallel-execution-matrix.md`

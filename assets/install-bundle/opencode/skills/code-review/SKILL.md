@@ -8,7 +8,7 @@ description: "Pre-review checklist and quality gates. Uses a two-stage approach:
 ## Context
 
 Used by the Code Reviewer subagent, the QA Agent, or the Solution Lead when review framing is needed.
-The goal is to be the final gate that keeps bad code or off-spec code from reaching the main branch.
+The goal is to be the technical gate before QA, catching off-scope or low-quality code before runtime verification begins.
 
 ## Required Inputs
 
@@ -42,7 +42,9 @@ Review by severity:
 - [ ] Cite the exact file path and failing line number.
 - [ ] State severity clearly (Critical / Important / Minor).
 - [ ] Do not just criticize - include a concrete fix suggestion or example snippet.
+- [ ] Recommend the route back to implementation, solution, or product when the issue is not purely code-local.
 
 ## Anti-Patterns to Avoid
 - Superficial review: "LGTM" without actually reading the files.
 - Fixing the code for the developer: "I'll just patch it quickly and approve." The reviewer must not touch the implementation. The developer stays responsible for the fix.
+- Replaying QA: trying to prove release readiness or end-to-end runtime behavior instead of reviewing the code and its contracts.

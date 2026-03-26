@@ -20,6 +20,8 @@ approval_gate: solution_to_fullstack
 
 ## Risks And Trade-offs
 
+## Recommended Path
+
 ## Implementation Slices
 
 ## Dependency Graph

@@ -18,6 +18,15 @@ Each plan should be detailed enough that implementation can proceed without gues
 3. **Exact file paths**: specify the exact absolute path or repository-relative path for every file to create or edit when file targets are known.
 4. **Validation flow**: plan validation must match the active workflow mode. Full-delivery logic work should be TDD-first when the repository has suitable test tooling. Migration work should prioritize preserved invariants, blocker-decoupling steps, compatibility checks, staged verification, and targeted tests only where they are truly reliable and helpful. If the repo does not define a standard command yet, the plan must state the missing validation path instead of inventing one.
 
+## Anti-Bloat Rules
+
+- do not open with generic architecture narration when the real need is an execution-ready plan
+- do not repeat the same scope detail from the spec in every slice
+- do not produce more slices than the repository or feature actually needs
+- do not expand slices into micro-steps unless implementation would otherwise be ambiguous
+- do not create placeholder sections with no concrete decisions inside them
+- prefer one recommended path over multiple equivalent options unless the decision is still genuinely unresolved
+
 ## Execution Process
 
 ### Step 1: Context Gathering
@@ -53,6 +62,7 @@ List the major slices first. For each slice, follow a validation-aware structure
 ## Dependency Graph
 - Record which slices must stay sequential.
 - Record which slices may run in parallel safely.
+- Name the critical path in one short line.
 
 ## Validation Matrix
 - Map acceptance or invariant targets to the real validation path.
@@ -71,5 +81,6 @@ List the major slices first. For each slice, follow a validation-aware structure
 
 ## Anti-Patterns
 - A plan that starts with micro-checklists but never explains the feature slices, dependencies, or integration checkpoint.
+- A plan that reads like a generic architecture essay instead of an execution-ready delivery artifact.
 - No test guidance or test command, and no explicit note that the repo lacks a standard command.
 - A plan that does not specify which files need to be edited.

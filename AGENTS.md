@@ -111,6 +111,7 @@ If guidance conflicts with repository state, trust the repository state and upda
 
 - Start with `AGENTS.md` for repository-wide rules, then use `context/navigation.md` to locate the specific workflow or standards docs you need
 - Use `docs/operator/README.md` for operator wayfinding and `docs/maintainer/README.md` for maintainer wayfinding when audience-specific routing helps
+- Use `docs/maintainer/2026-03-26-role-operating-policy.md` when you need the short-form contract for role boundaries, pass/fail handoffs, and anti-patterns
 - Treat `docs/` as the current center of gravity for repository knowledge
 - Verify file existence before referencing paths in plans or instructions
 - Prefer small, targeted edits over broad speculative restructuring
@@ -229,6 +230,7 @@ Use `context/core/workflow.md` as the canonical workflow reference and adapt it 
 - Plan before coding. Even quick tasks need a clear objective, acceptance bullets, and validation path
 - Keep responsibilities explicit. Quick mode follows the canonical `quick_*` stage chain in `context/core/workflow.md`, migration mode follows the canonical `migration_*` stage chain, and full mode uses the broader delivery team
 - Treat `Master Orchestrator` as a procedural controller only: route, dispatch, record state, and escalate, but do not let it author business or technical content artifacts
+- Treat `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form policy for daily role boundaries: `Product Lead` defines scope, `Solution Lead` defines technical direction, `Code Reviewer` is the code-facing gate before QA, and `QA Agent` is the runtime-facing verification gate
 - In the implemented full runtime, feature-level ownership still follows the stage owner while task-level ownership may be distributed through the full-delivery execution task board
 - Use feedback loops. Implementation is not complete until validation has run or the lack of validation tooling has been called out clearly
 - Do not skip review or validation because a task looks simple

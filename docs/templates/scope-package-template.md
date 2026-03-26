@@ -33,3 +33,5 @@ approval_gate: product_to_solution
 ## Open Questions
 
 ## Success Signal
+
+## Handoff Notes For Solution Lead

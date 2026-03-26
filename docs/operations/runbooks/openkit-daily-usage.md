@@ -77,6 +77,8 @@ Canonical lane rules live in `context/core/workflow.md`.
 
 If the boundary still feels fuzzy, use the `Lane Decision Matrix` in `context/core/workflow.md` before forcing a lane.
 
+If role boundaries feel fuzzy after lane selection, use `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form policy for who owns scope, solution, code review, and runtime verification.
+
 ## Daily Operator Flow
 
 ### 1. Check global install and workspace health

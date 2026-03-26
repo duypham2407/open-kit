@@ -43,6 +43,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Surface contract: `docs/operator/surface-contract.md`
 - Supported product and compatibility surfaces: `docs/operator/supported-surfaces.md`
 - Detailed usage walkthrough: `docs/operations/runbooks/openkit-daily-usage.md`
+- Role boundary quick policy: `docs/maintainer/2026-03-26-role-operating-policy.md`
 - Runtime smoke tests: `docs/operations/runbooks/workflow-state-smoke-tests.md`
 - Governance policy: `docs/governance/README.md`
 - Operations support: `docs/operations/README.md`
@@ -72,3 +73,4 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - `openkit install-global` remains available as a manual or compatibility setup command, but it is no longer the preferred onboarding step
 - `.opencode/opencode.json` remains the checked-in repository-local OpenCode config in this repository
 - `Quick Task+` remains the current semantics of the `quick` lane, not a third live mode
+- When role boundaries feel fuzzy, use `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form contract for who owns scope, solution, code review, and runtime verification
