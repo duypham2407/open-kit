@@ -59,8 +59,8 @@ test('core docs expose the anti-hallucination validation split', () => {
   const readme = read('README.md');
   const projectConfig = read('context/core/project-config.md');
 
-  assert.match(readme, /OpenKit runtime and CLI validation does exist/);
-  assert.match(readme, /does not yet define a repo-native build, lint, or test command for arbitrary target application code/);
+  assert.match(readme, /OpenKit is an AI software factory for OpenCode/);
+  assert.match(readme, /reduce hallucinated completion claims through runtime checks and verification gates/);
   assert.match(projectConfig, /OpenKit does have repo-native validation for its own runtime, CLI, install, and launch surfaces/);
   assert.match(projectConfig, /record-verification-evidence/);
   assert.match(projectConfig, /issue-aging-report/);
