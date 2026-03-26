@@ -208,17 +208,18 @@ Repository-internal vs global-kit summary:
 - Repository-internal authoring surface remains: `.opencode/opencode.json`, workflow-state files, the workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs
 - The checked-in runtime remains useful for maintainers and compatibility testing even though end-user installation is now global-first
 
-## The 7-Role Team
+## The Agent Team
 
-The full-delivery lane uses 7 distinct team roles:
+OpenKit currently ships 8 agents:
 
-1. **Master Orchestrator**: Routes work, chooses the lane, and manages feedback loops.
-2. **PM Agent**: Defines product goals and priorities.
+1. **Master Orchestrator**: Chooses the lane, routes handoffs, and manages feedback loops.
+2. **PM Agent**: Defines product goals, priorities, and brief scope.
 3. **BA Agent**: Writes detailed specifications and acceptance criteria.
-4. **Architect Agent**: Designs system architecture and technology choices.
-5. **Tech Lead Agent**: Enforces standards and creates bite-sized implementation plans.
-6. **Fullstack Agent**: Implements approved work.
-7. **QA Agent**: Validates implementation and classifies issues.
+4. **Architect Agent**: Designs system architecture, boundaries, and migration approach.
+5. **Tech Lead Agent**: Turns approved architecture into executable implementation plans.
+6. **Fullstack Agent**: Implements, debugs, and verifies approved work.
+7. **QA Agent**: Validates implementation evidence and classifies issues.
+8. **Code Reviewer**: Performs independent code review findings for quality and compliance.
 
 Quick tasks use the canonical `quick_*` stage chain defined in `context/core/workflow.md`, with the `QA Agent` operating in `QA Lite` mode.
 
