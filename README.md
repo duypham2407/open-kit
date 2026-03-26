@@ -1,501 +1,226 @@
-# OpenKit — AI Software Factory
+# OpenKit
 
-OpenKit is a workflow kit that turns your AI coding assistant into a mode-aware software team. It combines explicit artifacts, approval gates, resumable workflow state, and a bounded full-delivery task runtime with a global OpenKit kit layered over OpenCode.
+## 1. Hero
 
-If you only remember one command after launch, remember this: start with `/task`. It is the safest default entrypoint and lets the Master Orchestrator choose the right lane for you.
+OpenKit is an AI software factory for OpenCode.
 
-## Audience Navigation
+It helps OpenCode behave more like a real software team instead of a single chat session:
 
-Use the top-level docs as routing layers before diving into detailed references:
+- route work through the right delivery mode
+- split responsibilities across specialized agents
+- keep workflow state, approvals, issues, and evidence explicit
+- reduce hallucinated completion claims through runtime checks and verification gates
 
-- `README.md`: concise top-level entrypoint for the repository surface
-- `docs/operator/README.md`: operator-facing index for daily use, command selection, and wayfinding
-- `docs/maintainer/README.md`: maintainer-facing index for canonical docs, runtime internals, and repository upkeep
+If you remember one command after launch, remember this: start with `/task`.
 
-Phase-1 docs layout also routes supporting material through dedicated hubs:
+## 2. Why OpenKit
 
-- `docs/operations/README.md`: operational support split into `runbooks/` and `internal-records/`
-- `docs/templates/README.md`: template inventory and artifact-shape guardrails
-- `RELEASES.md`: index of in-repo release notes and release-note workflow
+OpenKit exists to solve common failure modes in AI-assisted software work:
 
-Phase-1 authority rule:
+- everything gets treated like the same kind of task
+- agents jump into code without enough planning or validation
+- completion is declared without enough evidence
+- context is lost between sessions
+- multi-step work has no shared state, no ownership, and no audit trail
 
-- the new audience directories are index layers only
-- they do not relocate or replace canonical workflow, runtime, governance, or operations docs
-- `context/core/workflow.md` remains the canonical live workflow-semantics document
-- companion core docs under `context/core/` remain the authoritative operational references they already were
+It addresses that with:
 
-## What Is Live Here
+- explicit modes for different kinds of work
+- role-based handoffs between agents
+- file-backed workflow state and per-item storage
+- approvals, issue routing, and verification evidence
+- operator and maintainer tooling for diagnostics, resume, and governance
 
-This repository currently contains three live surfaces:
+## 3. Core Modes
 
-1. **Global managed kit path**
-   - the `openkit` CLI now installs the kit into the OpenCode home directory
-   - install the CLI with `npm install -g @duypham93/openkit`, then use `openkit doctor` and `openkit run` as the intended operator path
-   - global workspace state is created per project under the OpenCode home directory instead of copying the kit into each repository
+OpenKit has 3 workflow modes.
 
-2. **In-session workflow surface**
-   - once OpenCode is running, use slash commands such as `/task`, `/quick-task`, `/migrate`, and `/delivery`
-   - `/task` remains the safest default entrypoint because the Master Orchestrator chooses the lane for you
+### Quick
 
-3. **Checked-in authoring and compatibility runtime**
-   - this repository still carries the source-of-truth `agents/`, `commands/`, `skills/`, `hooks/`, `context/`, docs, and the legacy `.opencode/` runtime surface
-   - those checked-in files remain the authoring source and compatibility path while the global install model matures
+- for bounded, low-risk work
+- keeps planning and verification lightweight
+- uses the `quick_*` stages
+- does not use a task board
 
-Historical planning and example docs have been intentionally pruned from the working tree. If you need older rationale, use git history rather than treating removed docs as part of the live contract.
+### Migration
 
-Historical release notes for published OpenKit packages are tracked in `RELEASES.md`, with per-version notes stored under `release-notes/` and `release-notes/TEMPLATE.md` available for new releases.
+- for upgrades, migrations, dependency modernization, and compatibility fixes
+- preserves behavior first, then migrates safely in stages
+- uses the `migration_*` stages
+- validates through baseline, parity, and compatibility evidence
 
-OpenKit is currently delivered through OpenCode as its first-class tool surface. The underlying workflow model stays lane-based and tool-agnostic so future adapters can wrap the same semantics without flattening Quick, Migration, and Full Delivery into one generic flow.
+### Full
 
-If you only need the live checked-in workflow/runtime behavior, prefer the current runtime docs and commands over older repository history.
+- for feature work and higher-risk changes
+- uses product, spec, architecture, planning, implementation, QA, and review handoffs
+- uses the `full_*` stages
+- can use a task board when the approved plan allows it
 
-The repository currently runs on the live `Quick Task+` successor semantics for the `quick` lane together with dedicated `Migration` and `Full Delivery` lanes. The system now supports three live modes: `quick`, `migration`, and `full`.
+## 4. How It Works
 
-## Default Path
+```text
+User request
+   |
+   v
+/task
+   |
+   v
+Master Orchestrator chooses mode
+   |
+   +--> Quick ------> bounded implementation -> QA Lite -> done
+   |
+   +--> Migration --> baseline -> strategy -> upgrade -> verify -> done
+   |
+   +--> Full -------> PM -> BA -> Architect -> Tech Lead -> Fullstack -> QA -> done
+   |
+   v
+Workflow state, approvals, issues, and evidence stored in .opencode/
+```
 
-For most users, the safest path is action-oriented and short:
+At runtime, OpenKit keeps the process explicit through:
 
-1. `npm install -g @duypham93/openkit`
-2. `openkit doctor`
-3. `openkit run`
-4. inside OpenCode, start with `/task`
+- `.opencode/workflow-state.json` as the active compatibility mirror
+- `.opencode/work-items/` as the per-item store
+- `node .opencode/workflow-state.js ...` for runtime inspection and operations
 
-Use `/task` unless you already know with high confidence that the request must begin in `Quick Task`, `Migration`, or `Full Delivery`.
+## 5. Example Flow
 
-If workflow state already exists and you need a plain-language resume view, run `node .opencode/workflow-state.js resume-summary`.
+Example: you ask OpenKit to add a new feature.
 
-For the shortest operational view once state exists, use `node .opencode/workflow-state.js ops-summary`.
+1. You launch OpenKit and start with `/task add export support to the dashboard`.
+2. `Master Orchestrator` inspects the request and chooses `Full` mode.
+3. `PM Agent` clarifies the product goal, then `BA Agent` writes the behavior spec.
+4. `Architect Agent` defines the technical shape and `Tech Lead Agent` turns it into an execution plan.
+5. `Fullstack Agent` implements the approved plan and records verification evidence.
+6. `QA Agent` validates the result, routes any issues, and the workflow only closes when the gates are satisfied.
 
-For release-governance work, OpenKit now supports release candidates, release notes drafting, release gates, rollback plans, and release-linked hotfixes through `node .opencode/workflow-state.js`.
+For a narrow bugfix, the same entrypoint may route to `Quick`.
+For a framework upgrade, it may route to `Migration`.
 
-## Workflow Lanes
+## 6. Quick Start
 
-OpenKit now uses a hard split between three lanes:
-
-1. **Quick Task**: For narrow, low-risk daily tasks that should move fast.
-2. **Migration**: For upgrades, framework migrations, dependency modernization, and compatibility remediation.
-3. **Full Delivery**: For feature work and higher-risk changes that benefit from the full multi-role team flow.
-
-The Master Orchestrator chooses the lane, records the decision in workflow state, and routes the work.
-
-Lane boundary heuristic:
-
-- choose `Quick Task` for bounded low-risk work inside already-understood behavior
-- choose `Migration` when behavior should stay the same and compatibility modernization is the main uncertainty
-- choose `Full Delivery` when product behavior, requirements, or cross-boundary solution design are the main uncertainty
-
-Concrete examples live in `context/core/workflow.md` under `Lane Decision Matrix`.
-The stricter routing rubric and anti-patterns live in `context/core/lane-selection.md`.
-
-Parallel-runtime guardrails now implemented:
-
-- only `Full Delivery` work items can carry an execution task board
-- quick and migration modes still have no task board and no task-level ownership model
-- `.opencode/workflow-state.json` is now the active external compatibility mirror for the active work item, while `.opencode/work-items/` is the internal managed backing store
-- safe parallel support is limited to the checked-in commands and validations; do not assume broader multi-agent safety than the runtime currently enforces
-
-Live quick-lane guardrails:
-
-- `Quick Task+` is the live successor semantics of the existing quick lane, not a third lane.
-- Current command names remain unchanged.
-- Runtime mode enums remain `quick`, `migration`, and `full`.
-
-## Product Boundary And Install Direction
-
-The preferred product path is now the globally installed OpenKit kit. This repository still keeps the checked-in authoring and compatibility runtime needed to build, inspect, and validate that kit.
-
-Fast surface split:
-
-- product path: `openkit doctor`, `openkit run`, `openkit upgrade`, `openkit uninstall`
-- in-session path: `/task`, `/quick-task`, `/migrate`, `/delivery`
-- compatibility and maintainer path: `node .opencode/workflow-state.js ...`
-
-Use `docs/operator/surface-contract.md` for the short surface-selection guide.
-
-Preferred global path:
-
-1. Run `npm install -g @duypham93/openkit` to install the CLI once on the machine.
-2. Run `openkit doctor` to confirm the global install and current workspace are healthy.
-3. Run `openkit run <args>` to launch OpenCode with the OpenKit-managed kit directory injected as the active config for the current project; on first run, OpenKit materializes the global kit into the OpenCode home directory automatically.
-4. Run `openkit upgrade` to refresh the installed global kit when a newer package version is available.
-5. Run `openkit uninstall [--remove-workspaces]` when you need to remove the global kit and optionally clear workspace state.
-
-Inside the OpenCode session opened by `openkit run`, OpenKit defaults to the `master-orchestrator` agent. Use `Ctrl+P` to open the command palette and run OpenKit commands like `/task`, `/quick-task`, `/migrate`, `/delivery`, or `/configure-agent-models`.
-
-Quickstart:
+### Install
 
 ```bash
 npm install -g @duypham93/openkit
+```
+
+### Verify setup
+
+```bash
 openkit doctor
+```
+
+### Launch OpenCode with OpenKit
+
+```bash
 openkit run
 ```
 
-First session:
+### Start work
 
-1. Wait for OpenCode to open with the `master-orchestrator` agent.
-2. Press `Ctrl+P` to open the command palette.
-3. Run `/task` for the safest default entrypoint.
-4. Use `/quick-task`, `/migrate`, or `/delivery` only when you already know the right lane.
-
-Example first session:
+Inside OpenCode:
 
 ```text
-You: /task update the migration report template to match the current workflow
-OpenKit: I will classify the request first. This looks like bounded documentation work with low local uncertainty, so I am keeping it in Quick Task.
-OpenKit: Next action: confirm the bounded checklist and verification path, then route to quick_build.
+/task <your request>
 ```
 
-Example migration entry:
+Use `/quick-task`, `/migrate`, or `/delivery` only when the lane is already obvious.
 
-```text
-You: /task upgrade the app from React 18 to React 19 without changing behavior
-OpenKit: The dominant uncertainty is compatibility and modernization risk while behavior should stay the same, so I am routing this to Migration.
-OpenKit: Next action: capture preserved invariants and baseline evidence before planning the upgrade slices.
+If workflow state already exists, these are the fastest runtime views:
+
+```bash
+node .opencode/workflow-state.js ops-summary
+node .opencode/workflow-state.js resume-summary
+node .opencode/workflow-state.js status --short
 ```
 
-Example full-delivery entry:
+## 7. Concepts
 
-```text
-You: /task add a new billing approval workflow for enterprise accounts
-OpenKit: The request changes product behavior and needs definition across requirements and architecture, so I am routing this to Full Delivery.
-OpenKit: Next action: initialize full_intake and route to the PM Agent for the brief.
-```
+### Orchestrator
 
-Per-agent model setup:
+`Master Orchestrator` is the delivery router.
 
-- OpenKit now supports official per-agent model overrides.
-- Use `openkit configure-agent-models --models` to inspect the exact provider-qualified model ids that OpenCode currently exposes.
-- Use `openkit configure-agent-models --interactive` for a guided terminal flow that lets you pick agent, provider, and model from numbered lists.
-- When OpenCode exposes variants for a model through `opencode models --verbose`, the interactive flow can also save a variant such as `high`, `low`, or `xhigh` per agent.
-- If verbose discovery is unavailable, OpenKit falls back to plain provider/model selection and simply skips the variant step.
-- Save a per-agent override with `openkit configure-agent-models --agent <agent-id> --model <provider/model>`.
-- This is useful when similar model families are available from multiple providers and you need the exact provider/model pair for one agent.
+It chooses the mode, manages handoffs, tracks feedback loops, and keeps work moving through the right workflow.
 
-In this worktree today:
-
-- the global install path is implemented for the `openkit` CLI and is now the preferred user experience.
-- the checked-in `.opencode/` surface remains the authoring and compatibility runtime inside this repository.
-- project repositories do not need to vendor the kit just to use it; only workflow output artifacts belong in the project.
-
-OpenKit currently exposes two related but not identical surfaces:
-
-- the global kit surface used for installation, readiness checks, launch, upgrade, and uninstall
-- the checked-in repository-local runtime surface that exists today in this worktree
-
-See `docs/operator/supported-surfaces.md` for the operator-facing matrix of supported product and compatibility surfaces.
-
-On first run, `openkit run` materializes the managed global kit into the OpenCode home directory automatically.
-
-Current boundary:
-
-- `.opencode/opencode.json` is the repository-local OpenCode config for this checked-in authoring surface.
-- `.opencode/workflow-state.json`, `.opencode/work-items/`, `.opencode/workflow-state.js`, `hooks/`, `agents/`, `skills/`, `commands/`, `context/`, and `docs/` remain repository-internal runtime or support surfaces.
-- `registry.json` is local metadata describing repository surfaces and the global-kit compatibility contract.
-- `.opencode/install-manifest.json` records the local installed profile for this repository and remains additive metadata rather than a destructive installer.
-- The checked-in agents, skills, commands, hooks, docs, and workflow-state files remain the source of truth for what actually exists.
-
-Install-direction guardrails:
-
-- The global install path stays additive over the current repo-local surfaces rather than erasing them in one step.
-- The transition remains non-destructive, with compatibility for existing repository-local runtime users and maintainers.
-- When docs refer to raw `.opencode/*` files, treat them as repository/runtime internals that power the global kit rather than as proof that the global path is unsupported.
-
-Repository-internal vs global-kit summary:
-
-- Global-kit user path: `npm install -g @duypham93/openkit`, `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall`
-- Global kit lives under the OpenCode home directory, not inside each project
-- Repository-internal authoring surface remains: `.opencode/opencode.json`, workflow-state files, the workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs
-- The checked-in runtime remains useful for maintainers and compatibility testing even though end-user installation is now global-first
-
-## The Agent Team
+### Agents
 
 OpenKit currently ships 8 agents:
 
-1. **Master Orchestrator**: Chooses the lane, routes handoffs, and manages feedback loops.
-2. **PM Agent**: Defines product goals, priorities, and brief scope.
-3. **BA Agent**: Writes detailed specifications and acceptance criteria.
-4. **Architect Agent**: Designs system architecture, boundaries, and migration approach.
-5. **Tech Lead Agent**: Turns approved architecture into executable implementation plans.
-6. **Fullstack Agent**: Implements, debugs, and verifies approved work.
-7. **QA Agent**: Validates implementation evidence and classifies issues.
-8. **Code Reviewer**: Performs independent code review findings for quality and compliance.
+1. **Master Orchestrator**: chooses the mode, routes handoffs, and manages feedback loops
+2. **PM Agent**: defines product goals, priorities, and brief scope
+3. **BA Agent**: writes detailed specifications and acceptance criteria
+4. **Architect Agent**: designs system boundaries, architecture, and migration approach
+5. **Tech Lead Agent**: turns approved architecture into executable plans
+6. **Fullstack Agent**: implements, debugs, and verifies approved work
+7. **QA Agent**: validates implementation evidence and classifies issues
+8. **Code Reviewer**: performs independent review findings for quality and compliance
 
-Quick tasks use the canonical `quick_*` stage chain defined in `context/core/workflow.md`, with the `QA Agent` operating in `QA Lite` mode.
+### Workflow State
 
-Migration work uses the canonical `migration_*` stage chain defined in `context/core/workflow.md`, with validation centered on baseline evidence, compatibility checks, and staged regression rather than default TDD-first execution.
+Workflow state is the shared runtime memory of the system.
 
-The migration lane is behavior-preserving by design: freeze invariants, decouple only the blockers that are tightly coupled to the old stack, migrate in slices, and clean up after parity is proven.
+It tracks things like:
 
-Repeatable migration support docs now include `docs/templates/migration-baseline-checklist.md` and `docs/templates/migration-verify-checklist.md`.
+- current mode and stage
+- current owner
+- linked artifacts
+- approvals
+- issues and issue lifecycle
+- verification evidence
+- readiness, closeout, and release-level signals
 
-For teams that prefer one living artifact across the whole migration, `docs/templates/migration-report-template.md` is also available.
+### Approvals And Evidence
 
-The runtime can now scaffold that artifact directly through `node .opencode/workflow-state.js scaffold-artifact migration_report <slug>` while in the right migration stage.
+OpenKit separates:
 
-## Workflow & Skills
+- stage readiness
+- definition of done
+- release readiness
 
-Agents use a library of **Skills** (standard operating procedures) to accomplish their tasks without relying purely on LLM instinct:
+Approvals alone are not enough for closure-sensitive stages. Verification evidence must also be inspectable in workflow state.
 
-- `brainstorming`: Socratic design refinement.
-- `writing-specs`: Converting vague ideas into BDD acceptance criteria.
-- `writing-plans`: Creating bite-sized, atomic task plans.
-- `test-driven-development`: The RED-GREEN-REFACTOR iron law.
-- `subagent-driven-development`: Dispatching fresh subagents for execution.
-- `systematic-debugging`: A 4-phase root cause analysis process.
-- `code-review`: Two-stage review (compliance, then quality).
+## 8. Advanced
 
-## Context System
+### Product vs Compatibility Surfaces
 
-Context is loaded dynamically based on the current phase, anchored by `context/navigation.md`. Critical contexts include:
-- `context/core/code-quality.md`: The repo's coding standards.
-- `context/core/workflow.md`: The canonical Quick Task, Migration, and Full Delivery workflow contract.
-- `context/core/approval-gates.md`: Approval recording rules for stage transitions.
-- `context/core/issue-routing.md`: QA issue classification and ownership routing.
-- `context/core/session-resume.md`: Resume protocol for fresh sessions.
+OpenKit has 3 main surfaces:
 
-Historical planning background has been intentionally pruned from this worktree. Do not treat older git history as the live contract when repository state differs.
+- product path: `openkit run`, `openkit doctor`, `openkit upgrade`, `openkit uninstall`
+- in-session path: `/task`, `/quick-task`, `/migrate`, `/delivery`
+- compatibility runtime path: `node .opencode/workflow-state.js ...`
 
-Current docs layout to keep straight:
+Use the product path for daily use. Use the lower-level runtime CLI for inspection, diagnostics, and maintainer workflows.
 
-- audience routing stays at `README.md`, `docs/operator/README.md`, and `docs/maintainer/README.md`
-- artifact guidance stays with the owning directories such as `docs/briefs/`, `docs/specs/`, `docs/architecture/`, `docs/plans/`, `docs/qa/`, and `docs/adr/`
-- operational support now routes through `docs/operations/runbooks/` and `docs/operations/internal-records/`
-- the phase-1 derived install bundle is documented under `assets/install-bundle/opencode/` and does not replace the root authoring sources
+### Useful Runtime Commands
 
-## Maintainer Startup
+Some high-value runtime commands:
 
-Use this flow when you want to inspect or resume the checked-in OpenKit runtime directly. In this worktree, that remains the concrete checked-in path.
-
-1. Ensure `.opencode/opencode.json` is present in the project root.
-2. Ensure `.opencode/workflow-state.json` is present as the active compatibility mirror for the current work item.
-3. Ensure `.opencode/work-items/` is present when you need task-aware full-delivery resume or work-item inspection.
-4. In the OpenCode runtime configured by this repository, `hooks/session-start` is intended to run at session start, emit an OpenKit runtime status block, print `status`, `doctor`, and `show` command hints, and load the repo-local `using-skills` meta-skill into the agent's context when that skill file exists.
-5. When workflow state is present, the session-start hook also prints a canonical resume hint that points back to `AGENTS.md`, `context/navigation.md`, `context/core/workflow.md`, `.opencode/workflow-state.json`, and `context/core/session-resume.md`, plus active work-item and task-board summary when available.
-6. Use `node .opencode/workflow-state.js status` to inspect the current runtime summary and `node .opencode/workflow-state.js doctor` to check whether key runtime files, work-item mirror alignment, and contract-alignment checks pass.
-
-If the session-start JSON helper is unavailable, the hook degrades gracefully: runtime status still prints, but manifest-derived details and resume hints may be reduced until the helper works again.
-
-Practical maintainer flow:
-
-```bash
-node .opencode/workflow-state.js status
-node .opencode/workflow-state.js doctor
-node .opencode/workflow-state.js list-work-items
-node .opencode/workflow-state.js show
-node --test ".opencode/tests/*.test.js"
-```
-
-The repository-local OpenCode config stays intentionally minimal and should not be treated as proof that the kit only supports one model or one launcher shape.
-
-## Registry Metadata
-
-OpenKit includes a small checked-in metadata layer for local inspection and for the global-kit compatibility contract:
-
-- `registry.json` describes the component categories that exist in this repository today, including agents, skills, commands, artifact directories, runtime files, hooks, and anchor docs, while also declaring which metadata participates in the global-kit compatibility contract.
-- `.opencode/install-manifest.json` records which local profile is active for this repository, points back to `registry.json`, and documents the current install stance as additive and non-destructive.
-- `.opencode/opencode.json` remains the repository-local OpenCode config, while `registry.json` and `.opencode/install-manifest.json` carry the additive OpenKit metadata for this repository.
-
-This metadata is local repository state, not a remote installer. It does not fetch, download, replace, or update components from elsewhere.
-
-Do not collapse these roles together: the metadata helps define the global-kit compatibility surface, but the checked-in repository runtime remains the authoring and maintainer-facing runtime in this worktree.
-
-Current checked-in profile:
-
-- `openkit-core`: the full local OpenKit kit that matches the agents, skills, commands, docs, hooks, and runtime files currently present in this repository.
-
-Additional non-default profile in the registry:
-
-- `runtime-docs-surface`: a narrower local metadata profile for the checked-in runtime, hooks, command docs, artifact directories, and shared documentation surfaces. It is listed for inspection only and is not the active profile in this repository.
-
-The install manifest is intended to make future runtime commands and diagnostics easier to implement and inspect. For now, treat it as honest local metadata only.
-
-## Profile And Install-Manifest Workflow
-
-The current workflow for profile metadata is local and inspectable:
-
-1. `registry.json` defines the available component categories, checked-in components, and named profiles.
-2. `.opencode/opencode.json` remains the repository-local OpenCode config for this worktree.
-3. `.opencode/install-manifest.json` records which profile is installed for this working tree, which broad component categories are present, and that installation remains additive rather than destructive.
-4. `node .opencode/workflow-state.js profiles` lists the named profiles from the registry.
-5. `node .opencode/workflow-state.js show-profile <name>` shows whether a profile is the repository default and which component categories it includes.
-6. `node .opencode/workflow-state.js sync-install-manifest <name>` updates `.opencode/install-manifest.json` so its recorded active profile matches a named local profile.
-
-This is not a package installer. `sync-install-manifest` updates checked-in local metadata only; it does not create missing files, fetch remote assets, remove existing runtime surfaces, or switch the repository to a different command surface automatically. It also does not replace the preferred global OpenKit install path.
-
-Practical inspection flow:
-
-- Run `node .opencode/workflow-state.js status` to see the active profile together with the runtime summary.
-- Run `node .opencode/workflow-state.js doctor` to confirm the registry and install-manifest files are present and readable.
-- Run `node .opencode/workflow-state.js profiles` before changing the manifest so you only reference a checked-in profile name.
-- Run `node .opencode/workflow-state.js show-profile openkit-core` to inspect the currently documented default profile.
-- Run `node .opencode/workflow-state.js sync-install-manifest openkit-core` when you need the install manifest to record the intended checked-in active profile again.
-
-## Artifact Model
-
-Artifacts depend on the active lane.
-
-Quick-task artifact:
-
-- `docs/tasks/`: lightweight quick-task cards when traceability beyond workflow state is useful
-
-The live quick lane includes a first-class `quick_plan` stage for bounded planning. Task cards remain optional rather than mandatory. For the canonical quick-lane contract, including stage order, escalation, approvals, and artifact expectations, use `context/core/workflow.md`.
-
-Full-delivery artifacts:
-
-- `docs/briefs/`: PM product briefs
-- `docs/specs/`: BA specs
-- `docs/architecture/`: Architect design docs
-- `docs/plans/`: Tech Lead implementation plans
-- `docs/qa/`: QA reports
-- `docs/adr/`: architecture decision records
-
-Templates live in `docs/templates/`.
-
-## Usage
-
-You can trigger workflows with the following commands:
-
-- `/task` — Default entrypoint; Master chooses `Quick Task`, `Migration`, or `Full Delivery`
-- `/quick-task` — Explicit quick lane for small, localized work
-- `/migrate` — Explicit migration lane for upgrades and modernization work
-- `/delivery` — Explicit full-delivery lane for feature work and higher-risk changes
-- `/brainstorm` — Migration or full-delivery only; explore design or upgrade direction
-- `/write-plan` — Migration or full-delivery only; convert approved context into an Implementation Plan
-- `/execute-plan` — Migration or full-delivery only; start building the approved plan
-- `/configure-agent-models` — inspect available OpenCode models and bind exact `provider/model` ids to OpenKit agents
-
-You can also type your request in normal language, and the Master Orchestrator will choose the appropriate lane.
-
-The command surface above is the current live interface. The live contract keeps `/quick-task` and adds `/migrate` as the explicit upgrade lane command.
-
-## Daily Operator Path
-
-For normal day-to-day use:
-
-- prefer `npm install -g @duypham93/openkit`, then `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall`
-- use the lower-level checked-in runtime path below when you are maintaining or validating this repository itself
-
-1. Run `openkit doctor` before launch if you need a readiness check.
-2. Run `openkit run` to open OpenCode with the managed profile.
-3. Start with `/task` unless you already know the work must be `Quick Task`, `Migration`, or `Full Delivery`.
-4. Use `node .opencode/workflow-state.js resume-summary` when you need a human-readable resume snapshot.
-5. Use `node .opencode/workflow-state.js doctor`, `show`, or `validate` only when you need lower-level workflow-runtime inspection.
-
-For the step-by-step operator walkthrough, use `docs/operations/runbooks/openkit-daily-usage.md`.
-
-This is the current checked-in operator surface for this worktree: `status`, `doctor`, `show`, `validate`, and the work-item/task-board inspection commands documented below. Treat those as bounded runtime helpers, not as evidence that arbitrary parallel execution support is safe.
-
-## Command Selection Matrix
-
-| If you want to... | Use | Notes |
-| --- | --- | --- |
-| let the system choose the lane | `/task` | default entrypoint for most requests |
-| force bounded daily work into the quick lane | `/quick-task` | only when quick-lane criteria already fit |
-| start upgrade or migration work in the migration lane | `/migrate` | use when the main risk is compatibility and upgrade sequencing |
-| start feature or higher-risk work in the full lane | `/delivery` | use when the work clearly needs briefs, specs, architecture, or a plan |
-| refine design or upgrade direction before planning | `/brainstorm` | migration or full-delivery only; follow the brainstorming skill |
-| turn approved artifacts into an implementation plan | `/write-plan` | migration or full-delivery only; points to the planning skill and templates |
-| execute an approved implementation plan | `/execute-plan` | migration or full-delivery only; follow the plan and report the real validation path |
-| choose exact provider-specific models per agent | `/configure-agent-models` | use when you need a specific `provider/model` pair for one OpenKit agent |
-
-Helpful wayfinding docs:
-
-- `docs/operator/README.md` for operator-focused routing across the live surfaces
-- `docs/maintainer/README.md` for maintainer-focused routing across canonical and support docs
-- `context/navigation.md` for context discovery
-- `docs/briefs/README.md`, `docs/specs/README.md`, `docs/architecture/README.md`, `docs/plans/README.md`, `docs/qa/README.md`, and `docs/adr/README.md` for artifact-specific guidance
-- `docs/governance/README.md` and `docs/operations/README.md` for policy and operational support, including runbooks and sparse internal-records guidance
-- `docs/operations/runbooks/openkit-daily-usage.md` for the detailed day-to-day usage path in this checked-in runtime
-- `docs/operations/runbooks/workflow-state-smoke-tests.md` for runtime smoke checks and command examples
-- `assets/install-bundle/opencode/README.md` for the derived phase-1 managed bundle boundary
-
-## Operator Entry Points
-
-Current checked-in operator entrypoints in this repository are:
-
-- slash commands such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, `/execute-plan`, and `/configure-agent-models`
-- `node .opencode/workflow-state.js status`
 - `node .opencode/workflow-state.js resume-summary`
-- `node .opencode/workflow-state.js doctor`
-- `node .opencode/workflow-state.js show`
-- `node .opencode/workflow-state.js validate`
-- `node .opencode/workflow-state.js list-work-items`
-- `node .opencode/workflow-state.js show-work-item <work_item_id>`
-- `node .opencode/workflow-state.js list-tasks <work_item_id>` when the active full-delivery item uses a task board
+- `node .opencode/workflow-state.js workflow-metrics`
+- `node .opencode/workflow-state.js show-dod`
+- `node .opencode/workflow-state.js release-readiness`
+- `node .opencode/workflow-state.js release-dashboard`
+- `node .opencode/workflow-state.js policy-trace`
 
-Use those for the checked-in repository runtime, state inspection, and resume checks. Treat the `openkit` global commands as the preferred top-level operator path for everyday use.
+### Release Workflow
 
-## Workflow-State Utility Commands
+OpenKit now supports release-level governance through:
 
-For the authoritative workflow-state command inventory, use `context/core/project-config.md`.
+- release candidates
+- release notes drafting and validation
+- release gates
+- rollback plans
+- release-linked hotfixes
 
-In this README, keep only the concise operator-facing surface:
+### Where To Go Next
 
-- `node .opencode/workflow-state.js status`
-- `node .opencode/workflow-state.js resume-summary`
-- `node .opencode/workflow-state.js doctor`
-- `node .opencode/workflow-state.js show`
-- `node .opencode/workflow-state.js validate`
-- `node .opencode/workflow-state.js list-work-items`
-- `node .opencode/workflow-state.js show-work-item <work_item_id>`
-- `node .opencode/workflow-state.js list-tasks <work_item_id>` when the active full-delivery item uses a task board
-
-Use lower-level mutation commands only when you are intentionally operating the checked-in workflow state machinery, and read `context/core/project-config.md` for the maintained full command list.
-
-Operational guidance:
-
-- `status` prints the project root, kit metadata, state file path, active mode, stage, workflow status, owner, and work item when present.
-- `resume-summary` prints the next safe action, linked artifacts, pending approvals, and open issues for resume-friendly inspection.
-- `doctor` reports repository runtime checks such as the registry, install manifest, compatibility mirror, active work-item pointer, task-board validity, workflow-state CLI, hooks config, session-start hook, and lightweight contract-consistency checks for declared runtime surfaces and schema alignment.
-- `profiles` lists the local registry profiles known to this repository and marks the repository default with `*`.
-- `show-profile <name>` prints the profile name, whether it is the repository default, and the component categories referenced by that profile.
-- `sync-install-manifest <name>` rewrites `.opencode/install-manifest.json` so its recorded active profile matches the named registry profile.
-- `list-work-items` shows managed work items and marks the active one.
-- `show-work-item <work_item_id>` prints the selected work item's mode, stage, and status.
-- `list-tasks <work_item_id>` shows the task board for a full-delivery work item.
-- `validate-work-item-board <work_item_id>` checks that a full-delivery task board is present and structurally valid.
-- task commands only apply to full-delivery work items with an execution task board; quick and migration modes intentionally stay task-board free.
-- `scaffold-artifact <task_card|plan|migration_report> <slug>` creates a narrow repo-native draft from a checked-in template and links it into the active workflow state when the target slot is still empty.
-- `task_card` scaffolding is available only in `quick` mode and is intentionally allowed as optional traceability anywhere in the quick lane.
-- `plan` scaffolding is available in `full` mode at `full_plan` and in `migration` mode at `migration_strategy`; it requires a linked architecture artifact before the draft is created.
-- `migration_report` scaffolding is available in `migration` mode at `migration_baseline` or `migration_strategy` for one-file migration tracking.
-- the session-start hook prints a `<openkit_runtime_status>` block with `status`, `doctor`, and `show` command hints, then prints a `<workflow_resume_hint>` block with canonical resume-reading guidance when workflow state contains resumable context.
-- the same runtime surfaces may include active work-item id and task-board summaries for full-delivery work, but the hook still warns operators to confirm safety with `doctor` before relying on parallel task support.
-
-Validation guidance in the current repository:
-
-- `status`, `doctor`, `show`, and `validate` help inspect workflow runtime state; they are not substitutes for application build, lint, or test commands.
-- work-item and task-board commands help inspect and coordinate the implemented full-delivery runtime; they are not a general-purpose distributed scheduler.
-- This repository does not yet define repo-native app build/lint/test commands, so command docs and plans should name the real validation path honestly.
-- When no app-native tooling exists, use the workflow-state utility where relevant and then record manual or artifact-based verification instead of inventing automation.
-
-## Safe Extension
-
-When extending OpenKit, register what you add instead of leaving the metadata layer stale.
-
-- New agent: add the file under `agents/`, add it to `.opencode/opencode.json` when it belongs in the runtime manifest, and add an `agents` entry in `registry.json`.
-- New skill: add the file under `skills/`, then register it in `registry.json` so profiles and future diagnostics can see it.
-- New command: add the command doc under `commands/`, update `.opencode/opencode.json` if it is part of the live command surface, and add a `commands` entry in `registry.json`.
-- New operational or governance anchor doc: add it to the relevant docs directory and register it in the `docs` section of `registry.json` when it becomes part of the maintained kit surface.
-- New profile: add a named profile in `registry.json` that references existing component categories; keep profile names descriptive and local to what the repository actually contains.
-
-If an extension changes runtime behavior, profile semantics, or the long-term shape of the install-manifest/registry contract, also review `docs/governance/adr-policy.md` to decide whether the change needs an ADR rather than only a doc update.
-
-## Approved Direction
-
-FEATURE-002 records the roadmap and rationale behind the contract that is already live today:
-
-- continue refining the current quick lane after the `Quick Task+` successor semantics activation while keeping the explicit lane model coherent
-- harden runtime behavior with stronger bootstrap guidance, operational discoverability, and workflow-level verification
-
-Rely on the current workflow contract and runtime surfaces that exist in the repository today. Treat these artifacts as roadmap context, not as overrides for `context/core/workflow.md` or the implemented runtime.
-
-## Current Validation Reality
-
-Keep two validation stories separate:
-
-- OpenKit runtime and CLI validation does exist in this repository through `tests/`, `.opencode/tests/`, `openkit doctor`, and `node .opencode/workflow-state.js doctor`.
-- This repository does not yet define a repo-native build, lint, or test command for arbitrary target application code.
-
-Agents must not invent stack-specific application commands unless the repository later adopts them and documents them in `AGENTS.md` and `context/core/project-config.md`.
+- operator path: `docs/operator/README.md`
+- surface selection: `docs/operator/surface-contract.md`
+- maintainer path: `docs/maintainer/README.md`
+- command map: `docs/maintainer/command-matrix.md`
+- workflow contract: `context/core/workflow.md`
+- runtime command reality: `context/core/project-config.md`
+- session resume: `context/core/session-resume.md`
+- workflow-state schema: `context/core/workflow-state-schema.md`
+- operations runbooks: `docs/operations/README.md`
