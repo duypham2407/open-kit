@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.0`](release-notes/0.3.0.md) - harden runtime governance and add release workflow
-- npm latest: `@duypham93/openkit@0.3.0`
-- git tag: `v0.3.0`
+- [`0.3.1`](release-notes/0.3.1.md) - preserve agent model overrides during upgrade
+- npm latest: `@duypham93/openkit@0.3.1`
+- git tag: `v0.3.1`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.1`](release-notes/0.3.1.md) - preserve agent model overrides during upgrade
 - [`0.3.0`](release-notes/0.3.0.md) - harden runtime governance and add release workflow
 - [`0.2.15`](release-notes/0.2.15.md) - conditional parallel execution for full and migration
 - [`0.2.14`](release-notes/0.2.14.md) - OpenSpec-inspired UX and runtime guidance uplift
