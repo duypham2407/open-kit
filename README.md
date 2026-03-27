@@ -112,6 +112,40 @@ npm install -g @duypham93/openkit
 openkit doctor
 ```
 
+### Configure per-agent models
+
+Before you start a session you can assign different models to different OpenKit agents:
+
+```bash
+openkit configure-agent-models --interactive
+```
+
+Useful commands:
+
+```bash
+openkit configure-agent-models --list
+openkit configure-agent-models --models
+openkit configure-agent-models --models <provider>
+openkit configure-agent-models --agent <agent-id> --model <provider/model>
+openkit configure-agent-models --agent <agent-id> --model <provider/model> --variant <variant>
+openkit configure-agent-models --agent <agent-id> --clear
+```
+
+Active agent ids:
+
+- `master-orchestrator`
+- `product-lead-agent`
+- `solution-lead-agent`
+- `fullstack-agent`
+- `code-reviewer`
+- `qa-agent`
+
+Recommended flow:
+
+1. `openkit configure-agent-models --list`
+2. `openkit configure-agent-models --interactive`
+3. `openkit run`
+
 ### Launch OpenCode with OpenKit
 
 ```bash
@@ -190,6 +224,19 @@ OpenKit has 3 main surfaces:
 - compatibility runtime path: `node .opencode/workflow-state.js ...`
 
 Use the product path for daily use. Use the lower-level runtime CLI for inspection, diagnostics, and maintainer workflows.
+
+### Model Overrides
+
+Per-agent model overrides are saved by the global OpenKit install and reused by future `openkit run` sessions.
+
+Use them when you want different strengths per role, for example:
+
+- a stronger reasoning model for `product-lead-agent` and `solution-lead-agent`
+- a code-focused model for `fullstack-agent`
+- a careful review-oriented model for `code-reviewer`
+- a verification-oriented model for `qa-agent`
+
+Use `openkit configure-agent-models --list` any time you want to inspect or confirm the current saved overrides.
 
 ### Useful Runtime Commands
 
