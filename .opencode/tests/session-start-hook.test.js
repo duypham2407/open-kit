@@ -144,7 +144,7 @@ test("session-start emits mode-aware resume hint for quick tasks", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /<openkit_runtime_status>/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.4/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.5/)
   assert.match(result.stdout, /startup skill: skipped/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js status/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js doctor/)
