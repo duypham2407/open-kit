@@ -510,7 +510,7 @@ test('openkit run blocks on invalid global install state and recommends upgrade'
     `${JSON.stringify({
       schema: 'wrong-schema',
       stateVersion: 1,
-      kit: { name: 'OpenKit', version: '0.3.5' },
+      kit: { name: 'OpenKit', version: '0.3.6' },
       installation: {
         profile: 'openkit',
         status: 'installed',

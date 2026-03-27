@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.5`](release-notes/0.3.5.md) - package-first workflow cleanup and auto-scaffold visibility
-- npm latest: `@duypham93/openkit@0.3.5`
-- git tag: `v0.3.5`
+- [`0.3.6`](release-notes/0.3.6.md) - bundle default React and skill-discovery skills
+- npm latest: `@duypham93/openkit@0.3.6`
+- git tag: `v0.3.6`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.6`](release-notes/0.3.6.md) - bundle default React and skill-discovery skills
 - [`0.3.5`](release-notes/0.3.5.md) - package-first workflow cleanup and auto-scaffold visibility
 - [`0.3.4`](release-notes/0.3.4.md) - complete AI-first surface cleanup and strict scope/solution vocabulary
 - [`0.3.3`](release-notes/0.3.3.md) - complete package-first workflow hardening and governance alignment
