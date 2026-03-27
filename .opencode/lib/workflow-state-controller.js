@@ -628,6 +628,8 @@ function buildMigrationSliceRecord(sliceInput) {
 }
 
 function validateManagedState(state, projectRoot, workItemId, options = {}) {
+  validatePrimaryArtifactContracts(state, projectRoot)
+
   const taskBoard = readTaskBoardIfExists(projectRoot, workItemId)
   const migrationSliceBoard = readMigrationSliceBoardIfExists(projectRoot, workItemId)
   const effectiveParallelization = state.parallelization ?? createDefaultParallelization(state.mode)
@@ -961,13 +963,15 @@ function ensureVerificationEvidenceEntry(entry, index) {
 
 function validateArtifacts(artifacts) {
   ensureObject(artifacts, "artifacts")
-  for (const key of ["task_card", "brief", "spec", "architecture", "plan", "migration_report", "qa_report", "adr"]) {
+  for (const key of ["task_card", "scope_package", "solution_package", "brief", "spec", "architecture", "plan", "migration_report", "qa_report", "adr"]) {
     if (!(key in artifacts)) {
-      fail(`artifacts.${key} is required`)
+      artifacts[key] = key === "adr" ? [] : null
     }
   }
 
   ensureNullableString(artifacts.task_card, "artifacts.task_card")
+  ensureNullableString(artifacts.scope_package, "artifacts.scope_package")
+  ensureNullableString(artifacts.solution_package, "artifacts.solution_package")
   ensureNullableString(artifacts.brief, "artifacts.brief")
   ensureNullableString(artifacts.spec, "artifacts.spec")
   ensureNullableString(artifacts.architecture, "artifacts.architecture")
@@ -1081,6 +1085,80 @@ function validateArtifactSignatureForMode(mode, artifacts) {
   for (const key of ["task_card", "migration_report"]) {
     if (artifacts[key] !== null) {
       fail(`artifacts.${key} must be null in full mode`)
+    }
+  }
+}
+
+function readArtifactTextIfLinked(projectRoot, artifactPath, label) {
+  if (typeof artifactPath !== "string" || artifactPath.length === 0) {
+    return null
+  }
+
+  const resolvedPath = path.isAbsolute(artifactPath) ? artifactPath : path.resolve(projectRoot, artifactPath)
+  if (!fs.existsSync(resolvedPath)) {
+    return null
+  }
+
+  return fs.readFileSync(resolvedPath, "utf8")
+}
+
+function requireArtifactSections(projectRoot, artifactCandidates, label, headings) {
+  const candidates = Array.isArray(artifactCandidates) ? artifactCandidates : [artifactCandidates]
+  let text = null
+
+  for (const candidate of candidates) {
+    text = readArtifactTextIfLinked(projectRoot, candidate.path, candidate.label)
+    if (text !== null) {
+      break
+    }
+  }
+
+  if (text === null) {
+    return
+  }
+
+  for (const heading of headings) {
+    if (!text.includes(heading)) {
+      fail(`${label} is missing required section '${heading}'`)
+    }
+  }
+}
+
+function validatePrimaryArtifactContracts(state, projectRoot) {
+  if (state.mode === "full") {
+    if (state.current_stage !== "full_intake") {
+      requireArtifactSections(projectRoot, [
+        { path: state.artifacts.scope_package, label: "artifacts.scope_package" },
+        { path: state.artifacts.spec, label: "artifacts.spec" },
+        { path: state.artifacts.brief, label: "artifacts.brief" },
+      ], "artifacts.scope_package", [
+        "## Goal",
+        "## In Scope",
+        "## Out of Scope",
+        "## Acceptance Criteria Matrix",
+      ])
+    }
+
+    if (["full_implementation", "full_code_review", "full_qa", "full_done"].includes(state.current_stage)) {
+      requireArtifactSections(projectRoot, [
+        { path: state.artifacts.solution_package, label: "artifacts.solution_package" },
+        { path: state.artifacts.plan, label: "artifacts.plan" },
+        { path: state.artifacts.architecture, label: "artifacts.architecture" },
+      ], "artifacts.solution_package", [
+        "## Recommended Path",
+        "## Impacted Surfaces",
+        "## Implementation Slices",
+        "## Validation Matrix",
+        "## Integration Checkpoint",
+      ])
+    }
+
+    if (state.current_stage === "full_done") {
+      requireArtifactSections(projectRoot, state.artifacts.qa_report, "artifacts.qa_report", [
+        "## Overall Status",
+        "## Test Evidence",
+        "## Issues",
+      ])
     }
   }
 }
@@ -2871,6 +2949,30 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
     fail(`Artifact scaffold kind 'task_card' requires quick mode`)
   }
 
+  if (kind === "scope_package") {
+    if (state.mode !== "full") {
+      fail(`Artifact scaffold kind 'scope_package' requires full mode`)
+    }
+
+    if (state.current_stage !== "full_product") {
+      fail(`Artifact scaffold kind 'scope_package' requires current stage 'full_product'`)
+    }
+  }
+
+  if (kind === "solution_package") {
+    if (state.mode !== "full" && state.mode !== "migration") {
+      fail(`Artifact scaffold kind 'solution_package' requires full or migration mode`)
+    }
+
+    if (state.mode === "full" && state.current_stage !== "full_solution") {
+      fail(`Artifact scaffold kind 'solution_package' requires current stage 'full_solution'`)
+    }
+
+    if (state.mode === "migration" && state.current_stage !== "migration_strategy") {
+      fail(`Artifact scaffold kind 'solution_package' requires current stage 'migration_strategy'`)
+    }
+  }
+
   if (kind === "plan") {
     if (state.mode !== "full" && state.mode !== "migration") {
       fail(`Artifact scaffold kind 'plan' requires full or migration mode`)
@@ -2884,8 +2986,11 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
       fail(`Artifact scaffold kind 'plan' requires current stage 'migration_strategy'`)
     }
 
-    if (typeof state.artifacts.architecture !== "string" || state.artifacts.architecture.length === 0) {
-      fail(`Artifact scaffold kind 'plan' requires a linked architecture artifact`)
+    if (
+      (typeof state.artifacts.solution_package !== "string" || state.artifacts.solution_package.length === 0) &&
+      (typeof state.artifacts.architecture !== "string" || state.artifacts.architecture.length === 0)
+    ) {
+      fail(`Artifact scaffold kind 'plan' requires a linked solution or architecture artifact`)
     }
   }
 

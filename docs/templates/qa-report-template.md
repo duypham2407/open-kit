@@ -14,6 +14,12 @@ approval_gate: qa_to_done
 ## Overall Status
 - PASS | FAIL
 
+## Verification Scope
+
+## Observed Result
+
+## Behavior Impact
+
 ## Spec Compliance
 
 | Acceptance Criteria | Result | Notes |
@@ -23,6 +29,8 @@ approval_gate: qa_to_done
 ## Quality Checks
 
 ## Test Evidence
+
+## Recommended Route
 
 ## Issues
 

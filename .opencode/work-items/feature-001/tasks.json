@@ -1,0 +1,28 @@
+{
+  "mode": "full",
+  "current_stage": "full_done",
+  "tasks": [
+    {
+      "task_id": "task-001",
+      "title": "Golden path execution",
+      "summary": "Golden path execution task",
+      "kind": "implementation",
+      "status": "done",
+      "depends_on": [],
+      "blocked_by": [],
+      "artifact_refs": [
+        "docs/plans/2026-03-20-task-intake-dashboard.md"
+      ],
+      "plan_refs": [
+        "docs/plans/2026-03-20-task-intake-dashboard.md"
+      ],
+      "branch_or_worktree": "main",
+      "created_by": "SolutionLead",
+      "primary_owner": "FullstackAgent",
+      "qa_owner": "QAAgent",
+      "concurrency_class": "parallel_safe",
+      "created_at": "2026-03-20T10:00:00.000Z",
+      "updated_at": "2026-03-20T12:00:00.000Z"
+    }
+  ]
+}

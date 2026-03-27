@@ -30,7 +30,7 @@ function setupTempRuntime(projectRoot) {
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
-        version: "0.3.2",
+        version: "0.3.3",
         entryAgent: "MasterOrchestrator",
         registry: {
           path: "registry.json",
@@ -105,7 +105,7 @@ function setupTempRuntime(projectRoot) {
       "Quick approvals: `quick_verified`.",
       "Migration approvals: `baseline_to_strategy`, `strategy_to_upgrade`, `upgrade_to_code_review`, `code_review_to_verify`, `migration_verified`.",
       "Full approvals: `product_to_solution`, `solution_to_fullstack`, `fullstack_to_code_review`, `code_review_to_qa`, `qa_to_done`.",
-      "Quick artifacts: `task_card`; migration artifacts may include `architecture`, `plan`, `migration_report`; full artifacts: `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
+      "Quick artifacts: `task_card`; migration artifacts may include `solution_package`, `architecture`, `plan`, `migration_report`; full artifacts: `scope_package`, `solution_package`, `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
       "",
     ].join("\n"),
     "utf8",
@@ -119,7 +119,7 @@ function setupTempRuntime(projectRoot) {
       "Quick stages: `quick_intake`, `quick_plan`, `quick_build`, `quick_verify`, `quick_done`.",
       "Migration stages: `migration_intake`, `migration_baseline`, `migration_strategy`, `migration_upgrade`, `migration_code_review`, `migration_verify`, `migration_done`.",
       "Full stages: `full_intake`, `full_product`, `full_solution`, `full_implementation`, `full_code_review`, `full_qa`, `full_done`.",
-      "Artifact keys: `task_card`, `brief`, `spec`, `architecture`, `plan`, `migration_report`, `qa_report`, `adr`.",
+      "Artifact keys: `task_card`, `scope_package`, `solution_package`, `brief`, `spec`, `architecture`, `plan`, `migration_report`, `qa_report`, `adr`.",
       "Resume summary JSON includes verification_readiness, verification_evidence, and issue_telemetry.",
       "Routing profile keys: `work_intent`, `behavior_delta`, `dominant_uncertainty`, `scope_shape`, `selection_reason`.",
       "Quick approvals: `quick_verified`.",
@@ -253,7 +253,7 @@ test("status command prints workflow and runtime summary", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /OpenKit runtime status:/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.2/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.3/)
   assert.match(result.stdout, /entry agent: MasterOrchestrator/)
   assert.match(result.stdout, /active profile: openkit-core/)
   assert.match(result.stdout, /registry: .*registry\.json/)
@@ -765,7 +765,7 @@ test("version command prints kit metadata version", () => {
   })
 
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /OpenKit version: 0\.3\.2/)
+  assert.match(result.stdout, /OpenKit version: 0\.3\.3/)
   assert.match(result.stdout, /active profile: openkit-core/)
 })
 

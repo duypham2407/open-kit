@@ -104,7 +104,18 @@ const TRANSITION_GATES = {
 const STATUS_VALUES = ["idle", "in_progress", "blocked", "done"]
 const PARALLEL_MODES = ["none", "limited", "enabled"]
 
-const ARTIFACT_KINDS = ["task_card", "brief", "spec", "architecture", "plan", "migration_report", "qa_report", "adr"]
+const ARTIFACT_KINDS = [
+  "task_card",
+  "scope_package",
+  "solution_package",
+  "brief",
+  "spec",
+  "architecture",
+  "plan",
+  "migration_report",
+  "qa_report",
+  "adr",
+]
 
 const ISSUE_TYPES = ["bug", "design_flaw", "requirement_gap"]
 const ISSUE_SEVERITIES = ["critical", "high", "medium", "low"]
@@ -140,6 +151,8 @@ function createEmptyApprovals(mode) {
 function createEmptyArtifacts() {
   return {
     task_card: null,
+    scope_package: null,
+    solution_package: null,
     brief: null,
     spec: null,
     architecture: null,

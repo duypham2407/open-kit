@@ -44,7 +44,9 @@ export function readAgentCatalog(registryPath) {
   const registry = readJsonIfPresent(registryPath);
   const agents = Array.isArray(registry?.components?.agents) ? registry.components.agents : [];
 
-  return agents.map((agent) => ({
+  return agents
+    .filter((agent) => agent?.status !== 'compatibility-only' && agent?.audience !== 'compatibility')
+    .map((agent) => ({
     id: deriveAgentNameFromPath(agent.path),
     name: agent.name,
     role: agent.role,

@@ -82,11 +82,27 @@ const ARTIFACT_RULES = {
   ],
   full: [
     {
-      id: "brief",
+      id: "scope_package",
       availableFrom: "full_product",
       requiredFrom: "full_solution",
       recommendedFrom: "full_product",
       optional: false,
+      summary: "Primary scope package for product intent, rules, and acceptance.",
+    },
+    {
+      id: "solution_package",
+      availableFrom: "full_solution",
+      requiredFrom: "full_implementation",
+      recommendedFrom: "full_solution",
+      optional: false,
+      summary: "Primary solution package for technical direction, slices, and validation.",
+    },
+    {
+      id: "brief",
+      availableFrom: "full_product",
+      requiredFrom: "full_solution",
+      recommendedFrom: "full_product",
+      optional: true,
       summary: "Compatibility slot for product scope framing under Product Lead.",
     },
     {
@@ -94,7 +110,7 @@ const ARTIFACT_RULES = {
       availableFrom: "full_product",
       requiredFrom: "full_solution",
       recommendedFrom: "full_product",
-      optional: false,
+      optional: true,
       summary: "Compatibility slot for behavioral requirements and acceptance criteria.",
     },
     {
@@ -102,7 +118,7 @@ const ARTIFACT_RULES = {
       availableFrom: "full_solution",
       requiredFrom: "full_implementation",
       recommendedFrom: "full_solution",
-      optional: false,
+      optional: true,
       summary: "Compatibility slot for solution boundaries and technical approach.",
     },
     {
@@ -110,7 +126,7 @@ const ARTIFACT_RULES = {
       availableFrom: "full_solution",
       requiredFrom: "full_implementation",
       recommendedFrom: "full_solution",
-      optional: false,
+      optional: true,
       summary: "Compatibility slot for sequencing, task slices, and validation strategy.",
     },
     {
@@ -146,7 +162,7 @@ const DOD_RULES = {
     summary: "Migration work is done when parity or compatibility evidence exists, migration approval is explicit, and unresolved issues are closed.",
   },
   full: {
-    requiredArtifacts: ["brief", "spec", "architecture", "plan", "qa_report"],
+    requiredArtifacts: ["scope_package", "solution_package", "qa_report"],
     requiredApprovals: ["product_to_solution", "solution_to_fullstack", "fullstack_to_code_review", "code_review_to_qa", "qa_to_done"],
     requiredEvidenceStages: ["full_qa"],
     summary: "Full delivery is done when required artifacts, approvals, QA evidence, and issue closure all exist together.",
@@ -166,6 +182,14 @@ function stageIndex(mode, stage) {
 function getArtifactValue(state, artifactId) {
   if (!state?.artifacts) {
     return null
+  }
+
+  if (artifactId === "scope_package") {
+    return state.artifacts.scope_package ?? state.artifacts.spec ?? state.artifacts.brief ?? null
+  }
+
+  if (artifactId === "solution_package") {
+    return state.artifacts.solution_package ?? state.artifacts.plan ?? state.artifacts.architecture ?? null
   }
 
   if (artifactId === "adr") {

@@ -19,6 +19,8 @@ function createPendingGate() {
 function createEmptyArtifacts() {
   return {
     task_card: null,
+    scope_package: null,
+    solution_package: null,
     brief: null,
     spec: null,
     architecture: null,

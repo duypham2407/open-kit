@@ -129,6 +129,8 @@ Allowed values:
 `artifacts` must always contain these keys:
 
 - `task_card`
+- `scope_package`
+- `solution_package`
 - `brief`
 - `spec`
 - `architecture`
@@ -140,8 +142,9 @@ Allowed values:
 Usage by mode:
 
 - `Quick Task` may use `task_card`
-- `Migration` may use `architecture`, `plan`, and optional `migration_report`
-- `Full Delivery` continues to use compatibility slots `brief`, `spec`, `architecture`, and `plan`, even though active stage ownership now belongs to `Product Lead` and `Solution Lead`
+- `Migration` may use `solution_package`, `architecture`, `plan`, and optional `migration_report`
+- `Full Delivery` should prefer `scope_package` and `solution_package` as the primary artifacts
+- `brief`, `spec`, `architecture`, and `plan` remain compatibility slots derived from or linked to the package-first workflow when needed
 
 ## Approvals Shape
 

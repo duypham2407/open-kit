@@ -36,7 +36,7 @@ Check whether the code matches the approved scope exactly - no more, no less:
 
 **Output format:**
 ```
-## Stage 1: Spec Compliance
+## Stage 1: Scope And Solution Compliance
 Status: ✅ PASS / ❌ FAIL
 
 Issues (if FAIL):

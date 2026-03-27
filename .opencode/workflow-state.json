@@ -15,6 +15,8 @@
   "current_owner": "MasterOrchestrator",
   "artifacts": {
     "task_card": null,
+    "scope_package": "docs/specs/2026-03-20-task-intake-dashboard.md",
+    "solution_package": "docs/plans/2026-03-20-task-intake-dashboard.md",
     "brief": "docs/briefs/2026-03-20-task-intake-dashboard.md",
     "spec": "docs/specs/2026-03-20-task-intake-dashboard.md",
     "architecture": "docs/architecture/2026-03-20-task-intake-dashboard.md",

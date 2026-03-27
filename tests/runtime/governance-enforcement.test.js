@@ -106,3 +106,16 @@ test('maintainer docs advertise one-command verification and workflow telemetry'
   assert.match(traceability, /Release Candidate Governance/);
   assert.match(releaseRunbook, /create-release-candidate/);
 });
+
+test('canonical docs expose role policy and package-first artifacts', () => {
+  const workflow = read('context/core/workflow.md');
+  const schema = read('context/core/workflow-state-schema.md');
+  const policy = read('docs/maintainer/2026-03-26-role-operating-policy.md');
+
+  assert.match(workflow, /scope package/i);
+  assert.match(workflow, /solution package/i);
+  assert.match(schema, /scope_package/);
+  assert.match(schema, /solution_package/);
+  assert.match(policy, /Code Reviewer/);
+  assert.match(policy, /QA Agent/);
+});

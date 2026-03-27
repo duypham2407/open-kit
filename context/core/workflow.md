@@ -9,6 +9,8 @@ For product-vs-compatibility runtime boundaries, use `context/core/runtime-surfa
 
 The current live contract uses `Quick Task+` successor semantics for the existing quick lane while supporting three runtime modes: `quick`, `migration`, and `full`.
 
+`Quick Task+` is not a third lane or a fourth runtime mode.
+
 ## Workflow Lanes
 
 OpenKit has three explicitly separate operating lanes:
@@ -163,6 +165,12 @@ Tie-breaker rule:
 - if the main uncertainty is framework, dependency, runtime, or compatibility modernization while preserved behavior is already known, choose `Migration`
 - if neither product ambiguity nor compatibility uncertainty dominates and the work stays tightly bounded with a short verification path, choose `Quick Task`
 
+Lane Decision Matrix:
+
+- product uncertainty -> `Full Delivery`
+- compatibility uncertainty -> `Migration`
+- low local uncertainty -> `Quick Task`
+
 ## Feedback Loops
 
 ### Quick Task loop
@@ -234,6 +242,7 @@ Approval state should be recorded in the managed active work-item state before a
 ### Migration
 
 - baseline and strategy notes recorded in workflow communication and state
+- preferred technical artifact: `docs/plans/YYYY-MM-DD-<migration>.md` as the solution package
 - preserved invariants and parity expectations recorded in workflow communication and state
 - optional architecture document when the migration needs an explicit compatibility or boundary design
 - migration plan in `docs/plans/YYYY-MM-DD-<migration>.md`
@@ -244,8 +253,8 @@ Approval state should be recorded in the managed active work-item state before a
 
 | Role | Produces |
 | --- | --- |
-| Product Lead | `docs/briefs/YYYY-MM-DD-<feature>.md` and/or `docs/specs/YYYY-MM-DD-<feature>.md` |
-| Solution Lead | `docs/architecture/YYYY-MM-DD-<feature>.md` and/or `docs/plans/YYYY-MM-DD-<feature>.md` |
+| Product Lead | primary `scope package`, usually at `docs/specs/YYYY-MM-DD-<feature>.md`; optional compatibility `brief` |
+| Solution Lead | primary `solution package`, usually at `docs/plans/YYYY-MM-DD-<feature>.md`; optional compatibility `architecture` |
 | Fullstack | Source code and verification evidence |
 | Code Reviewer | Review findings in workflow communication and state |
 | QA | `docs/qa/YYYY-MM-DD-<feature>.md` |

@@ -37,7 +37,7 @@ The kit is structured into several core directories:
 
 Current repository facts:
 
-- The current workflow contract is the hard-split design described in `context/core/workflow.md`
+- The current workflow contract is the active Product Lead / Solution Lead design described in `context/core/workflow.md`
 - `context/core/workflow.md` is the canonical workflow-semantics document for lane behavior, stages, escalation, approvals, and quick-lane artifact expectations
 - Historical planning and example docs have been intentionally pruned from the working tree; prefer current runtime docs and git history when older rationale is needed
 - `npm install -g @duypham93/openkit`, `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit

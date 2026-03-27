@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.2`](release-notes/0.3.2.md) - refactor workflow ownership around Product Lead, Solution Lead, and explicit review gates
-- npm latest: `@duypham93/openkit@0.3.2`
-- git tag: `v0.3.2`
+- [`0.3.3`](release-notes/0.3.3.md) - complete package-first workflow hardening and governance alignment
+- npm latest: `@duypham93/openkit@0.3.3`
+- git tag: `v0.3.3`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.3`](release-notes/0.3.3.md) - complete package-first workflow hardening and governance alignment
 - [`0.3.2`](release-notes/0.3.2.md) - refactor workflow ownership around Product Lead, Solution Lead, and explicit review gates
 - [`0.3.1`](release-notes/0.3.1.md) - preserve per-agent model overrides during `openkit upgrade`
 - [`0.3.0`](release-notes/0.3.0.md) - harden runtime governance and add release workflow

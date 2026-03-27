@@ -476,7 +476,7 @@ test("scaffold-artifact rejects plans without a linked architecture artifact", (
   )
 
   assert.equal(result.status, 1)
-  assert.match(result.stderr, /Artifact scaffold kind 'plan' requires a linked architecture artifact/) 
+  assert.match(result.stderr, /Artifact scaffold kind 'plan' requires a linked solution or architecture artifact/)
   assert.equal(fs.readdirSync(path.join(projectRoot, "docs", "plans")).length, 0)
 })
 

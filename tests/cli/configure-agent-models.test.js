@@ -161,7 +161,7 @@ test('configure-agent-models supports an interactive setup flow', async () => {
     '#!/bin/sh\nif [ "$1" = "models" ]; then\n  if [ "$2" = "--verbose" ]; then\n    cat <<\'EOF\'\nopenai/gpt-5\n{\n  "variants": {\n    "none": {},\n    "minimal": {},\n    "low": {},\n    "medium": {},\n    "high": {},\n    "xhigh": {}\n  }\n}\nopenai/gpt-5-mini\n{\n  "variants": {}\n}\nanthropic/claude-sonnet-4-5\n{\n  "variants": {\n    "high": {},\n    "max": {}\n  }\n}\nEOF\n    exit 0\n  fi\n  printf "openai/gpt-5\\nopenai/gpt-5-mini\\nanthropic/claude-sonnet-4-5\\n"\n  exit 0\nfi\nexit 0\n'
   );
 
-  const answers = ['7', '3', '2', 'n'];
+  const answers = ['5', '3', '2', 'n'];
   const result = await runCli(['configure-agent-models', '--interactive'], {
     cwd: worktreeRoot,
     env: {
@@ -189,7 +189,7 @@ test('configure-agent-models interactive flow supports provider search without t
     '#!/bin/sh\nif [ "$1" = "models" ]; then\n  if [ "$2" = "--verbose" ]; then\n    cat <<\'EOF\'\nopenai/gpt-5\n{\n  "variants": {\n    "high": {}\n  }\n}\nopenai/gpt-5-mini\n{\n  "variants": {}\n}\nanthropic/claude-sonnet-4-5\n{\n  "variants": {\n    "high": {},\n    "max": {}\n  }\n}\ngoogle/gemini-2.5-pro\n{\n  "variants": {\n    "low": {},\n    "high": {}\n  }\n}\nEOF\n    exit 0\n  fi\n  printf "openai/gpt-5\\nopenai/gpt-5-mini\\nanthropic/claude-sonnet-4-5\\ngoogle/gemini-2.5-pro\\n"\n  exit 0\nfi\nexit 0\n'
   );
 
-  const answers = ['6', 's', 'gemini', '1', 'n'];
+  const answers = ['4', 's', 'gemini', '1', 'n'];
   const result = await runCli(['configure-agent-models', '--interactive'], {
     cwd: worktreeRoot,
     env: {
@@ -218,7 +218,7 @@ test('configure-agent-models interactive flow can save a variant for supported p
     '#!/bin/sh\nif [ "$1" = "models" ]; then\n  if [ "$2" = "--verbose" ]; then\n    cat <<\'EOF\'\nopenai/gpt-5\n{\n  "variants": {\n    "none": {},\n    "minimal": {},\n    "low": {},\n    "medium": {},\n    "high": {},\n    "xhigh": {}\n  }\n}\nopenai/gpt-5-mini\n{\n  "variants": {}\n}\nanthropic/claude-sonnet-4-5\n{\n  "variants": {\n    "high": {},\n    "max": {}\n  }\n}\nEOF\n    exit 0\n  fi\n  printf "openai/gpt-5\\nopenai/gpt-5-mini\\nanthropic/claude-sonnet-4-5\\n"\n  exit 0\nfi\nexit 0\n'
   );
 
-  const answers = ['7', '3', '1', '7', 'n'];
+  const answers = ['5', '3', '1', '7', 'n'];
   const result = await runCli(['configure-agent-models', '--interactive'], {
     cwd: worktreeRoot,
     env: {
@@ -247,7 +247,7 @@ test('configure-agent-models falls back to plain model selection when verbose di
     '#!/bin/sh\nif [ "$1" = "models" ]; then\n  if [ "$2" = "--verbose" ]; then\n    printf "model catalog unavailable\\n" >&2\n    exit 1\n  fi\n  printf "openai/gpt-5\\nopenai/gpt-5-mini\\nanthropic/claude-sonnet-4-5\\n"\n  exit 0\nfi\nexit 0\n'
   );
 
-  const answers = ['7', '3', '2', 'n'];
+  const answers = ['5', '3', '2', 'n'];
   const result = await runCli(['configure-agent-models', '--interactive'], {
     cwd: worktreeRoot,
     env: {

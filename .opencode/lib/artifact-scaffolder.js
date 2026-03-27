@@ -6,6 +6,14 @@ const SUPPORTED_SCAFFOLDS = {
     templatePath: "docs/templates/quick-task-template.md",
     outputDir: "docs/tasks",
   },
+  scope_package: {
+    templatePath: "docs/templates/scope-package-template.md",
+    outputDir: "docs/specs",
+  },
+  solution_package: {
+    templatePath: "docs/templates/solution-package-template.md",
+    outputDir: "docs/plans",
+  },
   plan: {
     templatePath: "docs/templates/implementation-plan-template.md",
     outputDir: "docs/plans",
