@@ -266,7 +266,7 @@ test("status command prints workflow and runtime summary", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /OpenKit runtime status:/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.4/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.5/)
   assert.match(result.stdout, /entry agent: MasterOrchestrator/)
   assert.match(result.stdout, /active profile: openkit-core/)
   assert.match(result.stdout, /registry: .*registry\.json/)
@@ -793,7 +793,7 @@ test("version command prints kit metadata version", () => {
   })
 
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /OpenKit version: 0\.3\.4/)
+  assert.match(result.stdout, /OpenKit version: 0\.3\.5/)
   assert.match(result.stdout, /active profile: openkit-core/)
 })
 
