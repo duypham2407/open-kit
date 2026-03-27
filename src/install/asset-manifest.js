@@ -9,22 +9,6 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     bundledPath: "assets/install-bundle/opencode/README.md",
   },
   {
-    id: "opencode.agent.ArchitectAgent",
-    assetClass: "agents",
-    sourcePath: "agents/architect-agent.md",
-    bundledPath: "assets/install-bundle/opencode/agents/ArchitectAgent.md",
-    status: "compatibility-only",
-    supersededBy: "opencode.agent.SolutionLead",
-  },
-  {
-    id: "opencode.agent.BAAgent",
-    assetClass: "agents",
-    sourcePath: "agents/ba-agent.md",
-    bundledPath: "assets/install-bundle/opencode/agents/BAAgent.md",
-    status: "compatibility-only",
-    supersededBy: "opencode.agent.ProductLead",
-  },
-  {
     id: "opencode.agent.CodeReviewer",
     assetClass: "agents",
     sourcePath: "agents/code-reviewer.md",
@@ -53,14 +37,6 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     status: "active",
   },
   {
-    id: "opencode.agent.PMAgent",
-    assetClass: "agents",
-    sourcePath: "agents/pm-agent.md",
-    bundledPath: "assets/install-bundle/opencode/agents/PMAgent.md",
-    status: "compatibility-only",
-    supersededBy: "opencode.agent.ProductLead",
-  },
-  {
     id: "opencode.agent.QAAgent",
     assetClass: "agents",
     sourcePath: "agents/qa-agent.md",
@@ -75,14 +51,6 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     status: "active",
   },
   {
-    id: "opencode.agent.TechLeadAgent",
-    assetClass: "agents",
-    sourcePath: "agents/tech-lead-agent.md",
-    bundledPath: "assets/install-bundle/opencode/agents/TechLeadAgent.md",
-    status: "compatibility-only",
-    supersededBy: "opencode.agent.SolutionLead",
-  },
-  {
     id: "opencode.command.brainstorm",
     assetClass: "commands",
     sourcePath: "commands/brainstorm.md",
@@ -95,10 +63,10 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     bundledPath: "assets/install-bundle/opencode/commands/delivery.md",
   },
   {
-    id: "opencode.command.execute-plan",
+    id: "opencode.command.execute-solution",
     assetClass: "commands",
-    sourcePath: "commands/execute-plan.md",
-    bundledPath: "assets/install-bundle/opencode/commands/execute-plan.md",
+    sourcePath: "commands/execute-solution.md",
+    bundledPath: "assets/install-bundle/opencode/commands/execute-solution.md",
   },
   {
     id: "opencode.command.configure-agent-models",
@@ -125,10 +93,10 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     bundledPath: "assets/install-bundle/opencode/commands/task.md",
   },
   {
-    id: "opencode.command.write-plan",
+    id: "opencode.command.write-solution",
     assetClass: "commands",
-    sourcePath: "commands/write-plan.md",
-    bundledPath: "assets/install-bundle/opencode/commands/write-plan.md",
+    sourcePath: "commands/write-solution.md",
+    bundledPath: "assets/install-bundle/opencode/commands/write-solution.md",
   },
   {
     id: "opencode.context.lane-selection",
@@ -179,16 +147,16 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     bundledPath: "assets/install-bundle/opencode/skills/verification-before-completion/SKILL.md",
   },
   {
-    id: "opencode.skill.writing-plans",
+    id: "opencode.skill.writing-solution",
     assetClass: "skills",
-    sourcePath: "skills/writing-plans/SKILL.md",
-    bundledPath: "assets/install-bundle/opencode/skills/writing-plans/SKILL.md",
+    sourcePath: "skills/writing-solution/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/writing-solution/SKILL.md",
   },
   {
-    id: "opencode.skill.writing-specs",
+    id: "opencode.skill.writing-scope",
     assetClass: "skills",
-    sourcePath: "skills/writing-specs/SKILL.md",
-    bundledPath: "assets/install-bundle/opencode/skills/writing-specs/SKILL.md",
+    sourcePath: "skills/writing-scope/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/writing-scope/SKILL.md",
   },
 ]
 

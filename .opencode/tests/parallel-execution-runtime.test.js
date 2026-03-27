@@ -33,7 +33,7 @@ function makeFinding(overrides = {}) {
     rooted_in: "implementation",
     recommended_owner: "FullstackAgent",
     evidence: "Targeted regression reproduced in QA.",
-    artifact_refs: ["docs/plans/2026-03-21-parallel-rollout.md"],
+    artifact_refs: ["docs/solution/2026-03-21-parallel-rollout.md"],
     affects_tasks: ["TASK-11"],
     blocks_parallel_work: false,
     ...overrides,

@@ -14,19 +14,10 @@ const SUPPORTED_SCAFFOLDS = {
     templatePath: "docs/templates/solution-package-template.md",
     outputDir: "docs/plans",
   },
-  plan: {
-    templatePath: "docs/templates/implementation-plan-template.md",
-    outputDir: "docs/plans",
-  },
   migration_report: {
     templatePath: "docs/templates/migration-report-template.md",
     outputDir: "docs/plans",
   },
-}
-
-const PLAN_TEMPLATE_BY_MODE = {
-  full: "docs/templates/implementation-plan-template.md",
-  migration: "docs/templates/migration-plan-template.md",
 }
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -67,8 +58,7 @@ function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, featureSlu
     throw new Error("artifact slug must use lowercase kebab-case")
   }
 
-  const resolvedTemplatePath =
-    kind === "plan" ? PLAN_TEMPLATE_BY_MODE[mode] ?? config.templatePath : config.templatePath
+  const resolvedTemplatePath = config.templatePath
   const templatePath = path.join(projectRoot, resolvedTemplatePath)
   const outputDir = path.join(projectRoot, config.outputDir)
 
@@ -100,7 +90,7 @@ function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, featureSlu
     featureId,
     featureSlug,
     sourceArchitecture: sourceArchitecture ?? "docs/architecture/YYYY-MM-DD-<feature>.md",
-    sourcePlan: sourcePlan ?? "docs/plans/YYYY-MM-DD-<migration>.md",
+    sourcePlan: sourcePlan ?? "docs/solution/YYYY-MM-DD-<migration>.md",
     title: titleFromSlug(slug),
   })
 

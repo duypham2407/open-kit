@@ -131,10 +131,6 @@ Allowed values:
 - `task_card`
 - `scope_package`
 - `solution_package`
-- `brief`
-- `spec`
-- `architecture`
-- `plan`
 - `migration_report`
 - `qa_report`
 - `adr`
@@ -142,9 +138,8 @@ Allowed values:
 Usage by mode:
 
 - `Quick Task` may use `task_card`
-- `Migration` may use `solution_package`, `architecture`, `plan`, and optional `migration_report`
+- `Migration` should use `solution_package` and optional `migration_report`
 - `Full Delivery` should prefer `scope_package` and `solution_package` as the primary artifacts
-- `brief`, `spec`, `architecture`, and `plan` remain compatibility slots derived from or linked to the package-first workflow when needed
 
 ## Approvals Shape
 

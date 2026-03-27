@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.3`](release-notes/0.3.3.md) - complete package-first workflow hardening and governance alignment
-- npm latest: `@duypham93/openkit@0.3.3`
-- git tag: `v0.3.3`
+- [`0.3.4`](release-notes/0.3.4.md) - complete AI-first surface cleanup and strict scope/solution vocabulary
+- npm latest: `@duypham93/openkit@0.3.4`
+- git tag: `v0.3.4`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.4`](release-notes/0.3.4.md) - complete AI-first surface cleanup and strict scope/solution vocabulary
 - [`0.3.3`](release-notes/0.3.3.md) - complete package-first workflow hardening and governance alignment
 - [`0.3.2`](release-notes/0.3.2.md) - refactor workflow ownership around Product Lead, Solution Lead, and explicit review gates
 - [`0.3.1`](release-notes/0.3.1.md) - preserve per-agent model overrides during `openkit upgrade`

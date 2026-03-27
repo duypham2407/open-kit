@@ -22,6 +22,7 @@ The current operations surface includes both the global OpenKit install path and
 - `runbooks/release-workflow-smoke-tests.md`: smoke checks for release candidates, release notes, rollback planning, and hotfix linkage
 - `../maintainer/test-matrix.md`: fastest map from changed OpenKit surface to the right automated tests
 - `../maintainer/2026-03-26-role-operating-policy.md`: short-form role boundary policy for scope, solution, review, and QA ownership
+- `../maintainer/2026-03-26-ai-surface-map.md`: strict AI-facing map of active surfaces versus archive and test noise
 - `internal-records/README.md`: policy for when to keep a sparse durable operational record in-tree
 
 ## Primary Operator Path

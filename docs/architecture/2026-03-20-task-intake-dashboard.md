@@ -4,9 +4,9 @@ version: 1
 status: approved
 feature_id: FEATURE-001
 feature_slug: task-intake-dashboard
-source_spec: docs/specs/2026-03-20-task-intake-dashboard.md
-owner: ArchitectAgent
-approval_gate: architect_to_tech_lead
+source_spec: docs/scope/2026-03-20-task-intake-dashboard.md
+owner: SolutionLead
+approval_gate: solution_to_fullstack
 ---
 
 # Architecture: Task Intake Dashboard

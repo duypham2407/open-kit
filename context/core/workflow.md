@@ -242,19 +242,17 @@ Approval state should be recorded in the managed active work-item state before a
 ### Migration
 
 - baseline and strategy notes recorded in workflow communication and state
-- preferred technical artifact: `docs/plans/YYYY-MM-DD-<migration>.md` as the solution package
+- preferred technical artifact: `docs/solution/YYYY-MM-DD-<migration>.md` as the solution package
 - preserved invariants and parity expectations recorded in workflow communication and state
-- optional architecture document when the migration needs an explicit compatibility or boundary design
-- migration plan in `docs/plans/YYYY-MM-DD-<migration>.md`
-- optional consolidated migration report in `docs/plans/YYYY-MM-DD-<migration>-report.md`
+- optional consolidated migration report in `docs/solution/YYYY-MM-DD-<migration>-report.md`
 - concise review, regression, and compatibility evidence in workflow communication and state
 
 ### Full Delivery
 
 | Role | Produces |
 | --- | --- |
-| Product Lead | primary `scope package`, usually at `docs/specs/YYYY-MM-DD-<feature>.md`; optional compatibility `brief` |
-| Solution Lead | primary `solution package`, usually at `docs/plans/YYYY-MM-DD-<feature>.md`; optional compatibility `architecture` |
+| Product Lead | primary `scope package`, usually at `docs/scope/YYYY-MM-DD-<feature>.md` |
+| Solution Lead | primary `solution package`, usually at `docs/solution/YYYY-MM-DD-<feature>.md` |
 | Fullstack | Source code and verification evidence |
 | Code Reviewer | Review findings in workflow communication and state |
 | QA | `docs/qa/YYYY-MM-DD-<feature>.md` |

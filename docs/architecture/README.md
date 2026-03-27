@@ -1,7 +1,7 @@
 # Architecture
 
-This directory stores architecture artifacts produced by the Architect agent.
+This directory stores historical architecture artifacts kept outside the active AI-first workflow.
 
 - File naming: `YYYY-MM-DD-<feature-slug>.md`
-- Source template: `docs/templates/architecture-template.md`
+- Historical source template: `docs/archive/templates/architecture-template.md`
 - Approval gate: Architect -> Tech Lead

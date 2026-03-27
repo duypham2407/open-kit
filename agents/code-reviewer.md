@@ -108,6 +108,20 @@ Recommended Route:
 - return to full_implementation | full_solution | full_product | migration_upgrade | migration_strategy
 ```
 
+## Structured Finding Record
+
+When there is at least one blocking or important finding, include a compact record per finding using this shape:
+
+```text
+Finding:
+- class: implementation_issue | solution_issue | product_scope_issue | migration_parity_issue
+- severity: critical | important | minor
+- location: path:line
+- impact: one-line statement of what is wrong technically
+- fix: one-line statement of the expected correction
+- route: full_implementation | full_solution | full_product | migration_upgrade | migration_strategy
+```
+
 ## Routing Hints For The Orchestrator
 
 - Use `implementation_issue` when the approved scope is clear but the code is wrong or incomplete

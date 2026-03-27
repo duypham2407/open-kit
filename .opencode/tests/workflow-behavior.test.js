@@ -38,7 +38,7 @@ function writeManifest(projectRoot) {
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
-        version: "0.3.3",
+        version: "0.3.4",
         entryAgent: "MasterOrchestrator",
       },
     }, null, 2)}\n`,

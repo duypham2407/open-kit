@@ -111,7 +111,7 @@ function createTask(overrides = {}) {
     depends_on: [],
     blocked_by: [],
     artifact_refs: [],
-    plan_refs: ["docs/plans/2026-03-21-feature.md"],
+    plan_refs: ["docs/solution/2026-03-21-feature.md"],
     branch_or_worktree: null,
     created_by: "SolutionLead",
     created_at: "2026-03-21T00:00:00.000Z",

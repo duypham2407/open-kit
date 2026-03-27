@@ -44,8 +44,8 @@ test('workflow-facing prompts reference runtime surface boundaries where relevan
     'commands/quick-task.md',
     'commands/migrate.md',
     'commands/delivery.md',
-    'commands/write-plan.md',
-    'commands/execute-plan.md',
+    'commands/write-solution.md',
+    'commands/execute-solution.md',
     'commands/brainstorm.md',
   ];
 
@@ -111,6 +111,9 @@ test('canonical docs expose role policy and package-first artifacts', () => {
   const workflow = read('context/core/workflow.md');
   const schema = read('context/core/workflow-state-schema.md');
   const policy = read('docs/maintainer/2026-03-26-role-operating-policy.md');
+  const activeContract = read('context/core/active-contract.json');
+  const reviewSchema = read('context/core/code-review-output-schema.json');
+  const qaSchema = read('context/core/qa-output-schema.json');
 
   assert.match(workflow, /scope package/i);
   assert.match(workflow, /solution package/i);
@@ -118,4 +121,8 @@ test('canonical docs expose role policy and package-first artifacts', () => {
   assert.match(schema, /solution_package/);
   assert.match(policy, /Code Reviewer/);
   assert.match(policy, /QA Agent/);
+  assert.match(activeContract, /code-review-output-schema\.json/);
+  assert.match(activeContract, /qa-output-schema\.json/);
+  assert.match(reviewSchema, /required_finding_fields/);
+  assert.match(qaSchema, /required_verification_fields/);
 });

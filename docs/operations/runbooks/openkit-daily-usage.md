@@ -154,8 +154,8 @@ Full-delivery flow:
 
 - `full_intake -> full_product -> full_solution -> full_implementation -> full_code_review -> full_qa -> full_done`
 - use it for feature work and higher-risk changes
-- expect explicit artifacts under `docs/briefs/`, `docs/specs/`, `docs/architecture/`, `docs/plans/`, and `docs/qa/`
-- use `/brainstorm`, `/write-plan`, and `/execute-plan` only in this lane
+- expect explicit artifacts under `docs/briefs/`, `docs/scope/`, `docs/architecture/`, `docs/solution/`, and `docs/qa/`
+- use `/brainstorm`, `/write-solution`, and `/execute-solution` only in this lane
 
 Migration flow:
 
@@ -163,7 +163,7 @@ Migration flow:
 - use it for framework upgrades, dependency modernization, and compatibility remediation
 - expect explicit baseline, architecture, and plan context before major edits
 - preserve behavior first, decouple only the blockers that make the migration unsafe, then upgrade in slices
-- use `/brainstorm`, `/write-plan`, and `/execute-plan` in this lane when strategy or staged execution is needed
+- use `/brainstorm`, `/write-solution`, and `/execute-solution` in this lane when strategy or staged execution is needed
 - use `docs/templates/migration-baseline-checklist.md` and `docs/templates/migration-verify-checklist.md` as repeatable checklists for baseline and verification
 - use `docs/templates/migration-report-template.md` when you want one running artifact for baseline, strategy, execution, and verification
 

@@ -963,7 +963,7 @@ function ensureVerificationEvidenceEntry(entry, index) {
 
 function validateArtifacts(artifacts) {
   ensureObject(artifacts, "artifacts")
-  for (const key of ["task_card", "scope_package", "solution_package", "brief", "spec", "architecture", "plan", "migration_report", "qa_report", "adr"]) {
+  for (const key of ["task_card", "scope_package", "solution_package", "migration_report", "qa_report", "adr"]) {
     if (!(key in artifacts)) {
       artifacts[key] = key === "adr" ? [] : null
     }
@@ -972,10 +972,6 @@ function validateArtifacts(artifacts) {
   ensureNullableString(artifacts.task_card, "artifacts.task_card")
   ensureNullableString(artifacts.scope_package, "artifacts.scope_package")
   ensureNullableString(artifacts.solution_package, "artifacts.solution_package")
-  ensureNullableString(artifacts.brief, "artifacts.brief")
-  ensureNullableString(artifacts.spec, "artifacts.spec")
-  ensureNullableString(artifacts.architecture, "artifacts.architecture")
-  ensureNullableString(artifacts.plan, "artifacts.plan")
   ensureNullableString(artifacts.migration_report, "artifacts.migration_report")
   ensureNullableString(artifacts.qa_report, "artifacts.qa_report")
   ensureArray(artifacts.adr, "artifacts.adr")
@@ -1059,7 +1055,7 @@ function validateRoutingProfileForMode(mode, routingProfile) {
 
 function validateArtifactSignatureForMode(mode, artifacts) {
   if (mode === "quick") {
-    for (const key of ["brief", "spec", "architecture", "plan", "migration_report", "qa_report"]) {
+    for (const key of ["migration_report", "qa_report"]) {
       if (artifacts[key] !== null) {
         fail(`artifacts.${key} must be null in quick mode`)
       }
@@ -1073,7 +1069,7 @@ function validateArtifactSignatureForMode(mode, artifacts) {
   }
 
   if (mode === "migration") {
-    for (const key of ["task_card", "brief", "spec", "qa_report"]) {
+    for (const key of ["task_card", "qa_report"]) {
       if (artifacts[key] !== null) {
         fail(`artifacts.${key} must be null in migration mode`)
       }
@@ -1127,11 +1123,7 @@ function requireArtifactSections(projectRoot, artifactCandidates, label, heading
 function validatePrimaryArtifactContracts(state, projectRoot) {
   if (state.mode === "full") {
     if (state.current_stage !== "full_intake") {
-      requireArtifactSections(projectRoot, [
-        { path: state.artifacts.scope_package, label: "artifacts.scope_package" },
-        { path: state.artifacts.spec, label: "artifacts.spec" },
-        { path: state.artifacts.brief, label: "artifacts.brief" },
-      ], "artifacts.scope_package", [
+      requireArtifactSections(projectRoot, [{ path: state.artifacts.scope_package, label: "artifacts.scope_package" }], "artifacts.scope_package", [
         "## Goal",
         "## In Scope",
         "## Out of Scope",
@@ -1140,11 +1132,7 @@ function validatePrimaryArtifactContracts(state, projectRoot) {
     }
 
     if (["full_implementation", "full_code_review", "full_qa", "full_done"].includes(state.current_stage)) {
-      requireArtifactSections(projectRoot, [
-        { path: state.artifacts.solution_package, label: "artifacts.solution_package" },
-        { path: state.artifacts.plan, label: "artifacts.plan" },
-        { path: state.artifacts.architecture, label: "artifacts.architecture" },
-      ], "artifacts.solution_package", [
+      requireArtifactSections(projectRoot, [{ path: state.artifacts.solution_package, label: "artifacts.solution_package" }], "artifacts.solution_package", [
         "## Recommended Path",
         "## Impacted Surfaces",
         "## Implementation Slices",
@@ -1159,6 +1147,24 @@ function validatePrimaryArtifactContracts(state, projectRoot) {
         "## Test Evidence",
         "## Issues",
       ])
+    }
+
+    if (["full_qa", "full_done"].includes(state.current_stage)) {
+      const hasReviewEvidence = state.verification_evidence.some(
+        (entry) => entry.kind === "review" && entry.scope === "full_code_review",
+      )
+      if (!hasReviewEvidence) {
+        fail("verification_evidence must include a review entry for 'full_code_review' before QA or done")
+      }
+    }
+  }
+
+  if (state.mode === "migration" && ["migration_verify", "migration_done"].includes(state.current_stage)) {
+    const hasReviewEvidence = state.verification_evidence.some(
+      (entry) => entry.kind === "review" && entry.scope === "migration_code_review",
+    )
+    if (!hasReviewEvidence) {
+      fail("verification_evidence must include a review entry for 'migration_code_review' before verify or done")
     }
   }
 }
@@ -2973,27 +2979,6 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
     }
   }
 
-  if (kind === "plan") {
-    if (state.mode !== "full" && state.mode !== "migration") {
-      fail(`Artifact scaffold kind 'plan' requires full or migration mode`)
-    }
-
-    if (state.mode === "full" && state.current_stage !== "full_solution") {
-      fail(`Artifact scaffold kind 'plan' requires current stage 'full_solution'`)
-    }
-
-    if (state.mode === "migration" && state.current_stage !== "migration_strategy") {
-      fail(`Artifact scaffold kind 'plan' requires current stage 'migration_strategy'`)
-    }
-
-    if (
-      (typeof state.artifacts.solution_package !== "string" || state.artifacts.solution_package.length === 0) &&
-      (typeof state.artifacts.architecture !== "string" || state.artifacts.architecture.length === 0)
-    ) {
-      fail(`Artifact scaffold kind 'plan' requires a linked solution or architecture artifact`)
-    }
-  }
-
   if (kind === "migration_report") {
     if (state.mode !== "migration") {
       fail(`Artifact scaffold kind 'migration_report' requires migration mode`)
@@ -3023,9 +3008,8 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
     slug,
     featureId,
     featureSlug,
-    sourceArchitecture:
-      kind === "plan" || kind === "migration_report" ? state.artifacts.architecture : null,
-    sourcePlan: kind === "migration_report" ? state.artifacts.plan : null,
+    sourceArchitecture: kind === "migration_report" ? state.artifacts.solution_package : null,
+    sourcePlan: kind === "migration_report" ? state.artifacts.solution_package : null,
   })
 
   try {

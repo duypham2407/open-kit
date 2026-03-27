@@ -60,7 +60,7 @@ You are the implementation specialist for OpenKit. `.opencode/openkit/context/co
 
 ### Expected inputs
 
-- approved solution package or compatibility `docs/plans/YYYY-MM-DD-<feature>.md`
+- approved solution package or compatibility `docs/solution/YYYY-MM-DD-<feature>.md`
 - upstream scope, spec, and architecture context when the solution artifact references them
 - current stage and approval context when resuming
 
@@ -78,7 +78,7 @@ You are the implementation specialist for OpenKit. `.opencode/openkit/context/co
 
 ### Expected inputs
 
-- approved migration plan at `docs/plans/YYYY-MM-DD-<feature>.md`
+- approved migration plan at `docs/solution/YYYY-MM-DD-<feature>.md`
 - baseline and compatibility context from the linked architecture or migration notes
 - current stage and approval context when resuming
 

@@ -1,0 +1,18 @@
+{
+  "schema": "openkit/code-review-output@1",
+  "required_sections": [
+    "Review Scope",
+    "Stage 1 Result",
+    "Stage 2 Result",
+    "Finding Class",
+    "Recommended Route"
+  ],
+  "required_finding_fields": [
+    "class",
+    "severity",
+    "location",
+    "impact",
+    "fix",
+    "route"
+  ]
+}

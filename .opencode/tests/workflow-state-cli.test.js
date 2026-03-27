@@ -30,7 +30,7 @@ function setupTempRuntime(projectRoot) {
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
-        version: "0.3.3",
+        version: "0.3.4",
         entryAgent: "MasterOrchestrator",
         registry: {
           path: "registry.json",
@@ -91,7 +91,7 @@ function setupTempRuntime(projectRoot) {
       "",
       "Quick Task+ is the live semantics of the quick lane, not a third lane.",
       "Mode enums remain `quick`, `migration`, and `full`.",
-      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-plan`, and `/configure-agent-models`.",
+      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, and `/configure-agent-models`.",
       "Migration is the dedicated upgrade and modernization lane.",
       "Migration work must stay free of task boards.",
       "Migration must preserve behavior first and decouple blockers before broad upgrade work.",
@@ -196,7 +196,7 @@ function makeFullTaskBoard(overrides = {}) {
         depends_on: [],
         blocked_by: [],
         artifact_refs: [],
-        plan_refs: ["docs/plans/2026-03-21-feature.md"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
         branch_or_worktree: ".worktrees/parallel-agent-rollout/task-board-1",
         created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
@@ -213,7 +213,7 @@ function makeFullTaskBoard(overrides = {}) {
         depends_on: [],
         blocked_by: [],
         artifact_refs: [],
-        plan_refs: ["docs/plans/2026-03-21-feature.md"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
         branch_or_worktree: ".worktrees/parallel-agent-rollout/task-board-2",
         created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
@@ -230,7 +230,7 @@ function makeFullTaskBoard(overrides = {}) {
         depends_on: [],
         blocked_by: [],
         artifact_refs: [],
-        plan_refs: ["docs/plans/2026-03-21-feature.md"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
         branch_or_worktree: null,
         created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
@@ -253,7 +253,7 @@ test("status command prints workflow and runtime summary", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /OpenKit runtime status:/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.3/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.4/)
   assert.match(result.stdout, /entry agent: MasterOrchestrator/)
   assert.match(result.stdout, /active profile: openkit-core/)
   assert.match(result.stdout, /registry: .*registry\.json/)
@@ -607,7 +607,7 @@ test("status command fails when the active managed work item is invalid", () => 
         depends_on: [],
         blocked_by: [],
         artifact_refs: [],
-        plan_refs: ["docs/plans/2026-03-21-feature.md"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
         branch_or_worktree: null,
         created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
@@ -765,7 +765,7 @@ test("version command prints kit metadata version", () => {
   })
 
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /OpenKit version: 0\.3\.3/)
+  assert.match(result.stdout, /OpenKit version: 0\.3\.4/)
   assert.match(result.stdout, /active profile: openkit-core/)
 })
 
@@ -970,7 +970,7 @@ test("doctor reports invalid active full task board as an error even when runtim
         depends_on: [],
         blocked_by: [],
         artifact_refs: [],
-        plan_refs: ["docs/plans/2026-03-21-feature.md"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
         branch_or_worktree: ".worktrees/parallel-agent-rollout/task-board-1",
         created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
@@ -1322,7 +1322,7 @@ test("CLI rejects quick items carrying task data through managed validation", ()
         depends_on: [],
         blocked_by: [],
         artifact_refs: [],
-        plan_refs: ["docs/plans/2026-03-21-feature.md"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
         branch_or_worktree: null,
         created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
@@ -1365,7 +1365,7 @@ test("CLI rejects migration items carrying task data through managed validation"
         depends_on: [],
         blocked_by: [],
         artifact_refs: [],
-        plan_refs: ["docs/plans/2026-03-21-feature.md"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
         branch_or_worktree: null,
         created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
@@ -1444,7 +1444,7 @@ test("CLI rejects QA-fail local rework without task-scoped finding metadata", ()
         depends_on: [],
         blocked_by: [],
         artifact_refs: [],
-        plan_refs: ["docs/plans/2026-03-21-feature.md"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
         branch_or_worktree: null,
         created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",

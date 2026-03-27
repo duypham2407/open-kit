@@ -56,20 +56,12 @@ const ARTIFACT_RULES = {
   ],
   migration: [
     {
-      id: "architecture",
-      availableFrom: "migration_baseline",
-      requiredFrom: null,
-      recommendedFrom: "migration_strategy",
-      optional: true,
-      summary: "Migration architecture or compatibility-seam record.",
-    },
-    {
-      id: "plan",
+      id: "solution_package",
       availableFrom: "migration_strategy",
       requiredFrom: null,
       recommendedFrom: "migration_upgrade",
-      optional: true,
-      summary: "Migration plan for staged upgrade slices.",
+      optional: false,
+      summary: "Primary migration solution package for baseline, strategy, and staged upgrade slices.",
     },
     {
       id: "migration_report",
@@ -98,38 +90,6 @@ const ARTIFACT_RULES = {
       summary: "Primary solution package for technical direction, slices, and validation.",
     },
     {
-      id: "brief",
-      availableFrom: "full_product",
-      requiredFrom: "full_solution",
-      recommendedFrom: "full_product",
-      optional: true,
-      summary: "Compatibility slot for product scope framing under Product Lead.",
-    },
-    {
-      id: "spec",
-      availableFrom: "full_product",
-      requiredFrom: "full_solution",
-      recommendedFrom: "full_product",
-      optional: true,
-      summary: "Compatibility slot for behavioral requirements and acceptance criteria.",
-    },
-    {
-      id: "architecture",
-      availableFrom: "full_solution",
-      requiredFrom: "full_implementation",
-      recommendedFrom: "full_solution",
-      optional: true,
-      summary: "Compatibility slot for solution boundaries and technical approach.",
-    },
-    {
-      id: "plan",
-      availableFrom: "full_solution",
-      requiredFrom: "full_implementation",
-      recommendedFrom: "full_solution",
-      optional: true,
-      summary: "Compatibility slot for sequencing, task slices, and validation strategy.",
-    },
-    {
       id: "qa_report",
       availableFrom: "full_qa",
       requiredFrom: "full_done",
@@ -156,7 +116,7 @@ const DOD_RULES = {
     summary: "Quick work is done when QA Lite evidence exists, approval is explicit, and no unresolved issues remain.",
   },
   migration: {
-    requiredArtifacts: [],
+    requiredArtifacts: ["solution_package"],
     requiredApprovals: ["migration_verified"],
     requiredEvidenceStages: ["migration_verify"],
     summary: "Migration work is done when parity or compatibility evidence exists, migration approval is explicit, and unresolved issues are closed.",
@@ -182,14 +142,6 @@ function stageIndex(mode, stage) {
 function getArtifactValue(state, artifactId) {
   if (!state?.artifacts) {
     return null
-  }
-
-  if (artifactId === "scope_package") {
-    return state.artifacts.scope_package ?? state.artifacts.spec ?? state.artifacts.brief ?? null
-  }
-
-  if (artifactId === "solution_package") {
-    return state.artifacts.solution_package ?? state.artifacts.plan ?? state.artifacts.architecture ?? null
   }
 
   if (artifactId === "adr") {

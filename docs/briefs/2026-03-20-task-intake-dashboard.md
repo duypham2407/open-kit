@@ -5,8 +5,8 @@ status: approved
 feature_id: FEATURE-001
 feature_slug: task-intake-dashboard
 source_request: "Build a simple intake dashboard for incoming tasks"
-owner: PMAgent
-approval_gate: pm_to_ba
+owner: ProductLead
+approval_gate: product_to_solution
 ---
 
 # Product Brief: Task Intake Dashboard

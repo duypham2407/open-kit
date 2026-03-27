@@ -15,15 +15,11 @@
   "current_owner": "MasterOrchestrator",
   "artifacts": {
     "task_card": null,
-    "brief": "docs/briefs/2026-03-20-task-intake-dashboard.md",
-    "spec": "docs/specs/2026-03-20-task-intake-dashboard.md",
-    "architecture": "docs/architecture/2026-03-20-task-intake-dashboard.md",
-    "plan": "docs/plans/2026-03-20-task-intake-dashboard.md",
     "migration_report": null,
     "qa_report": "docs/qa/2026-03-20-task-intake-dashboard.md",
     "adr": [],
-    "scope_package": "docs/specs/2026-03-20-task-intake-dashboard.md",
-    "solution_package": "docs/plans/2026-03-20-task-intake-dashboard.md"
+    "scope_package": "docs/scope/2026-03-20-task-intake-dashboard.md",
+    "solution_package": "docs/solution/2026-03-20-task-intake-dashboard.md"
   },
   "approvals": {
     "product_to_solution": {
@@ -59,6 +55,17 @@
   },
   "issues": [],
   "verification_evidence": [
+    {
+      "id": "code-review-golden-path",
+      "kind": "review",
+      "scope": "full_code_review",
+      "summary": "Golden path code review completed and routed to QA",
+      "source": "workflow-state",
+      "command": null,
+      "exit_status": null,
+      "artifact_refs": [],
+      "recorded_at": "2026-03-20T11:30:00.000Z"
+    },
     {
       "id": "qa-report-golden-path",
       "kind": "review",

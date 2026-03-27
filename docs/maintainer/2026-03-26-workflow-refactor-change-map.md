@@ -123,7 +123,7 @@ Date: 2026-03-26
 - `commands/migrate.md`
   - Replace Architect/Tech Lead split with `Solution Lead` ownership and add review stage wording.
 
-- `commands/write-plan.md`
+- `commands/write-solution.md`
   - Reframe planning as `Solution Lead` work.
   - Stop describing the output as only bite-sized tasks.
 
@@ -131,11 +131,11 @@ Date: 2026-03-26
   - Make brainstorming conditional on ambiguity.
   - Remove any implication that it is the mandatory first move for all design work.
 
-- `skills/writing-plans/SKILL.md`
+- `skills/writing-solution/SKILL.md`
   - Replace `Tech Lead Agent` ownership with `Solution Lead` ownership.
   - Change the main output from micro-checklists to feature-level solution slices plus validation matrix.
 
-- `skills/writing-specs/SKILL.md`
+- `skills/writing-scope/SKILL.md`
   - Replace `BA Agent` ownership with `Product Lead` ownership.
 
 - `skills/brainstorming/SKILL.md`
@@ -210,7 +210,7 @@ Date: 2026-03-26
   - Rewrite the prompt to procedural-only language and grep for any remaining content-analysis verbs tied to the orchestrator.
 
 - Planning skill drift
-  - Rewrite `skills/writing-plans/SKILL.md` so `Solution Lead` outputs feature-level slices, dependencies, and validation strategy instead of defaulting to micro-tasks.
+  - Rewrite `skills/writing-solution/SKILL.md` so `Solution Lead` outputs feature-level slices, dependencies, and validation strategy instead of defaulting to micro-tasks.
 
 - Review routing drift
   - Update `agents/code-reviewer.md`, `context/core/issue-routing.md`, and `workflow-state-rules.js` together so every reviewer finding maps to a concrete workflow route.

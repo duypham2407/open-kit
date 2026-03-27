@@ -112,7 +112,7 @@ function setupTempRuntime(projectRoot) {
       "feature_id: FEATURE-000",
       "feature_slug: example-migration",
       "source_architecture: docs/architecture/YYYY-MM-DD-example-migration.md",
-      "source_plan: docs/plans/YYYY-MM-DD-example-migration.md",
+      "source_plan: docs/solution/YYYY-MM-DD-example-migration.md",
       "---",
       "",
       "# Migration Report: <Migration Name>",
@@ -646,7 +646,7 @@ test("scaffold-artifact creates a migration report in migration_baseline stage",
   state.artifacts.brief = null
   state.artifacts.spec = null
   state.artifacts.architecture = "docs/architecture/2026-03-21-legacy-stack-refresh.md"
-  state.artifacts.plan = "docs/plans/2026-03-21-legacy-stack-refresh.md"
+  state.artifacts.plan = "docs/solution/2026-03-21-legacy-stack-refresh.md"
   state.artifacts.migration_report = null
   state.artifacts.qa_report = null
   state.artifacts.adr = []

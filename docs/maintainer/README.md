@@ -28,6 +28,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - Workflow-state schema: `context/core/workflow-state-schema.md`
 - Runtime surface contract: `context/core/runtime-surfaces.md`
 - Role operating policy: `docs/maintainer/2026-03-26-role-operating-policy.md`
+- AI surface map: `docs/maintainer/2026-03-26-ai-surface-map.md`
 - Command matrix: `docs/maintainer/command-matrix.md`
 - Conditional parallel execution boundary: `docs/maintainer/conditional-parallel-execution-note.md`
 - Parallel execution matrix: `docs/maintainer/parallel-execution-matrix.md`
@@ -38,7 +39,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - Governance policy: `docs/governance/README.md`
 - Operations and diagnostics: `docs/operations/README.md`
 - Release workflow smoke tests: `docs/operations/runbooks/release-workflow-smoke-tests.md`
-- Artifact guidance: `docs/briefs/README.md`, `docs/specs/README.md`, `docs/architecture/README.md`, `docs/plans/README.md`, `docs/qa/README.md`, `docs/adr/README.md`, `docs/templates/README.md`
+- Artifact guidance: `docs/briefs/README.md`, `docs/scope/README.md`, `docs/architecture/README.md`, `docs/solution/README.md`, `docs/qa/README.md`, `docs/adr/README.md`, `docs/templates/README.md`
 
 ## Repository Internals To Keep Honest
 

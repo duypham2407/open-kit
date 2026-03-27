@@ -4,7 +4,7 @@ version: 1
 status: draft
 feature_id: FEATURE-000
 feature_slug: example-feature
-source_plan: docs/plans/YYYY-MM-DD-example-feature.md
+source_plan: docs/solution/YYYY-MM-DD-example-feature.md
 owner: QAAgent
 approval_gate: qa_to_done
 ---

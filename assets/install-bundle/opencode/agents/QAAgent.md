@@ -66,6 +66,18 @@ Next step:
 - close quick task | return to quick_build | escalate to full delivery
 ```
 
+When QA fails, include one compact verification record per meaningful issue:
+
+```text
+Verification Record:
+- issue_type: bug | design_flaw | requirement_gap
+- severity: critical | important | minor
+- rooted_in: implementation | solution | product
+- evidence: command, report, or observed behavior summary
+- behavior_impact: one-line user-visible or parity-visible impact
+- route: quick_build | full_implementation | full_solution | full_product | migration_upgrade | migration_strategy | full_intake
+```
+
 ### Escalation triggers
 
 - the finding is rooted in design or requirements rather than implementation
@@ -103,6 +115,8 @@ Next step:
   - type, severity, rooted_in, recommended owner, and evidence
 - Recommended Route:
   - clear next-step recommendation back to `MasterOrchestrator`
+- Verification Record(s):
+  - issue_type, severity, rooted_in, evidence, behavior_impact, route
 
 ## Full Mode Delta: Full QA
 
@@ -135,6 +149,8 @@ Next step:
   - type, severity, rooted_in, recommended owner, evidence, artifact refs, and task refs when applicable
 - Recommended Route:
   - clear next-step recommendation back to `MasterOrchestrator`
+- Verification Record(s):
+  - issue_type, severity, rooted_in, evidence, behavior_impact, route
 
 ## Feature-versus-task ownership
 

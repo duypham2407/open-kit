@@ -3,7 +3,7 @@
   "registryVersion": 1,
   "kit": {
     "name": "OpenKit AI Software Factory",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "description": "Local component metadata for the checked-in OpenKit repository and the global-kit compatibility surface.",
     "repositoryRoot": ".",
     "productSurface": {
@@ -69,46 +69,6 @@
         "path": "agents/solution-lead-agent.md",
         "audience": "runtime",
         "status": "active",
-        "modes": ["migration", "full"]
-      },
-      {
-        "id": "agent.pm-agent",
-        "name": "PM Agent",
-        "role": "compatibility",
-        "path": "agents/pm-agent.md",
-        "audience": "compatibility",
-        "status": "compatibility-only",
-        "supersededBy": "Product Lead",
-        "modes": ["full"]
-      },
-      {
-        "id": "agent.ba-agent",
-        "name": "BA Agent",
-        "role": "compatibility",
-        "path": "agents/ba-agent.md",
-        "audience": "compatibility",
-        "status": "compatibility-only",
-        "supersededBy": "Product Lead",
-        "modes": ["full"]
-      },
-      {
-        "id": "agent.architect-agent",
-        "name": "Architect Agent",
-        "role": "compatibility",
-        "path": "agents/architect-agent.md",
-        "audience": "compatibility",
-        "status": "compatibility-only",
-        "supersededBy": "Solution Lead",
-        "modes": ["migration", "full"]
-      },
-      {
-        "id": "agent.tech-lead-agent",
-        "name": "Tech Lead Agent",
-        "role": "compatibility",
-        "path": "agents/tech-lead-agent.md",
-        "audience": "compatibility",
-        "status": "compatibility-only",
-        "supersededBy": "Solution Lead",
         "modes": ["migration", "full"]
       },
       {
@@ -197,17 +157,17 @@
         "modes": ["quick", "migration", "full"]
       },
       {
-        "id": "skill.writing-plans",
-        "name": "writing-plans",
-        "path": "skills/writing-plans/SKILL.md",
+        "id": "skill.writing-solution",
+        "name": "writing-solution",
+        "path": "skills/writing-solution/SKILL.md",
         "audience": "runtime",
         "typicalRoles": ["Solution Lead"],
         "modes": ["migration", "full"]
       },
       {
-        "id": "skill.writing-specs",
-        "name": "writing-specs",
-        "path": "skills/writing-specs/SKILL.md",
+        "id": "skill.writing-scope",
+        "name": "writing-scope",
+        "path": "skills/writing-scope/SKILL.md",
         "audience": "runtime",
         "typicalRoles": ["Product Lead"],
         "modes": ["full"]
@@ -255,17 +215,17 @@
         "modes": ["migration", "full"]
       },
       {
-        "id": "command.write-plan",
-        "name": "/write-plan",
-        "path": "commands/write-plan.md",
+        "id": "command.write-solution",
+        "name": "/write-solution",
+        "path": "commands/write-solution.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": ["migration", "full"]
       },
       {
-        "id": "command.execute-plan",
-        "name": "/execute-plan",
-        "path": "commands/execute-plan.md",
+        "id": "command.execute-solution",
+        "name": "/execute-solution",
+        "path": "commands/execute-solution.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": ["migration", "full"]

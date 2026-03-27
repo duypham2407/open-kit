@@ -4,7 +4,7 @@ version: 1
 status: approved
 feature_id: FEATURE-001
 feature_slug: task-intake-dashboard
-source_plan: docs/plans/2026-03-20-task-intake-dashboard.md
+source_plan: docs/solution/2026-03-20-task-intake-dashboard.md
 owner: QAAgent
 approval_gate: qa_to_done
 ---

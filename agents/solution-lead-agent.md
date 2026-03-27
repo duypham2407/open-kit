@@ -25,7 +25,6 @@ You are the Solution Lead for OpenKit full-delivery and migration work. `.openco
 - `.opencode/openkit/context/core/code-quality.md`
 - `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/docs/templates/solution-package-template.md` when present
-- `.opencode/openkit/docs/templates/architecture-template.md` and `.opencode/openkit/docs/templates/implementation-plan-template.md` when compatibility artifacts are still in use
 - `.opencode/openkit/docs/templates/migration-baseline-checklist.md` and `.opencode/openkit/docs/templates/migration-plan-template.md` for migration work
 
 ## Role-Local Responsibilities
@@ -49,10 +48,8 @@ You are the Solution Lead for OpenKit full-delivery and migration work. `.openco
 
 ## Expected Output Artifact
 
-- preferred artifact: solution package at `docs/plans/YYYY-MM-DD-<feature>.md` or a dedicated solution-package path when the template exists
-- compatibility artifacts may still include:
-  - `docs/architecture/YYYY-MM-DD-<feature>.md`
-  - `docs/plans/YYYY-MM-DD-<feature>.md`
+- preferred artifact: solution package at `docs/solution/YYYY-MM-DD-<feature>.md` or a dedicated solution-package path when the template exists
+- preferred artifact path: `docs/solution/YYYY-MM-DD-<feature>.md`
 
 ## Approval-Ready Conditions
 

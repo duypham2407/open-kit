@@ -4,7 +4,7 @@ version: 1
 status: proposed
 decision_id: ADR-000
 decision_slug: example-decision
-owner: ArchitectAgent
+owner: SolutionLead
 ---
 
 # ADR: <Decision Name>

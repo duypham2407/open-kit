@@ -24,7 +24,7 @@ The kit is structured into several core directories:
 
 - `agents/`: Definitions for the primary team roles plus helper subagents such as `code-reviewer.md`
 - `skills/`: Composable workflow procedures (TDD, brainstorming, planning, debugging)
-- `commands/`: User-facing triggers such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, and `/execute-plan`
+- `commands/`: User-facing triggers such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, and `/execute-solution`
 - `context/`: Shared intelligence (`navigation.md`, `core/code-quality.md`, `core/workflow.md`)
 - `hooks/`: Session bootstrap integration (`session-start`)
 - `.opencode/`: Configuration for the OpenCode environment
@@ -39,7 +39,7 @@ Current repository facts:
 
 - The current workflow contract is the active Product Lead / Solution Lead design described in `context/core/workflow.md`
 - `context/core/workflow.md` is the canonical workflow-semantics document for lane behavior, stages, escalation, approvals, and quick-lane artifact expectations
-- Historical planning and example docs have been intentionally pruned from the working tree; prefer current runtime docs and git history when older rationale is needed
+- Historical planning and example docs should live under `docs/archive/`; prefer current runtime docs and git history when older rationale is needed
 - `npm install -g @duypham93/openkit`, `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit
 - `.opencode/opencode.json` is present as the repository-local OpenCode config for this kit
 - `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item
@@ -112,7 +112,10 @@ If guidance conflicts with repository state, trust the repository state and upda
 - Start with `AGENTS.md` for repository-wide rules, then use `context/navigation.md` to locate the specific workflow or standards docs you need
 - Use `docs/operator/README.md` for operator wayfinding and `docs/maintainer/README.md` for maintainer wayfinding when audience-specific routing helps
 - Use `docs/maintainer/2026-03-26-role-operating-policy.md` when you need the short-form contract for role boundaries, pass/fail handoffs, and anti-patterns
+- Use `context/core/active-contract.json` as the machine-readable source of truth for active roles, stages, gates, and primary artifacts
+- Use `docs/maintainer/2026-03-26-ai-surface-map.md` when you need the strict AI-facing map of what to read, what to ignore, and which vocabulary is still active
 - Treat `docs/` as the current center of gravity for repository knowledge
+- Treat `docs/archive/` as historical only; do not use it as active workflow guidance unless the task explicitly asks for history or migration rationale
 - Verify file existence before referencing paths in plans or instructions
 - Prefer small, targeted edits over broad speculative restructuring
 - When new top-level areas are introduced, add them to this guide
@@ -171,9 +174,9 @@ Global-kit compatibility contract:
 Required artifact outputs by mode:
 
 - Quick Task -> optional `docs/tasks/YYYY-MM-DD-<task>.md`; bounded planning happens in the live `quick_plan` stage and does not require a separate mandatory doc artifact
-- Migration -> optional `docs/architecture/YYYY-MM-DD-<migration>.md` and `docs/plans/YYYY-MM-DD-<migration>.md` when baseline and staged strategy need durable artifacts
-- Full Delivery / Product Lead -> `docs/briefs/YYYY-MM-DD-<feature>.md` and/or `docs/specs/YYYY-MM-DD-<feature>.md`
-- Full Delivery / Solution Lead -> `docs/architecture/YYYY-MM-DD-<feature>.md` and/or `docs/plans/YYYY-MM-DD-<feature>.md`
+- Migration -> `docs/solution/YYYY-MM-DD-<migration>.md`
+- Full Delivery / Product Lead -> `docs/scope/YYYY-MM-DD-<feature>.md`
+- Full Delivery / Solution Lead -> `docs/solution/YYYY-MM-DD-<feature>.md`
 - Full Delivery / QA -> `docs/qa/YYYY-MM-DD-<feature>.md`
 - Solution decisions -> `docs/adr/YYYY-MM-DD-<decision>.md`
 - Full Delivery execution task board -> `.opencode/work-items/<work_item_id>/tasks.json` when the implemented runtime creates one

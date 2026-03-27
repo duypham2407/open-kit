@@ -56,7 +56,7 @@ If `mode` is `full`:
 If `mode` is `migration`:
 
 - read the linked architecture artifact when present because it carries the baseline and compatibility model for the upgrade
-- read the migration plan in `docs/plans/` when it exists
+- read the migration plan in `docs/solution/` when it exists
 - if `current_stage` is `migration_baseline`, inspect `docs/templates/migration-baseline-checklist.md` and the recorded current versions, preserved invariants, compatibility hotspots, and likely breakpoints before planning
 - if `current_stage` is `migration_strategy`, inspect the staged upgrade sequence, seam or adapter decisions, rollback notes, and validation path before resuming implementation
 - if `current_stage` is `migration_upgrade`, inspect the migration strategy and latest execution evidence before continuing

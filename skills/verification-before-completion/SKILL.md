@@ -113,6 +113,7 @@ If verification fails:
 - state the real failure status
 - include the important output or summary
 - do not use fuzzy wording like "almost done"
+- when routing a failure, include a structured record with issue type, rooted_in, evidence, behavior impact, and recommended route
 
 If no verification path exists:
 
@@ -135,3 +136,5 @@ Do not use commit or merge as a way to "close the task and move on" when verific
 **Evidence before claims. Always.**
 
 OpenKit may still lack tooling in many areas, but it must never lack honesty about verification status.
+
+For reviewer and QA outputs, prefer compact structured records over free-form narrative so rerouting can stay explicit and machine-checkable later.

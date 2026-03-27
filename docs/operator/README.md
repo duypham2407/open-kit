@@ -44,13 +44,14 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Supported product and compatibility surfaces: `docs/operator/supported-surfaces.md`
 - Detailed usage walkthrough: `docs/operations/runbooks/openkit-daily-usage.md`
 - Role boundary quick policy: `docs/maintainer/2026-03-26-role-operating-policy.md`
+- AI reading-surface map: `docs/maintainer/2026-03-26-ai-surface-map.md`
 - Runtime smoke tests: `docs/operations/runbooks/workflow-state-smoke-tests.md`
 - Governance policy: `docs/governance/README.md`
 - Operations support: `docs/operations/README.md`
 
 ## Live Operator Surfaces In This Repository
 
-- Slash commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, `/execute-plan`, `/configure-agent-models`
+- Slash commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`
 - Global diagnostics: `openkit doctor`
 - Global launcher: `openkit run`
 - Global lifecycle: `npm install -g @duypham93/openkit`, `openkit upgrade`, `openkit uninstall`
@@ -74,3 +75,4 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - `.opencode/opencode.json` remains the checked-in repository-local OpenCode config in this repository
 - `Quick Task+` remains the current semantics of the `quick` lane, not a third live mode
 - When role boundaries feel fuzzy, use `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form contract for who owns scope, solution, code review, and runtime verification
+- When AI reading scope or file priority feels fuzzy, use `docs/maintainer/2026-03-26-ai-surface-map.md` as the strict map for active versus historical surfaces

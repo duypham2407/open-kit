@@ -24,7 +24,6 @@ You are the Product Lead for OpenKit full-delivery work. `.opencode/openkit/cont
 - `.opencode/openkit/context/core/project-config.md`
 - `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/docs/templates/scope-package-template.md` when present
-- `.opencode/openkit/docs/templates/product-brief-template.md` and `.opencode/openkit/docs/templates/spec-template.md` when compatibility artifacts are still in use
 
 ## Role-Local Responsibilities
 
@@ -46,10 +45,8 @@ You are the Product Lead for OpenKit full-delivery work. `.opencode/openkit/cont
 
 ## Expected Output Artifact
 
-- preferred artifact: scope package at `docs/specs/YYYY-MM-DD-<feature>.md` or a dedicated scope-package path when the template exists
-- compatibility artifacts may still include:
-  - `docs/briefs/YYYY-MM-DD-<feature>.md`
-  - `docs/specs/YYYY-MM-DD-<feature>.md`
+- preferred artifact: scope package at `docs/scope/YYYY-MM-DD-<feature>.md` or a dedicated scope-package path when the template exists
+- preferred artifact path: `docs/scope/YYYY-MM-DD-<feature>.md`
 
 ## Approval-Ready Conditions
 

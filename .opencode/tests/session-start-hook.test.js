@@ -58,7 +58,7 @@ function makeQuickState(overrides = {}) {
   }
 }
 
-function writeManifest(projectRoot, version = "0.3.3") {
+function writeManifest(projectRoot, version = "0.3.4") {
   const opencodeDir = path.join(projectRoot, ".opencode")
   fs.mkdirSync(opencodeDir, { recursive: true })
   fs.writeFileSync(
@@ -99,9 +99,9 @@ function makeFullState(overrides = {}) {
     artifacts: {
       task_card: null,
       brief: "docs/briefs/2026-03-21-parallel-runtime-rollout.md",
-      spec: "docs/specs/2026-03-21-parallel-runtime-rollout.md",
+      spec: "docs/scope/2026-03-21-parallel-runtime-rollout.md",
       architecture: "docs/architecture/2026-03-21-parallel-runtime-rollout.md",
-      plan: "docs/plans/2026-03-21-parallel-runtime-rollout.md",
+      plan: "docs/solution/2026-03-21-parallel-runtime-rollout.md",
       migration_report: null,
       qa_report: null,
       adr: [],
@@ -148,7 +148,7 @@ test("session-start emits mode-aware resume hint for quick tasks", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /<openkit_runtime_status>/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.3/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.4/)
   assert.match(result.stdout, /startup skill: skipped/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js status/)
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js doctor/)
@@ -299,7 +299,7 @@ test("session-start emits task-aware resume hint for active full-delivery work",
         depends_on: [],
         blocked_by: [],
         artifact_refs: [],
-        plan_refs: ["docs/plans/2026-03-21-parallel-runtime-rollout.md"],
+        plan_refs: ["docs/solution/2026-03-21-parallel-runtime-rollout.md"],
         branch_or_worktree: ".worktrees/parallel-agent-rollout/task-700-a",
         created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",
@@ -316,7 +316,7 @@ test("session-start emits task-aware resume hint for active full-delivery work",
         depends_on: [],
         blocked_by: [],
         artifact_refs: [],
-        plan_refs: ["docs/plans/2026-03-21-parallel-runtime-rollout.md"],
+        plan_refs: ["docs/solution/2026-03-21-parallel-runtime-rollout.md"],
         branch_or_worktree: ".worktrees/parallel-agent-rollout/task-700-b",
         created_by: "SolutionLead",
         created_at: "2026-03-21T00:00:00.000Z",

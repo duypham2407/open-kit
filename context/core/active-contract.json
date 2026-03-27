@@ -1,0 +1,80 @@
+{
+  "schema": "openkit/active-contract@1",
+  "workflow": {
+    "modes": ["quick", "migration", "full"],
+    "active_roles": [
+      "Master Orchestrator",
+      "Product Lead",
+      "Solution Lead",
+      "Fullstack Agent",
+      "Code Reviewer",
+      "QA Agent"
+    ],
+    "primary_artifacts": [
+      "task_card",
+      "scope_package",
+      "solution_package",
+      "qa_report",
+      "migration_report",
+      "adr"
+    ],
+    "full_stages": [
+      "full_intake",
+      "full_product",
+      "full_solution",
+      "full_implementation",
+      "full_code_review",
+      "full_qa",
+      "full_done"
+    ],
+    "migration_stages": [
+      "migration_intake",
+      "migration_baseline",
+      "migration_strategy",
+      "migration_upgrade",
+      "migration_code_review",
+      "migration_verify",
+      "migration_done"
+    ],
+    "full_gates": [
+      "product_to_solution",
+      "solution_to_fullstack",
+      "fullstack_to_code_review",
+      "code_review_to_qa",
+      "qa_to_done"
+    ],
+    "migration_gates": [
+      "baseline_to_strategy",
+      "strategy_to_upgrade",
+      "upgrade_to_code_review",
+      "code_review_to_verify",
+      "migration_verified"
+    ]
+  },
+  "review_contracts": {
+    "code_reviewer": {
+      "schema_path": "context/core/code-review-output-schema.json",
+      "required_sections": [
+        "Review Scope",
+        "Stage 1 Result",
+        "Stage 2 Result",
+        "Finding Class",
+        "Recommended Route"
+      ]
+    },
+    "qa": {
+      "schema_path": "context/core/qa-output-schema.json",
+      "required_sections": [
+        "Verification Scope",
+        "Observed Result",
+        "Evidence",
+        "Behavior Impact",
+        "Recommended Route"
+      ]
+    }
+  },
+  "archive_policy": {
+    "default_visibility": "exclude-from-active-ai-surface",
+    "read_only_when": "explicitly asked for history or migration rationale"
+  }
+}

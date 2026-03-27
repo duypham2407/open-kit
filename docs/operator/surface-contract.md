@@ -14,7 +14,7 @@ Use this document to decide which OpenKit surface to use for a given goal.
 ### 2. In-Session Workflow Surface
 
 - audience: operators inside OpenCode
-- primary commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-plan`, `/execute-plan`, `/configure-agent-models`
+- primary commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`
 - use it for: choosing the lane, moving work through the workflow, and invoking the mode-aware team
 - default path: start with `/task` unless the lane is already obvious
 

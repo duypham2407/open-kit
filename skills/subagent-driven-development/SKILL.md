@@ -14,7 +14,7 @@ When working through a complex sequence of tasks, the primary agent can get over
 ## Execution Process
 
 ### 1. Preparation (Task Queueing)
-Read `docs/plans/YYYY-MM-DD-<feature>.md`.
+Read `docs/solution/YYYY-MM-DD-<feature>.md`.
 Build a queue of tasks.
 
 ### 2. Batch Execution (Repeat for Each Task)

@@ -7,8 +7,8 @@ Use this matrix when deciding which skills each OpenKit role should invoke.
 | Role | Typical skills | Use them when | Expected output |
 | --- | --- | --- | --- |
 | `MasterOrchestrator` | `brainstorming` | routing-safe clarification is still needed before dispatch | clarified direction, lane-safe framing |
-| `ProductLead` | `brainstorming`, `writing-specs` | product intent is still vague or needs explicit acceptance detail | scope package and compatibility requirements artifacts |
-| `SolutionLead` | `brainstorming`, `writing-plans` | solution direction, sequencing, or migration strategy needs to be made execution-ready | solution package and compatibility planning artifacts |
+| `ProductLead` | `brainstorming`, `writing-scope` | product intent is still vague or needs explicit acceptance detail | scope package and compatibility requirements artifacts |
+| `SolutionLead` | `brainstorming`, `writing-solution` | solution direction, sequencing, or migration strategy needs to be made execution-ready | solution package and compatibility planning artifacts |
 | `FullstackAgent` | `test-driven-development`, `subagent-driven-development`, `systematic-debugging`, `verification-before-completion` | implementing, debugging, delegating focused work, and proving completion | code changes plus real verification evidence |
 | `QAAgent` | `verification-before-completion` | validating evidence before approval or closure claims | QA evidence and routing recommendation |
 | `Code Reviewer` | `code-review` | two-stage compliance and quality review is required | review findings only |

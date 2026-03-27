@@ -2,6 +2,8 @@
 
 Date: 2026-03-26
 
+> Historical audit snapshot: many issues recorded here were fixed in later releases. Keep this file for audit history, not as the active current-state report.
+
 This audit records the remaining drift between the intended workflow contract and the current repository state after the Product Lead / Solution Lead refactor.
 
 ## Target Workflow
@@ -160,8 +162,8 @@ This audit records the remaining drift between the intended workflow contract an
 ### 9. Historical product docs remain intentionally stale, but can be mistaken for active truth
 
 - Files:
-  - `docs/specs/2026-03-21-openkit-full-delivery-multi-task-runtime.md`
-  - `docs/plans/2026-03-23-openkit-global-install-runtime.md`
+  - `docs/scope/2026-03-21-openkit-full-delivery-multi-task-runtime.md`
+  - `docs/solution/2026-03-23-openkit-global-install-runtime.md`
 - Problem:
   - these still reference BA / Tech Lead ownership and the old full chain
 - Impact:

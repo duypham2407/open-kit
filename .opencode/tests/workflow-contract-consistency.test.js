@@ -39,7 +39,7 @@ function setupTempRuntime(projectRoot) {
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
-        version: "0.3.3",
+        version: "0.3.4",
         entryAgent: "MasterOrchestrator",
         registry: {
           path: "registry.json",
@@ -66,8 +66,8 @@ function setupTempRuntime(projectRoot) {
             "commands/migrate.md",
             "commands/delivery.md",
             "commands/brainstorm.md",
-            "commands/write-plan.md",
-            "commands/execute-plan.md",
+            "commands/write-solution.md",
+            "commands/execute-solution.md",
             "commands/configure-agent-models.md",
           ],
         },
@@ -114,7 +114,7 @@ function setupTempRuntime(projectRoot) {
       "",
       "Quick Task+ is the live semantics of the quick lane, not a third lane.",
       "Mode enums remain `quick`, `migration`, and `full`.",
-      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-plan`, and `/configure-agent-models`.",
+      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, and `/configure-agent-models`.",
       "Migration is the dedicated upgrade and modernization lane.",
       "Migration work must stay free of task boards.",
       "Migration must preserve behavior first and decouple blockers before broad upgrade work.",
@@ -175,7 +175,7 @@ function setupTempRuntime(projectRoot) {
     "utf8",
   )
 
-  for (const commandName of ["task", "quick-task", "migrate", "delivery", "brainstorm", "write-plan", "execute-plan", "configure-agent-models"]) {
+  for (const commandName of ["task", "quick-task", "migrate", "delivery", "brainstorm", "write-solution", "execute-solution", "configure-agent-models"]) {
     fs.writeFileSync(path.join(commandsDir, `${commandName}.md`), `# ${commandName}\n`, "utf8")
   }
 
@@ -252,7 +252,7 @@ test("doctor reports contract consistency failures when quick/task-board separat
       "",
       "Quick Task+ is the live semantics of the quick lane, not a third lane.",
       "Mode enums remain `quick`, `migration`, and `full`.",
-      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-plan`, and `/configure-agent-models`.",
+      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, and `/configure-agent-models`.",
       "Quick stages: `quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`.",
       "Migration is the dedicated upgrade and modernization lane.",
       "Migration work must stay free of task boards.",
