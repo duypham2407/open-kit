@@ -4,7 +4,7 @@ description: "Triggers the writing-solution skill to turn approved scope into a 
 
 # Command: `/write-solution`
 
-Use `/write-solution` to create an implementation plan for work currently in `Full Delivery` or `Migration` mode.
+Use `/write-solution` to create a solution package for work currently in `Full Delivery` or `Migration` mode.
 
 ## Shared prompt contract
 
@@ -15,7 +15,7 @@ Use `/write-solution` to create an implementation plan for work currently in `Fu
 - The current `mode` must be `full` or `migration`
 - The required solution context already exists for the current work item
 - If the work is in `full`, the required scope package already exists for the current feature
-- `Solution Lead` is at the stage where the solution package and implementation plan should be created
+- `Solution Lead` is at the stage where the solution package should be created
 
 ## Canonical docs to load
 
@@ -33,24 +33,24 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Expected action
 
-- Create or update `docs/solution/YYYY-MM-DD-<feature>.md` from `docs/templates/solution-package-template.md`
-- Keep the plan aligned with the current stage and approval context for the active mode
+- Create or update `docs/solution/YYYY-MM-DD-<feature>.md` from `docs/templates/solution-package-template.md` for full delivery or `docs/templates/migration-solution-package-template.md` for migration work
+- Keep the solution package aligned with the current stage and approval context for the active mode
 - Write feature-level solution slices, dependencies, validation strategy, and parallelization notes before any optional micro-task breakdown
 - In migration mode, record preserved invariants, seam or adapter steps, and parity checks explicitly
-- In migration mode, recommend scaffolding or updating `migration_report` when baseline, plan, execution, and verification should stay visible in one artifact
+- In migration mode, recommend scaffolding or updating `migration_report` when baseline, solution package, execution, and verification should stay visible in one artifact
 - Record the real validation path, or a missing-validation-path note when the repository has no suitable command
-- Return the plan for review and approval through the canonical workflow for the active mode
+- Return the solution package for review and approval through the canonical workflow for the active mode
 
 ## Rejection or escalation behavior
 
 - If work is still in quick mode, reject this command and route the task into Migration or Full Delivery first
-- If required solution input is incomplete, stop and require that upstream artifact before writing the plan
-- If work is in `full` and the scope package input is incomplete, stop and require that upstream artifact before writing the plan
+- If required solution input is incomplete, stop and require that upstream artifact before writing the solution package
+- If work is in `full` and the scope package input is incomplete, stop and require that upstream artifact before writing the solution package
 - Do not use this command to open a new full lane implicitly or bypass the approval chain
 
 ## Validation guidance
 
-- The plan should name the strongest real validation path available in the repository
+- The solution package should name the strongest real validation path available in the repository
 - In migration mode, use `migration_report` when handoffs would benefit from a single running narrative instead of scattered notes
-- If no repo-native app build, lint, or test command exists, say that explicitly in the plan instead of guessing a stack command
+- If no repo-native app build, lint, or test command exists, say that explicitly in the solution package instead of guessing a stack command
 - Use `node .opencode/openkit/workflow-state.js validate` only to confirm workflow state, not to stand in for implementation verification

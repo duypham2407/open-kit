@@ -62,11 +62,11 @@ Not valid:
 
 - "this hook probably prints the right output because the unit test passed" when the claim is about integrated runtime behavior that has not been checked appropriately
 
-### Requirements / plan completion
+### Requirements / solution-package completion
 
 Valid example:
 
-- compare every item in the brief, spec, or plan against the diff and verification output
+- compare every item in the scope package or solution package against the diff and verification output
 
 Not valid:
 
@@ -89,7 +89,7 @@ So this skill must stay honest to the actual repo state:
 | "Tests pass" | latest test-command output | old run, memory, assumption |
 | "Bug fixed" | symptom reproduction + passing verification | code changes alone |
 | "Ready to commit" | passing verification for the relevant scope | only looking at the diff |
-| "Requirements met" | checklist against spec/plan + verification | partial test success |
+| "Requirements met" | checklist against scope package/solution package + verification | partial test success |
 | "Agent task done" | inspect changes + verify behavior | trusting a subagent report |
 
 ## Red Flags

@@ -1,15 +1,14 @@
 ---
-artifact_type: migration_plan
+artifact_type: solution_package
 version: 1
 status: draft
 feature_id: FEATURE-000
 feature_slug: example-migration
-source_architecture: docs/architecture/YYYY-MM-DD-example-migration.md
 owner: SolutionLead
 approval_gate: strategy_to_upgrade
 ---
 
-# Migration Plan: <Migration Name>
+# Solution Package: <Migration Name>
 
 ## Goal
 
@@ -32,7 +31,7 @@ approval_gate: strategy_to_upgrade
 
 ## Upgrade Sequence
 
-### [ ] Step 1: <Task Name>
+### [ ] Slice 1: <Task Name>
 - Files:
 - Goal:
 - Preserve:
@@ -65,3 +64,5 @@ approval_gate: strategy_to_upgrade
 - Manual or automated checks that prove behavior equivalence.
 
 ## Rollback Notes
+
+## Reviewer Focus Points

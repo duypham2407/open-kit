@@ -29,7 +29,7 @@ function createState(overrides = {}) {
 }
 
 test("captureRevision returns a stable revision for equivalent state content", () => {
-  const first = createState({ artifacts: { plan: "docs/solution/feature-100.md", migration_report: null, qa_report: null } })
+  const first = createState({ artifacts: { solution_package: "docs/solution/feature-100.md", migration_report: null, qa_report: null } })
   const second = {
     status: "in_progress",
     current_stage: "full_solution",
@@ -45,7 +45,7 @@ test("captureRevision returns a stable revision for equivalent state content", (
       behavior_delta: "extend",
       work_intent: "feature",
     },
-    artifacts: { qa_report: null, migration_report: null, plan: "docs/solution/feature-100.md" },
+    artifacts: { qa_report: null, migration_report: null, solution_package: "docs/solution/feature-100.md" },
   }
 
   const firstRevision = captureRevision(first)

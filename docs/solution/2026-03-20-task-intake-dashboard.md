@@ -1,10 +1,11 @@
 ---
-artifact_type: implementation_plan
+artifact_type: solution_package
 version: 1
 status: approved
 feature_id: FEATURE-001
 feature_slug: task-intake-dashboard
 source_architecture: docs/architecture/2026-03-20-task-intake-dashboard.md
+source_scope_package: docs/scope/2026-03-20-task-intake-dashboard.md
 owner: SolutionLead
 approval_gate: solution_to_fullstack
 ---
@@ -23,7 +24,7 @@ approval_gate: solution_to_fullstack
 
 ## Boundaries And Components
 
-- intake list behavior belongs to the spec and future presentation layer
+- intake list behavior belongs to the scope package and future presentation layer
 - normalization behavior belongs to the architecture boundary definition
 - implementation guidance belongs to this solution package
 
@@ -50,19 +51,19 @@ approval_gate: solution_to_fullstack
 ### [x] Slice 1: define list behavior
 - Files: `docs/scope/2026-03-20-task-intake-dashboard.md`
 - Goal: capture list and empty-state behavior clearly
-- Validation: spec review against acceptance criteria
+- Validation: scope-package review against acceptance criteria
 - Notes: no repo-native test command exists yet
 
 ### [x] Slice 2: define architecture boundaries
 - Files: `docs/architecture/2026-03-20-task-intake-dashboard.md`
 - Goal: isolate query, normalization, and rendering responsibilities
-- Validation: architecture review against spec
+- Validation: architecture review against the scope package
 - Notes: no repo-native test command exists yet
 
 ### [x] Slice 3: prepare implementation guidance
 - Files: `docs/solution/2026-03-20-task-intake-dashboard.md`
-- Goal: hand off a minimal executable plan for future application code
-- Validation: plan review against templates and workflow contracts
+- Goal: hand off a minimal executable solution package for future application code
+- Validation: solution-package review against templates and workflow contracts
 - Notes: validation path is documentation-based until a toolchain exists
 
 ## Dependency Graph
@@ -76,7 +77,7 @@ approval_gate: solution_to_fullstack
 
 ## Validation Matrix
 
-- Acceptance targets -> spec review and QA artifact review
+- Acceptance targets -> scope-package review and QA artifact review
 - Boundary decisions -> architecture review
 - Handoff quality -> workflow consistency checks
 

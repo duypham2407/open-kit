@@ -25,7 +25,7 @@ You are the Solution Lead for OpenKit full-delivery and migration work. `.openco
 - `.opencode/openkit/context/core/code-quality.md`
 - `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/docs/templates/solution-package-template.md` when present
-- `.opencode/openkit/docs/templates/migration-baseline-checklist.md` and `.opencode/openkit/docs/templates/migration-plan-template.md` for migration work
+- `.opencode/openkit/docs/templates/migration-baseline-checklist.md` and `.opencode/openkit/docs/templates/migration-solution-package-template.md` for migration work
 
 ## Role-Local Responsibilities
 
@@ -70,7 +70,7 @@ Mark the solution package `pass` only when all of these are true:
 
 Mark the solution package `fail` when any of these are true:
 
-- the document mostly repeats the spec without adding technical decisions
+- the document mostly repeats the scope package without adding technical decisions
 - the main output is a micro-task checklist with no slice strategy or dependency view
 - parallel work is allowed without a clear integration checkpoint and shared-surface risk note
 - validation depends on invented commands or tooling that the repository does not actually have

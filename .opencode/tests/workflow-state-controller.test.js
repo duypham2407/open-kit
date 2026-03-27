@@ -93,10 +93,26 @@ function loadFixtureState() {
 function createTempStateFile() {
   const dir = makeTempDir()
   const opencodeDir = path.join(dir, ".opencode")
+  const templatesDir = path.join(dir, "docs", "templates")
+  fs.mkdirSync(path.join(dir, "docs", "scope"), { recursive: true })
+  fs.mkdirSync(path.join(dir, "docs", "solution"), { recursive: true })
+  fs.mkdirSync(path.join(dir, "docs", "qa"), { recursive: true })
+  fs.mkdirSync(templatesDir, { recursive: true })
   fs.mkdirSync(opencodeDir, { recursive: true })
+  for (const template of ["scope-package-template.md", "solution-package-template.md", "migration-solution-package-template.md", "migration-report-template.md"]) {
+    fs.copyFileSync(path.resolve(__dirname, "../../docs/templates", template), path.join(templatesDir, template))
+  }
   const statePath = path.join(opencodeDir, "workflow-state.json")
   fs.writeFileSync(statePath, `${JSON.stringify(loadFixtureState(), null, 2)}\n`, "utf8")
   return statePath
+}
+
+function writeArtifact(statePath, relativePath, content) {
+  const projectRoot = path.dirname(path.dirname(statePath))
+  const absolutePath = path.join(projectRoot, relativePath)
+  fs.mkdirSync(path.dirname(absolutePath), { recursive: true })
+  fs.writeFileSync(absolutePath, `${content}\n`, "utf8")
+  return relativePath
 }
 
 function createTask(overrides = {}) {
@@ -129,9 +145,34 @@ function writeTaskBoard(statePath, workItemId, board) {
 }
 
 function advanceFullWorkItemToPlan(statePath) {
+  const state = showState(statePath).state
+  writeArtifact(
+    statePath,
+    `docs/scope/2026-03-21-${state.feature_slug}.md`,
+    ["# Scope Package", "", "## Goal", "", "## In Scope", "", "## Out of Scope", "", "## Acceptance Criteria Matrix"].join("\n"),
+  )
+  linkArtifact("scope_package", `docs/scope/2026-03-21-${state.feature_slug}.md`, statePath)
   advanceStage("full_product", statePath)
   setApproval("product_to_solution", "approved", "user", "2026-03-21", "Approved", statePath)
   advanceStage("full_solution", statePath)
+  writeArtifact(
+    statePath,
+    `docs/solution/2026-03-21-${state.feature_slug}.md`,
+    [
+      "# Solution Package",
+      "",
+      "## Recommended Path",
+      "",
+      "## Impacted Surfaces",
+      "",
+      "## Implementation Slices",
+      "",
+      "## Validation Matrix",
+      "",
+      "## Integration Checkpoint",
+    ].join("\n"),
+  )
+  linkArtifact("solution_package", `docs/solution/2026-03-21-${state.feature_slug}.md`, statePath)
 }
 
 test("validateState accepts the shipped hard-split example state", () => {
@@ -179,6 +220,32 @@ test("quick_plan becomes the next stage after quick_intake", () => {
 
   assert.equal(result.state.current_stage, "quick_plan")
   assert.equal(result.state.current_owner, "MasterOrchestrator")
+})
+
+test("entering full_product auto-scaffolds the scope package", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-210", "auto-scope", statePath)
+  const result = advanceStage("full_product", statePath)
+
+  assert.match(result.state.artifacts.scope_package, /docs\/scope\/\d{4}-\d{2}-\d{2}-auto-scope\.md$/)
+  assert.equal(result.state.last_auto_scaffold.artifact, "scope_package")
+  assert.equal(result.state.last_auto_scaffold.stage, "full_product")
+  assert.equal(fs.existsSync(path.join(path.dirname(path.dirname(statePath)), result.state.artifacts.scope_package)), true)
+})
+
+test("entering full_solution auto-scaffolds the solution package", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-211", "auto-solution", statePath)
+  advanceStage("full_product", statePath)
+  setApproval("product_to_solution", "approved", "user", "2026-03-21", "Approved", statePath)
+  const result = advanceStage("full_solution", statePath)
+
+  assert.match(result.state.artifacts.solution_package, /docs\/solution\/\d{4}-\d{2}-\d{2}-auto-solution\.md$/)
+  assert.equal(result.state.last_auto_scaffold.artifact, "solution_package")
+  assert.equal(result.state.last_auto_scaffold.stage, "full_solution")
+  assert.equal(fs.existsSync(path.join(path.dirname(path.dirname(statePath)), result.state.artifacts.solution_package)), true)
 })
 
 test("quick_done requires quick_verified approval", () => {
@@ -316,6 +383,13 @@ test("migration mode advances through its canonical stage chain", () => {
   result = advanceStage("migration_strategy", statePath)
   assert.equal(result.state.current_owner, "SolutionLead")
 
+   writeArtifact(
+    statePath,
+    "docs/solution/2026-03-21-legacy-refresh.md",
+    ["# Solution Package", "", "## Goal", "", "## Preserved Invariants", "", "## Upgrade Sequence", "", "## Parity Verification", "", "## Rollback Notes"].join("\n"),
+  )
+  linkArtifact("solution_package", "docs/solution/2026-03-21-legacy-refresh.md", statePath)
+
   setApproval("strategy_to_upgrade", "approved", "FullstackAgent", "2026-03-21", "Strategy approved", statePath)
   result = advanceStage("migration_upgrade", statePath)
   assert.equal(result.state.current_owner, "FullstackAgent")
@@ -325,6 +399,17 @@ test("migration mode advances through its canonical stage chain", () => {
   assert.equal(result.state.current_owner, "CodeReviewer")
 
   setApproval("code_review_to_verify", "approved", "QAAgent", "2026-03-21", "Reviewed and ready for QA", statePath)
+  recordVerificationEvidence(
+    {
+      id: "migration-review",
+      kind: "review",
+      scope: "migration_code_review",
+      summary: "Migration code review completed",
+      source: "migration-review",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
   result = advanceStage("migration_verify", statePath)
   assert.equal(result.state.current_owner, "QAAgent")
 
@@ -343,6 +428,20 @@ test("migration mode advances through its canonical stage chain", () => {
   result = advanceStage("migration_done", statePath)
   assert.equal(result.state.current_stage, "migration_done")
   assert.equal(result.state.status, "done")
+})
+
+test("entering migration_strategy auto-scaffolds the migration solution package", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-110", "auto-migration-solution", "Migration auto scaffold", statePath)
+  advanceStage("migration_baseline", statePath)
+  setApproval("baseline_to_strategy", "approved", "SolutionLead", "2026-03-21", "Baseline approved", statePath)
+  const result = advanceStage("migration_strategy", statePath)
+
+  assert.match(result.state.artifacts.solution_package, /docs\/solution\/\d{4}-\d{2}-\d{2}-auto-migration-solution\.md$/)
+  assert.equal(result.state.last_auto_scaffold.artifact, "solution_package")
+  assert.equal(result.state.last_auto_scaffold.stage, "migration_strategy")
+  assert.equal(fs.existsSync(path.join(path.dirname(path.dirname(statePath)), result.state.artifacts.solution_package)), true)
 })
 
 test("migration design flaws reroute within migration strategy", () => {
@@ -889,6 +988,17 @@ test("valid full-delivery task board passes implementation and QA stage enforcem
   setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
   advanceStage("full_code_review", statePath)
   setApproval("code_review_to_qa", "approved", "QAAgent", "2026-03-21", "Ready for QA", statePath)
+  recordVerificationEvidence(
+    {
+      id: "full-review",
+      kind: "review",
+      scope: "full_code_review",
+      summary: "Full code review completed",
+      source: "code-review",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
 
   result = advanceStage("full_qa", statePath)
   assert.equal(result.state.current_stage, "full_qa")

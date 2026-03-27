@@ -52,9 +52,9 @@ OpenKit has 3 workflow modes.
 ### Full
 
 - for feature work and higher-risk changes
-- uses product, spec, architecture, planning, implementation, QA, and review handoffs
+- uses scope, solution, implementation, QA, and review handoffs
 - uses the `full_*` stages
-- can use a task board when the approved plan allows it
+- can use a task board when the approved solution package allows it
 
 ## 4. How It Works
 

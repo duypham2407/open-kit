@@ -89,7 +89,7 @@ Verification Record:
 ### Expected inputs
 
 - completed migration package after `migration_code_review`
-- linked migration architecture and implementation plan artifacts when they exist
+- linked migration solution package and migration report artifacts when they exist
 - `.opencode/openkit/docs/templates/migration-verify-checklist.md` when present
 - current approval and issue context if resuming
 

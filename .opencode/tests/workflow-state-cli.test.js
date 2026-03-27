@@ -14,8 +14,12 @@ function setupTempRuntime(projectRoot) {
   const hooksDir = path.join(projectRoot, "hooks")
   const skillsDir = path.join(projectRoot, "skills", "using-skills")
   const contextCoreDir = path.join(projectRoot, "context", "core")
+  const templatesDir = path.join(projectRoot, "docs", "templates")
 
   fs.mkdirSync(opencodeDir, { recursive: true })
+  fs.mkdirSync(path.join(projectRoot, "docs", "scope"), { recursive: true })
+  fs.mkdirSync(path.join(projectRoot, "docs", "solution"), { recursive: true })
+  fs.mkdirSync(templatesDir, { recursive: true })
   fs.mkdirSync(hooksDir, { recursive: true })
   fs.mkdirSync(skillsDir, { recursive: true })
   fs.mkdirSync(contextCoreDir, { recursive: true })
@@ -84,6 +88,9 @@ function setupTempRuntime(projectRoot) {
   fs.writeFileSync(path.join(hooksDir, "session-start"), "#!/usr/bin/env bash\n", "utf8")
   fs.writeFileSync(path.join(skillsDir, "SKILL.md"), "# using-skills\n", "utf8")
   fs.writeFileSync(path.join(opencodeDir, "workflow-state.js"), "#!/usr/bin/env node\n", "utf8")
+  for (const template of ["scope-package-template.md", "solution-package-template.md", "migration-solution-package-template.md", "migration-report-template.md"]) {
+    fs.copyFileSync(path.resolve(__dirname, "../../docs/templates", template), path.join(templatesDir, template))
+  }
   fs.writeFileSync(
     path.join(contextCoreDir, "workflow.md"),
     [
@@ -105,7 +112,7 @@ function setupTempRuntime(projectRoot) {
       "Quick approvals: `quick_verified`.",
       "Migration approvals: `baseline_to_strategy`, `strategy_to_upgrade`, `upgrade_to_code_review`, `code_review_to_verify`, `migration_verified`.",
       "Full approvals: `product_to_solution`, `solution_to_fullstack`, `fullstack_to_code_review`, `code_review_to_qa`, `qa_to_done`.",
-      "Quick artifacts: `task_card`; migration artifacts may include `solution_package`, `architecture`, `plan`, `migration_report`; full artifacts: `scope_package`, `solution_package`, `brief`, `spec`, `architecture`, `plan`, `qa_report`, `adr`.",
+      "Quick artifacts: `task_card`; migration artifacts: `solution_package`, optional `migration_report`; full artifacts: `scope_package`, `solution_package`, `qa_report`, `adr`.",
       "",
     ].join("\n"),
     "utf8",
@@ -119,7 +126,7 @@ function setupTempRuntime(projectRoot) {
       "Quick stages: `quick_intake`, `quick_plan`, `quick_build`, `quick_verify`, `quick_done`.",
       "Migration stages: `migration_intake`, `migration_baseline`, `migration_strategy`, `migration_upgrade`, `migration_code_review`, `migration_verify`, `migration_done`.",
       "Full stages: `full_intake`, `full_product`, `full_solution`, `full_implementation`, `full_code_review`, `full_qa`, `full_done`.",
-      "Artifact keys: `task_card`, `scope_package`, `solution_package`, `brief`, `spec`, `architecture`, `plan`, `migration_report`, `qa_report`, `adr`.",
+      "Artifact keys: `task_card`, `scope_package`, `solution_package`, `migration_report`, `qa_report`, `adr`.",
       "Resume summary JSON includes verification_readiness, verification_evidence, and issue_telemetry.",
       "Routing profile keys: `work_intent`, `behavior_delta`, `dominant_uncertainty`, `scope_shape`, `selection_reason`.",
       "Quick approvals: `quick_verified`.",
@@ -159,6 +166,12 @@ function runCli(projectRoot, args) {
     cwd: projectRoot,
     encoding: "utf8",
   })
+}
+
+function writeArtifact(projectRoot, relativePath, content) {
+  const absolutePath = path.join(projectRoot, relativePath)
+  fs.mkdirSync(path.dirname(absolutePath), { recursive: true })
+  fs.writeFileSync(absolutePath, `${content}\n`, "utf8")
 }
 
 function moveFullWorkItemToPlan(projectRoot, workItemId) {
@@ -461,10 +474,8 @@ test("status command reflects quick_plan as a live quick stage", () => {
     },
   }
   state.artifacts.task_card = null
-  state.artifacts.brief = null
-  state.artifacts.spec = null
-  state.artifacts.architecture = null
-  state.artifacts.plan = null
+  state.artifacts.scope_package = null
+  state.artifacts.solution_package = null
   state.artifacts.qa_report = null
   state.artifacts.adr = []
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
@@ -534,10 +545,8 @@ test("status command reflects migration_strategy as a live migration stage", () 
     },
   }
   state.artifacts.task_card = null
-  state.artifacts.brief = null
-  state.artifacts.spec = null
-  state.artifacts.architecture = "docs/architecture/2026-03-21-react-19-migration.md"
-  state.artifacts.plan = null
+  state.artifacts.scope_package = null
+  state.artifacts.solution_package = null
   state.artifacts.qa_report = null
   state.artifacts.adr = []
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
@@ -552,6 +561,27 @@ test("status command reflects migration_strategy as a live migration stage", () 
   assert.match(result.stdout, /stage: migration_strategy/)
   assert.match(result.stdout, /owner: SolutionLead/)
   assert.match(result.stdout, /work item: MIGRATE-600 \(react-19-migration\)/)
+})
+
+test("status and resume-summary surface the latest auto-scaffolded artifact", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, ["start-feature", "FEATURE-610", "status-auto-scaffold"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "full_product"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["status"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /last auto-scaffold: scope_package -> docs\/scope\//)
+
+  result = runCli(projectRoot, ["resume-summary", "--json"])
+  assert.equal(result.status, 0)
+  const payload = JSON.parse(result.stdout)
+  assert.equal(payload.last_auto_scaffold.artifact, "scope_package")
+  assert.match(payload.last_auto_scaffold.path, /docs\/scope\//)
 })
 
 test("status command fails when the active managed work item is invalid", () => {
@@ -576,10 +606,8 @@ test("status command fails when the active managed work item is invalid", () => 
   state.status = "in_progress"
   state.current_owner = "MasterOrchestrator"
   state.artifacts.task_card = null
-  state.artifacts.brief = null
-  state.artifacts.spec = null
-  state.artifacts.architecture = null
-  state.artifacts.plan = null
+  state.artifacts.scope_package = null
+  state.artifacts.solution_package = null
   state.artifacts.migration_report = null
   state.artifacts.qa_report = null
   state.artifacts.adr = []

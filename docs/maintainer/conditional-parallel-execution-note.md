@@ -8,7 +8,7 @@ For the shortest reference, use `docs/maintainer/parallel-execution-matrix.md`.
 
 Parallel execution is conditional.
 
-OpenKit does not assume that `Full Delivery` or `Migration` should always run with multiple active workers. Parallel execution is allowed only when the approved plan explicitly blesses it.
+OpenKit does not assume that `Full Delivery` or `Migration` should always run with multiple active workers. Parallel execution is allowed only when the approved solution package explicitly blesses it.
 
 ## Team Shape Assumption
 
@@ -19,7 +19,7 @@ OpenKit now models the intended team shape this way:
 - multiple `Fullstack` workers
 - multiple `QA` workers
 
-Planning roles remain singleton. Worker pools apply only to execution after planning says the work is safe to split.
+Planning roles remain singleton. Worker pools apply only to execution after the solution package says the work is safe to split.
 
 ## What This Means For Full Delivery
 

@@ -13,7 +13,7 @@ Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode an
 ## Preconditions
 
 - The current `mode` must be `full` or `migration`
-- The work needs design clarification, product exploration, architecture framing, or upgrade strategy exploration before plan execution
+- The work needs design clarification, product exploration, architecture framing, or upgrade strategy exploration before solution-package execution
 - If work is resuming, the current state must be readable before the session continues
 
 ## Canonical docs to load
@@ -32,7 +32,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 - Confirm the work is in `Migration` or `Full Delivery` mode before starting brainstorming
 - Use the brainstorming skill to explore the problem, compare approaches, and converge on a design
-- In migration mode, use brainstorming to identify preserved invariants, migration blockers, seams, adapters, and slice boundaries before implementation planning
+- In migration mode, use brainstorming to identify preserved invariants, migration blockers, seams, adapters, and slice boundaries before writing the migration solution package
 - Create or refine the appropriate artifact for the active mode only when the skill outcome requires it
 - Do not use brainstorming as the default first move when the request is already clear enough for `Product Lead` or `Solution Lead` to proceed directly
 - Point back to `context/core/workflow.md` for stage order, approvals, and escalation rules instead of restating them here

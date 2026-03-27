@@ -5,8 +5,7 @@ status: draft
 feature_id: FEATURE-000
 feature_slug: example-migration
 owner: MasterOrchestrator
-source_architecture: docs/architecture/YYYY-MM-DD-example-migration.md
-source_plan: docs/solution/YYYY-MM-DD-example-migration.md
+source_solution_package: docs/solution/YYYY-MM-DD-example-migration.md
 ---
 
 # Migration Report: <Migration Name>

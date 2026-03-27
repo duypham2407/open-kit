@@ -4,6 +4,7 @@ version: 1
 status: draft
 feature_id: FEATURE-000
 feature_slug: example-feature
+source_scope_package: docs/scope/YYYY-MM-DD-example-feature.md
 owner: SolutionLead
 approval_gate: solution_to_fullstack
 ---

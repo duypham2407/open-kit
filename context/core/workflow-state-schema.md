@@ -21,6 +21,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - `retry_count`
 - `escalated_from`
 - `escalation_reason`
+- `last_auto_scaffold`
 - `updated_at`
 - `work_item_id`
 
@@ -176,3 +177,8 @@ Mode-specific approval keys:
 
 - `escalated_from`: `null`, `quick`, or `migration`
 - `escalation_reason`: `null` or a short explanation of why quick or migration work was promoted to full delivery
+
+## Auto-Scaffold Tracking
+
+- `last_auto_scaffold`: `null` or an object with `artifact`, `path`, `stage`, and `recorded_at`
+- used to expose the most recent runtime-created primary scope or solution package in `status` and `resume-summary`

@@ -1,10 +1,9 @@
 ---
-artifact_type: specification
+artifact_type: scope_package
 version: 1
 status: approved
 feature_id: FEATURE-001
 feature_slug: task-intake-dashboard
-source_brief: docs/briefs/2026-03-20-task-intake-dashboard.md
 owner: ProductLead
 approval_gate: product_to_solution
 ---

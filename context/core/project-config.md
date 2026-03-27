@@ -89,7 +89,7 @@ These are repository workflow commands, not application build/lint/test commands
 - `node .opencode/workflow-state.js set-approval <gate> <status> [approved_by] [approved_at] [notes]`
 - `node .opencode/workflow-state.js set-routing-profile <work_intent> <behavior_delta> <dominant_uncertainty> <scope_shape> <selection_reason>`
 - `node .opencode/workflow-state.js link-artifact <kind> <path>`
-- `node .opencode/workflow-state.js scaffold-artifact <task_card|plan|migration_report> <slug>`
+- `node .opencode/workflow-state.js scaffold-artifact <task_card|scope_package|solution_package|migration_report> <slug>`
 - `node .opencode/workflow-state.js list-tasks <work_item_id>`
 - `node .opencode/workflow-state.js create-task <work_item_id> <task_id> <title> <kind> [branch] [worktree_path]`
 - `node .opencode/workflow-state.js validate-task-allocation <work_item_id>`
@@ -136,13 +136,16 @@ Current workflow-state behavior:
 - `create-work-item`, `list-work-items`, `show-work-item`, and `activate-work-item` are the live work-item coordination commands.
 - `list-tasks`, `create-task`, `claim-task`, `release-task`, `reassign-task`, `assign-qa-owner`, `set-task-status`, and `validate-work-item-board` are the live full-delivery task-board commands.
 - `validate-task-allocation` and `integration-check` are the bounded full-delivery parallel-safety helpers for implementation and QA coordination.
-- `scaffold-artifact` is a narrow helper for creating and linking `task_card`, `plan`, and `migration_report` artifacts from checked-in templates.
+- `scaffold-artifact` is a narrow helper for creating and linking `task_card`, `scope_package`, `solution_package`, and `migration_report` artifacts from checked-in templates.
 - `set-routing-profile` updates the explicit routing metadata used to justify and validate lane selection.
 - `task_card` scaffolding requires `quick` mode and is intentionally allowed as optional traceability in the quick lane.
-- `plan` scaffolding requires `full` mode at `full_solution` or `migration` mode at `migration_strategy`, and it always requires a linked architecture artifact.
+- `scope_package` scaffolding requires `full` mode at `full_product`.
+- `solution_package` scaffolding requires `full` mode at `full_solution` or `migration` mode at `migration_strategy`.
 - `migration_report` scaffolding requires `migration` mode at `migration_baseline` or `migration_strategy` and is intended for one-file migration tracking.
+- `advance-stage` auto-scaffolds missing primary artifacts when entering `full_product`, `full_solution`, or `migration_strategy`.
 - `doctor` now checks active-work-item pointer integrity, compatibility-mirror alignment, and task-board validity when the active full-delivery stage depends on a task board.
 - `check-stage-readiness` and `workflow-metrics` expose whether the current stage is blocked by missing artifacts, missing evidence, unresolved issues, or task-board prerequisites.
+- `status`, `status --short`, and `resume-summary` surface the most recent runtime auto-scaffold event when stage entry created a primary scope or solution package.
 - `show-dod`, `validate-dod`, and `release-readiness` expose closure criteria and ship-readiness criteria as explicit runtime surfaces.
 - `workflow-analytics` and `ops-summary` compress multi-work-item and daily operator insights into inspectable reports.
 - release candidate commands add release-level governance over multiple work items, release notes, approvals, rollback planning, and hotfix linkage.

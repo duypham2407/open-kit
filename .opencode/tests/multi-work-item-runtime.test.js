@@ -8,6 +8,7 @@ const {
   advanceStage,
   claimTask,
   createTask: createBoardTask,
+  linkArtifact,
   listTasks,
   reassignTask,
   releaseTask,
@@ -34,10 +35,19 @@ function loadFixtureState() {
 function createTempStateFile() {
   const dir = makeTempDir()
   const opencodeDir = path.join(dir, ".opencode")
+  fs.mkdirSync(path.join(dir, "docs", "scope"), { recursive: true })
+  fs.mkdirSync(path.join(dir, "docs", "solution"), { recursive: true })
   fs.mkdirSync(opencodeDir, { recursive: true })
   const statePath = path.join(opencodeDir, "workflow-state.json")
   fs.writeFileSync(statePath, `${JSON.stringify(loadFixtureState(), null, 2)}\n`, "utf8")
   return statePath
+}
+
+function writeArtifact(statePath, relativePath, content) {
+  const projectRoot = path.dirname(path.dirname(statePath))
+  const absolutePath = path.join(projectRoot, relativePath)
+  fs.mkdirSync(path.dirname(absolutePath), { recursive: true })
+  fs.writeFileSync(absolutePath, `${content}\n`, "utf8")
 }
 
 function createTask(overrides = {}) {
@@ -69,9 +79,36 @@ function writeTaskBoard(statePath, workItemId, board) {
 }
 
 function advanceFullWorkItemToPlan(statePath) {
+  const state = showState(statePath).state
+  writeArtifact(
+    statePath,
+    `docs/scope/2026-03-21-${state.feature_slug}.md`,
+    ["# Scope Package", "", "## Goal", "", "## In Scope", "", "## Out of Scope", "", "## Acceptance Criteria Matrix"].join("\n"),
+  )
   advanceStage("full_product", statePath)
+  const scopePath = `docs/scope/2026-03-21-${state.feature_slug}.md`
+  linkArtifact("scope_package", scopePath, statePath)
   setApproval("product_to_solution", "approved", "user", "2026-03-21", "Approved", statePath)
   advanceStage("full_solution", statePath)
+  const solutionPath = `docs/solution/2026-03-21-${state.feature_slug}.md`
+  writeArtifact(
+    statePath,
+    solutionPath,
+    [
+      "# Solution Package",
+      "",
+      "## Recommended Path",
+      "",
+      "## Impacted Surfaces",
+      "",
+      "## Implementation Slices",
+      "",
+      "## Validation Matrix",
+      "",
+      "## Integration Checkpoint",
+    ].join("\n"),
+  )
+  linkArtifact("solution_package", solutionPath, statePath)
 }
 
 test("compatibility mirror refresh happens after the active work item pointer changes", () => {
@@ -122,10 +159,8 @@ test("selectActiveWorkItem rewrites a stale compatibility mirror from the active
       current_owner: "MasterOrchestrator",
       artifacts: {
         task_card: null,
-        brief: null,
-        spec: null,
-        architecture: null,
-        plan: null,
+        scope_package: null,
+        solution_package: null,
         migration_report: null,
         qa_report: null,
         adr: [],

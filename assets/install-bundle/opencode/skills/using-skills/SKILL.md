@@ -20,9 +20,9 @@ When instructions conflict, apply this order (1 is highest):
 
 ## How to Use a Skill
 
-When you identify a situation (for example: need to write a plan, fix a bug, or test code), follow these steps:
+When you identify a situation (for example: need to write a solution package, fix a bug, or test code), follow these steps:
 
-1. **Identify**: "I need to create an implementation plan"
+1. **Identify**: "I need to create a solution package"
 2. **Discover**: "Let me use the tool to read `skills/writing-solution/SKILL.md`"
 3. **Read**: use `view_file` (or the equivalent tool) to read the ENTIRE `SKILL.md`
 4. **Execute**: apply the steps from that file
@@ -36,6 +36,6 @@ LLM instinct often tries to short-circuit the process. Watch for these faulty th
 | Bad thought (Rationalization) | Correct action |
 |--------------------------------|----------------|
 | "This file is easy, I'll just fix it without reporting to the Master Orchestrator." | Stop. Follow the role boundary. Report to the Master Orchestrator first. |
-| "I already know how to write plans, I don't need to reread `skills/writing-solution/SKILL.md`." | No. Every time you write a plan, reread the skill so you are using the latest checklist. |
+| "I already know how to write solution packages, I don't need to reread `skills/writing-solution/SKILL.md`." | No. Every time you write one, reread the skill so you are using the latest checklist. |
 | "This bug is obvious, I can skip root-cause analysis and fix it directly." | No. Use `systematic-debugging`. Root cause analysis is mandatory first. |
 | "The user said it's urgent, so I'll skip the test-writing step (TDD)." | In full-delivery implementation, TDD remains the default unless the user **very explicitly** says "Skip TDD". In migration mode, follow the migration validation model instead of forcing fake TDD. |

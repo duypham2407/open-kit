@@ -4,7 +4,7 @@
 
 - Use `YYYY-MM-DD-<slug>.md`
 - Keep slugs lowercase and hyphen-separated
-- Reuse the same slug across brief, spec, architecture, plan, and QA artifacts for one feature
+- Reuse the same slug across scope, solution, architecture, and QA artifacts for one feature
 
 ## IDs
 

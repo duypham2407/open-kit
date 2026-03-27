@@ -103,8 +103,8 @@ Implemented full-delivery task-runtime note:
 - from `full_solution` onward, a full-delivery work item may carry an execution task board under `.opencode/work-items/<work_item_id>/tasks.json`
 - task boards belong only to full-delivery work items
 - task-level ownership does not replace the feature-stage owner recorded in workflow state
-- full-delivery parallel work is conditional, not automatic; `Solution Lead` must bless a plan that explicitly says parallel execution is safe
-- when the plan does not approve parallel execution, full-delivery work remains sequential even if multiple Fullstack or QA agents are available
+- full-delivery parallel work is conditional, not automatic; `Solution Lead` must bless a solution package that explicitly says parallel execution is safe
+- when the solution package does not approve parallel execution, full-delivery work remains sequential even if multiple Fullstack or QA agents are available
 - singleton planning roles remain singleton: one `Product Lead` and one `Solution Lead` define the work; worker pools apply only to implementation and QA execution after planning is approved
 
 ## Migration Lane
@@ -243,6 +243,7 @@ Approval state should be recorded in the managed active work-item state before a
 
 - baseline and strategy notes recorded in workflow communication and state
 - preferred technical artifact: `docs/solution/YYYY-MM-DD-<migration>.md` as the solution package
+- entering `migration_strategy` should auto-scaffold the primary solution package when it is still missing
 - preserved invariants and parity expectations recorded in workflow communication and state
 - optional consolidated migration report in `docs/solution/YYYY-MM-DD-<migration>-report.md`
 - concise review, regression, and compatibility evidence in workflow communication and state
@@ -256,6 +257,11 @@ Approval state should be recorded in the managed active work-item state before a
 | Fullstack | Source code and verification evidence |
 | Code Reviewer | Review findings in workflow communication and state |
 | QA | `docs/qa/YYYY-MM-DD-<feature>.md` |
+
+Stage-entry note:
+
+- entering `full_product` should auto-scaffold the primary scope package when it is still missing
+- entering `full_solution` should auto-scaffold the primary solution package when it is still missing
 
 ## Key Principles
 

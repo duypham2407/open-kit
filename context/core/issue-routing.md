@@ -59,14 +59,14 @@ Task-aware full-delivery note:
 - task-local rework may stay within the task board only for implementation-rooted bugs that do not require a stage change
 - when a review or QA finding reveals a design flaw or requirement gap, the feature returns to `full_solution` or `full_product` even if the finding started from one execution task
 - preserve task ids and task evidence in issue notes so the orchestrator can reconnect feature routing with task-board state
-- multiple Fullstack or QA owners are allowed only when the approved plan marks the work item as parallel-capable and the task graph passes runtime validation
+- multiple Fullstack or QA owners are allowed only when the approved solution package marks the work item as parallel-capable and the task graph passes runtime validation
 
 ### Migration routing
 
 | Type | Route to | Expected action |
 | --- | --- | --- |
 | `bug` | `migration_upgrade` / `FullstackAgent` | Fix upgrade fallout and re-review |
-| `design_flaw` | `migration_strategy` / `SolutionLead` | Rework upgrade sequencing, compatibility assumptions, or rollback plan |
+| `design_flaw` | `migration_strategy` / `SolutionLead` | Rework upgrade sequencing, compatibility assumptions, or rollback notes |
 | `requirement_gap` | `full_intake` / `MasterOrchestrator` | Escalate into full delivery because the issue is no longer primarily technical migration work |
 
 Migration mode treats compatibility or upgrade-path mistakes as migration-stage work, but it must not absorb product-definition ambiguity.

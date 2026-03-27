@@ -1,10 +1,10 @@
 ---
-description: "Executes an approved Full Delivery or Migration implementation plan."
+description: "Executes an approved Full Delivery or Migration solution package."
 ---
 
 # Command: `/execute-solution`
 
-Use `/execute-solution` when an approved Full Delivery or Migration implementation plan is ready to be carried out.
+Use `/execute-solution` when an approved Full Delivery or Migration solution package is ready to be carried out.
 
 ## Shared prompt contract
 
@@ -13,7 +13,7 @@ Use `/execute-solution` when an approved Full Delivery or Migration implementati
 ## Preconditions
 
 - The current `mode` must be `full` or `migration`
-- An approved plan exists in `docs/solution/` for the current work item
+- An approved solution package exists in `docs/solution/` for the current work item
 - Any required upstream approvals for the active mode are already recorded in workflow state
 
 ## Canonical docs to load
@@ -32,7 +32,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 ## Expected action
 
 - Confirm the current state is compatible with implementation work for the active mode
-- Read the approved plan and execute it without redefining the canonical workflow rules
+- Read the approved solution package and execute it without redefining the canonical workflow rules
 - Use the real implementation workflow available in the repository; do not imply live parallel execution support beyond what the checked-in runtime documents today
 - Report the actual validation path taken for each meaningful change
 
@@ -40,7 +40,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 - If the work is still in quick mode, stop and route it into `Migration` or `Full Delivery` before using this command
 - If workflow state is invalid, contradictory, or missing required approvals, stop and correct state or inputs before implementation
-- If the plan is missing, stale, or unapproved, stop and send the work back to the planning step instead of improvising a new plan inline
+- If the solution package is missing, stale, or unapproved, stop and send the work back to the planning step instead of improvising a new one inline
 
 ## Validation guidance
 

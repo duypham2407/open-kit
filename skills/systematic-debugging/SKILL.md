@@ -40,7 +40,7 @@ List 2-3 hypotheses. Then narrow them down by grepping and reading code until yo
 ### Phase 3: Propose Fix
 Propose the Minimal Fix (the fewest lines changed across the fewest files).
 
-⚠️ **RED ALERT: fixing many places usually means architecture surgery.** If you realize the plan requires changing 3-4 separate logic files at once (scattered changes), stop. You are probably not fixing a bug anymore - you are papering over a broken system or bad architecture. Escalate back to the Master Orchestrator and bring in the Architect to review the system.
+⚠️ **RED ALERT: fixing many places usually means architecture surgery.** If you realize the solution package requires changing 3-4 separate logic files at once (scattered changes), stop. You are probably not fixing a bug anymore - you are papering over a broken system or bad architecture. Escalate back to the Master Orchestrator and bring in the Solution Lead to review the system.
 
 ### Phase 4: Implementation
 Follow the active mode's validation model:

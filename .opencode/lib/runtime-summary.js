@@ -88,6 +88,11 @@ function getRuntimeContext(projectRoot, state) {
     taskBoardPresent: taskBoard.present,
     taskBoardSummary: taskBoard.summary,
     nextAction: getNextAction(state),
+    lastAutoScaffold: state?.last_auto_scaffold ?? null,
+    lastAutoScaffoldLine:
+      state?.last_auto_scaffold && state.last_auto_scaffold.path
+        ? `last auto-scaffold: ${state.last_auto_scaffold.artifact} -> ${state.last_auto_scaffold.path} @ ${state.last_auto_scaffold.stage}`
+        : null,
     artifactReadiness,
     artifactReadinessLines: summarizeArtifactReadinessLines(state),
     verificationReadiness,

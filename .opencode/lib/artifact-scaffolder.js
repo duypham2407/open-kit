@@ -8,15 +8,15 @@ const SUPPORTED_SCAFFOLDS = {
   },
   scope_package: {
     templatePath: "docs/templates/scope-package-template.md",
-    outputDir: "docs/specs",
+    outputDir: "docs/scope",
   },
   solution_package: {
     templatePath: "docs/templates/solution-package-template.md",
-    outputDir: "docs/plans",
+    outputDir: "docs/solution",
   },
   migration_report: {
     templatePath: "docs/templates/migration-report-template.md",
-    outputDir: "docs/plans",
+    outputDir: "docs/solution",
   },
 }
 
@@ -41,14 +41,22 @@ function replaceTemplatePlaceholders(template, values) {
     .replace(/example-task/g, values.featureSlug)
     .replace(/example-feature/g, values.featureSlug)
     .replace(/example-migration/g, values.featureSlug)
-    .replace(/docs\/architecture\/YYYY-MM-DD-[^\s]+\.md/g, values.sourceArchitecture)
-    .replace(/docs\/plans\/YYYY-MM-DD-[^\s]+\.md/g, values.sourcePlan)
+    .replace(/docs\/scope\/YYYY-MM-DD-[^\s]+\.md/g, values.sourceScopePackage)
+    .replace(/docs\/solution\/YYYY-MM-DD-[^\s]+\.md/g, values.sourceSolutionPackage)
     .replace(/<Task Name>/g, values.title)
     .replace(/<Feature Name>/g, values.title)
     .replace(/<Migration Name>/g, values.title)
 }
 
-function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, featureSlug, sourceArchitecture, sourcePlan }) {
+function resolveTemplatePath(kind, mode) {
+  if (kind === "solution_package" && mode === "migration") {
+    return "docs/templates/migration-solution-package-template.md"
+  }
+
+  return SUPPORTED_SCAFFOLDS[kind]?.templatePath ?? null
+}
+
+function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, featureSlug, sourceScopePackage, sourceSolutionPackage }) {
   const config = SUPPORTED_SCAFFOLDS[kind]
   if (!config) {
     throw new Error(`Unsupported scaffold kind '${kind}'`)
@@ -58,7 +66,7 @@ function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, featureSlu
     throw new Error("artifact slug must use lowercase kebab-case")
   }
 
-  const resolvedTemplatePath = config.templatePath
+  const resolvedTemplatePath = resolveTemplatePath(kind, mode)
   const templatePath = path.join(projectRoot, resolvedTemplatePath)
   const outputDir = path.join(projectRoot, config.outputDir)
 
@@ -89,8 +97,8 @@ function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, featureSlu
     date,
     featureId,
     featureSlug,
-    sourceArchitecture: sourceArchitecture ?? "docs/architecture/YYYY-MM-DD-<feature>.md",
-    sourcePlan: sourcePlan ?? "docs/solution/YYYY-MM-DD-<migration>.md",
+    sourceScopePackage: sourceScopePackage ?? "docs/scope/YYYY-MM-DD-<feature>.md",
+    sourceSolutionPackage: sourceSolutionPackage ?? "docs/solution/YYYY-MM-DD-<feature>.md",
     title: titleFromSlug(slug),
   })
 

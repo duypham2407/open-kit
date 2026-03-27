@@ -7,7 +7,7 @@ Their presence does not automatically mean the runtime can scaffold every artifa
 Current reality:
 
 - templates define the expected artifact shapes
-- runtime scaffolding support is narrower than the full template set
+- runtime scaffolding support now covers the active scope-package, solution-package, migration-report, and quick-task artifacts
 - quick-mode work does not require every template-backed artifact
 - template ownership stays here even though audience routing now starts from `README.md`, `docs/operator/README.md`, and `docs/maintainer/README.md`
 

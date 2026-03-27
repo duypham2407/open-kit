@@ -248,15 +248,9 @@
         "optional": true
       },
       {
-        "id": "artifact.briefs",
-        "name": "briefs",
-        "path": "docs/briefs",
-        "kind": "directory"
-      },
-      {
-        "id": "artifact.specs",
-        "name": "specs",
-        "path": "docs/specs",
+        "id": "artifact.scope-packages",
+        "name": "scope-packages",
+        "path": "docs/scope",
         "kind": "directory"
       },
       {
@@ -266,9 +260,9 @@
         "kind": "directory"
       },
       {
-        "id": "artifact.plans",
-        "name": "plans",
-        "path": "docs/plans",
+        "id": "artifact.solution-packages",
+        "name": "solution-packages",
+        "path": "docs/solution",
         "kind": "directory"
       },
       {

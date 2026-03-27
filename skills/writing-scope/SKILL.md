@@ -1,9 +1,9 @@
 ---
 name: writing-scope
-description: "Converts requirements into structured spec documents with concrete acceptance criteria."
+description: "Converts requirements into structured scope packages with concrete acceptance criteria."
 ---
 
-# Skill: Writing Specs
+# Skill: Writing Scope Packages
 
 ## Context
 
@@ -12,7 +12,7 @@ This skill is used by `Product Lead` to turn high-level intent into a detailed s
 ## Execution Process
 
 ### 1. Verification (Input Check)
-- Make sure you already have a clear problem statement or product brief.
+- Make sure you already have a clear problem statement.
 - If the scope is still vague (for example: "make it faster"), go back to the user or the active scope owner and get measurable detail.
 
 ### 2. User Stories Breakdown
@@ -43,5 +43,5 @@ You must include a dedicated section for failure conditions and awkward scenario
 Create the markdown file at `docs/scope/YYYY-MM-DD-<feature-name>.md`.
 
 ## Anti-Patterns to Avoid
-- **Tech leaking**: putting technical implementation decisions in the spec (for example: "Use React `useState` to store the form"). A spec should describe behavior and requirements, not code.
+- **Tech leaking**: putting technical implementation decisions in the scope package (for example: "Use React `useState` to store the form"). A scope package should describe behavior and requirements, not code.
 - **Unmeasurable goals**: "beautiful UI", "fast performance". Replace them with measurable requirements like "responsive on mobile" or "response time < 200ms".

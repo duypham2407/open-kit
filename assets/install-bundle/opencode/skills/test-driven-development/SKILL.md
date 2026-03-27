@@ -12,7 +12,7 @@ This is the Iron Law for the Fullstack Agent. You are NOT ALLOWED to write any p
 ## Execution Process (RED-GREEN-REFACTOR)
 
 ### Step 1: RED (Write a Failing Test)
-1. Pick one small task from the implementation plan.
+1. Pick one small task from the approved solution package.
 2. Write **one** test case for that behavior.
 3. Run the repository's defined test command for the language or framework in use. If the repo does not define a standard command, stop and report the missing validation path instead of guessing.
 4. **Mandatory validation**: the test MUST fail. It must fail for the right reason (for example, `ReferenceError: function is not defined`, or `Expected true but got false`).

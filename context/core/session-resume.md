@@ -46,7 +46,7 @@ If `mode` is `full`:
 - if the current full-delivery stage is `full_solution`, `full_implementation`, `full_code_review`, `full_qa`, or `full_done`, inspect the task board when it exists and confirm it belongs only to this full work item
 - restore both feature-level and task-level context: current stage owner, active work item id, ready/active task summary, and any task-specific evidence tied to the next decision
 - if `current_stage` is `full_code_review`, inspect the latest implementation evidence and review findings before rerouting or advancing
-- if `current_stage` is `full_qa`, read the current QA report and related plan first
+- if `current_stage` is `full_qa`, read the current QA report and related solution package first
 - if `current_stage` is `full_done`, confirm the QA report, verification evidence, and issue state are all inspectable before trusting closure
 - preserve the approval-gate context before advancing or rerouting
 - if resuming at a handoff boundary, inspect the latest approved gate notes before starting new work
@@ -56,7 +56,7 @@ If `mode` is `full`:
 If `mode` is `migration`:
 
 - read the linked architecture artifact when present because it carries the baseline and compatibility model for the upgrade
-- read the migration plan in `docs/solution/` when it exists
+- read the migration solution package in `docs/solution/` when it exists
 - if `current_stage` is `migration_baseline`, inspect `docs/templates/migration-baseline-checklist.md` and the recorded current versions, preserved invariants, compatibility hotspots, and likely breakpoints before planning
 - if `current_stage` is `migration_strategy`, inspect the staged upgrade sequence, seam or adapter decisions, rollback notes, and validation path before resuming implementation
 - if `current_stage` is `migration_upgrade`, inspect the migration strategy and latest execution evidence before continuing

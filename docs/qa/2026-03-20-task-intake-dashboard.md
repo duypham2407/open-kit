@@ -32,9 +32,9 @@ approval_gate: qa_to_done
 
 | Acceptance Criteria | Result | Notes |
 | --- | --- | --- |
-| Dashboard shows title, queue, status, and owner | PASS | Covered by spec and architecture artifacts |
-| Empty state is shown when no tasks exist | PASS | Covered by spec |
-| Filters narrow the visible list | PASS | Covered by spec |
+| Dashboard shows title, queue, status, and owner | PASS | Covered by scope-package and architecture artifacts |
+| Empty state is shown when no tasks exist | PASS | Covered by scope package |
+| Filters narrow the visible list | PASS | Covered by scope package |
 
 ## Quality Checks
 

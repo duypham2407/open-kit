@@ -1,6 +1,6 @@
 ---
 name: code-review
-description: "Pre-review checklist and quality gates. Uses a two-stage approach: spec compliance then code quality."
+description: "Pre-review checklist and quality gates. Uses a two-stage approach: scope compliance then code quality."
 ---
 
 # Skill: Code Review
@@ -13,17 +13,17 @@ The goal is to be the technical gate before QA, catching off-scope or low-qualit
 ## Required Inputs
 
 - What needs review? (files / commit / PR)
-- Comparison documents: spec (requirements), architecture (design), code standards.
+- Comparison documents: scope package (requirements), solution package or architecture (design), code standards.
 
 ## Two-Stage Review Process
 
 Strictly follow these two stages in order. Do not talk about formatting or clean code if the feature itself is off-spec.
 
-### Stage 1: Spec Compliance
-**Ask exactly one question: "Does this code meet the acceptance criteria in the spec exactly, and does it avoid inventing extra features?"**
+### Stage 1: Scope Compliance
+**Ask exactly one question: "Does this code meet the acceptance criteria in the scope package exactly, and does it avoid inventing extra features?"**
 
 - Inspect each acceptance criterion (Given - When - Then).
-- Does the code handle the edge cases the BA documented?
+- Does the code handle the edge cases the scope package documented?
 - **Overscope Audit (Over-engineering)**: counter the developer instinct to "helpfully" add extra behavior. Has the code built convenience features that were never requested? (YAGNI)
 
 => **Record Pass / Fail for Stage 1. If it fails, stop the review there and send it back to the developer. Do not continue to Stage 2.**

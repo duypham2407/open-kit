@@ -961,6 +961,24 @@ function ensureVerificationEvidenceEntry(entry, index) {
   }
 }
 
+function validateAutoScaffoldRecord(record) {
+  if (record === null || record === undefined) {
+    return
+  }
+
+  ensureObject(record, "last_auto_scaffold")
+  for (const key of ["artifact", "path", "stage", "recorded_at"]) {
+    if (!(key in record)) {
+      fail(`last_auto_scaffold.${key} is required`)
+    }
+  }
+
+  ensureKnown(record.artifact, ["scope_package", "solution_package"], "last_auto_scaffold.artifact")
+  ensureString(record.path, "last_auto_scaffold.path")
+  ensureKnown(record.stage, ["full_product", "full_solution", "migration_strategy"], "last_auto_scaffold.stage")
+  ensureString(record.recorded_at, "last_auto_scaffold.recorded_at")
+}
+
 function validateArtifacts(artifacts) {
   ensureObject(artifacts, "artifacts")
   for (const key of ["task_card", "scope_package", "solution_package", "migration_report", "qa_report", "adr"]) {
@@ -1289,6 +1307,10 @@ function validateStateObject(state, options = {}) {
   validateArtifacts(state.artifacts)
   validateArtifactSignatureForMode(state.mode, state.artifacts)
   validateApprovals(state.mode, state.approvals)
+  if (!("last_auto_scaffold" in state) || state.last_auto_scaffold === undefined) {
+    state.last_auto_scaffold = null
+  }
+  validateAutoScaffoldRecord(state.last_auto_scaffold)
 
   ensureArray(state.issues, "issues")
   state.issues.forEach((issue, index) => ensureIssueShape(issue, index))
@@ -1338,6 +1360,7 @@ function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason
     retry_count: 0,
     escalated_from: null,
     escalation_reason: null,
+    last_auto_scaffold: null,
     updated_at: updatedAt,
   }
 }
@@ -1389,6 +1412,53 @@ function assertStageExitReadiness(state, context = {}) {
   }
 
   return summary
+}
+
+function requireLinkedArtifacts(state, artifactKinds, message) {
+  const missing = artifactKinds.filter((kind) => {
+    if (kind === "adr") {
+      return !Array.isArray(state.artifacts.adr) || state.artifacts.adr.length === 0
+    }
+
+    return typeof state.artifacts[kind] !== "string" || state.artifacts[kind].length === 0
+  })
+
+  if (missing.length > 0) {
+    fail(`${message}; missing artifact(s): ${missing.join(", ")}`)
+  }
+}
+
+function autoScaffoldPrimaryArtifactIfNeeded(state, projectRoot, targetStage) {
+  let kind = null
+
+  if (targetStage === "full_product") {
+    kind = "scope_package"
+  } else if (targetStage === "full_solution" || targetStage === "migration_strategy") {
+    kind = "solution_package"
+  }
+
+  if (!kind || state.artifacts[kind] !== null) {
+    return
+  }
+
+  const scaffoldResult = scaffoldArtifact({
+    projectRoot,
+    kind,
+    mode: state.mode,
+    slug: state.feature_slug,
+    featureId: state.feature_id,
+    featureSlug: state.feature_slug,
+    sourceScopePackage: kind === "solution_package" && state.mode === "full" ? state.artifacts.scope_package : null,
+    sourceSolutionPackage: null,
+  })
+
+  state.artifacts[kind] = scaffoldResult.artifactPath
+  state.last_auto_scaffold = {
+    artifact: kind,
+    path: scaffoldResult.artifactPath,
+    stage: targetStage,
+    recorded_at: timestamp(),
+  }
 }
 
 function setRoutingProfile(workIntent, behaviorDelta, dominantUncertainty, scopeShape, selectionReason, customStatePath) {
@@ -1707,6 +1777,7 @@ function getRuntimeShortSummary(customStatePath) {
     stage: runtime.state.current_stage,
     owner: runtime.state.current_owner,
     nextAction: getNextAction(runtime.state),
+    lastAutoScaffold: runtime.state.last_auto_scaffold ?? null,
     readiness: readiness.ready ? "ready" : `blocked: ${readiness.blockers.join("; ")}`,
   }
 }
@@ -2826,7 +2897,28 @@ function setApproval(gate, status, approvedBy, approvedAt, notes, customStatePat
     ensureKnown(gate, allowedGates, `gate for mode '${state.mode}'`)
 
     const { projectRoot, workItemId } = context
+    if (status === "approved" && gate === "product_to_solution" && state.current_stage === "full_product") {
+      requireLinkedArtifacts(
+        state,
+        ["scope_package"],
+        "Approving 'product_to_solution' requires a linked 'scope_package'",
+      )
+    }
+
+    if (status === "approved" && gate === "strategy_to_upgrade" && state.current_stage === "migration_strategy") {
+      requireLinkedArtifacts(
+        state,
+        ["solution_package"],
+        "Approving 'strategy_to_upgrade' requires a linked 'solution_package'",
+      )
+    }
+
     if (status === "approved" && gate === "solution_to_fullstack" && state.current_stage === "full_solution") {
+      requireLinkedArtifacts(
+        state,
+        ["solution_package"],
+        "Approving 'solution_to_fullstack' requires a linked 'solution_package'",
+      )
       requireValidTaskBoard(
         state,
         projectRoot,
@@ -2907,6 +2999,7 @@ function advanceStage(targetStage, customStatePath) {
     state.current_stage = targetStage
     state.current_owner = STAGE_OWNERS[targetStage]
     state.status = targetStage.endsWith("_done") ? "done" : "in_progress"
+    autoScaffoldPrimaryArtifactIfNeeded(state, projectRoot, targetStage)
     return state
   })
 }
@@ -3008,8 +3101,8 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
     slug,
     featureId,
     featureSlug,
-    sourceArchitecture: kind === "migration_report" ? state.artifacts.solution_package : null,
-    sourcePlan: kind === "migration_report" ? state.artifacts.solution_package : null,
+    sourceScopePackage: kind === "solution_package" && state.mode === "full" ? state.artifacts.scope_package : null,
+    sourceSolutionPackage: kind === "migration_report" ? state.artifacts.solution_package : null,
   })
 
   try {

@@ -105,10 +105,10 @@ AI should not read these surfaces unless the task explicitly asks for history, a
 
 ### Historical maintainer notes
 
-- `docs/maintainer/2026-03-26-workflow-refactor-audit.md`
-- `docs/maintainer/2026-03-26-workflow-refactor-change-map.md`
-- `docs/maintainer/2026-03-26-workflow-refactor-release-note.md`
-- `docs/maintainer/2026-03-26-workflow-migration-note.md`
+- `docs/archive/maintainer/2026-03-26-workflow-refactor-audit.md`
+- `docs/archive/maintainer/2026-03-26-workflow-refactor-change-map.md`
+- `docs/archive/maintainer/2026-03-26-workflow-refactor-release-note.md`
+- `docs/archive/maintainer/2026-03-26-workflow-migration-note.md`
 
 ### Tests and fixtures
 

@@ -47,6 +47,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - Use adapters, seams, or compatibility shims when they make the migration safer
 - Route upgraded code through `migration_code_review` before final verification
 - Use `docs/templates/migration-baseline-checklist.md` during `migration_baseline` and `docs/templates/migration-verify-checklist.md` during `migration_verify`
+- Entering `migration_strategy` should create or refresh the primary migration solution package in `docs/solution/`
 - If the team wants one living migration artifact, scaffold `migration_report` during `migration_baseline` or `migration_strategy`
 - Keep validation focused on baseline capture, compatibility evidence, staged execution, and regression checks rather than defaulting to TDD-first execution
 
@@ -64,9 +65,9 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - Prefer real build, test, codemod, type-check, smoke-test, and manual regression evidence from the target project
 - Prefer parity checks against the preserved baseline: screenshots, behavior notes, contracts, smoke paths, and targeted regression evidence
 - Prefer `migration_report` when baseline notes, execution log, and verification evidence need to stay in one continuously updated file
-- For small, well-understood upgrades, keep the migration artifact set lightweight: baseline notes, staged plan, and parity evidence are enough unless the change reveals broader compatibility risk
+- For small, well-understood upgrades, keep the migration artifact set lightweight: baseline notes, a migration solution package, and parity evidence are enough unless the change reveals broader compatibility risk
 - If repository-native validation commands do not exist, record the missing validation path and the baseline evidence honestly
-- Do not claim TDD-first validation for migration work unless the migration plan explicitly identifies a safe test-first sub-slice with working tooling
+- Do not claim TDD-first validation for migration work unless the migration solution package explicitly identifies a safe test-first sub-slice with working tooling
 
 ## Example transcript
 

@@ -26,12 +26,12 @@ Check whether the code matches the approved scope exactly - no more, no less:
 
 **PASS when:**
 - All acceptance criteria are implemented
-- No features were added beyond what the spec requires
-- Edge cases called out in the spec are handled
+- No features were added beyond what the scope package requires
+- Edge cases called out in the scope package are handled
 
 **FAIL when:**
 - One or more acceptance criteria are missing
-- The code adds behavior outside the spec (over-building)
+- The code adds behavior outside the scope package (over-building)
 - Edge cases are ignored
 
 **Output format:**
@@ -74,7 +74,7 @@ Overall: APPROVED / NEEDS WORK
 
 ## Principles
 
-- **Spec compliance before code quality** — Do not review quality if spec compliance fails
+- **Scope compliance before code quality** — Do not review quality if scope compliance fails
 - **Constructive** — Every issue should include a fix suggestion
 - **Evidence-based** — Cite specific `file:line` references instead of speaking vaguely
 - **No fixing** — Report issues only; do not edit the code yourself

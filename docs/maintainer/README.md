@@ -39,7 +39,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - Governance policy: `docs/governance/README.md`
 - Operations and diagnostics: `docs/operations/README.md`
 - Release workflow smoke tests: `docs/operations/runbooks/release-workflow-smoke-tests.md`
-- Artifact guidance: `docs/briefs/README.md`, `docs/scope/README.md`, `docs/architecture/README.md`, `docs/solution/README.md`, `docs/qa/README.md`, `docs/adr/README.md`, `docs/templates/README.md`
+- Artifact guidance: `docs/scope/README.md`, `docs/architecture/README.md`, `docs/solution/README.md`, `docs/qa/README.md`, `docs/adr/README.md`, `docs/templates/README.md`
 
 ## Repository Internals To Keep Honest
 
@@ -90,5 +90,6 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 ## Historical And Roadmap Notes
 
 - Most historical planning and archive docs were intentionally pruned from the working tree during cleanup.
+- Historical workflow-refactor notes now live under `docs/archive/maintainer/` and should not be treated as current-state guidance.
 - Use git history when you need older rationale that is no longer kept as checked-in documentation.
 - If older guidance conflicts with checked-in runtime state, update docs to match reality rather than inventing missing infrastructure.

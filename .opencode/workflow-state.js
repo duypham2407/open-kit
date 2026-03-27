@@ -126,7 +126,7 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] advance-stage <stage>
   node .opencode/workflow-state.js [--state <path>] set-approval <gate> <status> [approved_by] [approved_at] [notes]
   node .opencode/workflow-state.js [--state <path>] link-artifact <kind> <path>
-  node .opencode/workflow-state.js [--state <path>] scaffold-artifact <task_card|plan|migration_report> <slug>
+  node .opencode/workflow-state.js [--state <path>] scaffold-artifact <task_card|scope_package|solution_package|migration_report> <slug>
   node .opencode/workflow-state.js [--state <path>] set-routing-profile <work_intent> <behavior_delta> <dominant_uncertainty> <scope_shape> <selection_reason>
   node .opencode/workflow-state.js [--state <path>] set-parallelization <parallel_mode> [why] [integration_checkpoint] [max_active_execution_tracks]
   node .opencode/workflow-state.js [--state <path>] list-tasks <work_item_id>
@@ -208,6 +208,10 @@ function printRuntimeTaskContext(context) {
     console.log(`next action: ${context.nextAction}`)
   }
 
+  if (context.lastAutoScaffoldLine) {
+    console.log(context.lastAutoScaffoldLine)
+  }
+
   if (Array.isArray(context.artifactReadinessLines) && context.artifactReadinessLines.length > 0) {
     console.log(`artifact readiness: ${context.artifactReadinessLines.join(" | ")}`)
   }
@@ -248,6 +252,9 @@ function printRuntimeStatusShort(summary) {
   console.log(`${summary.mode} | ${summary.stage} | ${summary.owner}`)
   if (summary.nextAction) {
     console.log(`next: ${summary.nextAction}`)
+  }
+  if (summary.lastAutoScaffold?.path) {
+    console.log(`auto-scaffold: ${summary.lastAutoScaffold.artifact} -> ${summary.lastAutoScaffold.path}`)
   }
   console.log(summary.readiness)
 }
@@ -300,6 +307,7 @@ function buildResumeSummary(runtime) {
     issue_telemetry: runtimeContext.issueTelemetry ?? null,
     task_board: runtimeContext.taskBoardSummary ?? null,
     parallelization: runtimeContext.parallelization ?? null,
+    last_auto_scaffold: runtimeContext.lastAutoScaffold ?? null,
     escalated_from: state.escalated_from ?? null,
     escalation_reason: state.escalation_reason ?? null,
     issues,
@@ -336,6 +344,9 @@ function printResumeSummary(runtime) {
   }
   if (runtimeContext.nextAction) {
     console.log(`next safe action: ${runtimeContext.nextAction}`)
+  }
+  if (runtimeContext.lastAutoScaffoldLine) {
+    console.log(runtimeContext.lastAutoScaffoldLine)
   }
   console.log(
     `pending approvals: ${approvals.pending.length > 0 ? approvals.pending.join(", ") : "none"}`,

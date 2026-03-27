@@ -61,7 +61,7 @@ Use `/delivery` when any of these are true:
 - requirements may still move
 - multiple subsystems are involved
 - architecture or contracts may change
-- you need briefs, specs, architecture, plans, or QA artifacts
+- you need scope packages, solution packages, architecture, or QA artifacts
 
 Use `/migrate` when most of these are true:
 
@@ -154,14 +154,14 @@ Full-delivery flow:
 
 - `full_intake -> full_product -> full_solution -> full_implementation -> full_code_review -> full_qa -> full_done`
 - use it for feature work and higher-risk changes
-- expect explicit artifacts under `docs/briefs/`, `docs/scope/`, `docs/architecture/`, `docs/solution/`, and `docs/qa/`
+- expect explicit artifacts under `docs/scope/`, `docs/architecture/`, `docs/solution/`, and `docs/qa/`
 - use `/brainstorm`, `/write-solution`, and `/execute-solution` only in this lane
 
 Migration flow:
 
 - `migration_intake -> migration_baseline -> migration_strategy -> migration_upgrade -> migration_code_review -> migration_verify -> migration_done`
 - use it for framework upgrades, dependency modernization, and compatibility remediation
-- expect explicit baseline, architecture, and plan context before major edits
+- expect explicit baseline, migration solution package, and parity context before major edits
 - preserve behavior first, decouple only the blockers that make the migration unsafe, then upgrade in slices
 - use `/brainstorm`, `/write-solution`, and `/execute-solution` in this lane when strategy or staged execution is needed
 - use `docs/templates/migration-baseline-checklist.md` and `docs/templates/migration-verify-checklist.md` as repeatable checklists for baseline and verification

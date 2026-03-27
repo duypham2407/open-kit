@@ -15,7 +15,7 @@ This runbook assumes the intended OpenKit team topology:
 - multiple `Fullstack` workers
 - multiple `QA` workers
 
-Planning and architecture roles remain singleton. Worker pools apply only to execution and verification after the plan explicitly blesses parallel work.
+Planning and architecture roles remain singleton. Worker pools apply only to execution and verification after the solution package explicitly blesses parallel work.
 
 ## Golden Rule
 
@@ -27,11 +27,11 @@ If the work cannot be decomposed without unsafe overlap, keep it sequential.
 
 ## Planning Decision
 
-Every `full_solution` and every migration plan/strategy should answer this question explicitly:
+Every `full_solution` and every migration solution package should answer this question explicitly:
 
 - can this work run in parallel safely?
 
-Use the `Parallelization Assessment` section in the plan template to record the answer.
+Use the `Parallelization Assessment` section in the solution-package template to record the answer.
 
 Allowed values:
 
@@ -65,7 +65,7 @@ Choose `parallel_mode = limited` when all of these are true:
 - one or more implementation tracks are isolated enough to run together
 - the work still has shared integration risk that requires explicit checkpoints
 - the critical path is understood and documented
-- the plan can name which tasks are safe to overlap and which must remain serialized
+- the solution package can name which tasks are safe to overlap and which must remain serialized
 
 Typical examples:
 
@@ -79,7 +79,7 @@ Choose `parallel_mode = enabled` only when all of these are true:
 - the implementation graph is well understood
 - task or slice boundaries are explicit and low-overlap
 - integration risks are known and bounded
-- the plan defines a real integration checkpoint and final QA path
+- the solution package defines a real integration checkpoint and final QA path
 - active execution tracks can be capped safely
 
 Even in `enabled` mode, do not treat the worker pool as unrestricted. The runtime still needs bounded concurrency rules.
@@ -167,7 +167,7 @@ Do not pretend tasks are parallel-safe just because they live in different files
 
 ## QA Rules
 
-Parallel QA is allowed only after the implementation plan or migration strategy blesses it.
+Parallel QA is allowed only after the full-delivery or migration solution package blesses it.
 
 Use this split:
 
@@ -179,7 +179,7 @@ Never let task-level QA replace the final integration or feature-level QA gate.
 
 ## Integration Checkpoints
 
-Every parallel-capable plan should name at least one integration checkpoint.
+Every parallel-capable solution package should name at least one integration checkpoint.
 
 Examples:
 
@@ -203,7 +203,7 @@ Do not do any of the following:
 
 Before blessing parallel execution, confirm all of these:
 
-- the plan explicitly records `parallel_mode`
+- the solution package explicitly records `parallel_mode`
 - safe parallel zones are listed
 - sequential constraints are listed
 - the integration checkpoint is named
