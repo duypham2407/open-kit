@@ -29,6 +29,17 @@ When you identify a situation (for example: need to write a solution package, fi
 
 When choosing between multiple plausible skills, use `.opencode/openkit/docs/maintainer/role-skill-matrix.md` when that matrix is available in the active kit surface.
 
+## Built-In Bundled Skills
+
+OpenKit ships with bundled default skills that should be used proactively when the task domain matches:
+
+- `vercel-react-best-practices` for React or Next.js implementation, refactors, data fetching, rendering, and performance work
+- `vercel-composition-patterns` for component API design, boolean-prop sprawl, compound components, context providers, and reusable React composition
+- `vercel-react-native-skills` for React Native, Expo, mobile UI performance, navigation, animation, and native-platform concerns
+- `find-skills` when the user wants a capability the current kit may not already cover and discovering an external skill is more appropriate than improvising
+
+When a task clearly matches one of these domains, read that skill before proceeding instead of relying on generic framework instinct.
+
 ## Warning: Rationalization Prevention
 
 LLM instinct often tries to short-circuit the process. Watch for these faulty thoughts:

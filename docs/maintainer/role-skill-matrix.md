@@ -6,12 +6,12 @@ Use this matrix when deciding which skills each OpenKit role should invoke.
 
 | Role | Typical skills | Use them when | Expected output |
 | --- | --- | --- | --- |
-| `MasterOrchestrator` | `brainstorming` | routing-safe clarification is still needed before dispatch | clarified direction, lane-safe framing |
+| `MasterOrchestrator` | `brainstorming`, `find-skills` | routing-safe clarification is still needed before dispatch, or the user is asking about capabilities/skill discovery | clarified direction, lane-safe framing, or skill recommendations |
 | `ProductLead` | `brainstorming`, `writing-scope` | product intent is still vague or needs explicit acceptance detail | scope package and compatibility requirements artifacts |
-| `SolutionLead` | `brainstorming`, `writing-solution` | solution direction, sequencing, or migration strategy needs to be made execution-ready | solution package and compatibility planning artifacts |
-| `FullstackAgent` | `test-driven-development`, `subagent-driven-development`, `systematic-debugging`, `verification-before-completion` | implementing, debugging, delegating focused work, and proving completion | code changes plus real verification evidence |
-| `QAAgent` | `verification-before-completion` | validating evidence before approval or closure claims | QA evidence and routing recommendation |
-| `Code Reviewer` | `code-review` | two-stage compliance and quality review is required | review findings only |
+| `SolutionLead` | `brainstorming`, `writing-solution`, `vercel-react-best-practices`, `vercel-composition-patterns`, `vercel-react-native-skills`, `find-skills` | solution direction, sequencing, migration strategy, or frontend/mobile architecture needs domain-specific guidance | solution package and compatibility planning artifacts |
+| `FullstackAgent` | `test-driven-development`, `subagent-driven-development`, `systematic-debugging`, `verification-before-completion`, `vercel-react-best-practices`, `vercel-composition-patterns`, `vercel-react-native-skills`, `find-skills` | implementing, debugging, delegating focused work, proving completion, or handling React/Next.js/React Native domains | code changes plus real verification evidence |
+| `QAAgent` | `verification-before-completion`, `vercel-react-best-practices`, `vercel-react-native-skills` | validating evidence before approval or closure claims, especially for React, Next.js, or mobile performance-sensitive work | QA evidence and routing recommendation |
+| `Code Reviewer` | `code-review`, `vercel-react-best-practices`, `vercel-composition-patterns`, `vercel-react-native-skills` | two-stage compliance and quality review is required, especially for React, Next.js, component-architecture, or React Native work | review findings only |
 
 ## Notes
 
@@ -19,3 +19,4 @@ Use this matrix when deciding which skills each OpenKit role should invoke.
 - migration work uses preserved-baseline and compatibility validation instead of forcing TDD-first behavior broadly
 - `verification-before-completion` is a closure gate skill, not a replacement for QA ownership
 - `using-skills` is the session-start meta-skill that teaches every agent how to discover and invoke the right skill at the right time
+- the Vercel React skills are bundled by default with OpenKit; they are not auto-loaded at session start, but agents should load them proactively when the task domain matches

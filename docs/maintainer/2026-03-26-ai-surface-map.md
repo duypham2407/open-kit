@@ -75,6 +75,7 @@ Active commands:
 Active skills:
 
 - `brainstorming`
+- `find-skills`
 - `writing-solution`
 - `writing-scope`
 - `code-review`
@@ -82,6 +83,9 @@ Active skills:
 - `systematic-debugging`
 - `subagent-driven-development`
 - `test-driven-development`
+- `vercel-composition-patterns`
+- `vercel-react-best-practices`
+- `vercel-react-native-skills`
 - `using-skills`
 
 ## Runtime Operational Surface

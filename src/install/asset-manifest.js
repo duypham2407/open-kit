@@ -111,10 +111,34 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     bundledPath: "assets/install-bundle/opencode/skills/brainstorming/SKILL.md",
   },
   {
+    id: "opencode.skill.find-skills",
+    assetClass: "skills",
+    sourcePath: "skills/find-skills/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/find-skills/SKILL.md",
+  },
+  {
     id: "opencode.skill.code-review",
     assetClass: "skills",
     sourcePath: "skills/code-review/SKILL.md",
     bundledPath: "assets/install-bundle/opencode/skills/code-review/SKILL.md",
+  },
+  {
+    id: "opencode.skill.vercel-composition-patterns",
+    assetClass: "skills",
+    sourcePath: "skills/vercel-composition-patterns/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/vercel-composition-patterns/SKILL.md",
+  },
+  {
+    id: "opencode.skill.vercel-react-best-practices",
+    assetClass: "skills",
+    sourcePath: "skills/vercel-react-best-practices/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/vercel-react-best-practices/SKILL.md",
+  },
+  {
+    id: "opencode.skill.vercel-react-native-skills",
+    assetClass: "skills",
+    sourcePath: "skills/vercel-react-native-skills/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/vercel-react-native-skills/SKILL.md",
   },
   {
     id: "opencode.skill.subagent-driven-development",

@@ -89,7 +89,11 @@ test("asset manifest defines the explicit OpenCode-native phase 1 bundle", () =>
     "opencode.command.write-solution",
     "opencode.context.lane-selection",
     "opencode.skill.brainstorming",
+    "opencode.skill.find-skills",
     "opencode.skill.code-review",
+    "opencode.skill.vercel-composition-patterns",
+    "opencode.skill.vercel-react-best-practices",
+    "opencode.skill.vercel-react-native-skills",
     "opencode.skill.subagent-driven-development",
     "opencode.skill.systematic-debugging",
     "opencode.skill.test-driven-development",
@@ -322,7 +326,7 @@ test("bundled asset manifest matches the derived asset bundle on disk", () => {
 
   assert.deepEqual(validation.missingFiles, [])
   assert.deepEqual(validation.mismatchedFiles, [])
-  assert.equal(validation.bundleFileCount, 25)
+  assert.equal(validation.bundleFileCount, 29)
   assert.deepEqual(validation.extraBundledFiles, [])
 })
 
