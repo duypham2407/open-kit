@@ -26,6 +26,7 @@ Use `/execute-solution` when an approved Full Delivery or Migration solution pac
 - `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/context/core/workflow-state-schema.md`
 - `.opencode/openkit/workflow-state.json`
+- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/openkit/work-items/` as compatibility-only when present
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 

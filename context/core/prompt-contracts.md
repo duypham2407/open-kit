@@ -8,6 +8,8 @@ Use this file to keep shared prompt rules stable across agent and command instru
 - Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
 - Use `.opencode/openkit/workflow-state.json` for resumable workflow state in global mode.
 - Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
+- Treat `.opencode/work-items/` as the canonical work-item backing store in both checked-in and global modes.
+- `.opencode/openkit/work-items/` is compatibility-only when present; do not prefer it over `.opencode/work-items/` for authoritative reads or writes.
 - Use the target repository only for application code, project-native validation paths, and project-local docs.
 
 ## Shared Guidance Rules

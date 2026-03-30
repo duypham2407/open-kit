@@ -114,6 +114,51 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+function sameResolvedPath(a, b) {
+  try {
+    return fs.realpathSync(a) === fs.realpathSync(b);
+  } catch {
+    return false;
+  }
+}
+
+function shouldHydrateWorkspaceFromProject(paths) {
+  if (!fs.existsSync(paths.legacyWorkflowStatePath) || !fs.existsSync(paths.legacyWorkItemsDir)) {
+    return false;
+  }
+
+  if (sameResolvedPath(paths.legacyWorkflowStatePath, paths.workflowStatePath)) {
+    return false;
+  }
+
+  if (sameResolvedPath(paths.legacyWorkItemsDir, paths.workItemsDir)) {
+    return false;
+  }
+
+  if (!fs.existsSync(paths.workItemIndexPath)) {
+    return true;
+  }
+
+  try {
+    const workspaceIndex = readJson(paths.workItemIndexPath);
+    return !workspaceIndex?.active_work_item_id && Array.isArray(workspaceIndex?.work_items) && workspaceIndex.work_items.length === 0;
+  } catch {
+    return false;
+  }
+}
+
+function hydrateWorkspaceFromProject(paths) {
+  if (!shouldHydrateWorkspaceFromProject(paths)) {
+    return;
+  }
+
+  fs.mkdirSync(path.dirname(paths.workflowStatePath), { recursive: true });
+  fs.copyFileSync(paths.legacyWorkflowStatePath, paths.workflowStatePath);
+
+  fs.rmSync(paths.workItemsDir, { recursive: true, force: true });
+  fs.cpSync(paths.legacyWorkItemsDir, paths.workItemsDir, { recursive: true });
+}
+
 export function createWorkspaceMeta({ projectRoot, workspaceId, kitVersion = getOpenKitVersion(), profile = 'openkit' }) {
   return {
     schema: WORKSPACE_STATE_SCHEMA,
@@ -131,7 +176,6 @@ export function ensureWorkspaceBootstrap(options = {}) {
   const paths = getWorkspacePaths(options);
 
   fs.mkdirSync(paths.opencodeDir, { recursive: true });
-  fs.mkdirSync(paths.workItemsDir, { recursive: true });
 
   if (!fs.existsSync(paths.workspaceMetaPath)) {
     writeJson(
@@ -144,6 +188,7 @@ export function ensureWorkspaceBootstrap(options = {}) {
   }
 
   if (!fs.existsSync(paths.workItemIndexPath)) {
+    fs.mkdirSync(paths.workItemsDir, { recursive: true });
     writeJson(paths.workItemIndexPath, {
       active_work_item_id: null,
       work_items: [],
@@ -153,6 +198,8 @@ export function ensureWorkspaceBootstrap(options = {}) {
   if (!fs.existsSync(paths.workflowStatePath)) {
     writeJson(paths.workflowStatePath, createInitialWorkflowState({}));
   }
+
+  hydrateWorkspaceFromProject(paths);
 
   const shim = ensureWorkspaceShim(paths);
 

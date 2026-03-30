@@ -34,6 +34,7 @@ Core migration principle:
 - `.opencode/openkit/docs/templates/migration-baseline-checklist.md`
 - `.opencode/openkit/docs/templates/migration-verify-checklist.md`
 - `.opencode/openkit/workflow-state.json` when resuming
+- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/openkit/work-items/` as compatibility-only when present
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 

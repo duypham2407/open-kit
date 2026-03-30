@@ -91,5 +91,6 @@ export function getWorkspacePaths({ projectRoot, env = process.env, platform = p
     workspaceShimAgentsPath: path.join(resolvedProjectRoot, '.opencode', 'openkit', 'AGENTS.md'),
     workspaceShimWorkflowStatePath: path.join(resolvedProjectRoot, '.opencode', 'openkit', 'workflow-state.json'),
     workspaceShimWorkflowCliPath: path.join(resolvedProjectRoot, '.opencode', 'openkit', 'workflow-state.js'),
+    workspaceShimWorkItemsDir: path.join(resolvedProjectRoot, '.opencode', 'openkit', 'work-items'),
   };
 }

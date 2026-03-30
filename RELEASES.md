@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.7`](release-notes/0.3.7.md) - complete the hybrid runtime roadmap and publish the richer runtime/tooling surface
-- npm latest: `@duypham93/openkit@0.3.7`
-- git tag: `v0.3.7`
+- [`0.3.8`](release-notes/0.3.8.md) - harden global workflow-state shims and clarify canonical work-item paths
+- npm latest: `@duypham93/openkit@0.3.8`
+- git tag: `v0.3.8`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.8`](release-notes/0.3.8.md) - harden global workflow-state shims and clarify canonical work-item paths
 - [`0.3.7`](release-notes/0.3.7.md) - complete the hybrid runtime roadmap and publish the richer runtime/tooling surface
 - [`0.3.6`](release-notes/0.3.6.md) - bundle default React and skill-discovery skills
 - [`0.3.5`](release-notes/0.3.5.md) - package-first workflow cleanup and auto-scaffold visibility

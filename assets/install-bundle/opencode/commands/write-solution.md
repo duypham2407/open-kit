@@ -25,6 +25,7 @@ Use `/write-solution` to create a solution package for work currently in `Full D
 - `.opencode/openkit/context/core/project-config.md`
 - `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/workflow-state.json`
+- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/openkit/work-items/` as compatibility-only when present
 - `.opencode/openkit/docs/templates/solution-package-template.md`
 - `.opencode/openkit/docs/templates/migration-report-template.md` when migration work benefits from one running artifact
 - skill `writing-solution`

@@ -110,7 +110,7 @@ test('openkit install-global materializes global kit and profile files', () => {
   assert.equal(fs.existsSync(path.join(profileRoot, 'opencode.json')), true);
   assert.equal(readJson(path.join(profileRoot, 'opencode.json')).default_agent, 'master-orchestrator');
   assert.equal(fs.existsSync(path.join(kitRoot, 'opencode.json')), true);
-  assert.match(readJson(path.join(kitRoot, 'install-state.json')).kit.version, /^0\.3\.7$/);
+  assert.match(readJson(path.join(kitRoot, 'install-state.json')).kit.version, /^0\.3\.8$/);
   assert.match(readJson(path.join(profileRoot, 'hooks.json')).hooks.SessionStart[0].hooks[0].command, /session-start\.js/);
   assert.deepEqual(readJson(path.join(tempHome, 'openkit', 'agent-models.json')).agentModels, {});
 });
@@ -253,6 +253,7 @@ process.stdout.write('mock opencode launched\\n');
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'context', 'core', 'workflow.md')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.js')), true);
+  assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'work-items')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'work-items')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, 'context', 'core', 'workflow.md')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.json')), true);
@@ -484,6 +485,7 @@ test('openkit run creates CommonJS workflow wrappers without module-boundary war
 
   const workspaceWrapper = fs.readFileSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.js'), 'utf8');
   assert.match(workspaceWrapper, /const \{ spawnSync \} = require\('node:child_process'\);/);
+  assert.match(workspaceWrapper, /OPENKIT_PROJECT_ROOT/);
   assert.doesNotMatch(workspaceWrapper, /import \{ spawnSync \} from 'node:child_process';/);
 
   const wrapperRun = spawnSync(process.execPath, ['.opencode/openkit/workflow-state.js', 'help'], {
@@ -494,6 +496,102 @@ test('openkit run creates CommonJS workflow wrappers without module-boundary war
   assert.equal(wrapperRun.status, 0);
   assert.match(wrapperRun.stdout, /Usage:/);
   assert.doesNotMatch(wrapperRun.stderr, /MODULE_TYPELESS_PACKAGE_JSON/);
+});
+
+test('openkit run hydrates workspace state from repo-local work-items before wrapper status commands', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+  const workItemId = 'feature-123';
+  const state = {
+    work_item_id: workItemId,
+    feature_id: 'FEATURE-123',
+    feature_slug: 'feature-123',
+    mode: 'full',
+    mode_reason: 'Hydration regression coverage.',
+    routing_profile: {
+      work_intent: 'feature',
+      behavior_delta: 'extend',
+      dominant_uncertainty: 'product',
+      scope_shape: 'adjacent',
+      selection_reason: 'Hydration regression coverage.',
+    },
+    parallelization: {
+      parallel_mode: 'none',
+      why: null,
+      safe_parallel_zones: [],
+      sequential_constraints: [],
+      integration_checkpoint: null,
+      max_active_execution_tracks: null,
+    },
+    current_stage: 'full_intake',
+    status: 'in_progress',
+    current_owner: 'MasterOrchestrator',
+    artifacts: {
+      task_card: null,
+      scope_package: null,
+      solution_package: null,
+      migration_report: null,
+      qa_report: null,
+      adr: [],
+    },
+    approvals: {
+      product_to_solution: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      solution_to_fullstack: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      fullstack_to_code_review: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      code_review_to_qa: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      qa_to_done: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+    },
+    issues: [],
+    verification_evidence: [],
+    retry_count: 0,
+    escalated_from: null,
+    escalation_reason: null,
+    last_auto_scaffold: null,
+    updated_at: '2026-03-30T00:00:00.000Z',
+  };
+
+  writeJson(path.join(projectRoot, '.opencode', 'workflow-state.json'), state);
+  writeJson(path.join(projectRoot, '.opencode', 'work-items', 'index.json'), {
+    active_work_item_id: workItemId,
+    work_items: [
+      {
+        work_item_id: workItemId,
+        feature_id: 'FEATURE-123',
+        feature_slug: 'feature-123',
+        mode: 'full',
+        status: 'in_progress',
+        state_path: `.opencode/work-items/${workItemId}/state.json`,
+      },
+    ],
+  });
+  writeJson(path.join(projectRoot, '.opencode', 'work-items', workItemId, 'state.json'), state);
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+
+  const wrapperRun = spawnSync(process.execPath, ['.opencode/openkit/workflow-state.js', 'status'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+  });
+
+  assert.equal(wrapperRun.status, 0);
+  assert.match(wrapperRun.stdout, /active work item id: feature-123/);
+  assert.doesNotMatch(wrapperRun.stdout, /Active work item pointer missing/);
+
+  const [workspaceId] = fs.readdirSync(path.join(tempHome, 'workspaces'));
+  const workspaceIndex = readJson(path.join(tempHome, 'workspaces', workspaceId, 'openkit', '.opencode', 'work-items', 'index.json'));
+  assert.equal(workspaceIndex.active_work_item_id, workItemId);
 });
 
 test('openkit run reports missing opencode after first-time setup completes', () => {
@@ -526,7 +624,7 @@ test('openkit run blocks on invalid global install state and recommends upgrade'
     `${JSON.stringify({
       schema: 'wrong-schema',
       stateVersion: 1,
-      kit: { name: 'OpenKit', version: '0.3.7' },
+      kit: { name: 'OpenKit', version: '0.3.8' },
       installation: {
         profile: 'openkit',
         status: 'installed',

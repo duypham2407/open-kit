@@ -19,6 +19,7 @@ Use this file to keep the product path, in-session path, and compatibility runti
 - in globally installed sessions, OpenKit-owned compatibility files live under `.opencode/openkit/`
 - in the checked-in authoring repository, the source files live at repo root and the checked-in runtime lives under `.opencode/`
 - workflow-state storage may live under the OpenCode home workspace path while the compatibility surface is mirrored into the project-local `.opencode/openkit/` area
+- the canonical managed work-item store remains `.opencode/work-items/`; any `.opencode/openkit/work-items/` path is a compatibility bridge, not a separate source of truth
 
 ## Doctor Split
 
