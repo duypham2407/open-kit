@@ -1,0 +1,62 @@
+import { RUNTIME_CONFIG_SCHEMA } from './types.js';
+
+export function createDefaultRuntimeConfig() {
+  return {
+    schema: RUNTIME_CONFIG_SCHEMA,
+    runtime: {
+      enabled: true,
+      foundationVersion: 1,
+      featureFlags: {
+        managers: true,
+        tools: true,
+        hooks: true,
+        capabilityDiagnostics: true,
+      },
+    },
+    disabled: {
+      agents: [],
+      capabilities: [],
+      categories: [],
+      commands: [],
+      hooks: [],
+      mcps: [],
+      skills: [],
+      tools: [],
+    },
+    agents: {},
+    categories: {},
+    hooks: {},
+    tools: {},
+    skills: {},
+    commands: {},
+    mcps: {
+      builtin: {
+        websearch: true,
+        docsSearch: true,
+        codeSearch: true,
+      },
+    },
+    backgroundTask: {
+      enabled: false,
+      providerConcurrency: {},
+      modelConcurrency: {},
+    },
+    notifications: {
+      enabled: false,
+    },
+    tmux: {
+      enabled: false,
+      layout: 'main-vertical',
+    },
+    browserAutomation: {
+      provider: 'playwright',
+    },
+    runtimeFallback: {
+      enabled: true,
+    },
+    experimental: {
+      taskSystem: false,
+      aggressiveTruncation: false,
+    },
+  };
+}

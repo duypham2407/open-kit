@@ -57,6 +57,13 @@ export const runCommand = {
       env: process.env,
     });
 
+    if (result.runtimeFoundation?.runtimeInterface) {
+      const runtimeInterface = result.runtimeFoundation.runtimeInterface;
+      io.stdout.write(
+        `Runtime foundation: v${runtimeInterface.foundationVersion} | capabilities ${runtimeInterface.capabilitySummary.total} | tools ${runtimeInterface.tools.length} | hooks ${runtimeInterface.hooks.length}\n`
+      );
+    }
+
     if (result.stdout) {
       io.stdout.write(result.stdout);
     }

@@ -19,6 +19,9 @@ function topLevelHelp() {
     '  onboard   Explain the safest first-run path and command choices',
     '  configure-agent-models  Configure provider-specific models per OpenKit agent',
     '  release   Prepare, verify, and publish OpenKit releases',
+    '',
+    'Runtime foundation:',
+    '  OpenKit now bootstraps runtime config, capabilities, managers, tools, hooks, MCP metadata, categories, specialists, and context injection under src/runtime/.',
   ].join('\n');
 }
 

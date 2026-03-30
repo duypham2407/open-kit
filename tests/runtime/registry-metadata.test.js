@@ -41,3 +41,25 @@ test('registry docs include runtime surfaces reference', () => {
   assert.ok(runtimeSurfaces);
   assert.equal(runtimeSurfaces.path, 'context/core/runtime-surfaces.md');
 });
+
+test('registry includes runtime capability, manager, tool, and hook metadata', () => {
+  assert.ok(Array.isArray(registry.components.capabilities));
+  assert.ok(Array.isArray(registry.components.managers));
+  assert.ok(Array.isArray(registry.components.runtimeTools));
+  assert.ok(Array.isArray(registry.components.runtimeHooks));
+
+  const capability = registry.components.capabilities.find(
+    (entry) => entry.id === 'capability.runtime-bootstrap'
+  );
+  const manager = registry.components.managers.find((entry) => entry.id === 'manager.config-handler');
+  const tool = registry.components.runtimeTools.find((entry) => entry.id === 'tool.workflow-state');
+  const hook = registry.components.runtimeHooks.find(
+    (entry) => entry.id === 'runtime-hook.runtime-config-validation'
+  );
+
+  assert.ok(capability);
+  assert.equal(capability.path, 'src/runtime/index.js');
+  assert.ok(manager);
+  assert.ok(tool);
+  assert.ok(hook);
+});

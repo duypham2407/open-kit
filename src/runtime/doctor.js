@@ -4,6 +4,7 @@ import path from 'node:path';
 import { validateInstallState } from '../install/install-state.js';
 import { discoverProjectShape } from '../install/discovery.js';
 import { isCommandAvailable } from '../command-detection.js';
+import { bootstrapRuntimeFoundation } from './index.js';
 
 const EXPECTED_MANAGED_ASSETS = {
   'runtime.opencode-manifest': {
@@ -259,6 +260,31 @@ export function inspectManagedDoctor({
     };
   }
 
+  let runtimeFoundation = null;
+  let runtimeFoundationIssue = null;
+
+  try {
+    runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot: resolvedProjectRoot, env });
+  } catch (error) {
+    runtimeFoundationIssue = `Runtime foundation error: ${error.message}`;
+  }
+
+  if (runtimeFoundationIssue) {
+    return {
+      status: 'runtime-prerequisites-missing',
+      canRunCleanly: false,
+      summary: 'Runtime launch prerequisites are missing; openkit run cannot proceed cleanly.',
+      issues: [runtimeFoundationIssue],
+      driftedAssets,
+      ownedAssets,
+      classification,
+      rootManifestPath,
+      runtimeManifestPath,
+      installStatePath,
+      runtimeFoundation,
+    };
+  }
+
   return {
     status: 'healthy',
     canRunCleanly: true,
@@ -270,5 +296,6 @@ export function inspectManagedDoctor({
     rootManifestPath,
     runtimeManifestPath,
     installStatePath,
+    runtimeFoundation,
   };
 }

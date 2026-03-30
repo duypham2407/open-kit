@@ -6,6 +6,7 @@ import { inspectWorkspaceMeta } from './workspace-state.js';
 import { getGlobalPaths, getWorkspacePaths } from './paths.js';
 import { isCommandAvailable } from '../command-detection.js';
 import { DEFAULT_ENTRY_COMMAND, getCommandInstructionContract } from '../runtime/instruction-contracts.js';
+import { bootstrapRuntimeFoundation } from '../runtime/index.js';
 import { readAgentModelSettings } from './agent-models.js';
 
 function isOpenCodeAvailable(env = process.env) {
@@ -25,6 +26,7 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
   const workspacePaths = getWorkspacePaths({ projectRoot, env });
   const globalInstallState = readJsonIfPresent(globalPaths.installStatePath);
   const profileManifest = readJsonIfPresent(globalPaths.profileManifestPath);
+  let runtimeFoundation = null;
 
   const issues = [];
 
@@ -68,12 +70,19 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
 
   const workspace = inspectWorkspaceMeta({ projectRoot, env });
 
+  try {
+    runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot, env });
+  } catch (error) {
+    issues.push(`Runtime foundation error: ${error.message}`);
+  }
+
   return withGuidance({
     status: issues.length === 0 ? 'healthy' : 'workspace-ready-with-issues',
     canRunCleanly: issues.length === 0,
     globalPaths,
     workspacePaths,
     workspace,
+    runtimeFoundation,
     issues,
   }, issues.length === 0 ? 'Run openkit run.' : 'Review the issues above before relying on this workspace.', issues.length === 0 ? 'openkit run' : null);
 }
@@ -101,6 +110,19 @@ export function renderGlobalDoctorSummary(result) {
 
   if (result.recommendedCommand) {
     lines.push(`Recommended command: ${result.recommendedCommand}`);
+  }
+
+  if (result.runtimeFoundation?.runtimeInterface) {
+    const runtimeInterface = result.runtimeFoundation.runtimeInterface;
+    lines.push(
+      `Runtime foundation: v${runtimeInterface.foundationVersion} | capabilities ${runtimeInterface.capabilitySummary.total} | managers ${runtimeInterface.managers.filter((entry) => entry.enabled).length} | tools ${runtimeInterface.tools.length} | hooks ${runtimeInterface.hooks.length}`
+    );
+
+    if (runtimeInterface.configPaths.project || runtimeInterface.configPaths.user) {
+      lines.push(
+        `Runtime config: project=${runtimeInterface.configPaths.project ?? 'none'} | user=${runtimeInterface.configPaths.user ?? 'none'}`
+      );
+    }
   }
 
   const defaultEntry = getCommandInstructionContract('task');

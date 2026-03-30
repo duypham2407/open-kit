@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { buildAgentModelConfigOverrides } from './agent-models.js';
 import { deepMergeConfig, parseInlineConfig } from './config-merge.js';
 import { ensureWorkspaceBootstrap } from './workspace-state.js';
+import { bootstrapRuntimeFoundation, createRuntimeFoundationEnvironment } from '../runtime/index.js';
 
 function formatMissingOpenCodeError() {
   return [
@@ -16,8 +17,11 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
   const baselineInlineConfig = parseInlineConfig(env.OPENCODE_CONFIG_CONTENT, 'OPENCODE_CONFIG_CONTENT') ?? {};
   const agentModelOverrides = buildAgentModelConfigOverrides(paths.agentModelSettingsPath);
   const layeredInlineConfig = deepMergeConfig(baselineInlineConfig, agentModelOverrides);
+  const runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot, env });
+  const runtimeEnv = createRuntimeFoundationEnvironment(runtimeFoundation);
   const launcherEnv = {
     ...env,
+    ...runtimeEnv,
     OPENKIT_GLOBAL_MODE: '1',
     OPENKIT_PROJECT_ROOT: paths.projectRoot,
     OPENKIT_WORKFLOW_STATE: paths.workflowStatePath,
@@ -46,6 +50,7 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
       stdout: '',
       stderr: `${formatMissingOpenCodeError()}\n`,
       paths,
+      runtimeFoundation,
     };
   }
 
@@ -58,5 +63,6 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
     stdout: result.stdout ?? '',
     stderr: result.stderr ?? '',
     paths,
+    runtimeFoundation,
   };
 }

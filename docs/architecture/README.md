@@ -1,7 +1,12 @@
 # Architecture
 
-This directory stores historical architecture artifacts kept outside the active AI-first workflow.
+This directory stores architecture artifacts for OpenKit's workflow kernel and runtime expansion program.
 
 - File naming: `YYYY-MM-DD-<feature-slug>.md`
 - Historical source template: `docs/archive/templates/architecture-template.md`
 - Approval gate: Architect -> Tech Lead
+
+Current maintainer-critical architecture docs:
+
+- `2026-03-hybrid-runtime-rfc.md`: accepted runtime layering RFC
+- `2026-03-capability-matrix-openkit-vs-omoa.md`: capability gap and parity target matrix

@@ -174,6 +174,8 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
       '  args: process.argv.slice(2),',
       '  configDir: process.env.OPENCODE_CONFIG_DIR ?? null,',
       '  configContent: process.env.OPENCODE_CONFIG_CONTENT ?? null,',
+      '  runtimeFoundation: process.env.OPENKIT_RUNTIME_FOUNDATION ?? null,',
+      '  runtimeFoundationVersion: process.env.OPENKIT_RUNTIME_FOUNDATION_VERSION ?? null,',
       '};',
       'process.stdout.write(JSON.stringify(payload));',
     ].join('\n'),
@@ -204,6 +206,8 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
   assert.equal(layeredContent.model, 'baseline-model');
   assert.equal(layeredContent.default_agent, 'master-orchestrator');
   assert.deepEqual(layeredContent.instructions, ['AGENTS.md', 'context/navigation.md']);
+  assert.equal(payload.runtimeFoundation, '1');
+  assert.equal(payload.runtimeFoundationVersion, '1');
 });
 
 test('launchGlobalOpenKit injects saved per-agent model overrides into inline config', () => {

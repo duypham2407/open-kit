@@ -10,6 +10,7 @@ Current governance surface:
 - `severity-levels.md`: issue severity language used by QA and rework routing
 - `adr-policy.md`: when to record a durable architecture decision
 - `definition-of-done.md`: minimum completion criteria for the current workflow contract
+- `2026-03-clean-room-reimplementation-policy.md`: implementation boundary for runtime inspiration from external systems
 
 Current-state guardrails:
 

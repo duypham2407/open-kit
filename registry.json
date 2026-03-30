@@ -39,6 +39,10 @@
     "commands",
     "artifacts",
     "runtime",
+    "capabilities",
+    "managers",
+    "runtimeTools",
+    "runtimeHooks",
     "hooks",
     "docs"
   ],
@@ -342,6 +346,164 @@
         "path": ".opencode/install-manifest.json",
         "role": "additive-install-metadata",
         "surface": "global-facing-metadata"
+      },
+      {
+        "id": "runtime.foundation-entry",
+        "name": "Runtime Foundation Entry",
+        "path": "src/runtime/index.js",
+        "role": "runtime-bootstrap-entry",
+        "surface": "repository-internal"
+      },
+      {
+        "id": "runtime.config-loader",
+        "name": "Runtime Config Loader",
+        "path": "src/runtime/runtime-config-loader.js",
+        "role": "runtime-config-loader",
+        "surface": "repository-internal"
+      },
+      {
+        "id": "runtime.capability-registry",
+        "name": "Runtime Capability Registry",
+        "path": "src/runtime/capability-registry.js",
+        "role": "runtime-capability-registry",
+        "surface": "repository-internal"
+      }
+    ],
+    "capabilities": [
+      {
+        "id": "capability.runtime-bootstrap",
+        "name": "Runtime Bootstrap",
+        "path": "src/runtime/index.js",
+        "status": "active",
+        "category": "foundation"
+      },
+      {
+        "id": "capability.runtime-config-layering",
+        "name": "Runtime Config Layering",
+        "path": "src/runtime/runtime-config-loader.js",
+        "status": "active",
+        "category": "foundation"
+      },
+      {
+        "id": "capability.capability-registry",
+        "name": "Capability Registry",
+        "path": "src/runtime/capability-registry.js",
+        "status": "active",
+        "category": "foundation"
+      },
+      {
+        "id": "capability.runtime-diagnostics",
+        "name": "Runtime Diagnostics",
+        "path": "src/global/doctor.js",
+        "status": "active",
+        "category": "foundation"
+      },
+      {
+        "id": "capability.manager-layer",
+        "name": "Manager Layer",
+        "path": "src/runtime/create-managers.js",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.tool-registry",
+        "name": "Tool Registry",
+        "path": "src/runtime/create-tools.js",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.hook-registry",
+        "name": "Hook Registry",
+        "path": "src/runtime/create-hooks.js",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.mcp-platform",
+        "name": "MCP Platform",
+        "path": "src/runtime/mcp/",
+        "status": "planned",
+        "category": "planned"
+      },
+      {
+        "id": "capability.background-execution",
+        "name": "Background Execution",
+        "path": "src/runtime/background/",
+        "status": "planned",
+        "category": "planned"
+      }
+    ],
+    "managers": [
+      {
+        "id": "manager.config-handler",
+        "name": "Config Handler",
+        "path": "src/runtime/create-managers.js",
+        "status": "foundation"
+      },
+      {
+        "id": "manager.background",
+        "name": "Background Manager",
+        "path": "src/runtime/create-managers.js",
+        "status": "planned"
+      },
+      {
+        "id": "manager.skill-mcp",
+        "name": "Skill MCP Manager",
+        "path": "src/runtime/create-managers.js",
+        "status": "planned"
+      },
+      {
+        "id": "manager.notifications",
+        "name": "Notification Manager",
+        "path": "src/runtime/create-managers.js",
+        "status": "planned"
+      },
+      {
+        "id": "manager.tmux",
+        "name": "Tmux Session Manager",
+        "path": "src/runtime/create-managers.js",
+        "status": "planned"
+      }
+    ],
+    "runtimeTools": [
+      {
+        "id": "tool.workflow-state",
+        "name": "Workflow State Surface",
+        "path": "src/runtime/create-tools.js",
+        "status": "foundation"
+      },
+      {
+        "id": "tool.runtime-summary",
+        "name": "Runtime Summary Surface",
+        "path": "src/runtime/create-tools.js",
+        "status": "foundation"
+      },
+      {
+        "id": "tool.evidence-capture",
+        "name": "Evidence Capture Surface",
+        "path": "src/runtime/create-tools.js",
+        "status": "foundation"
+      },
+      {
+        "id": "tool.session-introspection",
+        "name": "Session Introspection Surface",
+        "path": "src/runtime/create-tools.js",
+        "status": "foundation"
+      }
+    ],
+    "runtimeHooks": [
+      {
+        "id": "runtime-hook.session-start",
+        "name": "Session Start Runtime Hook",
+        "path": "src/runtime/create-hooks.js",
+        "status": "active"
+      },
+      {
+        "id": "runtime-hook.runtime-config-validation",
+        "name": "Runtime Config Validation Hook",
+        "path": "src/runtime/create-hooks.js",
+        "status": "foundation"
       }
     ],
     "hooks": [
@@ -386,6 +548,30 @@
         "name": "Governance",
         "path": "docs/governance/README.md",
         "surface": "repository-internal"
+      },
+      {
+        "id": "doc.hybrid-runtime-rfc",
+        "name": "Hybrid Runtime RFC",
+        "path": "docs/architecture/2026-03-hybrid-runtime-rfc.md",
+        "surface": "repository-internal"
+      },
+      {
+        "id": "doc.capability-matrix",
+        "name": "Capability Matrix",
+        "path": "docs/architecture/2026-03-capability-matrix-openkit-vs-omoa.md",
+        "surface": "repository-internal"
+      },
+      {
+        "id": "doc.clean-room-policy",
+        "name": "Clean Room Policy",
+        "path": "docs/governance/2026-03-clean-room-reimplementation-policy.md",
+        "surface": "repository-internal"
+      },
+      {
+        "id": "doc.runtime-layering-principles",
+        "name": "Runtime Layering Principles",
+        "path": "docs/maintainer/2026-03-runtime-layering-principles.md",
+        "surface": "repository-internal"
       }
     ]
   },
@@ -400,6 +586,10 @@
         "commands",
         "artifacts",
         "runtime",
+        "capabilities",
+        "managers",
+        "runtimeTools",
+        "runtimeHooks",
         "hooks",
         "docs"
       ],
@@ -413,6 +603,9 @@
         "commands",
         "artifacts",
         "runtime",
+        "capabilities",
+        "runtimeTools",
+        "runtimeHooks",
         "hooks",
         "docs"
       ],

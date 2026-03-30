@@ -15,6 +15,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - The active compatibility mirror uses a mode-aware schema and `.opencode/workflow-state.js` supports that workflow model.
 - The preferred operator install path is now global: `npm install -g @duypham93/openkit`, then `openkit run` and `openkit doctor`.
 - The checked-in repository-local runtime still exists as the authoring and compatibility surface under `.opencode/`.
+- The capability-runtime foundation now starts under `src/runtime/` and is additive over the existing workflow kernel.
 - `registry.json` and `.opencode/install-manifest.json` are additive local metadata surfaces; they do not imply destructive install or plugin-only packaging.
 - Repository-internal runtime surfaces still include workflow state, workflow-state CLI, hooks, agents, skills, commands, context, and maintained docs.
 - Global-facing metadata surface is currently limited to documentation and metadata that explain the global install and compatibility contract.
@@ -24,6 +25,10 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - Session hook configuration lives in `hooks/hooks.json`.
 - The session-start hook script lives in `hooks/session-start`.
 - The global OpenKit CLI entrypoint lives at `bin/openkit.js`.
+- The runtime bootstrap entrypoint lives at `src/runtime/index.js`.
+- Runtime config loading starts at `src/runtime/runtime-config-loader.js`.
+- Runtime capability metadata starts at `src/runtime/capability-registry.js`.
+- Runtime managers, tools, hooks, MCPs, categories, specialists, and model helpers now live under `src/runtime/` subdirectories.
 - The repository-local OpenCode project config lives in `.opencode/opencode.json`.
 - The global install writes its own profile manifest under the OpenCode home directory.
 - The active compatibility mirror lives in `.opencode/workflow-state.json`.
@@ -127,6 +132,7 @@ Current workflow-state behavior:
 - `openkit doctor` checks the global install and the current workspace bootstrap.
 - `openkit install-global` remains available as a manual or compatibility setup path.
 - `openkit run` launches OpenCode with the OpenKit-managed config directory and workspace-specific environment.
+- `openkit run` now also injects runtime foundation metadata through environment variables for capability bootstrap.
 - `openkit upgrade` refreshes the global managed kit bundle in place.
 - `openkit uninstall` removes the global managed kit and profile, with optional workspace cleanup.
 - `status`, `resume-summary`, `doctor`, `version`, `profiles`, `show-profile`, and `sync-install-manifest` are part of the current runtime inspection surface.
@@ -153,6 +159,8 @@ Current workflow-state behavior:
 - `update-issue-status`, `list-stale-issues`, and `issue-aging-report` support issue lifecycle tracking instead of one-shot issue snapshots.
 - Task-board support is bounded: only full-delivery work items may use it, and it does not imply unrestricted parallel safety outside the validated command surface.
 - Migration remains sequential by default; migration slice execution, when enabled, is strategy-driven and parity-oriented rather than a copy of the full-delivery task board.
+- Runtime foundation phase 1 currently exposes config, capability, manager, tool, and hook metadata rather than a full MCP or background execution layer.
+- The checked-in runtime now also includes thin foundation implementations for background execution, MCP loading, categories, specialists, skills, commands, context injection, and recovery. These surfaces are intentionally lightweight but real and testable.
 
 ## Global Kit Contract
 

@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 
+import { bootstrapRuntimeFoundation, createRuntimeFoundationEnvironment } from './index.js';
 import { buildOpenCodeLayering } from './opencode-layering.js';
 
 function formatMissingOpenCodeError() {
@@ -20,9 +21,14 @@ export function launchManagedOpenCode(
   } = {}
 ) {
   const layering = buildOpenCodeLayering({ projectRoot, env });
+  const runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot, env: layering.env });
+  const runtimeEnv = createRuntimeFoundationEnvironment(runtimeFoundation);
   const result = spawn('opencode', args, {
     cwd: projectRoot,
-    env: layering.env,
+    env: {
+      ...layering.env,
+      ...runtimeEnv,
+    },
     encoding: 'utf8',
     stdio,
   });
@@ -33,6 +39,7 @@ export function launchManagedOpenCode(
       stdout: '',
       stderr: `${formatMissingOpenCodeError()}\n`,
       layering,
+      runtimeFoundation,
     };
   }
 
@@ -45,5 +52,6 @@ export function launchManagedOpenCode(
     stdout: result.stdout ?? '',
     stderr: result.stderr ?? '',
     layering,
+    runtimeFoundation,
   };
 }

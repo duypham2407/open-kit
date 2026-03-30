@@ -103,6 +103,10 @@ test('openkit install-global materializes global kit and profile files', () => {
 
   assert.equal(fs.existsSync(path.join(kitRoot, '.opencode', 'workflow-state.js')), true);
   assert.equal(fs.existsSync(path.join(kitRoot, 'commands', 'migrate.md')), true);
+  assert.equal(fs.existsSync(path.join(kitRoot, 'commands', 'refactor.md')), true);
+  assert.equal(fs.existsSync(path.join(kitRoot, 'skills', 'git-master', 'SKILL.md')), true);
+  assert.equal(fs.existsSync(path.join(kitRoot, 'src', 'runtime', 'index.js')), true);
+  assert.equal(fs.existsSync(path.join(kitRoot, 'assets', 'openkit.runtime.jsonc.template')), true);
   assert.equal(fs.existsSync(path.join(profileRoot, 'opencode.json')), true);
   assert.equal(readJson(path.join(profileRoot, 'opencode.json')).default_agent, 'master-orchestrator');
   assert.equal(fs.existsSync(path.join(kitRoot, 'opencode.json')), true);
@@ -212,6 +216,8 @@ fs.writeFileSync(process.env.OPENKIT_TEST_LOG_PATH, JSON.stringify({
   workflowState: process.env.OPENKIT_WORKFLOW_STATE,
   kitRoot: process.env.OPENKIT_KIT_ROOT,
   configDir: process.env.OPENCODE_CONFIG_DIR,
+  runtimeFoundation: process.env.OPENKIT_RUNTIME_FOUNDATION,
+  runtimeFoundationVersion: process.env.OPENKIT_RUNTIME_FOUNDATION_VERSION,
 }, null, 2));
 process.stdout.write('mock opencode launched\\n');
 `
@@ -231,10 +237,16 @@ process.stdout.write('mock opencode launched\\n');
   assert.match(result.stdout, /mock opencode launched/);
 
   const invocation = readJson(logPath);
-  assert.deepEqual(invocation.argv, [projectRoot, '--mode', 'quick']);
+  assert.deepEqual([fs.realpathSync(invocation.argv[0]), ...invocation.argv.slice(1)], [
+    fs.realpathSync(projectRoot),
+    '--mode',
+    'quick',
+  ]);
   assert.equal(fs.realpathSync(invocation.cwd), fs.realpathSync(projectRoot));
   assert.equal(fs.realpathSync(invocation.projectRoot), fs.realpathSync(projectRoot));
   assert.equal(invocation.configDir, path.join(tempHome, 'kits', 'openkit'));
+  assert.equal(invocation.runtimeFoundation, '1');
+  assert.equal(invocation.runtimeFoundationVersion, '1');
   assert.match(invocation.workflowState, /workspaces\/.*\/openkit\/\.opencode\/workflow-state\.json$/);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
@@ -293,6 +305,7 @@ fs.writeFileSync(process.env.OPENKIT_TEST_LOG_PATH, JSON.stringify({
   workflowState: process.env.OPENKIT_WORKFLOW_STATE,
   kitRoot: process.env.OPENKIT_KIT_ROOT,
   configDir: process.env.OPENCODE_CONFIG_DIR,
+  runtimeFoundation: process.env.OPENKIT_RUNTIME_FOUNDATION,
 }, null, 2));
 process.stdout.write('mock opencode launched after auto-install\\n');
 `
@@ -315,8 +328,11 @@ process.stdout.write('mock opencode launched after auto-install\\n');
   assert.equal(fs.existsSync(path.join(tempHome, 'kits', 'openkit', '.opencode', 'workflow-state.js')), true);
 
   const invocation = readJson(logPath);
-  assert.deepEqual(invocation.argv, [projectRoot]);
+  assert.deepEqual(invocation.argv.map((entry) => fs.realpathSync(entry)), [
+    fs.realpathSync(projectRoot),
+  ]);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
+  assert.equal(invocation.runtimeFoundation, '1');
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
 });
 

@@ -1,0 +1,23 @@
+{
+  // OpenKit runtime config template
+  "schema": "openkit/runtime-config@1",
+  "runtime": {
+    "enabled": true,
+    "featureFlags": {
+      "managers": true,
+      "tools": true,
+      "hooks": true,
+      "capabilityDiagnostics": true
+    }
+  },
+  "backgroundTask": {
+    "enabled": false
+  },
+  "notifications": {
+    "enabled": false
+  },
+  "tmux": {
+    "enabled": false,
+    "layout": "main-vertical"
+  }
+}

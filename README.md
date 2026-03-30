@@ -31,6 +31,13 @@ It addresses that with:
 - approvals, issue routing, and verification evidence
 - operator and maintainer tooling for diagnostics, resume, and governance
 
+It is now also evolving a hybrid runtime foundation under `src/runtime/` that adds:
+
+- additive runtime config loading for project and user scopes
+- a capability registry for runtime growth
+- manager, tool, and hook bootstrap pipelines
+- a clean-room path toward MCP, background execution, categories, specialists, and recovery
+
 ## 3. Core Modes
 
 OpenKit has 3 workflow modes.
@@ -224,6 +231,27 @@ OpenKit has 3 main surfaces:
 - compatibility runtime path: `node .opencode/workflow-state.js ...`
 
 Use the product path for daily use. Use the lower-level runtime CLI for inspection, diagnostics, and maintainer workflows.
+
+### Hybrid Runtime Foundation
+
+OpenKit now includes the first phase of a hybrid runtime foundation:
+
+- `src/runtime/index.js`: bootstrap entrypoint for runtime config, capabilities, managers, tools, and hooks
+- `src/runtime/runtime-config-loader.js`: project and user runtime config loader with JSONC support
+- `src/runtime/capability-registry.js`: current and planned runtime capability inventory
+- `docs/architecture/2026-03-hybrid-runtime-rfc.md`: architecture source of truth for the runtime expansion program
+
+The runtime foundation now also includes thin but real surfaces for:
+
+- manager lifecycle under `src/runtime/managers/`
+- MCP bootstrap under `src/runtime/mcp/`
+- categories and specialist registries under `src/runtime/categories/` and `src/runtime/specialists/`
+- model routing diagnostics under `src/runtime/models/`
+- skill and command loaders under `src/runtime/skills/` and `src/runtime/commands/`
+- context injection under `src/runtime/context/`
+- hook composition and recovery scaffolding under `src/runtime/hooks/` and `src/runtime/recovery/`
+
+This foundation is additive. The canonical workflow contract still lives in `context/core/workflow.md` and `.opencode/workflow-state.js` remains the explicit state surface.
 
 ### Model Overrides
 

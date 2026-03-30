@@ -79,6 +79,8 @@ test('global doctor reports next steps for healthy installs', () => {
   const output = renderGlobalDoctorSummary(result);
   assert.match(output, /Default session entrypoint: \/task/);
   assert.match(output, /Next action after launch:/);
+  assert.match(output, /Runtime foundation: v1/);
+  assert.match(output, /capabilities/);
 });
 
 test('global doctor recommends upgrade for invalid installs', () => {

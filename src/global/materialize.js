@@ -13,6 +13,7 @@ const PACKAGE_ROOT = path.resolve(MODULE_DIR, '../..');
 const GLOBAL_KIT_ASSETS = [
   '.opencode',
   'agents',
+  'assets',
   'skills',
   'commands',
   'context',
@@ -21,6 +22,7 @@ const GLOBAL_KIT_ASSETS = [
   'registry.json',
   'AGENTS.md',
   'README.md',
+  'src/runtime',
 ];
 
 function removePathIfPresent(targetPath) {
@@ -89,6 +91,10 @@ export function materializeGlobalInstall({ env = process.env, kitVersion = getOp
   writeJson(paths.kitConfigPath, openCodeConfig);
   writeJson(paths.installStatePath, installState);
   writeJson(paths.profileManifestPath, openCodeConfig);
+  copyAsset(
+    path.join(PACKAGE_ROOT, 'assets', 'openkit.runtime.jsonc.template'),
+    path.join(paths.settingsRoot, 'openkit.runtime.jsonc.template')
+  );
   writeAgentModelSettings(paths.agentModelSettingsPath, existingAgentModelSettings);
   writeJson(paths.profileHooksPath, {
     hooks: {

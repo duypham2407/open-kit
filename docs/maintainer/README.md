@@ -36,6 +36,9 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - Role and skill matrix: `docs/maintainer/role-skill-matrix.md`
 - Architecture overview: `docs/maintainer/architecture-overview.md`
 - Policy traceability: `docs/maintainer/policy-execution-traceability.md`
+- Runtime layering principles: `docs/maintainer/2026-03-runtime-layering-principles.md`
+- Hybrid runtime RFC: `docs/architecture/2026-03-hybrid-runtime-rfc.md`
+- Capability matrix: `docs/architecture/2026-03-capability-matrix-openkit-vs-omoa.md`
 - Governance policy: `docs/governance/README.md`
 - Operations and diagnostics: `docs/operations/README.md`
 - Release workflow smoke tests: `docs/operations/runbooks/release-workflow-smoke-tests.md`
@@ -47,6 +50,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - `.opencode/workflow-state.json` remains the active compatibility mirror for the active work item
 - `.opencode/work-items/` remains the per-item backing store for managed runtime state
 - `registry.json` and `.opencode/install-manifest.json` remain additive local metadata, not destructive install machinery
+- `src/runtime/` is now the additive capability-runtime foundation and does not replace `.opencode/lib/*`
 
 ## Global Install Notes
 
@@ -61,6 +65,8 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - OpenKit currently has one first-class tool adapter: OpenCode.
 - The canonical workflow, lane semantics, and runtime state remain tool-agnostic concepts, but delivery is currently implemented only for the OpenCode path.
 - Adapter-friendly groundwork now exists in the codebase so future tool support can wrap the same workflow model without flattening OpenKit's lane-based architecture.
+- Runtime foundation phase 1 now establishes bootstrap, config, capability, manager, tool, and hook metadata under `src/runtime/`.
+- The current runtime foundation also includes MCP, background, categories, specialists, model routing, skills, commands, context injection, recovery, notifications, and tmux scaffolding as additive surfaces.
 
 ## Validation Story
 

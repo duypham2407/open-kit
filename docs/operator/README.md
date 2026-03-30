@@ -56,6 +56,8 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Global launcher: `openkit run`
 - Global lifecycle: `npm install -g @duypham93/openkit`, `openkit upgrade`, `openkit uninstall`
 - Onboarding helper: `openkit onboard`
+- Runtime foundation visibility: `openkit doctor`
+- Runtime foundation config template: `assets/openkit.runtime.jsonc.template`
 - Runtime inspection: `node .opencode/workflow-state.js status`
 - Runtime resume snapshot: `node .opencode/workflow-state.js resume-summary`
 - Compatibility diagnostics: `node .opencode/workflow-state.js doctor`
@@ -73,6 +75,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - The preferred user path is the global OpenKit install in the OpenCode home directory
 - `openkit install-global` remains available as a manual or compatibility setup command, but it is no longer the preferred onboarding step
 - `.opencode/opencode.json` remains the checked-in repository-local OpenCode config in this repository
+- `src/runtime/` now adds a capability-runtime foundation without changing the canonical workflow path
 - `Quick Task+` remains the current semantics of the `quick` lane, not a third live mode
 - When role boundaries feel fuzzy, use `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form contract for who owns scope, solution, code review, and runtime verification
 - When AI reading scope or file priority feels fuzzy, use `docs/maintainer/2026-03-26-ai-surface-map.md` as the strict map for active versus historical surfaces
