@@ -251,6 +251,13 @@ The runtime foundation now also includes thin but real surfaces for:
 - context injection under `src/runtime/context/`
 - hook composition and recovery scaffolding under `src/runtime/hooks/` and `src/runtime/recovery/`
 
+The current runtime config path also supports:
+
+- category and specialist model overrides through `.opencode/openkit.runtime.jsonc`
+- `fallback_models` chains for categories and specialists
+- `file://` prompt references for agent prompts and category prompt appends
+- model-resolution trace visibility in doctor/runtime diagnostics
+
 This foundation is additive. The canonical workflow contract still lives in `context/core/workflow.md` and `.opencode/workflow-state.js` remains the explicit state surface.
 
 ### Model Overrides

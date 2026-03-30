@@ -10,3 +10,4 @@ Current maintainer-critical architecture docs:
 
 - `2026-03-hybrid-runtime-rfc.md`: accepted runtime layering RFC
 - `2026-03-capability-matrix-openkit-vs-omoa.md`: capability gap and parity target matrix
+- `2026-03-openkit-completion-roadmap.md`: phased completion roadmap for absorbing the remaining OMOA-inspired runtime strengths without replacing the workflow kernel

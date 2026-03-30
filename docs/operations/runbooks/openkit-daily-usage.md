@@ -35,6 +35,7 @@ Then start work from the chat surface with one of these:
 - `/migrate` when the work is primarily an upgrade or migration effort
 - `/delivery` when the work clearly needs the full multi-stage delivery flow
 - `/configure-agent-models` when you want to bind exact provider-qualified models to OpenKit agents
+- `/browser-verify` when acceptance depends on UI flows, browser evidence, or page behavior
 
 If you need to inspect the current state more closely inside this repository's compatibility runtime:
 
@@ -284,6 +285,22 @@ node .opencode/workflow-state.js list-tasks feature-001
 ```
 
 Use the output to confirm the active stage, linked artifacts, and any task-board state before continuing.
+
+### Example: verify a browser-dependent change
+
+1. Run:
+
+```bash
+openkit doctor
+```
+
+2. In chat, use:
+
+```text
+/browser-verify Validate the updated onboarding flow in the browser and capture the evidence needed for QA.
+```
+
+3. Use the resulting browser checklist and evidence notes to support explicit QA verification.
 
 ## Global Kit Note
 

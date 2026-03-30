@@ -5,13 +5,13 @@ import { createToolOutputTruncationHook } from './tool-guards/tool-output-trunca
 import { createVerificationClaimHook } from './tool-guards/verification-claim-hook.js';
 import { createWriteGuardHook } from './tool-guards/write-guard-hook.js';
 
-export function createToolGuardHooks() {
+export function createToolGuardHooks({ workflowKernel, config = {} }) {
   return [
-    createStageReadinessHook(),
-    createVerificationClaimHook(),
-    createIssueClosureHook(),
-    createParallelSafetyHook(),
-    createWriteGuardHook(),
-    createToolOutputTruncationHook(),
+    createStageReadinessHook({ workflowKernel }),
+    createVerificationClaimHook({ workflowKernel }),
+    createIssueClosureHook({ workflowKernel }),
+    createParallelSafetyHook({ workflowKernel }),
+    createWriteGuardHook({ workflowKernel }),
+    createToolOutputTruncationHook(config.toolOutputTruncation),
   ];
 }

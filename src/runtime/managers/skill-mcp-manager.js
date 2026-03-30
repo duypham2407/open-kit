@@ -6,4 +6,16 @@ export class SkillMcpManager {
   listBindings() {
     return [...this.registry];
   }
+
+  registerSkillBindings(skills = []) {
+    const nextBindings = skills.flatMap((skill) =>
+      (skill.mcpRefs ?? []).map((mcpId) => ({
+        skill: skill.name,
+        scope: skill.scope,
+        mcpId,
+      }))
+    );
+    this.registry = nextBindings;
+    return this.listBindings();
+  }
 }

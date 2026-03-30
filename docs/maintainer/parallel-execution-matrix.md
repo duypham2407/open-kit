@@ -16,6 +16,8 @@ Use this matrix instead of reconstructing the parallel-execution rules from mult
 - quick work remains task-board free
 - migration parallelism is parity-oriented and slice-based, not a copy of the full-delivery task board
 - full-delivery parallelism is bounded by task-board validation, allocation checks, and integration checkpoints
+- in the live runtime, `safe_parallel_zones` are repo-relative artifact path-prefix allowlists used to gate `parallel_limited` overlap
+- in the live runtime, `sequential_constraints` are ordered task-chain strings used to serialize work inside full-delivery task boards
 - task-level ownership never overrides the feature-stage owner recorded in workflow state
 
 ## Checks To Run

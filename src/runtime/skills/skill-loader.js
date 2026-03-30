@@ -3,6 +3,15 @@ import path from 'node:path';
 
 import { getSkillScopes } from './skill-scope-loader.js';
 
+function parseSkillMcpRefs(filePath) {
+  const content = fs.readFileSync(filePath, 'utf8');
+  const refs = [];
+  for (const match of content.matchAll(/mcp\.[A-Za-z0-9_-]+/g)) {
+    refs.push(match[0]);
+  }
+  return [...new Set(refs)];
+}
+
 function loadSkillsFromDir(directory, scope) {
   if (!directory || !fs.existsSync(directory)) {
     return [];
@@ -20,7 +29,8 @@ function loadSkillsFromDir(directory, scope) {
         name: entry.name,
         path: filePath,
         scope,
-        mcpRefs: entry.name === 'browser-automation' ? ['mcp.websearch'] : [],
+        mcpRefs: parseSkillMcpRefs(filePath),
+        compatibility: scope === 'project' ? 'project-local' : scope === 'user' ? 'user-local' : 'opencode-local',
       };
     })
     .filter(Boolean);

@@ -11,11 +11,14 @@ const {
   clearVerificationEvidence,
   claimTask,
   claimMigrationSlice,
+  completeBackgroundRun,
   createTask,
   createMigrationSlice,
   createReleaseCandidate,
   createWorkItem,
   getApprovalBottlenecks,
+  getBackgroundRun,
+  getBackgroundRuns,
   getDefinitionOfDone,
   getIssueAgingReport,
   getOpsSummary,
@@ -64,10 +67,12 @@ const {
   showState,
   showReleaseCandidate,
   showWorkItemState,
+  startBackgroundRun,
   startHotfix,
   syncInstallManifest,
   startFeature,
   startTask,
+  cancelBackgroundRun,
   updateIssueStatus,
   draftReleaseNotes,
   validateMigrationSliceBoardForWorkItem,
@@ -151,6 +156,11 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] issue-aging-report
   node .opencode/workflow-state.js [--state <path>] record-verification-evidence <id> <kind> <scope> <summary> <source> [command] [exit_status] [artifact_refs]
   node .opencode/workflow-state.js [--state <path>] clear-verification-evidence
+  node .opencode/workflow-state.js [--state <path>] start-background-run <title> [payload_json] [work_item_id] [task_id]
+  node .opencode/workflow-state.js [--state <path>] list-background-runs
+  node .opencode/workflow-state.js [--state <path>] show-background-run <run_id>
+  node .opencode/workflow-state.js [--state <path>] complete-background-run <run_id> [output_json]
+  node .opencode/workflow-state.js [--state <path>] cancel-background-run <run_id>
   node .opencode/workflow-state.js [--state <path>] check-stage-readiness
   node .opencode/workflow-state.js [--state <path>] workflow-metrics
   node .opencode/workflow-state.js [--state <path>] approval-bottlenecks
@@ -202,6 +212,35 @@ function printRuntimeTaskContext(context) {
     if (context.taskBoardSummary.activeTasks.length > 0) {
       console.log(`active tasks: ${context.taskBoardSummary.activeTasks.join("; ")}`)
     }
+    if ((context.taskBoardSummary.sharedArtifactQueuedTaskIds ?? []).length > 0) {
+      const queuedTaskId = context.taskBoardSummary.sharedArtifactQueuedTaskIds[0]
+      const conflictingTaskIds = context.taskBoardSummary.sharedArtifactConflictTaskIdsByTaskId?.[queuedTaskId] ?? []
+      const conflictingArtifactRefs = context.taskBoardSummary.sharedArtifactConflictRefsByTaskId?.[queuedTaskId] ?? []
+      console.log(
+        `shared-artifact waits: ${queuedTaskId}${conflictingTaskIds.length > 0 ? ` <- ${conflictingTaskIds.join(", ")}` : ""}${conflictingArtifactRefs.length > 0 ? ` | refs=${conflictingArtifactRefs.join(", ")}` : ""}`,
+      )
+    }
+  }
+
+  if (context.migrationSliceSummary) {
+    console.log(
+      `migration slices: ${context.migrationSliceSummary.total} total | ready ${context.migrationSliceSummary.ready} | active ${context.migrationSliceSummary.active} | blocked ${context.migrationSliceSummary.blocked} | verified ${context.migrationSliceSummary.verified} | incomplete ${context.migrationSliceSummary.incomplete ?? 0}`,
+    )
+    if ((context.migrationSliceSummary.activeSliceIds ?? []).length > 0) {
+      console.log(`active migration slices: ${context.migrationSliceSummary.activeSliceIds.join(", ")}`)
+    }
+    if ((context.migrationSliceSummary.blockedSliceIds ?? []).length > 0) {
+      console.log(`blocked migration slices: ${context.migrationSliceSummary.blockedSliceIds.join(", ")}`)
+    }
+  }
+
+  if (context.migrationSliceReadiness?.nextGate) {
+    console.log(
+      `migration slice readiness: ${context.migrationSliceReadiness.status} | next gate ${context.migrationSliceReadiness.nextGate} | blocked ${context.migrationSliceReadiness.nextGateBlocked ? "yes" : "no"}`,
+    )
+    for (const blocker of context.migrationSliceReadiness.blockers ?? []) {
+      console.log(`migration slice blocker: ${blocker}`)
+    }
   }
 
   if (context.nextAction) {
@@ -218,6 +257,28 @@ function printRuntimeTaskContext(context) {
 
   if (context.parallelization?.parallel_mode) {
     console.log(`parallel mode: ${context.parallelization.parallel_mode}`)
+  }
+
+  if (context.orchestrationHealth?.reason) {
+    console.log(
+      `orchestration: ${context.orchestrationHealth.blocked ? "blocked" : context.orchestrationHealth.dispatchable ? "dispatchable" : "waiting"} | ${context.orchestrationHealth.reason}`,
+    )
+  }
+
+  if (context.orchestrationHealth?.recommendedAction) {
+    console.log(`workflow recommendation: ${context.orchestrationHealth.recommendedAction}`)
+  }
+
+  if (context.backgroundRunSummary?.total > 0) {
+    console.log(
+      `background runs: ${context.backgroundRunSummary.total} total | running ${context.backgroundRunSummary.running} | completed ${context.backgroundRunSummary.completed} | cancelled ${context.backgroundRunSummary.cancelled}`,
+    )
+    if ((context.backgroundRunSummary.staleLinkedRunIds ?? []).length > 0) {
+      console.log(`stale linked runs: ${context.backgroundRunSummary.staleLinkedRunIds.join(", ")}`)
+    }
+    if ((context.backgroundRunSummary.longRunningRunIds ?? []).length > 0) {
+      console.log(`long-running runs: ${context.backgroundRunSummary.longRunningRunIds.join(", ")}`)
+    }
   }
 }
 
@@ -255,6 +316,9 @@ function printRuntimeStatusShort(summary) {
   }
   if (summary.lastAutoScaffold?.path) {
     console.log(`auto-scaffold: ${summary.lastAutoScaffold.artifact} -> ${summary.lastAutoScaffold.path}`)
+  }
+  if (summary.backgroundRunSummary?.total > 0) {
+    console.log(`background: ${summary.backgroundRunSummary.total} total | running ${summary.backgroundRunSummary.running}`)
   }
   console.log(summary.readiness)
 }
@@ -306,6 +370,8 @@ function buildResumeSummary(runtime) {
     verification_evidence: runtimeContext.verificationEvidenceLines ?? [],
     issue_telemetry: runtimeContext.issueTelemetry ?? null,
     task_board: runtimeContext.taskBoardSummary ?? null,
+    migration_slice_board: runtimeContext.migrationSliceSummary ?? null,
+    migration_slice_readiness: runtimeContext.migrationSliceReadiness ?? null,
     parallelization: runtimeContext.parallelization ?? null,
     last_auto_scaffold: runtimeContext.lastAutoScaffold ?? null,
     escalated_from: state.escalated_from ?? null,
@@ -385,6 +451,22 @@ function printResumeSummary(runtime) {
       console.log(`active tasks: ${runtimeContext.taskBoardSummary.activeTasks.join("; ")}`)
     }
   }
+  if (runtimeContext.migrationSliceSummary) {
+    console.log(
+      `migration slices: ${runtimeContext.migrationSliceSummary.total} total | ready ${runtimeContext.migrationSliceSummary.ready} | active ${runtimeContext.migrationSliceSummary.active} | blocked ${runtimeContext.migrationSliceSummary.blocked} | verified ${runtimeContext.migrationSliceSummary.verified} | incomplete ${runtimeContext.migrationSliceSummary.incomplete ?? 0}`,
+    )
+    if ((runtimeContext.migrationSliceSummary.activeSliceIds ?? []).length > 0) {
+      console.log(`active migration slices: ${runtimeContext.migrationSliceSummary.activeSliceIds.join(", ")}`)
+    }
+  }
+  if (runtimeContext.migrationSliceReadiness?.nextGate) {
+    console.log(
+      `migration slice readiness: ${runtimeContext.migrationSliceReadiness.status} | next gate ${runtimeContext.migrationSliceReadiness.nextGate} | blocked ${runtimeContext.migrationSliceReadiness.nextGateBlocked ? "yes" : "no"}`,
+    )
+    for (const blocker of runtimeContext.migrationSliceReadiness.blockers ?? []) {
+      console.log(`migration slice blocker: ${blocker}`)
+    }
+  }
   if (runtimeContext.parallelization?.parallel_mode) {
     console.log(`parallel mode: ${runtimeContext.parallelization.parallel_mode}`)
   }
@@ -435,6 +517,9 @@ function printDoctorReport(report) {
   console.log(`registry: ${report.runtime.registryPath}`)
   console.log(`install manifest: ${report.runtime.installManifestPath}`)
   printRuntimeTaskContext(report.runtime.runtimeContext)
+  if (Array.isArray(report.runtime.backgroundRuns) && report.runtime.backgroundRuns.length > 0) {
+    console.log(`background runs tracked: ${report.runtime.backgroundRuns.length}`)
+  }
   for (const check of report.checks) {
     console.log(`[${check.ok ? "ok" : "error"}] ${check.label}`)
   }
@@ -445,6 +530,31 @@ function printDoctorReport(report) {
 
 function printDoctorReportShort(report) {
   console.log(`doctor | ok ${report.summary.ok} | error ${report.summary.error}`)
+  const runtimeContext = report.runtime?.runtimeContext
+  if (runtimeContext?.orchestrationHealth?.reason) {
+    console.log(
+      `orchestration: ${runtimeContext.orchestrationHealth.blocked ? "blocked" : runtimeContext.orchestrationHealth.dispatchable ? "dispatchable" : "waiting"} | ${runtimeContext.orchestrationHealth.reason}`,
+    )
+  }
+  if ((runtimeContext?.backgroundRunSummary?.longRunningRunIds ?? []).length > 0) {
+    console.log(`long-running runs: ${runtimeContext.backgroundRunSummary.longRunningRunIds.join(", ")}`)
+  }
+}
+
+function printBackgroundRuns(result) {
+  console.log("OpenKit background runs:")
+  if (result.runs.length === 0) {
+    console.log("none")
+    return
+  }
+
+  for (const run of result.runs) {
+    console.log(`${run.run_id} | ${run.status} | ${run.title}`)
+  }
+}
+
+function printBackgroundRun(result) {
+  console.log(JSON.stringify(result.run, null, 2))
 }
 
 function printProfiles(profiles) {
@@ -733,6 +843,8 @@ function extendDoctorReport(report, statePath) {
   let activePointerOk = !index || !activeWorkItemId
   let mirrorOk = !index || !activeWorkItemId
   let boardOk = true
+  let migrationBoardCheckRequired = false
+  let migrationBoardOk = true
 
   if (index && activeWorkItemId) {
     const activeStatePath = resolveWorkItemPaths(runtimeRoot, activeWorkItemId).statePath
@@ -759,11 +871,42 @@ function extendDoctorReport(report, statePath) {
     }
   }
 
-  checks.push(
+  const migrationBoardWorkItemId = report.runtime.state?.mode === "migration"
+    ? report.runtime.state.work_item_id
+    : !report.runtime.state && activeWorkItem?.mode === "migration"
+      ? activeWorkItemId
+      : null
+
+  if (migrationBoardWorkItemId) {
+    const migrationBoardPath = path.join(
+      resolveWorkItemPaths(runtimeRoot, migrationBoardWorkItemId).workItemDir,
+      "migration-slices.json",
+    )
+
+    if (fs.existsSync(migrationBoardPath)) {
+      migrationBoardCheckRequired = true
+      try {
+        validateMigrationSliceBoardForWorkItem(migrationBoardWorkItemId, statePath)
+        migrationBoardOk = true
+      } catch (_error) {
+        migrationBoardOk = false
+      }
+    }
+  }
+
+  const workflowChecks = [
     { label: "active work item pointer resolves to stored state", ok: activePointerOk },
     { label: "compatibility mirror matches active work item state", ok: mirrorOk },
     { label: "active work item task board is valid", ok: boardOk },
-  )
+  ]
+
+  if (migrationBoardCheckRequired) {
+    workflowChecks.push({ label: "active work item migration slice board is valid", ok: migrationBoardOk })
+  }
+
+  workflowChecks.push({ label: "background run summaries are readable", ok: Array.isArray(runtimeContext.backgroundRuns) })
+
+  checks.push(...workflowChecks)
 
   const summary = checks.reduce(
     (counts, check) => {
@@ -809,12 +952,10 @@ async function main() {
         return
       }
       result = getRuntimeStatus(statePath)
-      result.runtimeContext = getRuntimeContext(result.runtimeRoot, result.state)
       printRuntimeStatus(result)
       return
     case "resume-summary":
       result = getRuntimeStatus(statePath)
-      result.runtimeContext = getRuntimeContext(result.runtimeRoot, result.state)
       if (rest.includes("--json")) {
         console.log(JSON.stringify(buildResumeSummary(result), null, 2))
         return
@@ -878,6 +1019,26 @@ async function main() {
     case "task-aging-report":
       result = getTaskAgingReport(statePath)
       printTaskAgingReport(result)
+      return
+    case "start-background-run":
+      result = startBackgroundRun(rest[0], rest[1], rest[2], rest[3], statePath)
+      console.log(`Started background run '${result.run.run_id}'`)
+      return
+    case "list-background-runs":
+      result = getBackgroundRuns(statePath)
+      printBackgroundRuns(result)
+      return
+    case "show-background-run":
+      result = getBackgroundRun(rest[0], statePath)
+      printBackgroundRun(result)
+      return
+    case "complete-background-run":
+      result = completeBackgroundRun(rest[0], rest[1], statePath)
+      console.log(`Completed background run '${result.run.run_id}'`)
+      return
+    case "cancel-background-run":
+      result = cancelBackgroundRun(rest[0], statePath)
+      console.log(`Cancelled background run '${result.run.run_id}'`)
       return
     case "workflow-analytics":
       result = getWorkflowAnalytics(statePath)

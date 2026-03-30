@@ -10,8 +10,10 @@ const {
   addReleaseWorkItem,
   clearVerificationEvidence,
   claimTask,
+  claimMigrationSlice,
   createReleaseCandidate,
   createTask: createBoardTask,
+  createMigrationSlice,
   draftReleaseNotes,
   getDefinitionOfDone,
   getIssueAgingReport,
@@ -21,6 +23,7 @@ const {
   getReleaseDashboard,
   getReleaseReadiness,
   getRuntimeShortSummary,
+  getWorkItemCloseoutSummary,
   getTaskAgingReport,
   getWorkflowAnalytics,
   getWorkflowMetrics,
@@ -37,6 +40,7 @@ const {
   setReleaseApproval,
   setReleaseStatus,
   setRoutingProfile,
+  setMigrationSliceStatus,
   setTaskStatus,
   showState,
   showReleaseCandidate,
@@ -142,6 +146,64 @@ function writeTaskBoard(statePath, workItemId, board) {
   fs.mkdirSync(path.dirname(boardPath), { recursive: true })
   fs.writeFileSync(boardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
   return boardPath
+}
+
+function writeMigrationSliceBoard(statePath, workItemId, board) {
+  const projectRoot = path.dirname(path.dirname(statePath))
+  const boardPath = path.join(projectRoot, ".opencode", "work-items", workItemId, "migration-slices.json")
+  fs.mkdirSync(path.dirname(boardPath), { recursive: true })
+  fs.writeFileSync(boardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
+  return boardPath
+}
+
+function createMigrationSliceRecord(overrides = {}) {
+  return {
+    slice_id: "SLICE-1",
+    title: "Compatibility seam",
+    summary: "Preserve behavior while upgrading integration seam",
+    kind: "compatibility",
+    status: "ready",
+    primary_owner: null,
+    qa_owner: null,
+    depends_on: [],
+    blocked_by: [],
+    artifact_refs: ["src/adapters/seam.ts"],
+    preserved_invariants: ["existing runtime behavior"],
+    compatibility_risks: ["seam drift"],
+    verification_targets: ["parity smoke"],
+    rollback_notes: ["revert seam changes"],
+    created_by: "SolutionLead",
+    created_at: "2026-03-21T00:00:00.000Z",
+    updated_at: "2026-03-21T00:00:00.000Z",
+    ...overrides,
+  }
+}
+
+function advanceMigrationWorkItemToStrategy(statePath, featureSlug = "migration-flow") {
+  const state = showState(statePath).state
+  writeArtifact(
+    statePath,
+    `docs/solution/2026-03-21-${featureSlug}.md`,
+    [
+      "# Solution Package",
+      "",
+      "## Goal",
+      "",
+      "## Preserved Invariants",
+      "",
+      "## Upgrade Sequence",
+      "",
+      "## Parity Verification",
+      "",
+      "## Rollback Notes",
+    ].join("\n"),
+  )
+  advanceStage("migration_baseline", statePath)
+  setApproval("baseline_to_strategy", "approved", "SolutionLead", "2026-03-21", "Baseline approved", statePath)
+  advanceStage("migration_strategy", statePath)
+  linkArtifact("solution_package", `docs/solution/2026-03-21-${state.feature_slug ?? featureSlug}.md`, statePath)
+  setApproval("strategy_to_upgrade", "approved", "FullstackAgent", "2026-03-21", "Strategy approved", statePath)
+  advanceStage("migration_upgrade", statePath)
 }
 
 function advanceFullWorkItemToPlan(statePath) {
@@ -428,6 +490,139 @@ test("migration mode advances through its canonical stage chain", () => {
   result = advanceStage("migration_done", statePath)
   assert.equal(result.state.current_stage, "migration_done")
   assert.equal(result.state.status, "done")
+})
+
+test("migration_code_review is blocked when migration slices are still incomplete", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-120", "migration-review-gate", "Gate migration review on slice completion", statePath)
+  advanceMigrationWorkItemToStrategy(statePath, "migration-review-gate")
+
+  createMigrationSlice(
+    "migrate-120",
+    {
+      slice_id: "SLICE-120",
+      title: "Compatibility seam",
+      kind: "compatibility",
+      created_by: "SolutionLead",
+    },
+    statePath,
+  )
+  claimMigrationSlice("migrate-120", "SLICE-120", "FullstackAgent", statePath, { requestedBy: "SolutionLead" })
+  setMigrationSliceStatus("migrate-120", "SLICE-120", "in_progress", statePath)
+  setApproval("upgrade_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Upgrade ready for review", statePath)
+
+  assert.throws(
+    () => advanceStage("migration_code_review", statePath),
+    /active migration slices remain: SLICE-120/,
+  )
+})
+
+test("migration_done is blocked until migration slices are verified or cancelled", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-121", "migration-done-gate", "Gate migration completion on slice verification", statePath)
+  advanceMigrationWorkItemToStrategy(statePath, "migration-done-gate")
+
+  writeMigrationSliceBoard(statePath, "migrate-121", {
+    mode: "migration",
+    current_stage: "migration_upgrade",
+    parallel_mode: "limited",
+    slices: [
+      createMigrationSliceRecord({
+        slice_id: "SLICE-121",
+        status: "verified",
+        primary_owner: "FullstackAgent",
+        qa_owner: "QAAgent",
+      }),
+    ],
+    issues: [],
+  })
+  setApproval("upgrade_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Upgrade ready for review", statePath)
+  advanceStage("migration_code_review", statePath)
+
+  setApproval("code_review_to_verify", "approved", "QAAgent", "2026-03-21", "Reviewed and ready for QA", statePath)
+  recordVerificationEvidence(
+    {
+      id: "migration-review-121",
+      kind: "review",
+      scope: "migration_code_review",
+      summary: "Migration code review completed",
+      source: "migration-review",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  advanceStage("migration_verify", statePath)
+  setApproval("migration_verified", "approved", "QAAgent", "2026-03-21", "Migration verified", statePath)
+  recordVerificationEvidence(
+    {
+      id: "migration-parity-check-121",
+      kind: "manual",
+      scope: "migration_verify",
+      summary: "Parity and compatibility checks reviewed",
+      source: "migration-qa",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+
+  writeMigrationSliceBoard(statePath, "migrate-121", {
+    mode: "migration",
+    current_stage: "migration_verify",
+    parallel_mode: "limited",
+    slices: [createMigrationSliceRecord({ slice_id: "SLICE-121", status: "parity_ready", primary_owner: "FullstackAgent" })],
+    issues: [],
+  })
+
+  assert.throws(
+    () => advanceStage("migration_done", statePath),
+    /incomplete migration slices remain: SLICE-121/,
+  )
+})
+
+test("definition of done and release readiness report migration slice blockers", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-122", "migration-dod", "Report migration slice blockers in closure checks", statePath)
+  advanceMigrationWorkItemToStrategy(statePath, "migration-dod")
+
+  writeMigrationSliceBoard(statePath, "migrate-122", {
+    mode: "migration",
+    current_stage: "migration_upgrade",
+    parallel_mode: "limited",
+    slices: [createMigrationSliceRecord({ slice_id: "SLICE-122", status: "parity_ready", primary_owner: "FullstackAgent" })],
+    issues: [],
+  })
+
+  const dod = getDefinitionOfDone(statePath)
+  assert.equal(dod.ready, false)
+  assert.deepEqual(dod.migrationSliceBlockers, ["migration slices incomplete: SLICE-122"])
+
+  const readiness = getReleaseReadiness(statePath)
+  assert.equal(readiness.releaseReady, false)
+  assert.ok(readiness.blockers.includes("definition-of-done not satisfied"))
+  assert.ok(readiness.blockers.includes("migration slices incomplete: SLICE-122"))
+})
+
+test("closeout summary stays not ready while migration slices remain incomplete", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-123", "migration-closeout", "Closeout should reflect migration slice completion", statePath)
+  advanceMigrationWorkItemToStrategy(statePath, "migration-closeout")
+
+  writeMigrationSliceBoard(statePath, "migrate-123", {
+    mode: "migration",
+    current_stage: "migration_done",
+    parallel_mode: "limited",
+    slices: [createMigrationSliceRecord({ slice_id: "SLICE-123", status: "parity_ready", primary_owner: "FullstackAgent" })],
+    issues: [],
+  })
+
+  const result = getWorkItemCloseoutSummary("migrate-123", statePath)
+  assert.equal(result.readyToClose, false)
+  assert.equal(result.migrationSliceBoardReadiness.present, true)
+  assert.deepEqual(result.migrationSliceBoardReadiness.incompleteSliceIds, ["SLICE-123"])
 })
 
 test("entering migration_strategy auto-scaffolds the migration solution package", () => {

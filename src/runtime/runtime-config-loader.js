@@ -3,9 +3,39 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { deepMergeConfig } from '../global/config-merge.js';
+import { materializePromptFileReferences } from './config/prompt-file-loader.js';
 import { validateRuntimeConfig } from './config/schema.js';
 import { createDefaultRuntimeConfig } from './runtime-config-defaults.js';
 import { PROJECT_RUNTIME_CONFIG_FILES, USER_RUNTIME_CONFIG_FILES } from './types.js';
+
+function migrateRuntimeConfig(config = {}, warnings = []) {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) {
+    return config;
+  }
+
+  const nextConfig = JSON.parse(JSON.stringify(config));
+
+  if (nextConfig.disabled_tools && !nextConfig.disabled?.tools) {
+    nextConfig.disabled ??= {};
+    nextConfig.disabled.tools = Array.isArray(nextConfig.disabled_tools) ? [...nextConfig.disabled_tools] : [];
+    delete nextConfig.disabled_tools;
+    warnings.push('runtime config migrated legacy key disabled_tools -> disabled.tools');
+  }
+
+  if (nextConfig.mcp && !nextConfig.mcps) {
+    nextConfig.mcps = nextConfig.mcp;
+    delete nextConfig.mcp;
+    warnings.push('runtime config migrated legacy key mcp -> mcps');
+  }
+
+  if (nextConfig.background_task && !nextConfig.backgroundTask) {
+    nextConfig.backgroundTask = nextConfig.background_task;
+    delete nextConfig.background_task;
+    warnings.push('runtime config migrated legacy key background_task -> backgroundTask');
+  }
+
+  return nextConfig;
+}
 
 function stripJsonComments(source) {
   let result = '';
@@ -148,10 +178,10 @@ export function loadRuntimeConfig({
   const warnings = [];
 
   const userConfig = userConfigPath && existsSync(userConfigPath)
-    ? readConfigFile(userConfigPath, readFileSync)
+    ? migrateRuntimeConfig(readConfigFile(userConfigPath, readFileSync), warnings)
     : null;
   const projectConfig = projectConfigPath && existsSync(projectConfigPath)
-    ? readConfigFile(projectConfigPath, readFileSync)
+    ? migrateRuntimeConfig(readConfigFile(projectConfigPath, readFileSync), warnings)
     : null;
 
   const config = deepMergeConfig(
@@ -159,8 +189,10 @@ export function loadRuntimeConfig({
     projectConfig ?? {}
   );
 
-  const validation = validateRuntimeConfig(config);
+  const promptMaterialization = materializePromptFileReferences(config, { projectRoot, env });
+  const validation = validateRuntimeConfig(promptMaterialization.config);
   warnings.push(...validation.warnings);
+  warnings.push(...promptMaterialization.warnings);
 
   if (validation.errors.length > 0) {
     throw new Error(
@@ -169,7 +201,7 @@ export function loadRuntimeConfig({
   }
 
   return {
-    config,
+    config: promptMaterialization.config,
     defaults,
     searchPaths,
     userConfigPath: userConfigPath && existsSync(userConfigPath) ? userConfigPath : null,

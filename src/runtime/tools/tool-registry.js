@@ -1,6 +1,11 @@
 import { createAstReplaceTool } from './ast/ast-replace.js';
 import { createAstSearchTool } from './ast/ast-search.js';
 import { createLookAtTool } from './analysis/look-at.js';
+import { createBrowserVerifyTool } from './browser/browser-verify.js';
+import { createContinuationHandoffTool } from './continuation/continuation-handoff.js';
+import { createContinuationStartTool } from './continuation/continuation-start.js';
+import { createContinuationStatusTool } from './continuation/continuation-status.js';
+import { createContinuationStopTool } from './continuation/continuation-stop.js';
 import { createBackgroundCancelTool } from './delegation/background-cancel.js';
 import { createBackgroundOutputTool } from './delegation/background-output.js';
 import { createDelegationTaskTool } from './delegation/task.js';
@@ -12,6 +17,7 @@ import { createLspGotoDefinitionTool } from './lsp/lsp-goto-definition.js';
 import { createLspPrepareRenameTool } from './lsp/lsp-prepare-rename.js';
 import { createLspRenameTool } from './lsp/lsp-rename.js';
 import { createLspSymbolsTool } from './lsp/lsp-symbols.js';
+import { createMcpDispatchTool } from './mcp/mcp-dispatch.js';
 import { createSessionListTool } from './session/session-list.js';
 import { createSessionReadTool } from './session/session-read.js';
 import { createSessionSearchTool } from './session/session-search.js';
@@ -19,29 +25,42 @@ import { createEvidenceCaptureTool } from './workflow/evidence-capture.js';
 import { createRuntimeSummaryTool } from './workflow/runtime-summary.js';
 import { createWorkflowStateTool } from './workflow/workflow-state.js';
 
-export function createToolRegistry({ projectRoot, managers, config }) {
+export function createToolRegistry({ projectRoot, managers, config, mcpPlatform }) {
   const disabledTools = new Set(config?.disabled?.tools ?? []);
   const definitions = [
-    createWorkflowStateTool({ projectRoot }),
-    createRuntimeSummaryTool({ projectRoot }),
-    createEvidenceCaptureTool(),
+    createWorkflowStateTool({ projectRoot, workflowKernel: managers.workflowKernel }),
+    createRuntimeSummaryTool({ workflowKernel: managers.workflowKernel }),
+    createEvidenceCaptureTool({ workflowKernel: managers.workflowKernel }),
     createSessionListTool({ sessionStateManager: managers.sessionStateManager }),
     createSessionReadTool({ sessionStateManager: managers.sessionStateManager }),
     createSessionSearchTool({ sessionStateManager: managers.sessionStateManager }),
-    createDelegationTaskTool({ backgroundManager: managers.backgroundManager }),
+    createContinuationStatusTool({
+      continuationStateManager: managers.continuationStateManager,
+      workflowKernel: managers.workflowKernel,
+      sessionStateManager: managers.sessionStateManager,
+    }),
+    createContinuationStartTool({
+      continuationStateManager: managers.continuationStateManager,
+      workflowKernel: managers.workflowKernel,
+    }),
+    createContinuationStopTool({ continuationStateManager: managers.continuationStateManager }),
+    createContinuationHandoffTool({ continuationStateManager: managers.continuationStateManager }),
+    createDelegationTaskTool({ backgroundManager: managers.backgroundManager, delegationSupervisor: managers.delegationSupervisor }),
     createBackgroundOutputTool({ backgroundManager: managers.backgroundManager }),
     createBackgroundCancelTool({ backgroundManager: managers.backgroundManager }),
+    createMcpDispatchTool({ mcpPlatform }),
     createInteractiveBashTool(),
-    createHashlineEditTool(),
-    createLookAtTool(),
-    createLspSymbolsTool(),
-    createLspDiagnosticsTool(),
-    createLspGotoDefinitionTool(),
-    createLspFindReferencesTool(),
-    createLspPrepareRenameTool(),
-    createLspRenameTool(),
-    createAstSearchTool(),
-    createAstReplaceTool(),
+    createHashlineEditTool({ projectRoot }),
+    createLookAtTool({ projectRoot }),
+    createBrowserVerifyTool({ config, env: process.env }),
+    createLspSymbolsTool({ projectRoot }),
+    createLspDiagnosticsTool({ projectRoot }),
+    createLspGotoDefinitionTool({ projectRoot }),
+    createLspFindReferencesTool({ projectRoot }),
+    createLspPrepareRenameTool({ projectRoot }),
+    createLspRenameTool({ projectRoot }),
+    createAstSearchTool({ projectRoot }),
+    createAstReplaceTool({ projectRoot }),
   ];
 
   const enabledTools = definitions.filter((tool) => !disabledTools.has(tool.id));

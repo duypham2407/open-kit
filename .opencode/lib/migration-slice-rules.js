@@ -38,6 +38,8 @@ const TRANSITIONS = new Map([
   ["cancelled", new Set()],
 ])
 
+const DEPENDENCY_SATISFIED_STATUSES = new Set(["parity_ready", "verified", "cancelled"])
+
 function fail(message) {
   throw new Error(message)
 }
@@ -114,6 +116,24 @@ function validateMigrationSliceTransition(slice, nextStatus) {
   if (!allowed || !allowed.has(nextStatus)) {
     fail(`Invalid migration slice transition '${slice.status} -> ${nextStatus}'`)
   }
+
+  if ((slice.status === "queued" && nextStatus === "ready") || (slice.status === "ready" && nextStatus === "claimed")) {
+    if (Array.isArray(slice.blocked_by) && slice.blocked_by.length > 0) {
+      fail(`Migration slice '${slice.slice_id}' cannot move to '${nextStatus}' with a blocked dependency`)
+    }
+  }
+
+  if (slice.status === "claimed" && nextStatus === "in_progress" && !isNonEmptyString(slice.primary_owner)) {
+    fail(`Migration slice '${slice.slice_id}' requires a primary_owner before entering 'in_progress'`)
+  }
+
+  if (slice.status === "in_progress" && nextStatus === "parity_ready" && !isNonEmptyString(slice.primary_owner)) {
+    fail(`Migration slice '${slice.slice_id}' requires a primary_owner before entering 'parity_ready'`)
+  }
+
+  if (slice.status === "parity_ready" && nextStatus === "verified" && !isNonEmptyString(slice.qa_owner)) {
+    fail(`Migration slice '${slice.slice_id}' requires a qa_owner before entering 'verified'`)
+  }
 }
 
 function validateMigrationSliceBoard(board) {
@@ -141,6 +161,42 @@ function validateMigrationSliceBoard(board) {
       if (!index.has(dependencyId)) {
         fail(`Migration slice '${slice.slice_id}' depends on unknown slice '${dependencyId}'`)
       }
+    }
+
+    for (const blockedId of slice.blocked_by) {
+      if (!index.has(blockedId)) {
+        fail(`Migration slice '${slice.slice_id}' is blocked by unknown slice '${blockedId}'`)
+      }
+    }
+  }
+
+  for (const slice of slices) {
+    const unresolvedDependencies = slice.depends_on.filter((dependencyId) => {
+      const dependency = index.get(dependencyId)
+      return !DEPENDENCY_SATISFIED_STATUSES.has(dependency.status)
+    })
+
+    const activeWhileBlocked = ["ready", "claimed", "in_progress"].includes(slice.status)
+    if (activeWhileBlocked && unresolvedDependencies.length > 0) {
+      fail(
+        `Migration slice '${slice.slice_id}' cannot be '${slice.status}' while blocked by unresolved dependencies: ${unresolvedDependencies.join(", ")}`,
+      )
+    }
+
+    if (slice.status === "claimed" && !isNonEmptyString(slice.primary_owner)) {
+      fail(`Migration slice '${slice.slice_id}' in 'claimed' status requires a primary_owner`)
+    }
+
+    if (slice.status === "in_progress" && !isNonEmptyString(slice.primary_owner)) {
+      fail(`Migration slice '${slice.slice_id}' in 'in_progress' status requires a primary_owner`)
+    }
+
+    if (slice.status === "parity_ready" && !isNonEmptyString(slice.primary_owner)) {
+      fail(`Migration slice '${slice.slice_id}' in 'parity_ready' status requires a primary_owner`)
+    }
+
+    if (slice.status === "verified" && !isNonEmptyString(slice.qa_owner)) {
+      fail(`Migration slice '${slice.slice_id}' in 'verified' status requires a qa_owner`)
     }
   }
 

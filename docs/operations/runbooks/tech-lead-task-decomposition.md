@@ -72,6 +72,24 @@ Typical examples:
 - API adapter work and UI wiring can run in parallel, but shared schema changes stay sequential
 - one migration slice prepares a compatibility seam while another updates code that already depends on a stable seam
 
+When you choose `parallel_mode = limited`, define `safe_parallel_zones` concretely:
+
+- use repo-relative artifact path prefixes such as `src/api/`, `src/ui/checkout/`, or `docs/qa/`
+- derive them from the actual `artifact_refs` that tasks or slices will claim
+- keep them narrow enough that a task outside those prefixes is forced to wait
+- do not use vague labels such as `frontend`, `backend`, or `shared`
+
+In the current runtime, `safe_parallel_zones` are the first overlap gate for `parallel_limited` work. If a task's artifacts are not covered by a declared zone, orchestration should report the safe-zone wait rather than allowing overlapping execution.
+
+When you need to preserve execution order inside an otherwise parallel-capable plan, define `sequential_constraints` concretely:
+
+- use ordered task-chain strings based on task ids, such as `TASK-API-SEAM -> TASK-CONSUMERS -> TASK-QA-FLOW`
+- use the same ids that will appear on the full-delivery task board
+- use them only for work that must remain serialized even when other tasks can overlap safely
+- do not replace the task dependency graph with prose such as `backend before frontend`
+
+In the current runtime, `sequential_constraints` are compiled into effective dependency overlays for full-delivery task boards. Later tasks in the chain should remain queued until the earlier task order is satisfied, and orchestration may report `waiting-sequential-constraint` when that ordering is the active blocker.
+
 ## When Broader Parallelism Is Safe
 
 Choose `parallel_mode = enabled` only when all of these are true:
@@ -163,6 +181,10 @@ Use `depends_on` or the migration equivalent whenever:
 - one change must land before another can verify safely
 - integration or parity evidence from one step is required before the next begins
 
+Use `sequential_constraints` when the ordering rule belongs in the approved solution package rather than only in one local task definition. In the current runtime, full-delivery task boards enforce those chains through derived dependency edges.
+
+For migration slices, stay explicit today: use slice-level `depends_on` for runtime gating even if the solution package also records serialized strategy notes.
+
 Do not pretend tasks are parallel-safe just because they live in different files.
 
 ## QA Rules
@@ -204,8 +226,8 @@ Do not do any of the following:
 Before blessing parallel execution, confirm all of these:
 
 - the solution package explicitly records `parallel_mode`
-- safe parallel zones are listed
-- sequential constraints are listed
+- safe parallel zones are listed as repo-relative artifact path prefixes
+- sequential constraints are listed as ordered task-chain strings when serialized execution is required
 - the integration checkpoint is named
 - max active execution tracks is set when relevant
 - every task or slice has a bounded surface and explicit artifacts or verification targets

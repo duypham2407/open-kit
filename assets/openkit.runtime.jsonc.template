@@ -13,6 +13,41 @@
   "backgroundTask": {
     "enabled": false
   },
+  "agents": {
+    "specialist.oracle": {
+      "model": "openai/gpt-5.4",
+      "fallback_models": [
+        "anthropic/claude-sonnet-4-6",
+        { "model": "google/gemini-3.1-pro", "variant": "high" }
+      ],
+      "prompt_append": "file://./prompts/oracle-append.md"
+    }
+  },
+  "categories": {
+    "deep": {
+      "model": "anthropic/claude-opus-4-6",
+      "fallback_models": ["openai/gpt-5.4"],
+      "prompt_append": "file://./prompts/deep-category.md"
+    }
+  },
+  "hooks": {
+    "continuationRuntime": {
+      "attentionOnRisk": true
+    },
+    "toolOutputTruncation": {
+      "maxChars": 12000,
+      "maxItems": 200
+    },
+    "rulesInjector": {
+      "always": ["Preserve workflow-state semantics."],
+      "byMode": {
+        "full": ["Require explicit QA evidence before closure."]
+      },
+      "byCategory": {
+        "deep": ["Favor deliberate architecture tradeoffs."]
+      }
+    }
+  },
   "notifications": {
     "enabled": false
   },

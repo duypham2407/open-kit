@@ -104,6 +104,12 @@ Implemented full-delivery task-runtime note:
 - task boards belong only to full-delivery work items
 - task-level ownership does not replace the feature-stage owner recorded in workflow state
 - full-delivery parallel work is conditional, not automatic; `Solution Lead` must bless a solution package that explicitly says parallel execution is safe
+- for `parallel_mode = limited`, `safe_parallel_zones` currently mean repo-relative artifact path-prefix allowlists derived from task `artifact_refs`
+- `safe_parallel_zones` gate overlap for `parallel_limited` tasks before shared-artifact collision checks run
+- if a task is outside declared zone coverage, runtime orchestration should keep it queued rather than allowing active overlap
+- `sequential_constraints` currently mean ordered task-chain strings such as `TASK-A -> TASK-B -> TASK-C`
+- on full-delivery task boards, `sequential_constraints` compile into effective dependency overlays instead of introducing a separate per-task sequencing field
+- tasks named later in a sequential chain should remain queued until the earlier task order is satisfied; orchestration may report `waiting-sequential-constraint` while that order is still active
 - when the solution package does not approve parallel execution, full-delivery work remains sequential even if multiple Fullstack or QA agents are available
 - singleton planning roles remain singleton: one `Product Lead` and one `Solution Lead` define the work; worker pools apply only to implementation and QA execution after planning is approved
 
@@ -145,6 +151,8 @@ Migration mode expectations:
 - migrate in slices instead of performing a big-bang rewrite
 - verify parity with real before/after evidence, smoke tests, builds, type checks, codemods, and regression passes
 - no task board in the current live contract
+- migration slice boards remain optional and strategy-driven, but when a slice board is present the runtime enforces completion gates before review and closure
+- entering `migration_code_review` requires no active or incomplete slices on the board; entering `migration_done` requires every slice to be `verified` or `cancelled`
 
 Canonical migration heuristic:
 

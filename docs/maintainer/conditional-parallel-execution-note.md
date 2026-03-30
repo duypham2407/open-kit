@@ -26,12 +26,16 @@ Planning roles remain singleton. Worker pools apply only to execution after the 
 - `full_intake`, `full_product`, and `full_solution` remain singleton-led stages.
 - Parallel implementation and task-level QA can happen only after `full_solution` records a `Parallelization Assessment`.
 - Even then, runtime checks still enforce bounded task allocation, overlap rules, and integration checkpoints.
+- For `parallel_mode = limited`, `safe_parallel_zones` currently mean repo-relative artifact path-prefix allowlists evaluated against task `artifact_refs`.
+- `sequential_constraints` currently mean ordered task-chain strings that the full-delivery task runtime evaluates as dependency overlays.
 
 ## What This Means For Migration
 
 - `migration_intake`, `migration_baseline`, and `migration_strategy` remain singleton-led and sequential by default.
 - Migration slices may run in parallel only after the migration strategy explicitly blesses them.
 - Migration parallelism stays parity-oriented and behavior-preserving; it is not a copy of the full-delivery task board.
+- The same `safe_parallel_zones` semantics apply when limited parallel migration slices are introduced through strategy-approved artifact boundaries.
+- `sequential_constraints` may still be documented in migration strategy notes, but current runtime enforcement for ordered chains remains a full-delivery task-board behavior.
 
 ## What OpenKit Intentionally Does Not Do
 

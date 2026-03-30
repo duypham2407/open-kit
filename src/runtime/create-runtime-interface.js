@@ -1,4 +1,6 @@
 import { summarizeRuntimeCapabilities } from './capability-registry.js';
+import { inspectWorkflowDoctor } from './doctor/workflow-doctor.js';
+import { recoverSessionState } from './recovery/session-recovery.js';
 
 export function createRuntimeInterface({
   projectRoot,
@@ -17,6 +19,13 @@ export function createRuntimeInterface({
 }) {
   const capabilityIds = capabilities.map((capability) => capability.id);
   const capabilitySummary = summarizeRuntimeCapabilities(capabilities);
+  const latestSession = managers.sessionStateManager?.latest?.() ?? null;
+  const workflowDoctor = inspectWorkflowDoctor(managers.workflowKernel);
+  const recovery = recoverSessionState(latestSession, {
+    workflowRuntime: managers.workflowKernel,
+    backgroundManager: managers.backgroundManager,
+    continuationStateManager: managers.continuationStateManager,
+  });
 
   return {
     foundationVersion: 1,
@@ -38,6 +47,15 @@ export function createRuntimeInterface({
     skills: skills.skills,
     commands,
     contextInjection,
+    runtimeState: {
+      persistedSessions: managers.sessionStateManager?.list?.().length ?? 0,
+      backgroundRuns: managers.backgroundManager?.list?.().length ?? 0,
+      skillMcpBindings: managers.skillMcpManager?.listBindings?.().length ?? 0,
+      latestSession,
+      recovery,
+      continuation: managers.continuationStateManager?.summary?.() ?? null,
+      workflowDoctor,
+    },
     environment: {
       OPENKIT_RUNTIME_FOUNDATION: '1',
       OPENKIT_RUNTIME_FOUNDATION_VERSION: '1',

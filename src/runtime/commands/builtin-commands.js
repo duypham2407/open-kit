@@ -1,5 +1,6 @@
 export function listBuiltinRuntimeCommands() {
   return [
+    { id: 'runtime-command.browser-verify', name: '/browser-verify', path: 'commands/browser-verify.md' },
     { id: 'runtime-command.init-deep', name: '/init-deep', path: 'commands/init-deep.md' },
     { id: 'runtime-command.refactor', name: '/refactor', path: 'commands/refactor.md' },
     { id: 'runtime-command.start-work', name: '/start-work', path: 'commands/start-work.md' },

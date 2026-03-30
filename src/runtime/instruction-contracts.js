@@ -29,6 +29,41 @@ export const COMMAND_INSTRUCTION_CONTRACTS = {
     expectedOutputs: ['full intake context', 'artifact chain', 'approval-gated handoffs'],
     whenToUse: 'Use when requirements, product behavior, or cross-boundary design uncertainty dominates.',
   },
+  'browser-verify': {
+    command: '/browser-verify',
+    purpose: 'Guide browser verification planning and evidence capture for UI or browser-dependent work.',
+    nextAction: 'Choose the target page or flow, run the browser verification checklist, and record evidence before closure.',
+    expectedOutputs: ['browser verification plan', 'scenario checklist', 'evidence-ready notes'],
+    whenToUse: 'Use when acceptance depends on page behavior, interactive flows, or browser evidence.',
+  },
+  'start-work': {
+    command: '/start-work',
+    purpose: 'Resume approved execution work from explicit task-board or workflow-state context.',
+    nextAction: 'Inspect resumable context, confirm the active work item, and continue bounded execution without bypassing gates.',
+    expectedOutputs: ['resume context', 'next safe action', 'execution focus'],
+    whenToUse: 'Use when work is already approved and you need a structured execution restart.',
+  },
+  handoff: {
+    command: '/handoff',
+    purpose: 'Record a structured handoff for the next session without changing workflow closure state.',
+    nextAction: 'Summarize the active work item, remaining actions, evidence, and stop conditions for the next operator.',
+    expectedOutputs: ['handoff summary', 'remaining actions', 'resume-safe context'],
+    whenToUse: 'Use before pausing or switching sessions on multi-step work.',
+  },
+  'stop-continuation': {
+    command: '/stop-continuation',
+    purpose: 'Stop continuation-oriented runtime behavior while preserving workflow-state authority.',
+    nextAction: 'Record why continuation stopped and leave the workflow stage untouched until an explicit operator action resumes.',
+    expectedOutputs: ['stop reason', 'continuation state update'],
+    whenToUse: 'Use when continuation should pause, yield, or stop despite unfinished execution context.',
+  },
+  refactor: {
+    command: '/refactor',
+    purpose: 'Run a refactoring-focused flow with stronger safety and validation expectations.',
+    nextAction: 'Inspect the current code surface, choose the safer editing/refactor path, and verify behavior stays stable.',
+    expectedOutputs: ['refactor plan', 'safer edit strategy', 'verification notes'],
+    whenToUse: 'Use when structural code change matters more than new behavior.',
+  },
 };
 
 export function getCommandInstructionContract(commandName) {

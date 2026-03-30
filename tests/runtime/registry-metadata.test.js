@@ -62,4 +62,7 @@ test('registry includes runtime capability, manager, tool, and hook metadata', (
   assert.ok(manager);
   assert.ok(tool);
   assert.ok(hook);
+  assert.ok(registry.components.runtimeTools.find((entry) => entry.id === 'tool.continuation-status'));
+  assert.ok(registry.components.runtimeTools.find((entry) => entry.id === 'tool.browser-verify'));
+  assert.ok(registry.components.capabilities.find((entry) => entry.id === 'capability.lsp-tooling'));
 });

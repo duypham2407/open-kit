@@ -182,3 +182,26 @@ Mode-specific approval keys:
 
 - `last_auto_scaffold`: `null` or an object with `artifact`, `path`, `stage`, and `recorded_at`
 - used to expose the most recent runtime-created primary scope or solution package in `status` and `resume-summary`
+
+## Solution Package Parallelization Shape
+
+When a full-delivery solution package or migration solution package records a `Parallelization Assessment`, use this shape:
+
+- `parallel_mode`: `none`, `limited`, or `enabled`
+- `why`: short explanation of why the chosen mode is safe
+- `safe_parallel_zones`: array of non-empty strings
+- `sequential_constraints`: array of non-empty strings
+- `integration_checkpoint`: short description of the merge or parity checkpoint
+- `max_active_execution_tracks`: positive integer when bounded worker-pool concurrency should be capped
+
+Current live semantics:
+
+- `safe_parallel_zones` are repo-relative artifact path-prefix allowlists
+- they are evaluated against task `artifact_refs`, not against a separate per-task zone field
+- they currently matter only for `parallel_limited` overlap control
+- tasks outside declared zone coverage should remain queued instead of becoming overlapping active work
+- zone approval is narrower than full safety; after zone checks pass, shared-artifact and dependency checks still apply
+- `sequential_constraints` are ordered task-chain strings such as `TASK-A -> TASK-B -> TASK-C`
+- on full-delivery task boards, they compile into effective `depends_on` and `blocked_by` overlays instead of a separate sequencing field
+- tasks later in a chain should remain queued until the earlier task order is satisfied through the existing dependency model
+- current runtime enforcement is limited to full-delivery task boards; migration slice boards still rely on explicit slice-level dependencies

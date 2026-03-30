@@ -1,14 +1,27 @@
 import { createWorkItemBridge } from './background/work-item-bridge.js';
 import { BackgroundManager } from './managers/background-manager.js';
 import { ConcurrencyManager } from './managers/concurrency-manager.js';
+import { ContinuationStateManager } from './managers/continuation-state-manager.js';
+import { DelegationSupervisor } from './managers/delegation-supervisor.js';
 import { createConfigHandler } from './managers/config-handler.js';
 import { NotificationManager } from './managers/notification-manager.js';
+import { PersistentBackgroundStore } from './managers/persistent-background-store.js';
 import { SessionStateManager } from './managers/session-state-manager.js';
 import { SkillMcpManager } from './managers/skill-mcp-manager.js';
 import { TmuxSessionManager } from './managers/tmux-session-manager.js';
 import { ToolMetadataStore } from './managers/tool-metadata-store.js';
+import { resolveRuntimeRoot } from './runtime-root.js';
+import { createWorkflowKernelAdapter } from './workflow-kernel.js';
 
-function createManagerList({ configHandler, backgroundManager, skillMcpManager, notificationManager, tmuxSessionManager }) {
+function createManagerList({
+  configHandler,
+  backgroundManager,
+  skillMcpManager,
+  notificationManager,
+  tmuxSessionManager,
+  delegationSupervisor,
+  continuationStateManager,
+}) {
   return [
     {
       id: 'manager.config-handler',
@@ -37,6 +50,22 @@ function createManagerList({ configHandler, backgroundManager, skillMcpManager, 
       dispose() {},
     },
     {
+      id: 'manager.delegation-supervisor',
+      name: 'Delegation Supervisor',
+      description: 'Task-board-aware delegated execution planner for full-delivery work.',
+      enabled: delegationSupervisor !== null,
+      lifecycle: 'foundation',
+      dispose() {},
+    },
+    {
+      id: 'manager.continuation-state',
+      name: 'Continuation State Manager',
+      description: 'File-backed continuation controller for handoff, stop, and bounded resume state.',
+      enabled: true,
+      lifecycle: 'foundation',
+      dispose() {},
+    },
+    {
       id: 'manager.notifications',
       name: 'Notification Manager',
       description: 'Task and runtime notification dispatcher.',
@@ -57,12 +86,14 @@ function createManagerList({ configHandler, backgroundManager, skillMcpManager, 
   ];
 }
 
-export function createManagers({ config, capabilityIndex, projectRoot, configResult }) {
+export function createManagers({ config, capabilityIndex, projectRoot, configResult, mode = 'read-write', specialists = [], env = process.env }) {
+  const runtimeRoot = resolveRuntimeRoot({ projectRoot, env });
   const concurrencyManager = new ConcurrencyManager({
     providerConcurrency: config?.backgroundTask?.providerConcurrency,
     modelConcurrency: config?.backgroundTask?.modelConcurrency,
   });
-  const workItemBridge = createWorkItemBridge({ projectRoot });
+  const workflowKernel = createWorkflowKernelAdapter({ projectRoot, env });
+  const workItemBridge = createWorkItemBridge({ projectRoot, workflowKernel });
   const configHandler = createConfigHandler({ configResult });
   const notificationManager = new NotificationManager({
     enabled: config?.notifications?.enabled === true,
@@ -72,17 +103,27 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     layout: config?.tmux?.layout,
   });
   const skillMcpManager = new SkillMcpManager();
-  const sessionStateManager = new SessionStateManager({ projectRoot });
+  const sessionStateManager = new SessionStateManager({ projectRoot, runtimeRoot, mode });
+  const continuationStateManager = new ContinuationStateManager({ projectRoot, runtimeRoot, mode });
   const toolMetadataStore = new ToolMetadataStore();
   const backgroundManager = new BackgroundManager({
     enabled: config?.backgroundTask?.enabled === true,
     concurrencyManager,
     workItemBridge,
+    persistentStore: new PersistentBackgroundStore({ projectRoot, runtimeRoot, mode }),
+  });
+  const delegationSupervisor = new DelegationSupervisor({
+    workflowKernel,
+    backgroundManager,
+    specialists,
+    concurrencyManager,
   });
   const managerList = createManagerList({
     configHandler,
     backgroundManager,
     skillMcpManager,
+    delegationSupervisor,
+    continuationStateManager,
     notificationManager,
     tmuxSessionManager,
   }).map((entry) => ({
@@ -96,12 +137,15 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     configHandler,
     backgroundManager,
     skillMcpManager,
+    delegationSupervisor,
+    continuationStateManager,
     notificationManager,
     tmuxSessionManager,
     sessionStateManager,
     toolMetadataStore,
     concurrencyManager,
     workItemBridge,
+    workflowKernel,
     disposeManagers() {
       for (const manager of managerList) {
         manager.dispose?.();

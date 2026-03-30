@@ -2,6 +2,15 @@ const fs = require("fs")
 const path = require("path")
 
 const {
+  bootstrapBackgroundRunStore,
+  createBackgroundRun,
+  listBackgroundRuns,
+  readBackgroundRun,
+  recordBackgroundRun,
+  updateBackgroundRun,
+} = require("./background-run-store")
+
+const {
   resolveKitRoot,
   resolveProjectRoot,
   resolveRuntimeRoot,
@@ -84,6 +93,7 @@ const {
   getNextAction,
   getVerificationReadiness,
 } = require("./runtime-guidance")
+const { getRuntimeContext } = require("./runtime-summary")
 
 function fail(message) {
   const error = new Error(message)
@@ -434,10 +444,12 @@ function writeMigrationSliceBoard(projectRoot, workItemId, board) {
 }
 
 function buildBoardView(state, board) {
+  const tasks = Array.isArray(board?.tasks) ? applySequentialConstraintsToTasks(board.tasks, state.parallelization) : []
+
   return {
     mode: state.mode,
     current_stage: state.current_stage,
-    tasks: board?.tasks ?? [],
+    tasks,
     issues: board?.issues ?? [],
   }
 }
@@ -493,7 +505,11 @@ function requireTaskBoardStage(state, workItemId, action = "use a task board") {
 }
 
 function requireMigrationSliceBoardStage(state, workItemId, action = "use migration slices") {
-  if (!["migration_strategy", "migration_upgrade", "migration_verify", "migration_done"].includes(state.current_stage)) {
+  if (
+    !["migration_strategy", "migration_upgrade", "migration_code_review", "migration_verify", "migration_done"].includes(
+      state.current_stage,
+    )
+  ) {
     fail(
       `Work item '${workItemId}' must reach 'migration_strategy' before it can ${action}; current stage is '${state.current_stage}'`,
     )
@@ -528,10 +544,15 @@ function withTaskBoard(workItemId, customStatePath, mutator) {
   requireTaskBoardStage(state, workItemId)
 
   const existingBoard = readTaskBoardIfExists(projectRoot, workItemId)
-  const baseBoard = buildBoardView(state, existingBoard)
+  const baseBoard = {
+    mode: state.mode,
+    current_stage: state.current_stage,
+    tasks: existingBoard?.tasks ?? [],
+    issues: existingBoard?.issues ?? [],
+  }
   const nextBoard = mutator(JSON.parse(JSON.stringify(baseBoard)), context)
-  const validatedBoard = validateTaskBoard(buildBoardForValidation(state, nextBoard))
-  writeTaskBoard(projectRoot, workItemId, validatedBoard)
+  const validatedBoard = validateTaskBoard(buildBoardForValidation(state, buildBoardView(state, nextBoard)))
+  writeTaskBoard(projectRoot, workItemId, nextBoard)
 
   return {
     ...context,
@@ -669,7 +690,7 @@ function validateManagedState(state, projectRoot, workItemId, options = {}) {
 
   const boardStage = options.boardStage ?? taskBoard.current_stage ?? state.current_stage
   validateTaskBoard({
-    ...taskBoard,
+    ...buildBoardView(state, taskBoard),
     mode: state.mode,
     current_stage: boardStage,
   })
@@ -693,13 +714,15 @@ function requireValidTaskBoard(state, projectRoot, workItemId, boardStage, reaso
   }
 
   validateTaskBoard({
-    ...taskBoard,
+    ...buildBoardView(state, taskBoard),
     mode: state.mode,
     current_stage: boardStage,
   })
 
   if (effectiveParallelization.parallel_mode === "none") {
-    const activeTasks = (taskBoard.tasks ?? []).filter((task) => ["claimed", "in_progress", "qa_ready", "qa_in_progress"].includes(task.status))
+    const activeTasks = buildBoardView(state, taskBoard).tasks.filter((task) =>
+      ["claimed", "in_progress", "qa_ready", "qa_in_progress"].includes(task.status),
+    )
     if (activeTasks.length > 1) {
       fail("parallel_mode 'none' does not allow multiple active execution tasks")
     }
@@ -839,6 +862,110 @@ function ensureArray(value, label) {
   if (!Array.isArray(value)) {
     fail(`${label} must be an array`)
   }
+}
+
+function ensureNonEmptyStringArray(value, label) {
+  ensureArray(value, label)
+  for (const entry of value) {
+    ensureString(entry, `${label}[]`)
+  }
+}
+
+function normalizeParallelZone(value) {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const trimmed = value.trim().replace(/^\.\//, "")
+  if (trimmed.length === 0) {
+    return null
+  }
+
+  return trimmed.endsWith("/") ? trimmed : `${trimmed}/`
+}
+
+function artifactRefMatchesParallelZone(artifactRef, zonePrefix) {
+  if (typeof artifactRef !== "string" || artifactRef.length === 0 || typeof zonePrefix !== "string" || zonePrefix.length === 0) {
+    return false
+  }
+
+  const normalizedArtifactRef = artifactRef.replace(/^\.\//, "")
+  return normalizedArtifactRef === zonePrefix.slice(0, -1) || normalizedArtifactRef.startsWith(zonePrefix)
+}
+
+function validateSafeParallelZoneCoverage(activeTasks, parallelization) {
+  const safeParallelZones = Array.isArray(parallelization?.safe_parallel_zones) ? parallelization.safe_parallel_zones : []
+  const normalizedZones = [...new Set(safeParallelZones.map(normalizeParallelZone).filter(Boolean))]
+
+  if (activeTasks.length <= 1) {
+    return
+  }
+
+  for (const task of activeTasks) {
+    if (task.concurrency_class !== "parallel_limited") {
+      continue
+    }
+
+    const uncoveredArtifactRefs = (task.artifact_refs ?? []).filter((artifactRef) => {
+      return !normalizedZones.some((zonePrefix) => artifactRefMatchesParallelZone(artifactRef, zonePrefix))
+    })
+
+    if (uncoveredArtifactRefs.length > 0) {
+      fail(
+        `parallel_limited task '${task.task_id}' cannot run in parallel outside safe_parallel_zones: ${[...new Set(uncoveredArtifactRefs)].join(", ")}`,
+      )
+    }
+  }
+}
+
+function parseSequentialConstraintChain(constraint) {
+  ensureString(constraint, "parallelization.sequential_constraints[]")
+
+  const taskIds = constraint
+    .split("->")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+
+  if (taskIds.length < 2) {
+    fail(
+      `parallelization.sequential_constraints entry '${constraint}' must describe an ordered task chain like 'TASK-A -> TASK-B'`,
+    )
+  }
+
+  return taskIds
+}
+
+function getSequentialConstraintChains(parallelization) {
+  const sequentialConstraints = Array.isArray(parallelization?.sequential_constraints)
+    ? parallelization.sequential_constraints
+    : []
+
+  return sequentialConstraints.map(parseSequentialConstraintChain)
+}
+
+function applySequentialConstraintsToTasks(tasks, parallelization) {
+  const normalizedTasks = JSON.parse(JSON.stringify(Array.isArray(tasks) ? tasks : []))
+  const taskIndex = new Map(normalizedTasks.map((task) => [task.task_id, task]))
+
+  for (const chain of getSequentialConstraintChains(parallelization)) {
+    for (const taskId of chain) {
+      if (!taskIndex.has(taskId)) {
+        fail(`parallelization.sequential_constraints references unknown task '${taskId}'`)
+      }
+    }
+
+    for (let index = 1; index < chain.length; index += 1) {
+      const previousTaskId = chain[index - 1]
+      const task = taskIndex.get(chain[index])
+      task.depends_on = [...new Set([...(task.depends_on ?? []), previousTaskId])]
+      task.blocked_by = [...new Set([...(task.blocked_by ?? []), previousTaskId])]
+      task.sequential_constraint_dependencies = [
+        ...new Set([...(task.sequential_constraint_dependencies ?? []), previousTaskId]),
+      ]
+    }
+  }
+
+  return normalizedTasks
 }
 
 function ensureString(value, label) {
@@ -1209,8 +1336,8 @@ function validateParallelization(parallelization, mode) {
 
   ensureKnown(parallelization.parallel_mode, PARALLEL_MODES, "parallelization.parallel_mode")
   ensureNullableString(parallelization.why, "parallelization.why")
-  ensureArray(parallelization.safe_parallel_zones, "parallelization.safe_parallel_zones")
-  ensureArray(parallelization.sequential_constraints, "parallelization.sequential_constraints")
+  ensureNonEmptyStringArray(parallelization.safe_parallel_zones, "parallelization.safe_parallel_zones")
+  ensureNonEmptyStringArray(parallelization.sequential_constraints, "parallelization.sequential_constraints")
   ensureNullableString(parallelization.integration_checkpoint, "parallelization.integration_checkpoint")
 
   if (
@@ -1414,6 +1541,70 @@ function assertStageExitReadiness(state, context = {}) {
   return summary
 }
 
+function getMigrationSliceBoardReadiness(projectRoot, workItemId, state) {
+  if (state?.mode !== "migration" || !workItemId) {
+    return {
+      present: false,
+      valid: null,
+      blockers: [],
+      activeSliceIds: [],
+      incompleteSliceIds: [],
+      parityReadySliceIds: [],
+      verifiedSliceIds: [],
+    }
+  }
+
+  const board = readMigrationSliceBoardIfExists(projectRoot, workItemId)
+  if (!board) {
+    return {
+      present: false,
+      valid: null,
+      blockers: [],
+      activeSliceIds: [],
+      incompleteSliceIds: [],
+      parityReadySliceIds: [],
+      verifiedSliceIds: [],
+    }
+  }
+
+  let validatedBoard = null
+  try {
+    validatedBoard = validateMigrationSliceBoard(buildMigrationBoardForValidation(state, board))
+  } catch (error) {
+    return {
+      present: true,
+      valid: false,
+      blockers: [error.message],
+      activeSliceIds: [],
+      incompleteSliceIds: [],
+      parityReadySliceIds: [],
+      verifiedSliceIds: [],
+    }
+  }
+
+  const slices = Array.isArray(validatedBoard?.slices) ? validatedBoard.slices : []
+  const activeSliceIds = slices
+    .filter((slice) => ["claimed", "in_progress", "parity_ready"].includes(slice.status))
+    .map((slice) => slice.slice_id)
+  const incompleteSliceIds = slices
+    .filter((slice) => !["verified", "cancelled"].includes(slice.status))
+    .map((slice) => slice.slice_id)
+  const parityReadySliceIds = slices.filter((slice) => slice.status === "parity_ready").map((slice) => slice.slice_id)
+  const verifiedSliceIds = slices
+    .filter((slice) => slice.status === "verified")
+    .map((slice) => slice.slice_id)
+
+  return {
+    present: true,
+    valid: true,
+    blockers: [],
+    activeSliceIds,
+    incompleteSliceIds,
+    parityReadySliceIds,
+    verifiedSliceIds,
+  }
+}
+
 function requireLinkedArtifacts(state, artifactKinds, message) {
   const missing = artifactKinds.filter((kind) => {
     if (kind === "adr") {
@@ -1576,6 +1767,7 @@ function getWorkItemCloseoutSummary(workItemId, customStatePath) {
   const linkedArtifacts = flattenArtifactRefs(state)
   const unresolvedIssues = Array.isArray(state.issues) ? state.issues : []
   const board = state.mode === "full" ? readTaskBoardIfExists(context.projectRoot, workItemId) : null
+  const migrationBoardReadiness = getMigrationSliceBoardReadiness(context.projectRoot, workItemId, state)
   const activeTasks = Array.isArray(board?.tasks)
     ? board.tasks.filter((task) => ["claimed", "in_progress", "qa_in_progress"].includes(task.status))
     : []
@@ -1588,13 +1780,15 @@ function getWorkItemCloseoutSummary(workItemId, customStatePath) {
     recommendedArtifacts,
     unresolvedIssues,
     activeTasks,
+    migrationSliceBoardReadiness: migrationBoardReadiness,
     verificationReadiness: getVerificationReadiness(state),
     readyToClose:
       state.status === "done" &&
       missingRequiredArtifacts.length === 0 &&
       getVerificationReadiness(state).status !== "missing-evidence" &&
       unresolvedIssues.length === 0 &&
-      activeTasks.length === 0,
+      activeTasks.length === 0 &&
+      (!migrationBoardReadiness.present || migrationBoardReadiness.incompleteSliceIds.length === 0),
   }
 }
 
@@ -1778,7 +1972,86 @@ function getRuntimeShortSummary(customStatePath) {
     owner: runtime.state.current_owner,
     nextAction: getNextAction(runtime.state),
     lastAutoScaffold: runtime.state.last_auto_scaffold ?? null,
+    backgroundRunSummary: runtime.runtimeContext?.backgroundRunSummary ?? null,
     readiness: readiness.ready ? "ready" : `blocked: ${readiness.blockers.join("; ")}`,
+  }
+}
+
+function startBackgroundRun(title, payloadJson, workItemId, taskId, customStatePath) {
+  ensureString(title, "title")
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  bootstrapBackgroundRunStore(projectRoot)
+
+  let payload = {}
+  if (payloadJson) {
+    try {
+      payload = JSON.parse(payloadJson)
+    } catch (error) {
+      fail(`payload_json must be valid JSON: ${error.message}`)
+    }
+  }
+
+  const run = createBackgroundRun({
+    title,
+    payload,
+    workItemId: workItemId || null,
+    taskId: taskId || null,
+    source: "workflow-state-cli",
+  })
+
+  return {
+    projectRoot,
+    run: recordBackgroundRun(projectRoot, run),
+  }
+}
+
+function completeBackgroundRun(runId, outputJson, customStatePath) {
+  ensureString(runId, "run_id")
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+
+  let output = null
+  if (outputJson) {
+    try {
+      output = JSON.parse(outputJson)
+    } catch (error) {
+      fail(`output_json must be valid JSON: ${error.message}`)
+    }
+  }
+
+  return {
+    projectRoot,
+    run: updateBackgroundRun(projectRoot, runId, {
+      status: "completed",
+      output,
+    }),
+  }
+}
+
+function cancelBackgroundRun(runId, customStatePath) {
+  ensureString(runId, "run_id")
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  return {
+    projectRoot,
+    run: updateBackgroundRun(projectRoot, runId, {
+      status: "cancelled",
+    }),
+  }
+}
+
+function getBackgroundRun(runId, customStatePath) {
+  ensureString(runId, "run_id")
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  return {
+    projectRoot,
+    run: readBackgroundRun(projectRoot, runId),
+  }
+}
+
+function getBackgroundRuns(customStatePath) {
+  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  return {
+    projectRoot,
+    runs: listBackgroundRuns(projectRoot),
   }
 }
 
@@ -1788,6 +2061,7 @@ function getDefinitionOfDone(customStatePath) {
   validateManagedState(state, projectRoot, workItemId)
 
   const rule = getDodRule(state.mode)
+  const migrationBoardReadiness = getMigrationSliceBoardReadiness(projectRoot, workItemId, state)
   const readiness = buildReadinessSummary(state, {
     requireTaskBoard: state.mode === "full" && ["full_implementation", "full_qa", "full_done"].includes(state.current_stage),
     taskBoardValid: true,
@@ -1800,6 +2074,15 @@ function getDefinitionOfDone(customStatePath) {
     const entry = readiness.artifactReadiness.find((artifact) => artifact.artifact === artifactId)
     return !entry || entry.status !== "present"
   })
+  const migrationSliceBlockers = []
+
+  if (migrationBoardReadiness.valid === false) {
+    migrationSliceBlockers.push(`migration slice board invalid: ${migrationBoardReadiness.blockers.join(", ")}`)
+  } else if (migrationBoardReadiness.present && migrationBoardReadiness.incompleteSliceIds.length > 0) {
+    migrationSliceBlockers.push(
+      `migration slices incomplete: ${migrationBoardReadiness.incompleteSliceIds.join(", ")}`,
+    )
+  }
 
   return {
     statePath,
@@ -1812,9 +2095,14 @@ function getDefinitionOfDone(customStatePath) {
     requiredEvidenceStages: rule?.requiredEvidenceStages ?? [],
     missingApprovals,
     missingArtifacts,
+    migrationSliceBlockers,
     verificationReadiness: readiness.verificationReadiness,
     unresolvedIssues: readiness.unresolvedIssues,
-    ready: missingApprovals.length === 0 && missingArtifacts.length === 0 && readiness.ready,
+    ready:
+      missingApprovals.length === 0 &&
+      missingArtifacts.length === 0 &&
+      migrationSliceBlockers.length === 0 &&
+      readiness.ready,
   }
 }
 
@@ -1829,6 +2117,9 @@ function getReleaseReadiness(customStatePath) {
   }
   if (!closeout.readyToClose) {
     blockers.push("work item is not ready to close")
+  }
+  if (Array.isArray(dod.migrationSliceBlockers) && dod.migrationSliceBlockers.length > 0) {
+    blockers.push(...dod.migrationSliceBlockers)
   }
   if (closeout.unresolvedIssues.some((issue) => issue.severity === "critical" || issue.severity === "high")) {
     blockers.push("high-severity or critical issues remain open")
@@ -2529,7 +2820,7 @@ function validateWorkItemBoard(workItemId, customStatePath) {
 
   return {
     ...context,
-    board: validateTaskBoard(buildBoardForValidation(state, board)),
+    board: validateTaskBoard(buildBoardForValidation(state, buildBoardView(state, board))),
   }
 }
 
@@ -2579,6 +2870,8 @@ function validateTaskAllocation(workItemId, customStatePath) {
       artifactUsage.set(artifactPath, task.task_id)
     }
   }
+
+  validateSafeParallelZoneCoverage(activeTasks, state.parallelization)
 
   return {
     ...context,
@@ -2673,10 +2966,29 @@ function selectActiveWorkItem(workItemId, customStatePath) {
   }
 }
 
-function getRuntimeStatus(customStatePath) {
-  const { statePath, state } = showState(customStatePath)
+function getRuntimeStatus(customStatePath, options = {}) {
+  const { relaxed = false } = options
+  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  const runtimeState = relaxed ? JSON.parse(JSON.stringify(state)) : state
 
-  const projectRoot = resolveProjectRoot(customStatePath)
+  if (relaxed && runtimeState.parallelization?.parallel_mode === "bounded") {
+    runtimeState.parallelization.parallel_mode = "limited"
+  }
+
+  validateStateObject(runtimeState)
+
+  let runtimeContext = null
+  if (relaxed) {
+    try {
+      validateManagedState(runtimeState, projectRoot, workItemId)
+    } catch (_error) {
+      // Doctor/status surfaces should remain observable even when artifact linkage or
+      // readiness contracts are temporarily unmet.
+    }
+  } else {
+    validateManagedState(runtimeState, projectRoot, workItemId)
+  }
+
   const runtimeRoot = resolveRuntimeRoot(customStatePath)
   const kitRoot = resolveKitRoot(projectRoot)
   const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
@@ -2687,6 +2999,8 @@ function getRuntimeStatus(customStatePath) {
   const sessionStartPath = path.join(kitRoot, "hooks", "session-start")
   const metaSkillPath = path.join(kitRoot, "skills", "using-skills", "SKILL.md")
   const kit = manifest?.kit ?? {}
+
+  runtimeContext = getRuntimeContext(runtimeRoot, runtimeState)
 
   return {
     projectRoot,
@@ -2704,13 +3018,14 @@ function getRuntimeStatus(customStatePath) {
     entryAgent: kit.entryAgent ?? "unknown",
     activeProfile: installManifest?.installation?.activeProfile ?? kit.activeProfile ?? "unknown",
     installManifest,
-    state,
-    parallelization: state.parallelization,
+    state: runtimeState,
+    parallelization: runtimeState.parallelization,
+    runtimeContext,
   }
 }
 
 function getVersionInfo(customStatePath) {
-  const runtime = getRuntimeStatus(customStatePath)
+  const runtime = getRuntimeStatus(customStatePath, { relaxed: true })
   return {
     kitName: runtime.kitName,
     kitVersion: runtime.kitVersion,
@@ -2775,6 +3090,7 @@ function runDoctor(customStatePath) {
     activeProfile: installManifest?.installation?.activeProfile ?? manifest?.kit?.activeProfile ?? "unknown",
     installManifest,
     state,
+    backgroundRuns: listBackgroundRuns(runtimeRoot),
   }
 
   const checks = [
@@ -2807,6 +3123,10 @@ function runDoctor(customStatePath) {
         !installManifestInfo.readable ||
         !manifest?.kit?.activeProfile ||
         manifest.kit.activeProfile === installManifest?.installation?.activeProfile,
+    },
+    {
+      label: "background run index is readable",
+      ok: Array.isArray(runtime.backgroundRuns),
     },
   ]
 
@@ -2976,6 +3296,28 @@ function advanceStage(targetStage, customStatePath) {
       )
     }
 
+    const migrationBoardReadiness = getMigrationSliceBoardReadiness(projectRoot, workItemId, state)
+
+    if (state.mode === "migration" && migrationBoardReadiness.valid === false) {
+      fail(
+        `Migration slice board readiness failed before entering '${targetStage}': ${migrationBoardReadiness.blockers.join("; ")}`,
+      )
+    }
+
+    if (targetStage === "migration_code_review" && migrationBoardReadiness.present) {
+      if (migrationBoardReadiness.activeSliceIds.length > 0) {
+        fail(
+          `Migration slice board readiness failed before entering 'migration_code_review': active migration slices remain: ${migrationBoardReadiness.activeSliceIds.join(", ")}`,
+        )
+      }
+
+      if (migrationBoardReadiness.incompleteSliceIds.length > 0) {
+        fail(
+          `Migration slice board readiness failed before entering 'migration_code_review': incomplete migration slices remain: ${migrationBoardReadiness.incompleteSliceIds.join(", ")}`,
+        )
+      }
+    }
+
     const requiredGate = getTransitionGate(state.mode, state.current_stage, targetStage)
     if (requiredGate && state.approvals[requiredGate].status !== "approved") {
       fail(`Cannot advance from '${state.current_stage}' to '${targetStage}' until gate '${requiredGate}' is approved`)
@@ -2986,6 +3328,12 @@ function advanceStage(targetStage, customStatePath) {
     }
 
     if (targetStage === "migration_done") {
+      if (migrationBoardReadiness.present && migrationBoardReadiness.incompleteSliceIds.length > 0) {
+        fail(
+          `Migration slice board readiness failed before entering 'migration_done': incomplete migration slices remain: ${migrationBoardReadiness.incompleteSliceIds.join(", ")}`,
+        )
+      }
+
       assertStageExitReadiness(state)
     }
 
@@ -3216,15 +3564,19 @@ module.exports = {
   addReleaseWorkItem,
   assignMigrationQaOwner,
   assignQaOwner,
+  cancelBackgroundRun,
   clearIssues,
   clearVerificationEvidence,
   claimTask,
   claimMigrationSlice,
+  completeBackgroundRun,
   createTask,
   createMigrationSlice,
   createReleaseCandidate,
   createWorkItem,
   ESCALATION_RETRY_THRESHOLD,
+  getBackgroundRun,
+  getBackgroundRuns,
   getContractConsistencyReport,
   getInstallManifest,
   getIssueAgingReport,
@@ -3273,6 +3625,7 @@ module.exports = {
   setRoutingProfile,
   setTaskStatus,
   setApproval,
+  startBackgroundRun,
   updateIssueStatus,
   showState,
   showReleaseCandidate,

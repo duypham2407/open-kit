@@ -44,10 +44,19 @@ approval_gate: strategy_to_upgrade
 
 - parallel_mode: `none | limited | enabled`
 - why:
-- safe_parallel_zones:
-- sequential_constraints:
+- safe_parallel_zones: []
+- sequential_constraints: []
 - integration_checkpoint:
 - max_active_execution_tracks:
+
+Notes:
+
+- `safe_parallel_zones` should be repo-relative artifact path-prefix allowlists such as `src/migrations/` or `src/adapters/legacy-api/`.
+- The current runtime evaluates `safe_parallel_zones` against task or slice `artifact_refs` for `parallel_limited` overlap control.
+- If a task or slice falls outside declared zone coverage, it should remain sequential or the solution package should be updated before overlap is allowed.
+- `sequential_constraints` may record intended ordered chains such as `SLICE-BASELINE -> SLICE-ADAPTERS -> SLICE-PARITY`.
+- Current runtime enforcement of `sequential_constraints` applies only to full-delivery task boards.
+- For migration slices today, record explicit slice `depends_on` edges for any order that must be enforced at runtime.
 
 ## Migration Slice Rules
 

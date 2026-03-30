@@ -10,6 +10,7 @@ Use this matrix when you are unsure which OpenKit command surface owns a task.
 | inspect install and workspace readiness | operator | `openkit doctor` |
 | preview safest onboarding path | operator | `openkit onboard` |
 | choose the workflow lane in-session | operator | `/task` |
+| plan browser verification in-session | operator | `/browser-verify` |
 | directly enter quick lane | operator | `/quick-task` |
 | directly enter migration lane | operator | `/migrate` |
 | directly enter full lane | operator | `/delivery` |
@@ -52,3 +53,4 @@ Use this matrix when you are unsure which OpenKit command surface owns a task.
 - `openkit doctor` is not a replacement for `node .opencode/workflow-state.js doctor`
 - `node .opencode/workflow-state.js show` is not the preferred first command for operators
 - `/task` chooses the lane; it does not replace install or launch commands
+- `/browser-verify`, `/start-work`, `/handoff`, `/stop-continuation`, and `/refactor` are runtime/product ergonomics; they do not mutate workflow approvals or completion state by themselves

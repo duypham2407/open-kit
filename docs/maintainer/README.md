@@ -39,6 +39,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - Runtime layering principles: `docs/maintainer/2026-03-runtime-layering-principles.md`
 - Hybrid runtime RFC: `docs/architecture/2026-03-hybrid-runtime-rfc.md`
 - Capability matrix: `docs/architecture/2026-03-capability-matrix-openkit-vs-omoa.md`
+- Completion roadmap: `docs/architecture/2026-03-openkit-completion-roadmap.md`
 - Governance policy: `docs/governance/README.md`
 - Operations and diagnostics: `docs/operations/README.md`
 - Release workflow smoke tests: `docs/operations/runbooks/release-workflow-smoke-tests.md`

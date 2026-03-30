@@ -27,6 +27,8 @@ test('listRuntimeCapabilities exposes foundation capabilities by default', () =>
   assert.ok(capabilities.some((entry) => entry.id === 'capability.runtime-bootstrap'));
   assert.ok(capabilities.some((entry) => entry.id === 'capability.manager-layer'));
   assert.ok(capabilities.some((entry) => entry.id === 'capability.tool-registry'));
+  assert.ok(capabilities.some((entry) => entry.id === 'capability.session-tooling'));
+  assert.ok(capabilities.some((entry) => entry.id === 'capability.continuation-control'));
 });
 
 test('listRuntimeCapabilities respects disabled capability ids and feature flags', () => {
@@ -64,6 +66,7 @@ test('createCapabilityIndex and getRuntimeCapability expose runtime capability m
   const capabilityIndex = createCapabilityIndex({ config });
 
   assert.equal(capabilityIndex['capability.runtime-config-layering'].status, 'active');
+  assert.equal(capabilityIndex['capability.background-execution'].status, 'foundation');
   assert.equal(
     getRuntimeCapability('capability.capability-registry', { config })?.category,
     'foundation'

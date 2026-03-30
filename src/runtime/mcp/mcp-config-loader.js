@@ -16,11 +16,13 @@ export function loadMcpConfig({ projectRoot = process.cwd(), env = process.env }
     return {
       path: candidate,
       config: JSON.parse(replaceEnvPlaceholders(fs.readFileSync(candidate, 'utf8'), env)),
+      source: path.basename(candidate),
     };
   }
 
   return {
     path: null,
     config: null,
+    source: null,
   };
 }

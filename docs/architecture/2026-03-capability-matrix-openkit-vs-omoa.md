@@ -25,6 +25,24 @@ This document records the runtime capability gaps OpenKit is closing through the
 | Productivity commands | moderate | strong |
 | Operational skills | limited | strong |
 
+## Current Implemented Delta
+
+OpenKit has now materially improved several runtime families without replacing the workflow kernel:
+
+- Diagnostics and doctor:
+  - runtime and global doctor now surface task-board-aware orchestration health
+  - blocked vs waiting vs dispatchable states are distinguished explicitly
+  - doctor remains read-only and does not materialize workspace state in clean workspaces
+- Recovery and continuation:
+  - continuation risk includes missing verification evidence, open issues, and stalled boards
+  - recovery now returns actionable recommendations rather than only a resumable flag
+- Background execution and delegation:
+  - delegated implementation runs round-trip task ownership and status through workflow state
+  - QA handoff can be routed without spawning a background run
+  - supervisor now distinguishes dependency-queued, parallel-cap-queued, integration-checkpoint wait, and stage-advance wait conditions
+
+Remaining maturity work is still mostly about deeper heuristics and operator polish, not architectural replacement.
+
 ## Implementation Rule
 
 Capability parity does not justify losing OpenKit's current strengths:

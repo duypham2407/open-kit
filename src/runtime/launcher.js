@@ -47,6 +47,15 @@ export function launchManagedOpenCode(
     throw result.error;
   }
 
+  runtimeFoundation.managers.sessionStateManager?.recordRuntimeSession({
+    launcher: 'managed',
+    workflowKernel: runtimeFoundation.managers.workflowKernel,
+    backgroundManager: runtimeFoundation.managers.backgroundManager,
+    continuationStateManager: runtimeFoundation.managers.continuationStateManager,
+    args,
+    exitCode: typeof result.status === 'number' ? result.status : 1,
+  });
+
   return {
     exitCode: typeof result.status === 'number' ? result.status : 1,
     stdout: result.stdout ?? '',

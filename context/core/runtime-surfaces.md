@@ -29,3 +29,10 @@ Use this file to keep the product path, in-session path, and compatibility runti
 
 - `openkit doctor` is the right answer before launch
 - `node .opencode/workflow-state.js resume-summary` is the right answer once workflow state already exists and you need the next safe action
+
+## Runtime Depth
+
+- session tooling: runtime session history, targeted session search, and resumability analysis live in the additive runtime layer
+- continuation tooling: start, handoff, stop, and status are runtime controls only; they do not approve gates or advance workflow stages
+- browser verification: `/browser-verify` and browser-oriented runtime tools plan verification and evidence capture, but they do not declare QA complete
+- LSP, AST, and safer-edit tooling are additive execution aids; they must stay honest about degraded or preview-only status when full external dependencies are unavailable

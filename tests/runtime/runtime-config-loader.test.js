@@ -111,3 +111,115 @@ test('loadRuntimeConfig throws a clear error for invalid config shape', () => {
     /disabled\.tools must be an array/i
   );
 });
+
+test('loadRuntimeConfig migrates legacy runtime config keys', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+
+  writeText(
+    projectConfigPath,
+    `{
+      "disabled_tools": ["tool.workflow-state"],
+      "background_task": {
+        "enabled": true
+      },
+      "mcp": {
+        "builtin": {
+          "websearch": true
+        }
+      }
+    }`
+  );
+
+  const result = loadRuntimeConfig({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  assert.deepEqual(result.config.disabled.tools, ['tool.workflow-state']);
+  assert.equal(result.config.backgroundTask.enabled, true);
+  assert.equal(result.config.mcps.builtin.websearch, true);
+  assert.match(result.warnings.join('\n'), /disabled_tools -> disabled\.tools/);
+  assert.match(result.warnings.join('\n'), /background_task -> backgroundTask/);
+  assert.match(result.warnings.join('\n'), /mcp -> mcps/);
+});
+
+test('loadRuntimeConfig materializes file-based prompt references for agents and categories', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+  const promptPath = path.join(projectRoot, 'prompts', 'specialist.md');
+  const categoryPromptPath = path.join(projectRoot, 'prompts', 'deep-category.md');
+
+  writeText(promptPath, 'You are a custom Oracle prompt.');
+  writeText(categoryPromptPath, 'Favor deliberate deep reasoning.');
+  writeText(
+    projectConfigPath,
+    `{
+      "agents": {
+        "specialist.oracle": {
+          "prompt": "file://./prompts/specialist.md"
+        }
+      },
+      "categories": {
+        "deep": {
+          "prompt_append": "file://./prompts/deep-category.md"
+        }
+      }
+    }`
+  );
+
+  const result = loadRuntimeConfig({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  assert.equal(result.config.agents['specialist.oracle'].prompt, 'You are a custom Oracle prompt.');
+  assert.equal(result.config.categories.deep.prompt_append, 'Favor deliberate deep reasoning.');
+});
+
+test('loadRuntimeConfig validates richer agent and category model settings', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+
+  writeText(
+    projectConfigPath,
+    `{
+      "agents": {
+        "specialist.oracle": {
+          "fallback_models": [{ "variant": "high" }]
+        }
+      }
+    }`
+  );
+
+  assert.throws(
+    () => loadRuntimeConfig({ projectRoot, env: { HOME: makeTempDir() } }),
+    /fallback_models entries must be non-empty strings or objects with a non-empty model field/i
+  );
+});
+
+test('loadRuntimeConfig validates hook settings', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+
+  writeText(
+    projectConfigPath,
+    `{
+      "hooks": {
+        "toolOutputTruncation": {
+          "maxChars": 0
+        },
+        "rulesInjector": {
+          "byMode": {
+            "full": ["", 1]
+          }
+        }
+      }
+    }`
+  );
+
+  assert.throws(
+    () => loadRuntimeConfig({ projectRoot, env: { HOME: makeTempDir() } }),
+    /hooks\.toolOutputTruncation\.maxChars must be a positive integer|hooks\.rulesInjector\.byMode\.full entries must be non-empty strings/i
+  );
+});

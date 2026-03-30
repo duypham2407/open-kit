@@ -1,13 +1,10 @@
-import path from 'node:path';
-
-export function createRuntimeSummaryTool({ projectRoot }) {
+export function createRuntimeSummaryTool({ workflowKernel }) {
   return {
     id: 'tool.runtime-summary',
-    execute() {
-      return {
-        projectRoot,
-        runtimeSummaryPath: path.join(projectRoot, '.opencode', 'lib', 'runtime-summary.js'),
-      };
+    description: 'Reads workflow-backed runtime summary',
+    execute(input = {}) {
+      const customStatePath = input?.customStatePath ?? null;
+      return workflowKernel.showRuntimeStatus(customStatePath)?.runtimeContext ?? null;
     },
   };
 }

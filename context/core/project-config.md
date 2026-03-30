@@ -161,6 +161,9 @@ Current workflow-state behavior:
 - Migration remains sequential by default; migration slice execution, when enabled, is strategy-driven and parity-oriented rather than a copy of the full-delivery task board.
 - Runtime foundation phase 1 currently exposes config, capability, manager, tool, and hook metadata rather than a full MCP or background execution layer.
 - The checked-in runtime now also includes thin foundation implementations for background execution, MCP loading, categories, specialists, skills, commands, context injection, and recovery. These surfaces are intentionally lightweight but real and testable.
+- Runtime config now supports category and specialist overrides for `model`, `fallback_models`, prompt append data, and related model-shaping fields through `.opencode/openkit.runtime.jsonc`.
+- `file://` prompt references are supported in runtime config for agent `prompt`, agent `prompt_append`, and category `prompt_append` values.
+- Runtime doctor now exposes model-resolution trace data so maintainers can inspect where a resolved model came from and which fallback entries are available.
 
 ## Global Kit Contract
 
@@ -199,6 +202,7 @@ Validation split to keep explicit:
 - If suitable test tooling exists, add focused tests only where they clarify behavior during the migration; do not force greenfield TDD semantics onto broad upgrades by default.
 - If no repo-native validation commands exist, state the missing validation path and record manual before/after evidence honestly.
 - Before `migration_done`, keep parity or compatibility evidence inspectable in workflow state.
+- If a migration slice board is in use, keep it aligned with stage readiness: unresolved or active slices block `migration_code_review`, and slices must be `verified` or `cancelled` before `migration_done`.
 
 ## Future Update Rule
 

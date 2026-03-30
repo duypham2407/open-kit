@@ -25,7 +25,20 @@ export function createDefaultRuntimeConfig() {
     },
     agents: {},
     categories: {},
-    hooks: {},
+    hooks: {
+      continuationRuntime: {
+        attentionOnRisk: true,
+      },
+      toolOutputTruncation: {
+        maxChars: 12000,
+        maxItems: 200,
+      },
+      rulesInjector: {
+        always: [],
+        byMode: {},
+        byCategory: {},
+      },
+    },
     tools: {},
     skills: {},
     commands: {},

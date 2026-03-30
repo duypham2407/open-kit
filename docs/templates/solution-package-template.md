@@ -29,6 +29,22 @@ approval_gate: solution_to_fullstack
 
 ## Parallelization Assessment
 
+- parallel_mode: `none | limited | enabled`
+- why:
+- safe_parallel_zones: []
+- sequential_constraints: []
+- integration_checkpoint:
+- max_active_execution_tracks:
+
+Notes:
+
+- `safe_parallel_zones` should be repo-relative artifact path-prefix allowlists such as `src/billing/` or `src/ui/settings/`.
+- The current runtime evaluates `safe_parallel_zones` against task `artifact_refs` for `parallel_limited` overlap control.
+- If a task falls outside declared zone coverage, it should remain sequential or the solution package should be updated before overlap is allowed.
+- `sequential_constraints` should use ordered task-chain strings such as `TASK-API -> TASK-CONSUMER -> TASK-QA`.
+- The current runtime applies `sequential_constraints` to full-delivery task boards as effective dependency overlays.
+- Tasks named later in a chain should stay queued until the earlier task order is satisfied.
+
 ## Validation Matrix
 
 ## Integration Checkpoint

@@ -19,6 +19,32 @@ function renderLaneGuidance() {
   return lines.join('\n');
 }
 
+function renderCapabilityGuidance(doctor) {
+  const lines = ['Capability-guided next steps:'];
+  const toolFamilies = doctor.runtimeDoctor?.capabilities?.toolFamilies ?? [];
+  const browser = toolFamilies.find((entry) => entry.family === 'browser');
+  const lsp = toolFamilies.find((entry) => entry.family === 'lsp');
+  const continuation = doctor.runtimeFoundation?.runtimeInterface?.runtimeState?.continuation ?? null;
+
+  if (browser) {
+    lines.push(`- browser verification: ${browser.active > 0 ? 'available' : 'degraded'} via /browser-verify and the browser-automation skill`);
+  }
+  if (lsp) {
+    lines.push(`- code intelligence: heuristic LSP tools are available for symbols, references, diagnostics, and rename preview`);
+  }
+  if (continuation) {
+    lines.push(`- continuation control: status=${continuation.status}, remaining actions=${continuation.remainingActionCount ?? 0}`);
+  }
+
+  const commandCount = doctor.runtimeDoctor?.commands?.length ?? 0;
+  const skillCount = doctor.runtimeDoctor?.skills?.length ?? 0;
+  if (commandCount > 0 || skillCount > 0) {
+    lines.push(`- compatibility loading: ${commandCount} commands and ${skillCount} skills were discovered from the current workspace/profile scopes`);
+  }
+
+  return lines.join('\n');
+}
+
 export const onboardCommand = {
   name: 'onboard',
   async run(args = [], io) {
@@ -60,6 +86,11 @@ export const onboardCommand = {
     lines.push('- Use `openkit configure-agent-models --interactive` if you want agent-specific models before launch.');
     lines.push('');
     lines.push(renderLaneGuidance());
+
+    if (doctor.runtimeDoctor) {
+      lines.push('');
+      lines.push(renderCapabilityGuidance(doctor));
+    }
 
     if (doctor.issues.length > 0) {
       lines.push('');

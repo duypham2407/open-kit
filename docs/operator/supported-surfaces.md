@@ -13,6 +13,7 @@ Use this document to understand which OpenKit surfaces are intended for end user
 | `openkit configure-agent-models` | supported | operators | saving per-agent provider/model overrides | global to the current OpenCode home |
 | `openkit onboard` | supported | operators | getting the safest first-run path without launching immediately | onboarding helper |
 | `openkit release ...` | supported | maintainers | preparing, verifying, and publishing OpenKit releases | maintainer-only workflow |
+| `/browser-verify` | supported in-session | operators | planning browser verification and evidence capture | depends on runtime/browser provider availability |
 | `node .opencode/workflow-state.js ...` | supported compatibility surface | maintainers | lower-level runtime inspection and work-item/task-board operations | checked-in runtime path |
 | `.opencode/workflow-state.json` | supported compatibility mirror | maintainers/runtime tooling | active work-item mirror state | external mirror over managed backing store |
 | `.opencode/work-items/` | supported internal backing store | maintainers/runtime tooling | per-item managed state and full-delivery task boards | not an operator onboarding surface |
@@ -39,3 +40,4 @@ If workflow state already exists and you need the next safe action, use `node .o
 - Quick and migration work stay task-board free.
 - Full-delivery work may carry task boards, but parallel support stays bounded by the runtime commands and validations that actually exist.
 - `openkit doctor` answers product/workspace readiness questions; `node .opencode/workflow-state.js doctor` answers workflow-runtime integrity questions.
+- continuation controls and richer inspection tools are additive runtime aids; they never replace workflow approvals, evidence gates, or explicit stage ownership.

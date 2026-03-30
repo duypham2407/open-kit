@@ -7,6 +7,11 @@ import { getGlobalPaths, getWorkspacePaths } from './paths.js';
 import { isCommandAvailable } from '../command-detection.js';
 import { DEFAULT_ENTRY_COMMAND, getCommandInstructionContract } from '../runtime/instruction-contracts.js';
 import { bootstrapRuntimeFoundation } from '../runtime/index.js';
+import { inspectBackgroundDoctor } from '../runtime/doctor/background-doctor.js';
+import { inspectCapabilityDoctor } from '../runtime/doctor/capability-doctor.js';
+import { inspectMcpDoctor } from '../runtime/doctor/mcp-doctor.js';
+import { inspectModelDoctor } from '../runtime/doctor/model-doctor.js';
+import { inspectWorkflowDoctor } from '../runtime/doctor/workflow-doctor.js';
 import { readAgentModelSettings } from './agent-models.js';
 
 function isOpenCodeAvailable(env = process.env) {
@@ -27,6 +32,7 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
   const globalInstallState = readJsonIfPresent(globalPaths.installStatePath);
   const profileManifest = readJsonIfPresent(globalPaths.profileManifestPath);
   let runtimeFoundation = null;
+  let runtimeDoctor = null;
 
   const issues = [];
 
@@ -69,9 +75,27 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
   }
 
   const workspace = inspectWorkspaceMeta({ projectRoot, env });
+  const runtimeBootstrapEnv = {
+    ...env,
+    OPENKIT_GLOBAL_MODE: '1',
+    OPENKIT_PROJECT_ROOT: workspacePaths.projectRoot,
+    OPENKIT_WORKFLOW_STATE: workspacePaths.workflowStatePath,
+    OPENKIT_KIT_ROOT: globalPaths.kitRoot,
+  };
 
   try {
-    runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot, env });
+    runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot, env: runtimeBootstrapEnv, mode: 'read-only' });
+    runtimeDoctor = {
+      workflow: inspectWorkflowDoctor(runtimeFoundation?.managers?.workflowKernel),
+      capabilities: inspectCapabilityDoctor(runtimeFoundation),
+      background: inspectBackgroundDoctor(runtimeFoundation?.managers?.backgroundManager, runtimeFoundation?.managers?.workflowKernel),
+      mcp: inspectMcpDoctor(runtimeFoundation?.mcpPlatform),
+      models: inspectModelDoctor(runtimeFoundation?.modelRuntime),
+      continuation: runtimeFoundation?.runtimeInterface?.runtimeState?.recovery ?? null,
+      commands: runtimeFoundation?.commands ?? [],
+      skills: runtimeFoundation?.skills?.skills ?? [],
+      toolFamilies: runtimeFoundation?.tools?.toolFamilies ?? [],
+    };
   } catch (error) {
     issues.push(`Runtime foundation error: ${error.message}`);
   }
@@ -83,6 +107,7 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
     workspacePaths,
     workspace,
     runtimeFoundation,
+    runtimeDoctor,
     issues,
   }, issues.length === 0 ? 'Run openkit run.' : 'Review the issues above before relying on this workspace.', issues.length === 0 ? 'openkit run' : null);
 }
@@ -117,11 +142,141 @@ export function renderGlobalDoctorSummary(result) {
     lines.push(
       `Runtime foundation: v${runtimeInterface.foundationVersion} | capabilities ${runtimeInterface.capabilitySummary.total} | managers ${runtimeInterface.managers.filter((entry) => entry.enabled).length} | tools ${runtimeInterface.tools.length} | hooks ${runtimeInterface.hooks.length}`
     );
-
-    if (runtimeInterface.configPaths.project || runtimeInterface.configPaths.user) {
       lines.push(
+        `Runtime sessions: ${runtimeInterface.runtimeState.persistedSessions} | background runs: ${runtimeInterface.runtimeState.backgroundRuns} | skill MCP bindings: ${runtimeInterface.runtimeState.skillMcpBindings}`
+      );
+
+      if (runtimeInterface.runtimeState.continuation) {
+        lines.push(
+          `Continuation state: ${runtimeInterface.runtimeState.continuation.status} | remaining=${runtimeInterface.runtimeState.continuation.remainingActionCount ?? 0} | stop=${runtimeInterface.runtimeState.continuation.stoppedReason ?? 'none'}`
+        );
+      }
+
+      if (runtimeInterface.configPaths.project || runtimeInterface.configPaths.user) {
+        lines.push(
         `Runtime config: project=${runtimeInterface.configPaths.project ?? 'none'} | user=${runtimeInterface.configPaths.user ?? 'none'}`
       );
+    }
+  }
+
+  if (result.runtimeDoctor?.workflow) {
+    const workflow = result.runtimeDoctor.workflow;
+    lines.push(
+      `Workflow runtime: ${workflow.status} | mode=${workflow.mode ?? 'none'} | stage=${workflow.stage ?? 'none'} | active=${workflow.activeWorkItemId ?? 'none'}`
+    );
+
+    if (workflow.taskBoardSummary) {
+      lines.push(
+        `Task board: total=${workflow.taskBoardSummary.total} | ready=${workflow.taskBoardSummary.ready} | active=${workflow.taskBoardSummary.active}`
+      );
+
+      if ((workflow.taskBoardSummary.dispatchable ?? 0) > 0) {
+        lines.push(`Dispatchable tasks: ${workflow.taskBoardSummary.dispatchableTaskIds.join(', ')}`);
+      }
+
+      if ((workflow.taskBoardSummary.dependencyBlocked ?? 0) > 0) {
+        lines.push(`Dependency-blocked tasks: ${workflow.taskBoardSummary.dependencyBlockedTaskIds.join(', ')}`);
+      }
+
+      if ((workflow.taskBoardSummary.sequentialConstraintQueuedTaskIds ?? []).length > 0) {
+        const queuedTaskId = workflow.taskBoardSummary.sequentialConstraintQueuedTaskIds[0];
+        const sequentialDeps = workflow.taskBoardSummary.sequentialConstraintDepsByTaskId?.[queuedTaskId] ?? [];
+        lines.push(
+          `Sequential-constraint waits: ${queuedTaskId}${sequentialDeps.length > 0 ? ` <- ${sequentialDeps.join(', ')}` : ''}`
+        );
+      }
+
+      if ((workflow.taskBoardSummary.qaPending ?? 0) > 0) {
+        lines.push(`QA-pending tasks: ${workflow.taskBoardSummary.qaPendingTaskIds.join(', ')}`);
+      }
+
+      if ((workflow.taskBoardSummary.sharedArtifactQueuedTaskIds ?? []).length > 0) {
+        const queuedTaskId = workflow.taskBoardSummary.sharedArtifactQueuedTaskIds[0];
+        const conflictingTaskIds = workflow.taskBoardSummary.sharedArtifactConflictTaskIdsByTaskId?.[queuedTaskId] ?? [];
+        const conflictingArtifactRefs = workflow.taskBoardSummary.sharedArtifactConflictRefsByTaskId?.[queuedTaskId] ?? [];
+        lines.push(
+          `Shared-artifact waits: ${queuedTaskId}${conflictingTaskIds.length > 0 ? ` <- ${conflictingTaskIds.join(', ')}` : ''}${conflictingArtifactRefs.length > 0 ? ` | refs=${conflictingArtifactRefs.join(', ')}` : ''}`
+        );
+      }
+    }
+
+    if (workflow.migrationSliceSummary) {
+      lines.push(
+        `Migration slices: total=${workflow.migrationSliceSummary.total} | ready=${workflow.migrationSliceSummary.ready} | active=${workflow.migrationSliceSummary.active} | blocked=${workflow.migrationSliceSummary.blocked} | verified=${workflow.migrationSliceSummary.verified} | incomplete=${workflow.migrationSliceSummary.incomplete ?? 0}`
+      );
+
+      if ((workflow.migrationSliceSummary.activeSliceIds ?? []).length > 0) {
+        lines.push(`Active migration slices: ${workflow.migrationSliceSummary.activeSliceIds.join(', ')}`);
+      }
+
+      if ((workflow.migrationSliceSummary.blockedSliceIds ?? []).length > 0) {
+        lines.push(`Blocked migration slices: ${workflow.migrationSliceSummary.blockedSliceIds.join(', ')}`);
+      }
+    }
+
+    if (workflow.migrationSliceReadiness?.nextGate) {
+      lines.push(
+        `Migration slice readiness: ${workflow.migrationSliceReadiness.status} | next gate=${workflow.migrationSliceReadiness.nextGate} | blocked=${workflow.migrationSliceReadiness.nextGateBlocked ? 'yes' : 'no'}`
+      );
+
+      for (const blocker of workflow.migrationSliceReadiness.blockers ?? []) {
+        lines.push(`Migration slice blocker: ${blocker}`);
+      }
+    }
+
+    if (workflow.migrationSliceBoardPresent && workflow.migrationSliceBoardValid === false) {
+      lines.push(`Migration slice board: invalid | ${workflow.migrationSliceBoardError ?? 'unknown error'}`);
+    } else if (workflow.migrationSliceBoardPresent && workflow.migrationSliceBoardValid === true) {
+      lines.push('Migration slice board: valid');
+    }
+
+    if (workflow.orchestrationHealth?.reason) {
+      lines.push(
+        `Orchestration health: ${workflow.orchestrationHealth.blocked ? 'blocked' : workflow.orchestrationHealth.dispatchable ? 'dispatchable' : 'waiting'} | ${workflow.orchestrationHealth.reason}`
+      );
+    }
+
+    if (workflow.orchestrationHealth?.recommendedAction) {
+      lines.push(`Workflow recommendation: ${workflow.orchestrationHealth.recommendedAction}`);
+    }
+
+    if (workflow.backgroundRunSummary) {
+      lines.push(
+        `Workflow background runs: total=${workflow.backgroundRunSummary.total} | running=${workflow.backgroundRunSummary.running} | completed=${workflow.backgroundRunSummary.completed} | cancelled=${workflow.backgroundRunSummary.cancelled}`
+      );
+
+      if ((workflow.backgroundRunSummary.staleLinkedRunIds ?? []).length > 0) {
+        lines.push(`Stale linked runs: ${workflow.backgroundRunSummary.staleLinkedRunIds.join(', ')}`);
+      }
+
+      if ((workflow.backgroundRunSummary.longRunningRunIds ?? []).length > 0) {
+        lines.push(`Long-running runs: ${workflow.backgroundRunSummary.longRunningRunIds.join(', ')}`);
+      }
+    }
+  }
+
+  if (result.runtimeFoundation?.runtimeInterface?.runtimeState?.recovery) {
+    const recovery = result.runtimeFoundation.runtimeInterface.runtimeState.recovery;
+    if (Array.isArray(recovery.continuationRisk) && recovery.continuationRisk.length > 0) {
+      lines.push(`Continuation risk: ${recovery.continuationRisk.join(', ')}`);
+    }
+
+    if (recovery.recommendedAction) {
+      lines.push(`Continuation recommendation: ${recovery.recommendedAction}`);
+    }
+  }
+
+  if (result.runtimeDoctor?.capabilities?.toolFamilies?.length) {
+    const familySummary = result.runtimeDoctor.capabilities.toolFamilies
+      .map((entry) => `${entry.family}:${entry.total}/${entry.active}/${entry.degraded}`)
+      .join(', ');
+    lines.push(`Tool families (total/active/degraded): ${familySummary}`);
+  }
+
+  if (result.runtimeDoctor?.commands?.length) {
+    const browserCommand = result.runtimeDoctor.commands.find((entry) => entry.name === '/browser-verify');
+    if (browserCommand) {
+      lines.push(`Compatibility commands loaded: ${result.runtimeDoctor.commands.length} | browser verification path available`);
     }
   }
 

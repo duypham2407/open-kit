@@ -3,7 +3,7 @@
   "registryVersion": 1,
   "kit": {
     "name": "OpenKit AI Software Factory",
-    "version": "0.3.6",
+    "version": "0.3.7",
     "description": "Local component metadata for the checked-in OpenKit repository and the global-kit compatibility surface.",
     "repositoryRoot": ".",
     "productSurface": {
@@ -273,6 +273,14 @@
         "audience": "operator",
         "surface": "in-session",
         "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "command.browser-verify",
+        "name": "/browser-verify",
+        "path": "commands/browser-verify.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
       }
     ],
     "artifacts": [
@@ -430,8 +438,71 @@
         "id": "capability.background-execution",
         "name": "Background Execution",
         "path": "src/runtime/background/",
-        "status": "planned",
-        "category": "planned"
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.category-routing",
+        "name": "Category Routing",
+        "path": "src/runtime/categories/",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.specialist-agents",
+        "name": "Specialist Agents",
+        "path": "src/runtime/specialists/",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.recovery-stack",
+        "name": "Recovery Stack",
+        "path": "src/runtime/recovery/",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.session-tooling",
+        "name": "Session Tooling",
+        "path": "src/runtime/tools/session/",
+        "status": "active",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.continuation-control",
+        "name": "Continuation Control",
+        "path": "src/runtime/managers/continuation-state-manager.js",
+        "status": "active",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.browser-automation",
+        "name": "Browser Automation",
+        "path": "src/runtime/tools/browser/",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.safer-editing",
+        "name": "Safer Editing",
+        "path": "src/runtime/tools/edit/",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.ast-tooling",
+        "name": "AST Tooling",
+        "path": "src/runtime/tools/ast/",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.lsp-tooling",
+        "name": "LSP Tooling",
+        "path": "src/runtime/tools/lsp/",
+        "status": "foundation",
+        "category": "runtime"
       }
     ],
     "managers": [
@@ -451,44 +522,122 @@
         "id": "manager.skill-mcp",
         "name": "Skill MCP Manager",
         "path": "src/runtime/create-managers.js",
-        "status": "planned"
+        "status": "foundation"
+      },
+      {
+        "id": "manager.continuation-state",
+        "name": "Continuation State Manager",
+        "path": "src/runtime/create-managers.js",
+        "status": "foundation"
       },
       {
         "id": "manager.notifications",
         "name": "Notification Manager",
         "path": "src/runtime/create-managers.js",
-        "status": "planned"
+        "status": "foundation"
       },
       {
         "id": "manager.tmux",
         "name": "Tmux Session Manager",
         "path": "src/runtime/create-managers.js",
-        "status": "planned"
+        "status": "foundation"
       }
     ],
     "runtimeTools": [
       {
         "id": "tool.workflow-state",
         "name": "Workflow State Surface",
-        "path": "src/runtime/create-tools.js",
-        "status": "foundation"
+        "path": "src/runtime/tools/workflow/workflow-state.js",
+        "status": "active"
       },
       {
         "id": "tool.runtime-summary",
         "name": "Runtime Summary Surface",
-        "path": "src/runtime/create-tools.js",
-        "status": "foundation"
+        "path": "src/runtime/tools/workflow/runtime-summary.js",
+        "status": "active"
       },
       {
         "id": "tool.evidence-capture",
         "name": "Evidence Capture Surface",
-        "path": "src/runtime/create-tools.js",
+        "path": "src/runtime/tools/workflow/evidence-capture.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.session-list",
+        "name": "Session List Surface",
+        "path": "src/runtime/tools/session/session-list.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.session-read",
+        "name": "Session Read Surface",
+        "path": "src/runtime/tools/session/session-read.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.session-search",
+        "name": "Session Search Surface",
+        "path": "src/runtime/tools/session/session-search.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.continuation-status",
+        "name": "Continuation Status Surface",
+        "path": "src/runtime/tools/continuation/continuation-status.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.continuation-start",
+        "name": "Continuation Start Surface",
+        "path": "src/runtime/tools/continuation/continuation-start.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.continuation-stop",
+        "name": "Continuation Stop Surface",
+        "path": "src/runtime/tools/continuation/continuation-stop.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.continuation-handoff",
+        "name": "Continuation Handoff Surface",
+        "path": "src/runtime/tools/continuation/continuation-handoff.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.browser-verify",
+        "name": "Browser Verify Surface",
+        "path": "src/runtime/tools/browser/browser-verify.js",
         "status": "foundation"
       },
       {
-        "id": "tool.session-introspection",
-        "name": "Session Introspection Surface",
-        "path": "src/runtime/create-tools.js",
+        "id": "tool.hashline-edit",
+        "name": "Hashline Edit Surface",
+        "path": "src/runtime/tools/edit/hashline-edit.js",
+        "status": "foundation"
+      },
+      {
+        "id": "tool.ast-search",
+        "name": "AST Search Surface",
+        "path": "src/runtime/tools/ast/ast-search.js",
+        "status": "foundation"
+      },
+      {
+        "id": "tool.ast-replace",
+        "name": "AST Replace Surface",
+        "path": "src/runtime/tools/ast/ast-replace.js",
+        "status": "foundation"
+      },
+      {
+        "id": "tool.lsp-diagnostics",
+        "name": "LSP Diagnostics Surface",
+        "path": "src/runtime/tools/lsp/lsp-diagnostics.js",
+        "status": "foundation"
+      },
+      {
+        "id": "tool.lsp-symbols",
+        "name": "LSP Symbols Surface",
+        "path": "src/runtime/tools/lsp/lsp-symbols.js",
         "status": "foundation"
       }
     ],

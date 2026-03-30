@@ -5,6 +5,12 @@ import { validateInstallState } from '../install/install-state.js';
 import { discoverProjectShape } from '../install/discovery.js';
 import { isCommandAvailable } from '../command-detection.js';
 import { bootstrapRuntimeFoundation } from './index.js';
+import { inspectBackgroundDoctor } from './doctor/background-doctor.js';
+import { inspectCapabilityDoctor } from './doctor/capability-doctor.js';
+import { inspectInstallDoctor } from './doctor/install-doctor.js';
+import { inspectMcpDoctor } from './doctor/mcp-doctor.js';
+import { inspectModelDoctor } from './doctor/model-doctor.js';
+import { inspectWorkflowDoctor } from './doctor/workflow-doctor.js';
 
 const EXPECTED_MANAGED_ASSETS = {
   'runtime.opencode-manifest': {
@@ -264,7 +270,7 @@ export function inspectManagedDoctor({
   let runtimeFoundationIssue = null;
 
   try {
-    runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot: resolvedProjectRoot, env });
+    runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot: resolvedProjectRoot, env, mode: 'read-only' });
   } catch (error) {
     runtimeFoundationIssue = `Runtime foundation error: ${error.message}`;
   }
@@ -297,5 +303,21 @@ export function inspectManagedDoctor({
     runtimeManifestPath,
     installStatePath,
     runtimeFoundation,
+    runtimeDoctor: {
+      install: inspectInstallDoctor({
+        classification,
+        rootManifestPath,
+        runtimeManifestPath,
+      }),
+      workflow: inspectWorkflowDoctor(runtimeFoundation?.managers?.workflowKernel),
+      capabilities: inspectCapabilityDoctor(runtimeFoundation),
+      background: inspectBackgroundDoctor(runtimeFoundation?.managers?.backgroundManager, runtimeFoundation?.managers?.workflowKernel),
+      mcp: inspectMcpDoctor(runtimeFoundation?.mcpPlatform),
+      models: inspectModelDoctor(runtimeFoundation?.modelRuntime),
+      continuation: runtimeFoundation?.runtimeInterface?.runtimeState?.recovery ?? null,
+      toolFamilies: runtimeFoundation?.tools?.toolFamilies ?? [],
+      commands: runtimeFoundation?.commands ?? [],
+      skills: runtimeFoundation?.skills?.skills ?? [],
+    },
   };
 }

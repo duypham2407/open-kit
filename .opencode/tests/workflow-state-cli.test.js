@@ -34,7 +34,7 @@ function setupTempRuntime(projectRoot) {
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
-        version: "0.3.6",
+        version: "0.3.7",
         entryAgent: "MasterOrchestrator",
         registry: {
           path: "registry.json",
@@ -193,6 +193,21 @@ function writeTaskBoard(projectRoot, workItemId, board) {
   fs.writeFileSync(boardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
 }
 
+function writeMigrationSliceBoard(projectRoot, workItemId, board) {
+  const boardPath = path.join(projectRoot, ".opencode", "work-items", workItemId, "migration-slices.json")
+  fs.mkdirSync(path.dirname(boardPath), { recursive: true })
+  fs.writeFileSync(boardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
+}
+
+function writeBackgroundRuns(projectRoot, runs) {
+  const dir = path.join(projectRoot, ".opencode", "background-runs")
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, "index.json"), `${JSON.stringify({ runs }, null, 2)}\n`, "utf8")
+  for (const run of runs) {
+    fs.writeFileSync(path.join(dir, `${run.run_id}.json`), `${JSON.stringify({ ...run, output: null }, null, 2)}\n`, "utf8")
+  }
+}
+
 function makeFullTaskBoard(overrides = {}) {
   return {
     mode: "full",
@@ -255,6 +270,94 @@ function makeFullTaskBoard(overrides = {}) {
   }
 }
 
+function makeMigrationSliceBoard(overrides = {}) {
+  return {
+    mode: "migration",
+    current_stage: "migration_strategy",
+    parallel_mode: "limited",
+    slices: [
+      {
+        slice_id: "SLICE-BOARD-1",
+        title: "Create compatibility seam",
+        summary: "Active migration slice for summary coverage",
+        kind: "compatibility",
+        status: "in_progress",
+        primary_owner: "FullstackAgent",
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/adapters/seam.ts"],
+        preserved_invariants: ["existing runtime behavior"],
+        compatibility_risks: ["seam drift"],
+        verification_targets: ["parity smoke"],
+        rollback_notes: ["revert seam changes"],
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+      {
+        slice_id: "SLICE-BOARD-2",
+        title: "Adopt compatibility seam",
+        summary: "Independent ready migration slice for summary coverage",
+        kind: "compatibility",
+        status: "ready",
+        primary_owner: null,
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/consumers/seam-user.ts"],
+        preserved_invariants: ["existing runtime behavior"],
+        compatibility_risks: ["consumer mismatch"],
+        verification_targets: ["parity smoke"],
+        rollback_notes: ["revert consumer changes"],
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+      {
+        slice_id: "SLICE-BOARD-3",
+        title: "Verify seam parity",
+        summary: "Blocked migration slice for summary coverage",
+        kind: "verification",
+        status: "blocked",
+        primary_owner: null,
+        qa_owner: null,
+        depends_on: ["SLICE-BOARD-1"],
+        blocked_by: ["SLICE-BOARD-2"],
+        artifact_refs: ["docs/qa/migration-parity.md"],
+        preserved_invariants: ["existing runtime behavior"],
+        compatibility_risks: ["parity gap"],
+        verification_targets: ["parity smoke"],
+        rollback_notes: ["hold verification rollout"],
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+      {
+        slice_id: "SLICE-BOARD-4",
+        title: "Finalize parity evidence",
+        summary: "Verified migration slice for summary coverage",
+        kind: "verification",
+        status: "verified",
+        primary_owner: "FullstackAgent",
+        qa_owner: "QAAgent",
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["docs/qa/migration-parity-complete.md"],
+        preserved_invariants: ["existing runtime behavior"],
+        compatibility_risks: ["none"],
+        verification_targets: ["parity smoke"],
+        rollback_notes: ["no rollback needed"],
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+    ...overrides,
+  }
+}
+
 test("status command prints workflow and runtime summary", () => {
   const projectRoot = makeTempProject()
   setupTempRuntime(projectRoot)
@@ -266,7 +369,7 @@ test("status command prints workflow and runtime summary", () => {
 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /OpenKit runtime status:/)
-  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.6/)
+  assert.match(result.stdout, /kit: OpenKit AI Software Factory v0\.3\.7/)
   assert.match(result.stdout, /entry agent: MasterOrchestrator/)
   assert.match(result.stdout, /active profile: openkit-core/)
   assert.match(result.stdout, /registry: .*registry\.json/)
@@ -294,6 +397,48 @@ test("resume-summary prints resumable context and next safe action", () => {
   assert.match(result.stdout, /pending approvals: none/)
   assert.match(result.stdout, /linked artifacts:/)
   assert.match(result.stdout, /read next: AGENTS\.md -> context\/navigation\.md -> context\/core\/workflow\.md -> context\/core\/session-resume\.md/)
+})
+
+test("background run commands persist and surface runtime execution context", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, [
+    "start-background-run",
+    "Index codebase",
+    JSON.stringify({ type: "explore" }),
+    "feature-001",
+    "TASK-BOARD-1",
+  ])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Started background run 'bg_/)
+
+  result = runCli(projectRoot, ["list-background-runs"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /OpenKit background runs:/)
+  assert.match(result.stdout, /Index codebase/)
+
+  const runId = result.stdout.split("\n").find((line) => line.includes("bg_"))?.split(" | ")[0]
+  assert.equal(typeof runId, "string")
+
+  result = runCli(projectRoot, ["show-background-run", runId])
+  assert.equal(result.status, 0)
+  const run = JSON.parse(result.stdout)
+  assert.equal(run.status, "running")
+  assert.equal(run.work_item_id, "feature-001")
+
+  result = runCli(projectRoot, ["complete-background-run", runId, JSON.stringify({ summary: "done" })])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Completed background run/)
+
+  result = runCli(projectRoot, ["status"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /background runs: 1 total \| running 0 \| completed 1 \| cancelled 0/)
+
+  result = runCli(projectRoot, ["doctor"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /background runs tracked: 1/)
+  assert.match(result.stdout, /background run summaries are readable/)
 })
 
 test("resume-summary supports machine-readable JSON output", () => {
@@ -793,7 +938,7 @@ test("version command prints kit metadata version", () => {
   })
 
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /OpenKit version: 0\.3\.6/)
+  assert.match(result.stdout, /OpenKit version: 0\.3\.7/)
   assert.match(result.stdout, /active profile: openkit-core/)
 })
 
@@ -931,6 +1076,98 @@ test("show command includes task-aware context before state JSON for active full
   assert.match(result.stdout, /"current_stage": "full_implementation"/)
 })
 
+test("status and doctor surface migration slice summary for active migration work", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, [
+    "create-work-item",
+    "migration",
+    "MIGRATE-960",
+    "migration-summary",
+    "Migration summary fixture",
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-parallelization", "limited", "Safe migration slices", "parity smoke", "2"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "strategy_to_upgrade", "approved", "FullstackAgent"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_upgrade"])
+  assert.equal(result.status, 0)
+
+  writeMigrationSliceBoard(projectRoot, "migrate-960", makeMigrationSliceBoard({ current_stage: "migration_upgrade" }))
+
+  result = runCli(projectRoot, ["status"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /active work item id: migrate-960/)
+  assert.match(result.stdout, /migration slices: 4 total \| ready 1 \| active 1 \| blocked 1 \| verified 1 \| incomplete 3/)
+  assert.match(result.stdout, /active migration slices: SLICE-BOARD-1/)
+  assert.match(result.stdout, /migration slice readiness: review-blocked \| next gate migration_code_review \| blocked yes/)
+  assert.match(result.stdout, /migration slice blocker: active migration slices remain before migration_code_review: SLICE-BOARD-1/)
+
+  result = runCli(projectRoot, ["doctor"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /migration slices: 4 total \| ready 1 \| active 1 \| blocked 1 \| verified 1 \| incomplete 3/)
+  assert.match(result.stdout, /blocked migration slices: SLICE-BOARD-3/)
+  assert.match(result.stdout, /migration slice readiness: review-blocked \| next gate migration_code_review \| blocked yes/)
+})
+
+test("resume-summary JSON includes migration slice readiness when a migration board is active", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, [
+    "create-work-item",
+    "migration",
+    "MIGRATE-963",
+    "migration-resume-readiness",
+    "Migration resume readiness fixture",
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-parallelization", "limited", "Safe migration slices", "parity smoke", "2"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "strategy_to_upgrade", "approved", "FullstackAgent"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_upgrade"])
+  assert.equal(result.status, 0)
+
+  writeMigrationSliceBoard(projectRoot, "migrate-963", makeMigrationSliceBoard({ current_stage: "migration_upgrade" }))
+
+  result = runCli(projectRoot, ["resume-summary", "--json"])
+  assert.equal(result.status, 0)
+
+  const payload = JSON.parse(result.stdout)
+  assert.equal(payload.migration_slice_board.incomplete, 3)
+  assert.equal(payload.migration_slice_readiness.status, "review-blocked")
+  assert.equal(payload.migration_slice_readiness.nextGate, "migration_code_review")
+  assert.equal(payload.migration_slice_readiness.nextGateBlocked, true)
+  assert.ok(payload.migration_slice_readiness.blockers.some((blocker) => blocker.includes("SLICE-BOARD-1")))
+})
+
 test("doctor command reports task-aware runtime diagnostics and mirror safety for active full-delivery work", () => {
   const projectRoot = makeTempProject()
   setupTempRuntime(projectRoot)
@@ -953,6 +1190,287 @@ test("doctor command reports task-aware runtime diagnostics and mirror safety fo
   assert.match(result.stdout, /\[ok\] active work item pointer resolves to stored state/)
   assert.match(result.stdout, /\[ok\] compatibility mirror matches active work item state/)
   assert.match(result.stdout, /\[ok\] active work item task board is valid/)
+})
+
+test("doctor command surfaces shared-artifact waits and long-running runs in task-aware diagnostics", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  state.current_stage = "full_implementation"
+  state.status = "in_progress"
+  state.current_owner = "FullstackAgent"
+  state.parallelization = {
+    parallel_mode: "limited",
+    why: "fixture",
+    safe_parallel_zones: ["src/contracts/"],
+    sequential_constraints: [],
+    integration_checkpoint: null,
+    max_active_execution_tracks: 2,
+  }
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+
+  writeTaskBoard(projectRoot, "feature-001", {
+    mode: "full",
+    current_stage: "full_implementation",
+    tasks: [
+      {
+        task_id: "TASK-BOARD-ACTIVE",
+        title: "Own shared artifact surface",
+        summary: "Active task owns the shared artifact surface",
+        kind: "implementation",
+        status: "in_progress",
+        primary_owner: "Dev-A",
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/contracts/api.ts"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
+        branch_or_worktree: ".worktrees/parallel-agent-rollout/task-board-active",
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+      {
+        task_id: "TASK-BOARD-LIMITED",
+        title: "Wait on shared artifact surface",
+        summary: "Ready task should wait for the shared artifact surface",
+        kind: "implementation",
+        status: "ready",
+        primary_owner: null,
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/contracts/api.ts"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
+        branch_or_worktree: ".worktrees/parallel-agent-rollout/task-board-limited",
+        concurrency_class: "parallel_limited",
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+  })
+  writeBackgroundRuns(projectRoot, [
+    {
+      run_id: "bg_cli_long",
+      title: "CLI long running fixture run",
+      status: "running",
+      work_item_id: "feature-001",
+      task_id: "TASK-BOARD-ACTIVE",
+      created_at: "2026-03-20T00:00:00.000Z",
+      updated_at: "2026-03-20T00:00:00.000Z",
+    },
+  ])
+
+  const result = runCli(projectRoot, ["doctor"])
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /shared-artifact waits: TASK-BOARD-LIMITED <- TASK-BOARD-ACTIVE \| refs=src\/contracts\/api.ts/)
+  assert.match(result.stdout, /orchestration: waiting \| task board has stage-ready work waiting on shared artifact ownership/)
+  assert.match(result.stdout, /workflow recommendation: Let active task 'TASK-BOARD-ACTIVE' release the shared artifact surface before dispatching 'TASK-BOARD-LIMITED'\./)
+  assert.match(result.stdout, /long-running runs: bg_cli_long/)
+})
+
+test("doctor --short surfaces orchestration reason and long-running runs", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  state.current_stage = "full_implementation"
+  state.status = "in_progress"
+  state.current_owner = "FullstackAgent"
+  state.parallelization = {
+    parallel_mode: "limited",
+    why: "fixture",
+    safe_parallel_zones: ["src/contracts/"],
+    sequential_constraints: [],
+    integration_checkpoint: null,
+    max_active_execution_tracks: 2,
+  }
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+
+  writeTaskBoard(projectRoot, "feature-001", {
+    mode: "full",
+    current_stage: "full_implementation",
+    tasks: [
+      {
+        task_id: "TASK-BOARD-ACTIVE",
+        title: "Own shared artifact surface",
+        summary: "Active task owns the shared artifact surface",
+        kind: "implementation",
+        status: "in_progress",
+        primary_owner: "Dev-A",
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/contracts/api.ts"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
+        branch_or_worktree: ".worktrees/parallel-agent-rollout/task-board-active",
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+      {
+        task_id: "TASK-BOARD-LIMITED",
+        title: "Wait on shared artifact surface",
+        summary: "Ready task should wait for the shared artifact surface",
+        kind: "implementation",
+        status: "ready",
+        primary_owner: null,
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/contracts/api.ts"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
+        branch_or_worktree: ".worktrees/parallel-agent-rollout/task-board-limited",
+        concurrency_class: "parallel_limited",
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+  })
+  writeBackgroundRuns(projectRoot, [
+    {
+      run_id: "bg_cli_long",
+      title: "CLI long running fixture run",
+      status: "running",
+      work_item_id: "feature-001",
+      task_id: "TASK-BOARD-ACTIVE",
+      created_at: "2026-03-20T00:00:00.000Z",
+      updated_at: "2026-03-20T00:00:00.000Z",
+    },
+  ])
+
+  const result = runCli(projectRoot, ["doctor", "--short"])
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /doctor \| ok [0-9]+ \| error 0/)
+  assert.match(result.stdout, /orchestration: waiting \| task board has stage-ready work waiting on shared artifact ownership/)
+  assert.match(result.stdout, /long-running runs: bg_cli_long/)
+})
+
+test("validate-task-allocation rejects active parallel-limited overlap outside safe parallel zones", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  state.current_stage = "full_implementation"
+  state.status = "in_progress"
+  state.current_owner = "FullstackAgent"
+  state.parallelization = {
+    parallel_mode: "limited",
+    why: "fixture",
+    safe_parallel_zones: ["src/ui/"],
+    sequential_constraints: [],
+    integration_checkpoint: null,
+    max_active_execution_tracks: 2,
+  }
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+
+  writeTaskBoard(projectRoot, "feature-001", {
+    mode: "full",
+    current_stage: "full_implementation",
+    tasks: [
+      {
+        task_id: "TASK-ZONE-ACTIVE-1",
+        title: "UI task already active",
+        summary: "Runs inside the declared safe zone",
+        kind: "implementation",
+        status: "in_progress",
+        primary_owner: "Dev-A",
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/ui/button.tsx"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
+        branch_or_worktree: ".worktrees/parallel-agent-rollout/task-zone-active-1",
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+      {
+        task_id: "TASK-ZONE-ACTIVE-2",
+        title: "API task outside safe zone",
+        summary: "Should be rejected when active alongside other work",
+        kind: "implementation",
+        status: "in_progress",
+        primary_owner: "Dev-B",
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/server/api.ts"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
+        branch_or_worktree: ".worktrees/parallel-agent-rollout/task-zone-active-2",
+        concurrency_class: "parallel_limited",
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+  })
+
+  const result = runCli(projectRoot, ["validate-task-allocation", "feature-001"])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /parallel_limited task 'TASK-ZONE-ACTIVE-2' cannot run in parallel outside safe_parallel_zones: src\/server\/api.ts/)
+})
+
+test("validate-work-item-board rejects sequential_constraints that reference unknown tasks", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  state.current_stage = "full_implementation"
+  state.status = "in_progress"
+  state.current_owner = "FullstackAgent"
+  state.parallelization = {
+    parallel_mode: "enabled",
+    why: "fixture",
+    safe_parallel_zones: [],
+    sequential_constraints: ["TASK-REAL -> TASK-MISSING"],
+    integration_checkpoint: null,
+    max_active_execution_tracks: 2,
+  }
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+
+  writeTaskBoard(projectRoot, "feature-001", {
+    mode: "full",
+    current_stage: "full_implementation",
+    tasks: [
+      {
+        task_id: "TASK-REAL",
+        title: "Real task",
+        summary: "Only declared task on the board",
+        kind: "implementation",
+        status: "in_progress",
+        primary_owner: "Dev-A",
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/server/real.ts"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
+        branch_or_worktree: ".worktrees/parallel-agent-rollout/task-real",
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+  })
+
+  const result = runCli(projectRoot, ["validate-work-item-board", "feature-001"])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /parallelization\.sequential_constraints references unknown task 'TASK-MISSING'/)
 })
 
 test("doctor reports missing task board for active full work item as an error", () => {
@@ -1014,6 +1532,95 @@ test("doctor reports invalid active full task board as an error even when runtim
   assert.match(result.stdout, /\[error\] workflow state is valid/)
   assert.match(result.stdout, /\[error\] active work item task board is valid/)
   assert.doesNotMatch(result.stdout, /\[ok\] active work item task board is valid/)
+})
+
+test("doctor reports invalid active migration slice board as an explicit error", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, [
+    "create-work-item",
+    "migration",
+    "MIGRATE-961",
+    "invalid-migration-board",
+    "Invalid migration board fixture",
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-parallelization", "limited", "Safe migration slices", "parity smoke", "2"])
+  assert.equal(result.status, 0)
+
+  writeMigrationSliceBoard(projectRoot, "migrate-961", {
+    mode: "migration",
+    current_stage: "migration_strategy",
+    parallel_mode: "limited",
+    slices: [
+      {
+        slice_id: "SLICE-BROKEN",
+        title: "Broken migration slice",
+        summary: "Missing primary owner makes the board invalid",
+        kind: "compatibility",
+        status: "in_progress",
+        primary_owner: null,
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/adapters/seam.ts"],
+        preserved_invariants: ["existing runtime behavior"],
+        compatibility_risks: ["seam drift"],
+        verification_targets: ["parity smoke"],
+        rollback_notes: ["revert seam changes"],
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+  })
+
+  result = runCli(projectRoot, ["doctor"])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stdout, /\[error\] workflow state is valid/)
+  assert.match(result.stdout, /\[error\] active work item migration slice board is valid/)
+  assert.doesNotMatch(result.stdout, /\[ok\] active work item migration slice board is valid/)
+})
+
+test("doctor does not require a migration slice board when migration slices are not in use", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, [
+    "create-work-item",
+    "migration",
+    "MIGRATE-962",
+    "no-migration-board",
+    "Migration board remains optional",
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["doctor"])
+
+  assert.equal(result.status, 0)
+  assert.doesNotMatch(result.stdout, /active work item migration slice board is valid/)
 })
 
 test("doctor reports compatibility mirror divergence as an error", () => {
@@ -1326,6 +1933,215 @@ test("CLI migration slice commands require explicit strategy blessing", () => {
   result = runCli(projectRoot, ["validate-migration-slice-board", "migrate-950"])
   assert.equal(result.status, 0)
   assert.match(result.stdout, /Migration slice board is valid for work item 'migrate-950'/)
+})
+
+test("CLI rejects claiming a migration slice blocked by unresolved dependencies", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, [
+    "create-work-item",
+    "migration",
+    "MIGRATE-951",
+    "blocked-migration",
+    "Blocked migration setup",
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-parallelization", "limited", "Safe migration slices", "parity smoke", "2"])
+  assert.equal(result.status, 0)
+
+  const boardPath = path.join(projectRoot, ".opencode", "work-items", "migrate-951", "migration-slices.json")
+  fs.mkdirSync(path.dirname(boardPath), { recursive: true })
+  fs.writeFileSync(boardPath, `${JSON.stringify({
+    mode: "migration",
+    current_stage: "migration_strategy",
+    parallel_mode: "limited",
+    slices: [
+      {
+        slice_id: "SLICE-BASE",
+        title: "Create compatibility seam",
+        summary: "Must finish before dependent migration slice starts",
+        kind: "compatibility",
+        status: "in_progress",
+        primary_owner: "FullstackAgent",
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/adapters/seam.ts"],
+        preserved_invariants: ["existing runtime behavior"],
+        compatibility_risks: ["shared seam drift"],
+        verification_targets: ["parity smoke"],
+        rollback_notes: ["revert seam changes"],
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+      {
+        slice_id: "SLICE-DEP",
+        title: "Consume compatibility seam",
+        summary: "Should stay blocked until seam slice is done",
+        kind: "compatibility",
+        status: "ready",
+        primary_owner: null,
+        qa_owner: null,
+        depends_on: ["SLICE-BASE"],
+        blocked_by: ["SLICE-BASE"],
+        artifact_refs: ["src/consumers/seam-user.ts"],
+        preserved_invariants: ["existing runtime behavior"],
+        compatibility_risks: ["consumer mismatch"],
+        verification_targets: ["parity smoke"],
+        rollback_notes: ["revert consumer changes"],
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+  }, null, 2)}\n`, "utf8")
+
+  result = runCli(projectRoot, ["claim-migration-slice", "migrate-951", "SLICE-DEP", "FullstackAgent", "SolutionLead"])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /Migration slice 'SLICE-DEP' cannot be 'ready' while blocked by unresolved dependencies: SLICE-BASE/)
+})
+
+test("validate-migration-slice-board rejects active slices with unresolved dependencies", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, [
+    "create-work-item",
+    "migration",
+    "MIGRATE-952",
+    "invalid-migration-deps",
+    "Invalid migration dependency setup",
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-parallelization", "limited", "Safe migration slices", "parity smoke", "2"])
+  assert.equal(result.status, 0)
+
+  const boardPath = path.join(projectRoot, ".opencode", "work-items", "migrate-952", "migration-slices.json")
+  fs.mkdirSync(path.dirname(boardPath), { recursive: true })
+  fs.writeFileSync(boardPath, `${JSON.stringify({
+    mode: "migration",
+    current_stage: "migration_strategy",
+    parallel_mode: "limited",
+    slices: [
+      {
+        slice_id: "SLICE-BASE",
+        title: "Create compatibility seam",
+        summary: "Base migration slice",
+        kind: "compatibility",
+        status: "in_progress",
+        primary_owner: "FullstackAgent",
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["src/adapters/seam.ts"],
+        preserved_invariants: ["existing runtime behavior"],
+        compatibility_risks: ["shared seam drift"],
+        verification_targets: ["parity smoke"],
+        rollback_notes: ["revert seam changes"],
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+      {
+        slice_id: "SLICE-DEP",
+        title: "Consume compatibility seam",
+        summary: "Invalidly marked active while its dependency is unresolved",
+        kind: "compatibility",
+        status: "in_progress",
+        primary_owner: "FullstackAgent",
+        qa_owner: null,
+        depends_on: ["SLICE-BASE"],
+        blocked_by: ["SLICE-BASE"],
+        artifact_refs: ["src/consumers/seam-user.ts"],
+        preserved_invariants: ["existing runtime behavior"],
+        compatibility_risks: ["consumer mismatch"],
+        verification_targets: ["parity smoke"],
+        rollback_notes: ["revert consumer changes"],
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+  }, null, 2)}\n`, "utf8")
+
+  result = runCli(projectRoot, ["validate-migration-slice-board", "migrate-952"])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /Migration slice 'SLICE-DEP' cannot be 'in_progress' while blocked by unresolved dependencies: SLICE-BASE/)
+})
+
+test("CLI advance-stage blocks migration review when slice board is still incomplete", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, [
+    "create-work-item",
+    "migration",
+    "MIGRATE-953",
+    "migration-review-gate",
+    "Migration review gating fixture",
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-parallelization", "limited", "Safe migration slices", "parity smoke", "2"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["create-migration-slice", "migrate-953", "SLICE-953", "Adapter seam", "compatibility"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["claim-migration-slice", "migrate-953", "SLICE-953", "FullstackAgent", "SolutionLead"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-migration-slice-status", "migrate-953", "SLICE-953", "in_progress"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "strategy_to_upgrade", "approved", "FullstackAgent"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_upgrade"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "upgrade_to_code_review", "approved", "CodeReviewer"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_code_review"])
+
+  assert.equal(result.status, 1)
+  assert.match(result.stderr, /active migration slices remain: SLICE-953/)
 })
 
 test("CLI rejects quick items carrying task data through managed validation", () => {

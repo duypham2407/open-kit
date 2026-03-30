@@ -12,20 +12,24 @@ import { createCategoryRuntime } from './categories/index.js';
 import { createSkillRegistry } from './skills/index.js';
 import { createSpecialistRegistry } from './specialists/index.js';
 
-export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = process.env } = {}) {
+export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = process.env, mode = 'read-write' } = {}) {
   const configResult = createRuntimeConfig({ projectRoot, env });
   const capabilities = listRuntimeCapabilities({ config: configResult.config });
   const capabilityIndex = createCapabilityIndex({ config: configResult.config });
   const skills = createSkillRegistry({ projectRoot, env });
   const categories = createCategoryRuntime(configResult.config);
-  const specialists = createSpecialistRegistry();
+  const specialists = createSpecialistRegistry(configResult.config);
   const modelRuntime = createModelRuntime({ categories, specialists, config: configResult.config });
   const managers = createManagers({
     config: configResult.config,
     capabilityIndex,
     projectRoot,
     configResult,
+    mode,
+    specialists: specialists.specialists,
+    env,
   });
+  managers.skillMcpManager.registerSkillBindings(skills.skills);
   const mcpPlatform = createMcpPlatform({
     projectRoot,
     env,
@@ -36,9 +40,17 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
     capabilityIndex,
     projectRoot,
     managers,
+    mcpPlatform,
   });
   const hooks = createHooks({
-    config: configResult.config,
+    config: {
+      ...configResult.config,
+      __runtime: {
+        workflowKernel: managers.workflowKernel,
+        sessionStateManager: managers.sessionStateManager,
+        continuationStateManager: managers.continuationStateManager,
+      },
+    },
     capabilityIndex,
     projectRoot,
     capabilities,

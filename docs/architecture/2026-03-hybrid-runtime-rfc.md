@@ -27,6 +27,13 @@ The new capability runtime is responsible for:
 - category and specialist runtime selection
 - recovery and diagnostics
 
+Current implemented runtime-hardening surfaces now also include:
+
+- task-board-aware orchestration health diagnostics
+- dependency- and stage-aware delegation supervisor decisions
+- recovery guidance that distinguishes blocked work from stage-advance waits
+- global doctor summaries that surface workflow recommendations without mutating workspace state
+
 This RFC adopts a clean-room implementation strategy inspired by external systems with stronger runtime surfaces, while preserving OpenKit's explicit workflow law.
 
 ## Goals
@@ -139,6 +146,14 @@ All runtime automation must route through the explicit workflow-state surfaces.
 - categories and specialists
 - recovery and continuation
 - skills and command expansion
+
+Implemented phase-2 runtime hardening now covers:
+
+- workflow-backed background run persistence and task linking
+- delegation supervisor QA handoff and implementation dispatch round-trips
+- relaxed read-only doctor observability for malformed or partially stale workflow runtime state
+- orchestration-health surfacing for blocked boards, dependency waits, parallel-cap limits, stale linked runs, and integration-checkpoint waits
+- continuation guidance that stays attached to workflow reads instead of introducing implicit runtime mutations
 
 ## Acceptance Criteria
 

@@ -7,6 +7,7 @@ import path from 'node:path';
 import {
   buildOpenCodeLayering,
 } from '../../src/runtime/opencode-layering.js';
+import { getWorkspacePaths } from '../../src/global/paths.js';
 import { launchManagedOpenCode } from '../../src/runtime/launcher.js';
 import { launchGlobalOpenKit } from '../../src/global/launcher.js';
 
@@ -17,6 +18,12 @@ function makeTempDir() {
 function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+}
+
+function writeExecutable(filePath, content) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content, 'utf8');
+  fs.chmodSync(filePath, 0o755);
 }
 
 test('buildOpenCodeLayering uses the managed config dir when no baseline config is set', () => {
@@ -210,6 +217,34 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
   assert.equal(payload.runtimeFoundationVersion, '1');
 });
 
+test('launchManagedOpenCode records a runtime session snapshot', () => {
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(projectRoot, 'bin');
+
+  writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
+    $schema: 'https://opencode.ai/config.json',
+  });
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  const result = launchManagedOpenCode(['status'], {
+    projectRoot,
+    env: {
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+    stdio: 'pipe',
+  });
+
+  assert.equal(result.exitCode, 0);
+
+  const sessionIndexPath = path.join(projectRoot, '.opencode', 'runtime-sessions', 'index.json');
+  assert.equal(fs.existsSync(sessionIndexPath), true);
+
+  const sessions = JSON.parse(fs.readFileSync(sessionIndexPath, 'utf8')).sessions;
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].launcher, 'managed');
+  assert.deepEqual(sessions[0].args, ['status']);
+});
+
 test('launchGlobalOpenKit injects saved per-agent model overrides into inline config', () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
@@ -267,4 +302,38 @@ test('launchGlobalOpenKit injects saved per-agent model overrides into inline co
   assert.equal(inlineConfig.customSetting, true);
   assert.equal(inlineConfig.agent['qa-agent'].model, 'openai/gpt-5');
   assert.equal(inlineConfig.agent['qa-agent'].variant, 'high');
+});
+
+test('launchGlobalOpenKit records runtime sessions in the managed workspace root', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+    stdio: 'pipe',
+    spawn: () => ({ status: 0, stdout: '', stderr: '' }),
+  });
+
+  assert.equal(result.exitCode, 0);
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+  const sessionIndexPath = path.join(workspacePaths.workspaceRoot, '.opencode', 'runtime-sessions', 'index.json');
+
+  assert.equal(fs.existsSync(sessionIndexPath), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'runtime-sessions')), false);
+
+  const sessions = JSON.parse(fs.readFileSync(sessionIndexPath, 'utf8')).sessions;
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].launcher, 'global');
+  assert.deepEqual(sessions[0].args, ['status']);
 });

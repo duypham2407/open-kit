@@ -17,17 +17,20 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
   const baselineInlineConfig = parseInlineConfig(env.OPENCODE_CONFIG_CONTENT, 'OPENCODE_CONFIG_CONTENT') ?? {};
   const agentModelOverrides = buildAgentModelConfigOverrides(paths.agentModelSettingsPath);
   const layeredInlineConfig = deepMergeConfig(baselineInlineConfig, agentModelOverrides);
-  const runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot, env });
-  const runtimeEnv = createRuntimeFoundationEnvironment(runtimeFoundation);
-  const launcherEnv = {
+  const runtimeBootstrapEnv = {
     ...env,
-    ...runtimeEnv,
     OPENKIT_GLOBAL_MODE: '1',
     OPENKIT_PROJECT_ROOT: paths.projectRoot,
     OPENKIT_WORKFLOW_STATE: paths.workflowStatePath,
     OPENKIT_KIT_ROOT: paths.kitRoot,
     OPENKIT_HOME: paths.openCodeHome,
     OPENCODE_CONFIG_DIR: paths.kitRoot,
+  };
+  const runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot, env: runtimeBootstrapEnv });
+  const runtimeEnv = createRuntimeFoundationEnvironment(runtimeFoundation);
+  const launcherEnv = {
+    ...runtimeBootstrapEnv,
+    ...runtimeEnv,
     OPENCODE_CONFIG_CONTENT: Object.keys(layeredInlineConfig).length > 0
       ? JSON.stringify(layeredInlineConfig)
       : undefined,
@@ -57,6 +60,14 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
   if (result.error) {
     throw result.error;
   }
+
+  runtimeFoundation.managers.sessionStateManager?.recordRuntimeSession({
+    launcher: 'global',
+    workflowKernel: runtimeFoundation.managers.workflowKernel,
+    backgroundManager: runtimeFoundation.managers.backgroundManager,
+    args,
+    exitCode: typeof result.status === 'number' ? result.status : 1,
+  });
 
   return {
     exitCode: typeof result.status === 'number' ? result.status : 1,
