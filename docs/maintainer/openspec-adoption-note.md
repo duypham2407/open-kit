@@ -15,7 +15,7 @@ This note explains what OpenKit intentionally absorbed from OpenSpec and what it
 
 ## What OpenKit intentionally did not copy
 
-- OpenKit did not replace its lane-based workflow with a single universal artifact chain.
+- OpenKit did not replace its lane-based workflow with a single universal planning chain; full delivery still requires `Product Lead` to produce the scope package in `full_product` before `Solution Lead` produces the solution package in `full_solution`.
 - OpenKit did not collapse migration into a generic planning flow; migration remains a first-class, behavior-preserving lane.
 - OpenKit did not relax bounded parallelism or extend task boards into quick or migration work.
 - OpenKit did not hide its workflow-state runtime behind a purely documentation-driven facade; runtime state remains explicit and authoritative.

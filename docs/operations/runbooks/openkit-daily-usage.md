@@ -85,7 +85,7 @@ Use `/delivery` when any of these are true:
 - requirements may still move
 - multiple subsystems are involved
 - architecture or contracts may change
-- you need scope packages, solution packages, architecture, or QA artifacts
+- you need a `Product Lead` scope package, a `Solution Lead` solution package, or QA artifacts
 
 Use `/migrate` when most of these are true:
 
@@ -98,6 +98,12 @@ Use `/migrate` when most of these are true:
 - validation depends on builds, tests, smoke checks, type checks, or manual regression evidence more than on greenfield TDD slices
 
 Canonical lane rules live in `context/core/workflow.md`.
+
+Permission rule for day-to-day use:
+
+- non-destructive checks and normal work commands should run without asking first
+- delete-style destructive commands should stop for explicit user confirmation first
+- if OpenCode remembers an `Always Allow` choice for a command, that remembered approval belongs to OpenCode; OpenKit does not currently maintain a separate command-approval memory layer
 
 If the boundary still feels fuzzy, use the `Lane Decision Matrix` in `context/core/workflow.md` before forcing a lane.
 
@@ -116,6 +122,19 @@ openkit doctor
 What to look for:
 
 - `doctor` confirms the global kit is installed, shows the derived workspace root, workspace state path, and compatibility shim locations, and reports whether the current project can launch with OpenKit cleanly without mutating local workspace files
+
+Common read-only commands you can usually run immediately:
+
+- `openkit doctor`
+- `openkit onboard`
+- `openkit configure-agent-models --list`
+- `node .opencode/workflow-state.js status`
+- `node .opencode/workflow-state.js resume-summary`
+- `node .opencode/workflow-state.js show`
+- `node .opencode/workflow-state.js doctor`
+- `node .opencode/workflow-state.js validate`
+- `git log`
+- `git diff`
 
 If `doctor` reports `install-missing`, run `openkit run` for first-time setup. If `doctor` reports other errors, fix those before trusting resume or task-board behavior.
 
@@ -180,7 +199,7 @@ Full-delivery flow:
 
 - `full_intake -> full_product -> full_solution -> full_implementation -> full_code_review -> full_qa -> full_done`
 - use it for feature work and higher-risk changes
-- expect explicit artifacts under `docs/scope/`, `docs/architecture/`, `docs/solution/`, and `docs/qa/`
+- expect `Product Lead` to create the scope package in `docs/scope/`, then `Solution Lead` to create the solution package in `docs/solution/`, followed by QA evidence in `docs/qa/`
 - use `/brainstorm`, `/write-solution`, and `/execute-solution` only in this lane
 
 Migration flow:

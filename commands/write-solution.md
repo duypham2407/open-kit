@@ -14,8 +14,9 @@ Use `/write-solution` to create a solution package for work currently in `Full D
 
 - The current `mode` must be `full` or `migration`
 - The required solution context already exists for the current work item
-- If the work is in `full`, the required scope package already exists for the current feature
-- `Solution Lead` is at the stage where the solution package should be created
+- If the work is in `full`, an approved `Product Lead` scope package from `full_product` already exists for the current feature
+- In `full`, `Solution Lead` is currently working in `full_solution`, not in parallel with `Product Lead`
+- In `migration`, `Solution Lead` is currently working in `migration_strategy`
 
 ## Canonical docs to load
 
@@ -35,6 +36,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 ## Expected action
 
 - Create or update `docs/solution/YYYY-MM-DD-<feature>.md` from `docs/templates/solution-package-template.md` for full delivery or `docs/templates/migration-solution-package-template.md` for migration work
+- In `full`, use the approved `Product Lead` scope package as the upstream contract for the solution package
 - Keep the solution package aligned with the current stage and approval context for the active mode
 - Write feature-level solution slices, dependencies, validation strategy, and parallelization notes before any optional micro-task breakdown
 - In migration mode, record preserved invariants, seam or adapter steps, and parity checks explicitly
@@ -46,7 +48,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 - If work is still in quick mode, reject this command and route the task into Migration or Full Delivery first
 - If required solution input is incomplete, stop and require that upstream artifact before writing the solution package
-- If work is in `full` and the scope package input is incomplete, stop and require that upstream artifact before writing the solution package
+- If work is in `full` and the `Product Lead` scope package is missing, incomplete, or unapproved, stop and require that upstream artifact before writing the solution package
 - Do not use this command to open a new full lane implicitly or bypass the approval chain
 
 ## Validation guidance

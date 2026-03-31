@@ -1,6 +1,6 @@
 {
   "name": "@duypham93/openkit",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "type": "module",
   "files": [
     ".opencode/install-manifest.json",

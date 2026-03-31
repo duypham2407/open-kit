@@ -59,7 +59,7 @@ Quick mode expectations:
 - short acceptance bullet list
 - direct verification path
 - no architecture exploration
-- no full artifact chain requirement
+- no full-delivery Product-Lead scope-package to Solution-Lead solution-package handoff requirement
 - no required code-review stage
 
 ## Full Delivery Lane

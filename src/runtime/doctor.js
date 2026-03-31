@@ -19,6 +19,27 @@ const EXPECTED_MANAGED_ASSETS = {
       return (
         contents?.installState?.path === '.openkit/openkit-install.json' &&
         contents?.installState?.schema === 'openkit/install-state@1' &&
+        contents?.permission?.npm === 'allow' &&
+        contents?.permission?.task === 'allow' &&
+        contents?.permission?.bash === 'allow' &&
+        contents?.permission?.edit === 'allow' &&
+        contents?.permission?.read === 'allow' &&
+        contents?.permission?.write === 'allow' &&
+        contents?.permission?.glob === 'allow' &&
+        contents?.permission?.grep === 'allow' &&
+        contents?.permission?.list === 'allow' &&
+        contents?.permission?.skill === 'allow' &&
+        contents?.permission?.lsp === 'allow' &&
+        contents?.permission?.todoread === 'allow' &&
+        contents?.permission?.todowrite === 'allow' &&
+        contents?.permission?.webfetch === 'allow' &&
+        contents?.permission?.websearch === 'allow' &&
+        contents?.permission?.codesearch === 'allow' &&
+        contents?.permission?.external_directory === 'allow' &&
+        contents?.permission?.doom_loop === 'allow' &&
+        contents?.permission?.rm === 'ask' &&
+        contents?.permission?.['git log'] === 'allow' &&
+        contents?.permission?.['git diff'] === 'allow' &&
         contents?.productSurface?.current === 'global-openkit-install' &&
         contents?.productSurface?.installReadiness === 'managed' &&
         contents?.productSurface?.installationMode === 'openkit-managed'

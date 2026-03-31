@@ -2,6 +2,7 @@ const OPENKIT_MERGE_ALLOWLIST = new Set([
   "plugin",
   "instructions",
   "installState",
+  "permission",
   "productSurface",
 ])
 

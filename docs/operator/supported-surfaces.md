@@ -42,3 +42,11 @@ If workflow state already exists and you need the next safe action, use `node .o
 - Full-delivery work may carry task boards, but parallel support stays bounded by the runtime commands and validations that actually exist.
 - `openkit doctor` answers product/workspace readiness questions; `node .opencode/workflow-state.js doctor` answers workflow-runtime integrity questions.
 - continuation controls and richer inspection tools are additive runtime aids; they never replace workflow approvals, evidence gates, or explicit stage ownership.
+
+## Confirmation Policy
+
+- Non-destructive commands should be auto-approved.
+- Common auto-approved commands: `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `/task`, `/quick-task`, `/migrate`, `/delivery`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git log`, `git diff`, file edits, file writes, and normal non-delete `bash`/`npm` usage.
+- Destructive delete-style commands must require explicit user confirmation before they run.
+- This includes file deletion, directory removal, and other clearly destructive removal operations.
+- If OpenCode remembers an `Always Allow` decision for a command, that remembered approval comes from OpenCode itself. OpenKit does not currently persist a second command-approval store.

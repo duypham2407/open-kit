@@ -2901,6 +2901,26 @@ function setParallelization(parallelMode, why, integrationCheckpoint, maxTracks,
       fail("Quick mode does not support parallel execution")
     }
 
+    if (state.mode === "full") {
+      if (state.current_stage === "full_intake" || state.current_stage === "full_product") {
+        fail("Full-delivery parallelization cannot be set before stage 'full_solution'")
+      }
+
+      requireLinkedArtifacts(
+        state,
+        ["scope_package", "solution_package"],
+        "Full-delivery parallelization requires approved planning artifacts",
+      )
+
+      if (state.approvals.product_to_solution?.status !== "approved") {
+        fail("Full-delivery parallelization requires gate 'product_to_solution' to be approved first")
+      }
+    }
+
+    if (state.mode === "migration" && state.current_stage === "migration_intake") {
+      fail("Migration parallelization cannot be set before stage 'migration_strategy'")
+    }
+
     state.parallelization = {
       ...state.parallelization,
       parallel_mode: parallelMode,
@@ -3365,6 +3385,38 @@ function linkArtifact(kind, artifactPath, customStatePath) {
   }
 
   return mutate(customStatePath, (state) => {
+    if (kind === "scope_package") {
+      if (state.mode !== "full") {
+        fail("Artifact kind 'scope_package' is only valid in full mode")
+      }
+
+      if (state.current_stage === "full_intake") {
+        fail("Artifact kind 'scope_package' cannot be linked before stage 'full_product'")
+      }
+    }
+
+    if (kind === "solution_package") {
+      if (state.mode === "full") {
+        if (state.current_stage === "full_intake" || state.current_stage === "full_product") {
+          fail("Artifact kind 'solution_package' cannot be linked before stage 'full_solution'")
+        }
+
+        requireLinkedArtifacts(
+          state,
+          ["scope_package"],
+          "Linking 'solution_package' in full mode requires a linked 'scope_package' first",
+        )
+
+        if (state.approvals.product_to_solution?.status !== "approved") {
+          fail("Linking 'solution_package' in full mode requires gate 'product_to_solution' to be approved first")
+        }
+      }
+
+      if (state.mode === "migration" && state.current_stage === "migration_intake") {
+        fail("Artifact kind 'solution_package' cannot be linked before stage 'migration_strategy'")
+      }
+    }
+
     if (kind === "adr") {
       if (!state.artifacts.adr.includes(artifactPath)) {
         state.artifacts.adr.push(artifactPath)

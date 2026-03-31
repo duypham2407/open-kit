@@ -48,6 +48,14 @@ Use this document to decide which OpenKit surface to use for a given goal.
 - do not treat the checked-in `.opencode/` runtime as proof that every project should vendor OpenKit locally
 - do not treat `openkit doctor` and `node .opencode/workflow-state.js doctor` as substitutes; they answer different questions
 
+## Permission Rule
+
+- Non-destructive commands should run without asking for confirmation.
+- Recommended auto-approved commands include `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `/task`, `/quick-task`, `/migrate`, `/delivery`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git log`, `git diff`, and standard edit/write flows.
+- Commands that remove files, remove directories, or otherwise perform clearly destructive deletion must require explicit user confirmation first.
+- Treat deletion as confirmation-required even when the target looks generated or disposable.
+- If OpenCode offers `Always Allow` at prompt time, that remembered decision is expected to be stored by OpenCode. OpenKit does not currently layer its own extra persistence for command approvals.
+
 ## Doctor Split
 
 - `openkit doctor`: global install and workspace readiness

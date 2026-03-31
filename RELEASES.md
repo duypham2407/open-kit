@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.9`](release-notes/0.3.9.md) - clarify managed path boundaries across runtime, docs, and governance checks
-- npm latest: `@duypham93/openkit@0.3.9`
-- git tag: `v0.3.9`
+- [`0.3.10`](release-notes/0.3.10.md) - lock Product Lead -> Solution Lead sequencing and add explicit OpenCode permission defaults
+- npm latest: `@duypham93/openkit@0.3.10`
+- git tag: `v0.3.10`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.10`](release-notes/0.3.10.md) - lock Product Lead -> Solution Lead sequencing and add explicit OpenCode permission defaults
 - [`0.3.9`](release-notes/0.3.9.md) - clarify managed path boundaries across runtime, docs, and governance checks
 - [`0.3.8`](release-notes/0.3.8.md) - harden global workflow-state shims and clarify canonical work-item paths
 - [`0.3.7`](release-notes/0.3.7.md) - complete the hybrid runtime roadmap and publish the richer runtime/tooling surface

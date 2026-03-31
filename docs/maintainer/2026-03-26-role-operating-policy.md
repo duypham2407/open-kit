@@ -47,6 +47,7 @@ Use it to keep role boundaries sharp during daily work.
 ### Pass Condition
 
 - `Solution Lead` can design without rediscovering what the feature actually is.
+- the scope package is explicit enough to hand forward into `full_solution` without reopening product intent.
 
 ### Fail Condition
 
@@ -76,6 +77,7 @@ Use it to keep role boundaries sharp during daily work.
 ### Pass Condition
 
 - `FullstackAgent`, `Code Reviewer`, and `QAAgent` can execute and validate without guessing interfaces, sequencing, or checkpoints.
+- the solution package clearly depends on the approved `Product Lead` scope package instead of redefining scope.
 
 ### Fail Condition
 

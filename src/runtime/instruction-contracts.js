@@ -25,8 +25,8 @@ export const COMMAND_INSTRUCTION_CONTRACTS = {
   delivery: {
     command: '/delivery',
     purpose: 'Direct full-delivery entry for feature work and high-risk changes.',
-    nextAction: 'Initialize full_intake, then route through brief, spec, architecture, plan, implementation, and QA.',
-    expectedOutputs: ['full intake context', 'artifact chain', 'approval-gated handoffs'],
+    nextAction: 'Initialize full_intake, route Product Lead through full_product, then hand off to Solution Lead in full_solution before implementation and QA.',
+    expectedOutputs: ['full intake context', 'Product Lead scope package', 'Solution Lead solution package handoff'],
     whenToUse: 'Use when requirements, product behavior, or cross-boundary design uncertainty dominates.',
   },
   'browser-verify': {

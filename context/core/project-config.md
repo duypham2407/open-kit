@@ -39,6 +39,17 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - Install metadata lives in `.opencode/install-manifest.json`.
 - The repository does not contain a root `opencode.json` entrypoint.
 
+## Permission Policy
+
+- The checked-in runtime manifest at `.opencode/opencode.json` now carries the default OpenKit permission policy.
+- Non-destructive commands should run without asking for user confirmation.
+- This includes commands and tools such as `read`, `glob`, `grep`, `list`, `skill`, `task`, `bash`, `npm`, `edit`, `write`, `todowrite`, `webfetch`, `websearch`, `codesearch`, `git log`, and `git diff`.
+- Commands that delete repository state must still require explicit user confirmation before execution.
+- This includes removals, directory deletion, and other clearly destructive delete-style commands.
+- `rm` is explicitly `ask` by policy.
+- Treat clearly destructive git operations as confirmation-required even when a specific git subcommand is not listed in the permission map.
+- If OpenCode offers an `Always Allow` choice at permission prompt time, treat that persistence as an OpenCode-owned behavior. OpenKit does not currently add a separate permission-memory layer on top of OpenCode.
+
 ### Workflow-State Utility Commands
 
 These are repository workflow commands, not application build/lint/test commands:

@@ -78,7 +78,7 @@ Master Orchestrator chooses mode
    |
    +--> Migration --> baseline -> strategy -> upgrade -> code review -> verify -> done
     |
-   +--> Full -------> Product Lead -> Solution Lead -> Fullstack -> Code Reviewer -> QA -> done
+   +--> Full -------> Product Lead(scope package) -> Solution Lead(solution package) -> Fullstack -> Code Reviewer -> QA -> done
    |
    v
 Workflow state, approvals, issues, and evidence stored in .opencode/
@@ -96,8 +96,8 @@ Example: you ask OpenKit to add a new feature.
 
 1. You launch OpenKit and start with `/task add export support to the dashboard`.
 2. `Master Orchestrator` inspects the request and chooses `Full` mode.
-3. `Product Lead` defines the problem, scope, and acceptance expectations.
-4. `Solution Lead` defines the technical direction, sequencing, and validation strategy.
+3. `Product Lead` creates the scope package in `full_product` and gets it ready for approval.
+4. `Solution Lead` uses that approved scope package in `full_solution` to create the solution package.
 5. `Fullstack Agent` implements the approved work and records verification evidence.
 6. `Code Reviewer` checks scope compliance first and code quality second.
 7. `QA Agent` validates runtime behavior, routes any issues, and the workflow only closes when the gates are satisfied.
@@ -198,8 +198,8 @@ It chooses the mode, manages handoffs, tracks feedback loops, and keeps work mov
 OpenKit currently ships active orchestration and delivery roles plus compatibility split-role views:
 
 1. **Master Orchestrator**: chooses the mode, routes handoffs, and manages feedback loops
-2. **Product Lead**: defines scope, business rules, and acceptance criteria for full delivery
-3. **Solution Lead**: defines technical direction, migration strategy, sequencing, and validation expectations
+2. **Product Lead**: defines scope, business rules, acceptance criteria, and the scope package for full delivery
+3. **Solution Lead**: defines technical direction, migration strategy, sequencing, validation expectations, and the solution package that depends on the approved scope package
 4. **Fullstack Agent**: implements, debugs, and verifies approved work
 5. **Code Reviewer**: performs independent scope-compliance and code-quality review before QA
 6. **QA Agent**: validates implementation evidence and classifies issues

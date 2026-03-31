@@ -32,7 +32,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 ## Expected action
 
 - The Master Orchestrator records `mode = full` and `mode_reason`
-- Tell the user the next action in full-delivery language: initialize intake, then route into the artifact and approval chain
+- Tell the user the next action in full-delivery language: initialize intake, route to `Product Lead` for `full_product`, then hand off to `Solution Lead` for `full_solution`
 - Initialize `full_intake`
 - Route to `Product Lead` to begin the Full Delivery chain defined in `context/core/workflow.md`
 - Track approval gates in workflow state before each stage advance
@@ -55,6 +55,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ```text
 User: /delivery add a new approval workflow for enterprise billing
-OpenKit: This belongs in Full Delivery because the work changes product behavior and needs deliberate definition across requirements and architecture.
-OpenKit: Next action: initialize full_intake and route to Product Lead for scope definition.
+OpenKit: This belongs in Full Delivery because the work changes product behavior and needs explicit product scope before technical direction.
+OpenKit: Next action: initialize full_intake, have Product Lead create the scope package in full_product, then hand that approved package to Solution Lead in full_solution.
 ```

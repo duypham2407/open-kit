@@ -109,6 +109,11 @@ test("applyOpenKitMergePolicy additively inserts allowed managed-install top-lev
         path: ".openkit/openkit-install.json",
         schema: "openkit/install-state@1",
       },
+      permission: {
+        read: "allow",
+        write: "allow",
+        rm: "ask",
+      },
       productSurface: {
         current: "global-openkit-install",
         installReadiness: "managed",
@@ -125,6 +130,11 @@ test("applyOpenKitMergePolicy additively inserts allowed managed-install top-lev
       path: ".openkit/openkit-install.json",
       schema: "openkit/install-state@1",
     },
+    permission: {
+      read: "allow",
+      write: "allow",
+      rm: "ask",
+    },
     productSurface: {
       current: "global-openkit-install",
       installReadiness: "managed",
@@ -132,7 +142,7 @@ test("applyOpenKitMergePolicy additively inserts allowed managed-install top-lev
     },
   })
   assert.deepEqual(result.conflicts, [])
-  assert.deepEqual(result.appliedFields, ["installState", "productSurface"])
+  assert.deepEqual(result.appliedFields, ["installState", "permission", "productSurface"])
 })
 
 test("applyOpenKitMergePolicy treats allowlisted object fields as equal regardless of key order", () => {
@@ -141,6 +151,10 @@ test("applyOpenKitMergePolicy treats allowlisted object fields as equal regardle
       installState: {
         schema: "openkit/install-state@1",
         path: ".openkit/openkit-install.json",
+      },
+      permission: {
+        rm: "ask",
+        read: "allow",
       },
       productSurface: {
         installationMode: "openkit-managed",
@@ -152,6 +166,10 @@ test("applyOpenKitMergePolicy treats allowlisted object fields as equal regardle
       installState: {
         path: ".openkit/openkit-install.json",
         schema: "openkit/install-state@1",
+      },
+      permission: {
+        read: "allow",
+        rm: "ask",
       },
       productSurface: {
         current: "global-openkit-install",
@@ -166,6 +184,10 @@ test("applyOpenKitMergePolicy treats allowlisted object fields as equal regardle
       schema: "openkit/install-state@1",
       path: ".openkit/openkit-install.json",
     },
+    permission: {
+      rm: "ask",
+      read: "allow",
+    },
     productSurface: {
       installationMode: "openkit-managed",
       installReadiness: "managed",
@@ -173,5 +195,5 @@ test("applyOpenKitMergePolicy treats allowlisted object fields as equal regardle
     },
   })
   assert.deepEqual(result.conflicts, [])
-  assert.deepEqual(result.appliedFields, ["installState", "productSurface"])
+  assert.deepEqual(result.appliedFields, ["installState", "permission", "productSurface"])
 })

@@ -9,6 +9,8 @@ description: "Converts requirements into structured scope packages with concrete
 
 This skill is used by `Product Lead` to turn high-level intent into a detailed scope and acceptance artifact that is ready for `Solution Lead` and the delivery team.
 
+In full delivery, this scope package is the required upstream artifact for `Solution Lead` in `full_solution`. `Solution Lead` should design from this package, not in parallel with it.
+
 ## Execution Process
 
 ### 1. Verification (Input Check)
@@ -41,6 +43,8 @@ You must include a dedicated section for failure conditions and awkward scenario
 
 ### 5. Document Output
 Create the markdown file at `docs/scope/YYYY-MM-DD-<feature-name>.md`.
+
+The output must be explicit enough that `Solution Lead` can turn it into `docs/solution/YYYY-MM-DD-<feature-name>.md` without rediscovering user intent, business rules, or acceptance boundaries.
 
 ## Anti-Patterns to Avoid
 - **Tech leaking**: putting technical implementation decisions in the scope package (for example: "Use React `useState` to store the form"). A scope package should describe behavior and requirements, not code.

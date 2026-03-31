@@ -13,7 +13,7 @@ The goal is to be the technical gate before QA, catching off-scope or low-qualit
 ## Required Inputs
 
 - What needs review? (files / commit / PR)
-- Comparison documents: scope package (requirements), solution package or architecture (design), code standards.
+- Comparison documents: approved scope package (requirements), approved solution package (design), and code standards. Use a separate architecture artifact only as supplemental context when the repository explicitly includes one.
 
 ## Two-Stage Review Process
 

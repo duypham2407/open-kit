@@ -32,7 +32,7 @@ approval_gate: qa_to_done
 
 | Acceptance Criteria | Result | Notes |
 | --- | --- | --- |
-| Dashboard shows title, queue, status, and owner | PASS | Covered by scope-package and architecture artifacts |
+| Dashboard shows title, queue, status, and owner | PASS | Covered by the approved scope package and solution package |
 | Empty state is shown when no tasks exist | PASS | Covered by scope package |
 | Filters narrow the visible list | PASS | Covered by scope package |
 
@@ -56,4 +56,4 @@ No open blocking issues.
 
 ## Conclusion
 
-PASS - Golden path artifact chain is internally consistent.
+PASS - Golden path `Product Lead -> scope package -> Solution Lead -> solution package` handoff is internally consistent.

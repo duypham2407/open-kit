@@ -40,7 +40,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - Tell the user the next action after routing:
   - quick -> confirm the bounded checklist and verification path
   - migration -> capture preserved invariants and baseline evidence before upgrade slices
-  - full -> initialize full intake and route into the full artifact chain
+  - full -> initialize `full_intake`, have `Product Lead` produce the scope package in `full_product`, then hand that package to `Solution Lead` to produce the solution package in `full_solution`
 - If the task enters the quick lane, initialize quick intake context and continue through the canonical quick stage chain
 - If the task enters the migration lane, initialize `migration_intake` and continue through the canonical migration stage chain
 - If the task enters the full lane, initialize `full_intake` and route to `Product Lead`

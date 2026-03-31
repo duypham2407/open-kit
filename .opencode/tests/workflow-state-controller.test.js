@@ -40,6 +40,7 @@ const {
   setReleaseApproval,
   setReleaseStatus,
   setRoutingProfile,
+  setParallelization,
   setMigrationSliceStatus,
   setTaskStatus,
   showState,
@@ -213,8 +214,8 @@ function advanceFullWorkItemToPlan(statePath) {
     `docs/scope/2026-03-21-${state.feature_slug}.md`,
     ["# Scope Package", "", "## Goal", "", "## In Scope", "", "## Out of Scope", "", "## Acceptance Criteria Matrix"].join("\n"),
   )
-  linkArtifact("scope_package", `docs/scope/2026-03-21-${state.feature_slug}.md`, statePath)
   advanceStage("full_product", statePath)
+  linkArtifact("scope_package", `docs/scope/2026-03-21-${state.feature_slug}.md`, statePath)
   setApproval("product_to_solution", "approved", "user", "2026-03-21", "Approved", statePath)
   advanceStage("full_solution", statePath)
   writeArtifact(
@@ -308,6 +309,35 @@ test("entering full_solution auto-scaffolds the solution package", () => {
   assert.equal(result.state.last_auto_scaffold.artifact, "solution_package")
   assert.equal(result.state.last_auto_scaffold.stage, "full_solution")
   assert.equal(fs.existsSync(path.join(path.dirname(path.dirname(statePath)), result.state.artifacts.solution_package)), true)
+})
+
+test("full mode rejects linking solution_package before full_solution", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-212", "premature-solution", statePath)
+  const state = showState(statePath).state
+  writeArtifact(
+    statePath,
+    `docs/solution/2026-03-21-${state.feature_slug}.md`,
+    [
+      "# Solution Package",
+      "",
+      "## Recommended Path",
+      "",
+      "## Impacted Surfaces",
+      "",
+      "## Implementation Slices",
+      "",
+      "## Validation Matrix",
+      "",
+      "## Integration Checkpoint",
+    ].join("\n"),
+  )
+
+  assert.throws(
+    () => linkArtifact("solution_package", `docs/solution/2026-03-21-${state.feature_slug}.md`, statePath),
+    /cannot be linked before stage 'full_solution'/,
+  )
 })
 
 test("quick_done requires quick_verified approval", () => {
@@ -1084,6 +1114,18 @@ test("approving code_review_to_qa succeeds with a valid initial full_solution ta
   const result = setApproval("code_review_to_qa", "approved", "user", "2026-03-21", "Approved", statePath)
 
   assert.equal(result.state.approvals.code_review_to_qa.status, "approved")
+})
+
+test("full mode rejects parallelization before full_solution", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-611", "premature-parallel", statePath)
+  advanceStage("full_product", statePath)
+
+  assert.throws(
+    () => setParallelization("limited", "too early", "integration checkpoint", 2, statePath),
+    /cannot be set before stage 'full_solution'/,
+  )
 })
 
 test("advancing full_solution to full_implementation without a valid task board fails", () => {

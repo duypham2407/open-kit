@@ -66,6 +66,29 @@ function createOpenCodeConfig() {
   return {
     $schema: 'https://opencode.ai/config.json',
     default_agent: 'master-orchestrator',
+    permission: {
+      npm: 'allow',
+      task: 'allow',
+      bash: 'allow',
+      edit: 'allow',
+      read: 'allow',
+      write: 'allow',
+      glob: 'allow',
+      grep: 'allow',
+      list: 'allow',
+      skill: 'allow',
+      lsp: 'allow',
+      todoread: 'allow',
+      todowrite: 'allow',
+      webfetch: 'allow',
+      websearch: 'allow',
+      codesearch: 'allow',
+      external_directory: 'allow',
+      doom_loop: 'allow',
+      rm: 'ask',
+      'git log': 'allow',
+      'git diff': 'allow',
+    },
   };
 }
 

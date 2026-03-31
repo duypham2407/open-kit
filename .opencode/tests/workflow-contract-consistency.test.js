@@ -39,7 +39,7 @@ function setupTempRuntime(projectRoot) {
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
-        version: "0.3.9",
+        version: "0.3.10",
         entryAgent: "MasterOrchestrator",
         registry: {
           path: "registry.json",

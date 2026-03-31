@@ -11,7 +11,7 @@ A work item is only done when:
 
 Current-state notes:
 
-- In `Quick Task`, this means the `quick_plan` checklist, acceptance bullets, verification path, QA Lite evidence, and `quick_verified` approval are recorded honestly; it does not imply a full artifact chain.
+- In `Quick Task`, this means the `quick_plan` checklist, acceptance bullets, verification path, QA Lite evidence, and `quick_verified` approval are recorded honestly; it does not imply the full-delivery `Product Lead -> scope package -> Solution Lead -> solution package` handoff.
 - In `Full Delivery`, this means the required stage artifacts, handoff readiness, and approvals exist for the live full-delivery contract.
 - If the repository has no build, lint, or test tooling for the work, done status requires explicit reporting of the real verification path rather than invented automation claims.
 - Runtime or workflow maintenance work should leave the repository documentation aligned with any newly introduced commands or bootstrap behavior.
