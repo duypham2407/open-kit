@@ -18,6 +18,13 @@ function isOpenCodeAvailable(env = process.env) {
   return isCommandAvailable('opencode', { env });
 }
 
+const REQUIRED_GLOBAL_KIT_TEMPLATE_PATHS = [
+  'docs/templates/solution-package-template.md',
+  'docs/templates/migration-solution-package-template.md',
+  'docs/templates/migration-report-template.md',
+  'docs/templates/scope-package-template.md',
+]
+
 function withGuidance(result, nextStep, recommendedCommand = null) {
   return {
     ...result,
@@ -65,6 +72,18 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
     issues.push('Global workflow-state CLI is missing from the installed kit.');
   }
 
+  const missingKitTemplates = REQUIRED_GLOBAL_KIT_TEMPLATE_PATHS.filter(
+    (relativePath) => !fs.existsSync(path.join(globalPaths.kitRoot, relativePath))
+  );
+
+  for (const relativePath of missingKitTemplates) {
+    issues.push(`Global kit is missing required template: ${relativePath}`);
+  }
+
+  if (missingKitTemplates.length > 0) {
+    issues.push('This usually means the global OpenKit install is stale or drifted. Run openkit upgrade before retrying the affected lane.');
+  }
+
   if (!isOpenCodeAvailable(env)) {
     issues.push('OpenCode executable is not available on PATH.');
   }
@@ -109,7 +128,7 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
     runtimeFoundation,
     runtimeDoctor,
     issues,
-  }, issues.length === 0 ? 'Run openkit run.' : 'Review the issues above before relying on this workspace.', issues.length === 0 ? 'openkit run' : null);
+  }, issues.length === 0 ? 'Run openkit run.' : 'Review the issues above before relying on this workspace. If templates are missing from the global kit, run openkit upgrade.', issues.length === 0 ? 'openkit run' : null);
 }
 
 export function renderGlobalDoctorSummary(result) {

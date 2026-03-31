@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.11`](release-notes/0.3.11.md) - harden Master Orchestrator as a routing-only boss role that never codes
-- npm latest: `@duypham93/openkit@0.3.11`
-- git tag: `v0.3.11`
+- [`0.3.12`](release-notes/0.3.12.md) - teach global doctor to flag missing migration templates as stale-kit drift
+- npm latest: `@duypham93/openkit@0.3.12`
+- git tag: `v0.3.12`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.12`](release-notes/0.3.12.md) - teach global doctor to flag missing migration templates as stale-kit drift
 - [`0.3.11`](release-notes/0.3.11.md) - harden Master Orchestrator as a routing-only boss role that never codes
 - [`0.3.10`](release-notes/0.3.10.md) - lock Product Lead -> Solution Lead sequencing and add explicit OpenCode permission defaults
 - [`0.3.9`](release-notes/0.3.9.md) - clarify managed path boundaries across runtime, docs, and governance checks

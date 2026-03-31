@@ -227,7 +227,7 @@ test('global doctor recommends upgrade for invalid installs', () => {
     stateVersion: 1,
     kit: {
       name: 'OpenKit',
-      version: '0.3.11',
+      version: '0.3.12',
     },
     installation: {
       profile: 'openkit',
@@ -271,11 +271,44 @@ test('global doctor reports workspace issues with guidance', () => {
   });
 
   assert.equal(result.status, 'workspace-ready-with-issues');
-  assert.equal(result.nextStep, 'Review the issues above before relying on this workspace.');
+  assert.equal(result.nextStep, 'Review the issues above before relying on this workspace. If templates are missing from the global kit, run openkit upgrade.');
   assert.equal(result.recommendedCommand, null);
   assert.match(result.issues.join('\n'), /OpenCode executable is not available on PATH/);
   assert.equal(result.workspace.meta, null);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode')), false);
+});
+
+test('global doctor reports missing migration template as stale global install guidance', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  fs.rmSync(path.join(tempHome, 'kits', 'openkit', 'docs', 'templates', 'migration-solution-package-template.md'));
+
+  const result = inspectGlobalDoctor({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+  });
+
+  assert.equal(result.status, 'workspace-ready-with-issues');
+  assert.match(result.issues.join('\n'), /Global kit is missing required template: docs\/templates\/migration-solution-package-template\.md/);
+  assert.match(result.issues.join('\n'), /global OpenKit install is stale or drifted/i);
+
+  const output = renderGlobalDoctorSummary(result);
+  assert.match(output, /Global kit is missing required template: docs\/templates\/migration-solution-package-template\.md/);
+  assert.match(output, /run openkit upgrade/i);
 });
 
 test('global doctor summary surfaces shared-artifact waits and long-running runs', () => {

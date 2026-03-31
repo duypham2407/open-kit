@@ -61,7 +61,7 @@ function materializeManagedInstall(projectRoot) {
     stateVersion: 1,
     kit: {
       name: 'OpenKit',
-      version: '0.3.11',
+      version: '0.3.12',
     },
     installation: {
       profile: 'openkit-core',
@@ -156,7 +156,7 @@ test('doctor reports install incomplete for a partial install when install state
     stateVersion: 1,
     kit: {
       name: 'OpenKit',
-      version: '0.3.11',
+      version: '0.3.12',
     },
     installation: {
       profile: 'openkit-core',
@@ -233,7 +233,7 @@ test('doctor reports drift for managed install-state assets it owns in phase 1',
     stateVersion: 1,
     kit: {
       name: 'OpenKit',
-      version: '0.3.11',
+      version: '0.3.12',
     },
     installation: {
       profile: 'custom-profile',
@@ -1609,7 +1609,7 @@ test('doctor does not report healthy when an adopted root manifest is incompatib
     stateVersion: 1,
     kit: {
       name: 'OpenKit',
-      version: '0.3.11',
+      version: '0.3.12',
     },
     installation: {
       profile: 'openkit-core',
@@ -1699,7 +1699,7 @@ test('doctor can report healthy when an adopted root manifest still satisfies th
     stateVersion: 1,
     kit: {
       name: 'OpenKit',
-      version: '0.3.11',
+      version: '0.3.12',
     },
     installation: {
       profile: 'openkit-core',
