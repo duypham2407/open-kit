@@ -22,10 +22,12 @@ Use it to keep role boundaries sharp during daily work.
 - implementation
 - code review
 - QA judgment
+- writing or editing code, even for a small fix
 
 ### Guiding Question
 
 - What lane, stage, and owner should this work move to next, and where should it return if it fails?
+- Never: How do I personally implement this?
 
 ## Product Lead
 
@@ -171,6 +173,7 @@ Use it to keep role boundaries sharp during daily work.
 ## Anti-Patterns
 
 - `Master Orchestrator` invents content instead of routing work.
+- `Master Orchestrator` writes code or applies a solution directly instead of dispatching `FullstackAgent`.
 - `Product Lead` writes architecture.
 - `Solution Lead` rewrites product scope.
 - `Code Reviewer` tries to act as QA.

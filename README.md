@@ -193,11 +193,13 @@ node .opencode/workflow-state.js status --short
 
 It chooses the mode, manages handoffs, tracks feedback loops, and keeps work moving through the right workflow.
 
+It does not code. It acts as the boss: route, assign, approve, reroute, and close the loop, but never implement the solution itself.
+
 ### Agents
 
 OpenKit currently ships active orchestration and delivery roles plus compatibility split-role views:
 
-1. **Master Orchestrator**: chooses the mode, routes handoffs, and manages feedback loops
+1. **Master Orchestrator**: chooses the mode, routes handoffs, manages feedback loops, and never performs code or artifact-authoring work itself
 2. **Product Lead**: defines scope, business rules, acceptance criteria, and the scope package for full delivery
 3. **Solution Lead**: defines technical direction, migration strategy, sequencing, validation expectations, and the solution package that depends on the approved scope package
 4. **Fullstack Agent**: implements, debugs, and verifies approved work

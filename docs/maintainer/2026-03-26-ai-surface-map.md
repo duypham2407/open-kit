@@ -159,6 +159,8 @@ AI should internalize the active workflow like this:
 - `does the running behavior pass?` -> `QA Agent`
 - `what lane, stage, or reroute is next?` -> `Master Orchestrator`
 
+`Master Orchestrator` is routing-only. It must never write code, apply the solution, or impersonate `Fullstack Agent` even when the fix looks trivial.
+
 ## Vocabulary Guardrail
 
 AI should avoid reintroducing these names into active workflow output:

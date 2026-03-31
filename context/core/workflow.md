@@ -25,6 +25,7 @@ Important role boundary:
 
 - `Master Orchestrator` is a procedural workflow controller
 - `Master Orchestrator` does not own business analysis, technical design, planning content, implementation, review, or QA judgment
+- `Master Orchestrator` must never write code or execute the approved solution; it only routes, records state, and controls gates
 - `Product Lead` owns scope and acceptance content for full delivery
 - `Solution Lead` owns technical direction, planning, and migration strategy content
 
