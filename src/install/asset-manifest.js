@@ -44,6 +44,13 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     status: "active",
   },
   {
+    id: "opencode.agent.QuickAgent",
+    assetClass: "agents",
+    sourcePath: "agents/quick-agent.md",
+    bundledPath: "assets/install-bundle/opencode/agents/QuickAgent.md",
+    status: "active",
+  },
+  {
     id: "opencode.agent.SolutionLead",
     assetClass: "agents",
     sourcePath: "agents/solution-lead-agent.md",

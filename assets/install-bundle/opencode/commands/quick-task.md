@@ -1,10 +1,10 @@
 ---
-description: "Starts the Quick Task lane for narrow, low-risk work."
+description: "Starts the Quick Task lane for daily work. Routes directly to Quick Agent with no intermediary."
 ---
 
 # Command: `/quick-task`
 
-Use `/quick-task` when the user wants to enter the quick lane directly for bounded small-to-medium work that stays within the quick-lane limits, remains lower risk, and uses a short verification path.
+Use `/quick-task` when the user wants to enter the quick lane directly for daily work. The Quick Agent receives the request directly — Master Orchestrator does not participate.
 
 ## Shared prompt contract
 
@@ -12,7 +12,7 @@ Use `/quick-task` when the user wants to enter the quick lane directly for bound
 
 ## Preconditions
 
-- The request must satisfy quick-lane criteria in `context/core/workflow.md`
+- A user request exists with enough information to start brainstorming
 - If work is resuming, the current state must be compatible with continuing quick work or starting a new task
 
 ## Canonical docs to load
@@ -20,41 +20,47 @@ Use `/quick-task` when the user wants to enter the quick lane directly for bound
 - `.opencode/openkit/AGENTS.md`
 - `.opencode/openkit/context/navigation.md`
 - `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/lane-selection.md`
 - `.opencode/openkit/context/core/project-config.md`
 - `.opencode/openkit/context/core/runtime-surfaces.md`
+- `.opencode/openkit/context/core/code-quality.md`
 - `.opencode/openkit/workflow-state.json` when resuming
-- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/openkit/work-items/` as compatibility-only when present
-
-For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
+- `.opencode/work-items/` when managed work-item backing state is relevant
 
 ## Expected action
 
-- The Master Orchestrator confirms quick eligibility
-- Record `mode = quick` and `mode_reason`
-- Tell the user the next action in quick language: confirm the bounded checklist, acceptance bullets, and short verification path
-- Initialize `quick_intake`, prepare the quick intake context, then advance to `quick_plan`
-- Once the required `quick_plan` context is ready, route into `quick_build` with the Fullstack Agent
+- The Quick Agent receives the request directly — no Master Orchestrator involvement
+- Record `lane_source = user_explicit`, `mode = quick`, and `mode_reason` in workflow state
+- Initialize `quick_intake`, then advance immediately to `quick_brainstorm`
+- Follow the single-agent quick pipeline: `quick_brainstorm -> quick_plan -> quick_implement -> quick_test -> quick_done`
+- During brainstorm: read the codebase deeply, generate 3 solution options with pros/cons analysis, recommend the best option, and wait for the user to choose
 - Create an optional task card only when traceability is genuinely useful
-- Reject quick entry if compatibility or modernization risk is the dominant reason the user asked for the work
 
-## Rejection or escalation behavior
+## Lane authority
 
-- If the request does not meet quick criteria, reject quick entry and reroute through `migration_intake` or `full_intake` based on the canonical workflow rules
-- If the command explicitly asks for quick mode but the routing profile would classify the work as `migration` or `full`, reject quick admission instead of silently keeping the wrong lane
-- If an escalation condition appears during the quick loop, the Master Orchestrator must switch the work into `full_intake`
-- If useful for operator clarity, explain that the work now belongs in Full Delivery without redefining the command surface
+The user selected `/quick-task` explicitly. This is a **lane lock**.
+
+- No agent may reject, reroute, or override the lane to `migration` or `full`
+- If the Quick Agent encounters a problem that exceeds quick-mode boundaries, it reports to the user with options — the user decides whether to switch lanes
+- No auto-escalation
 
 ## Validation guidance
 
-- Keep quick-task validation short and real, following `context/core/project-config.md`
+- Keep quick-task validation real, following `context/core/project-config.md`
 - If no app-native test or lint command exists, document the manual or artifact-based verification path clearly
 - Use `node .opencode/openkit/workflow-state.js validate` only for workflow-state checks, not as a substitute for application testing
 
 ## Example transcript
 
 ```text
-User: /quick-task update the operator README wording for the new command
-OpenKit: The request stays bounded, low-risk, and quick to verify, so quick entry is valid.
-OpenKit: Next action: confirm the checklist and direct verification path, then route to quick_build.
+User: /quick-task fix the CSV export that drops the header row
+QuickAgent: Let me read the codebase to understand the export logic...
+QuickAgent: I've analyzed the code. Here are 3 options:
+  Option A: Fix the off-by-one in the slice() call (low effort, low risk)
+  Option B: Rewrite the export function with streaming (medium effort, medium risk)
+  Option C: Add a header template system (high effort, low risk)
+  I recommend Option A because the root cause is a simple off-by-one error.
+User: Go with A.
+QuickAgent: Here's the execution plan: [plan]. Confirm?
+User: Yes.
+QuickAgent: Done. Tests pass. Here's the summary: [summary].
 ```

@@ -1,8 +1,9 @@
 const QUICK_STAGE_SEQUENCE = [
   "quick_intake",
+  "quick_brainstorm",
   "quick_plan",
-  "quick_build",
-  "quick_verify",
+  "quick_implement",
+  "quick_test",
   "quick_done",
 ]
 
@@ -29,11 +30,12 @@ const MIGRATION_STAGE_SEQUENCE = [
 const STAGE_SEQUENCE = [...QUICK_STAGE_SEQUENCE, ...MIGRATION_STAGE_SEQUENCE, ...FULL_STAGE_SEQUENCE]
 
 const STAGE_OWNERS = {
-  quick_intake: "MasterOrchestrator",
-  quick_plan: "MasterOrchestrator",
-  quick_build: "FullstackAgent",
-  quick_verify: "QAAgent",
-  quick_done: "MasterOrchestrator",
+  quick_intake: "QuickAgent",
+  quick_brainstorm: "QuickAgent",
+  quick_plan: "QuickAgent",
+  quick_implement: "QuickAgent",
+  quick_test: "QuickAgent",
+  quick_done: "QuickAgent",
   migration_intake: "MasterOrchestrator",
   migration_baseline: "SolutionLead",
   migration_strategy: "SolutionLead",
@@ -51,6 +53,7 @@ const STAGE_OWNERS = {
 }
 
 const MODE_VALUES = ["quick", "migration", "full"]
+const LANE_SOURCE_VALUES = ["orchestrator_routed", "user_explicit"]
 
 const ROUTING_WORK_INTENT_VALUES = ["maintenance", "modernization", "feature"]
 const ROUTING_BEHAVIOR_DELTA_VALUES = ["preserve", "extend", "redefine"]
@@ -83,7 +86,7 @@ const MODE_APPROVAL_GATES = {
 
 const TRANSITION_GATES = {
   quick: {
-    "quick_verify->quick_done": "quick_verified",
+    "quick_test->quick_done": "quick_verified",
   },
   migration: {
     "migration_baseline->migration_strategy": "baseline_to_strategy",
@@ -196,6 +199,18 @@ function createDefaultRoutingProfile(mode, selectionReason) {
   }
 }
 
+function createDefaultMigrationContext() {
+  return {
+    baseline_summary: null,
+    target_outcome: null,
+    preserved_invariants: [],
+    allowed_behavior_changes: [],
+    compatibility_hotspots: [],
+    baseline_evidence_refs: [],
+    rollback_checkpoints: [],
+  }
+}
+
 function getApprovalGatesForMode(mode) {
   return MODE_APPROVAL_GATES[mode] ?? []
 }
@@ -235,23 +250,24 @@ function getTransitionGate(mode, fromStage, toStage) {
   return TRANSITION_GATES[mode]?.[`${fromStage}->${toStage}`] ?? null
 }
 
-function getReworkRoute(mode, issueType) {
+function getReworkRoute(mode, issueType, laneSource = "orchestrator_routed") {
   if (mode === "quick") {
     if (issueType === "bug") {
       return {
         mode: "quick",
-        stage: "quick_build",
-        owner: STAGE_OWNERS.quick_build,
+        stage: "quick_test",
+        owner: STAGE_OWNERS.quick_test,
         escalate: false,
       }
     }
 
     if (issueType === "design_flaw" || issueType === "requirement_gap") {
       return {
-        mode: "full",
-        stage: "full_intake",
-        owner: STAGE_OWNERS.full_intake,
-        escalate: true,
+        mode: "quick",
+        stage: "quick_test",
+        owner: STAGE_OWNERS.quick_test,
+        escalate: false,
+        reportToUser: true,
       }
     }
   }
@@ -305,6 +321,17 @@ function getReworkRoute(mode, issueType) {
     }
 
     if (issueType === "requirement_gap") {
+      if (laneSource === "user_explicit") {
+        return {
+          mode: "migration",
+          stage: "migration_verify",
+          owner: STAGE_OWNERS.migration_verify,
+          escalate: false,
+          reportToUser: true,
+          blocked: true,
+        }
+      }
+
       return {
         mode: "full",
         stage: "full_intake",
@@ -324,6 +351,7 @@ module.exports = {
   ISSUE_SEVERITIES,
   ISSUE_STATUS_VALUES,
   ISSUE_TYPES,
+  LANE_SOURCE_VALUES,
   MIGRATION_STAGE_SEQUENCE,
   MODE_APPROVAL_GATES,
   MODE_STAGE_SEQUENCES,
@@ -340,6 +368,7 @@ module.exports = {
   STATUS_VALUES,
   TRANSITION_GATES,
   VERIFICATION_EVIDENCE_KINDS,
+  createDefaultMigrationContext,
   createDefaultRoutingProfile,
   createEmptyApprovals,
   createEmptyArtifacts,

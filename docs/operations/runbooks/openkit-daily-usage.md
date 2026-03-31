@@ -190,10 +190,10 @@ Use `list-work-items` and `show-work-item` when you need to understand which man
 
 Quick lane flow:
 
-- `quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`
+- `quick_intake -> quick_brainstorm -> quick_plan -> quick_implement -> quick_test -> quick_done`
 - use it for bounded daily work
 - `quick_plan` is required, even though a separate task card in `docs/tasks/` remains optional
-- QA still happens through the quick verification step; quick does not bypass quality
+- Quick Agent owns all stages; verification happens in `quick_test` before `quick_done`
 
 Full-delivery flow:
 
@@ -280,7 +280,7 @@ node .opencode/workflow-state.js doctor
 /quick-task Fix the wording in docs/operator/README.md so it matches the current lane terminology.
 ```
 
-3. Let the quick lane move through `quick_plan`, implementation, and QA Lite.
+3. Let the quick lane move through `quick_plan`, `quick_implement`, and `quick_test` before closing at `quick_done`.
 
 ### Example: start feature work
 

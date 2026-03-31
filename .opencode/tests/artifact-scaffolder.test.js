@@ -37,7 +37,7 @@ function setupTempRuntime(projectRoot) {
   }
   fixtureState.current_stage = "quick_plan"
   fixtureState.status = "in_progress"
-  fixtureState.current_owner = "MasterOrchestrator"
+  fixtureState.current_owner = "QuickAgent"
   fixtureState.artifacts.task_card = null
   fixtureState.artifacts.scope_package = null
   fixtureState.artifacts.solution_package = null
@@ -235,6 +235,12 @@ test("scaffold-artifact substitutes real checked-in templates correctly", () => 
   state.current_stage = "full_solution"
   state.current_owner = "SolutionLead"
   state.artifacts.solution_package = null
+  state.approvals.product_to_solution = {
+    status: "approved",
+    approved_by: "ProductLead",
+    approved_at: new Date().toISOString(),
+    notes: "Test fixture approval",
+  }
   fs.rmSync(path.join(projectRoot, ".opencode", "work-items"), { recursive: true, force: true })
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
 
@@ -360,7 +366,7 @@ test("scaffold-artifact creates a migration solution package in migration_strate
   state.artifacts.qa_report = null
   state.artifacts.adr = []
   state.approvals = {
-    baseline_to_strategy: { status: "approved", approved_by: "SolutionLead", approved_at: "2026-03-21", notes: null },
+    baseline_to_strategy: { status: "approved", approved_by: "MasterOrchestrator", approved_at: "2026-03-21", notes: null },
     strategy_to_upgrade: { status: "pending", approved_by: null, approved_at: null, notes: null },
     upgrade_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
     code_review_to_verify: { status: "pending", approved_by: null, approved_at: null, notes: null },
@@ -645,7 +651,7 @@ test("scaffold-artifact rejects migration reports outside migration baseline or 
   state.artifacts.solution_package = null
   state.artifacts.migration_report = null
   state.approvals = {
-    baseline_to_strategy: { status: "approved", approved_by: "SolutionLead", approved_at: "2026-03-21", notes: null },
+    baseline_to_strategy: { status: "approved", approved_by: "MasterOrchestrator", approved_at: "2026-03-21", notes: null },
     strategy_to_upgrade: { status: "approved", approved_by: "FullstackAgent", approved_at: "2026-03-21", notes: null },
     upgrade_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
     code_review_to_verify: { status: "pending", approved_by: null, approved_at: null, notes: null },

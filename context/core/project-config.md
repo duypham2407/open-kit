@@ -197,7 +197,7 @@ Validation split to keep explicit:
 - Use the closest real verification path available.
 - If no test framework exists, manual verification is acceptable when reported clearly.
 - Do not invent commands that the repository has not adopted.
-- Record QA Lite evidence before `quick_done`; approval alone is not enough.
+- Record Quick Agent verification evidence before `quick_done`; approval alone is not enough.
 
 ### Full Delivery
 

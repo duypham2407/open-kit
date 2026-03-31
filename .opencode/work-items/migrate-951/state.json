@@ -1,0 +1,110 @@
+{
+  "work_item_id": "migrate-951",
+  "feature_id": "MIGRATE-951",
+  "feature_slug": "evidence-gap",
+  "mode": "migration",
+  "mode_reason": "Compatibility verification",
+  "lane_source": "orchestrator_routed",
+  "routing_profile": {
+    "work_intent": "modernization",
+    "behavior_delta": "preserve",
+    "dominant_uncertainty": "compatibility",
+    "scope_shape": "adjacent",
+    "selection_reason": "Compatibility verification"
+  },
+  "migration_context": {
+    "baseline_summary": null,
+    "target_outcome": null,
+    "preserved_invariants": [],
+    "allowed_behavior_changes": [],
+    "compatibility_hotspots": [],
+    "baseline_evidence_refs": [],
+    "rollback_checkpoints": []
+  },
+  "parallelization": {
+    "parallel_mode": "none",
+    "why": null,
+    "safe_parallel_zones": [],
+    "sequential_constraints": [],
+    "integration_checkpoint": null,
+    "max_active_execution_tracks": null
+  },
+  "current_stage": "migration_upgrade",
+  "status": "in_progress",
+  "current_owner": "FullstackAgent",
+  "artifacts": {
+    "task_card": null,
+    "scope_package": null,
+    "solution_package": "docs/solution/2026-03-31-evidence-gap.md",
+    "migration_report": null,
+    "qa_report": null,
+    "adr": []
+  },
+  "approvals": {
+    "baseline_to_strategy": {
+      "status": "approved",
+      "approved_by": "MasterOrchestrator",
+      "approved_at": null,
+      "notes": null
+    },
+    "strategy_to_upgrade": {
+      "status": "approved",
+      "approved_by": "FullstackAgent",
+      "approved_at": null,
+      "notes": null
+    },
+    "upgrade_to_code_review": {
+      "status": "approved",
+      "approved_by": "CodeReviewer",
+      "approved_at": null,
+      "notes": null
+    },
+    "code_review_to_verify": {
+      "status": "approved",
+      "approved_by": "QAAgent",
+      "approved_at": null,
+      "notes": null
+    },
+    "migration_verified": {
+      "status": "pending",
+      "approved_by": null,
+      "approved_at": null,
+      "notes": null
+    }
+  },
+  "issues": [],
+  "verification_evidence": [
+    {
+      "artifact_refs": [],
+      "command": null,
+      "exit_status": null,
+      "id": "migration-strategy-report",
+      "kind": "review",
+      "scope": "migration_strategy",
+      "summary": "Strategy artifact reviewed",
+      "source": "solution-lead",
+      "recorded_at": "2026-03-31T16:40:41.768Z"
+    },
+    {
+      "artifact_refs": [],
+      "command": null,
+      "exit_status": null,
+      "id": "migration-review",
+      "kind": "review",
+      "scope": "migration_code_review",
+      "summary": "Review complete",
+      "source": "migration-review",
+      "recorded_at": "2026-03-31T16:40:42.081Z"
+    }
+  ],
+  "retry_count": 0,
+  "escalated_from": null,
+  "escalation_reason": null,
+  "last_auto_scaffold": {
+    "artifact": "solution_package",
+    "path": "docs/solution/2026-03-31-evidence-gap.md",
+    "stage": "migration_strategy",
+    "recorded_at": "2026-03-31T16:40:41.690Z"
+  },
+  "updated_at": "2026-03-31T16:40:42.160Z"
+}

@@ -4,6 +4,16 @@ This file is the detailed routing reference for choosing between `Quick Task`, `
 
 Use `context/core/workflow.md` for the canonical live contract. Use this file when you need the stricter routing rubric, tie-breakers, anti-patterns, and examples.
 
+## Lane Authority
+
+This routing rubric applies **only when the Master Orchestrator is choosing the lane** (i.e. the user entered `/task` and `lane_source = orchestrator_routed`).
+
+When the user enters `/quick-task`, `/migrate`, or `/delivery`, the lane is **locked by the user** (`lane_source = user_explicit`). In that case:
+
+- do **not** apply this rubric to reject or override the user's choice
+- the Master Orchestrator may issue a single advisory warning if the routing profile suggests a mismatch
+- proceed with the user's chosen lane unless the user explicitly changes their mind
+
 ## Core Rule
 
 Choose the lane by the dominant uncertainty of the work, not by estimated size alone.

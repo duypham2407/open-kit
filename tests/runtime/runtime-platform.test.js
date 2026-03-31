@@ -183,8 +183,8 @@ test('runtime foundation exposes workflow-backed tools, supervisor, and persiste
   assert.equal(Array.isArray(result.managers.skillMcpManager.listBindings()), true);
   assert.equal(result.runtimeInterface.runtimeState.skillMcpBindings >= 0, true);
   assert.equal(stageHook.run({ requiredStages: [status.state.current_stage] }).ready, true);
-  assert.equal(stageHook.run({ requiredStages: ['quick_build'] }).blocked, true);
-  assert.match(stageHook.run({ requiredStages: ['quick_build'] }).reason, /allowed stage set/);
+  assert.equal(stageHook.run({ requiredStages: ['quick_implement'] }).blocked, true);
+  assert.match(stageHook.run({ requiredStages: ['quick_implement'] }).reason, /allowed stage set/);
   assert.equal(parallelHook.run({ parallelMode: 'fanout' }).blocked, true);
   assert.equal(writeHook.run({ taskId: 'TASK-1' }).allowed, true);
   assert.equal(verificationHook.run({ hasEvidence: false }).allowed, true);

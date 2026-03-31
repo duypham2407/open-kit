@@ -40,7 +40,7 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Expected action
 
-- The Master Orchestrator records `mode = migration` and `mode_reason`
+- The user chose this lane explicitly; record `lane_source = user_explicit`, `mode = migration`, and `mode_reason` in workflow state
 - Tell the user the next action in migration language: freeze preserved invariants, capture the baseline, and then define staged upgrade slices
 - Initialize `migration_intake`
 - Route to `Solution Lead` for the migration baseline and strategy stages defined in `context/core/workflow.md`
@@ -52,14 +52,14 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - If the team wants one living migration artifact, scaffold `migration_report` during `migration_baseline` or `migration_strategy`
 - Keep validation focused on baseline capture, compatibility evidence, staged execution, and regression checks rather than defaulting to TDD-first execution
 
-## Rejection or escalation behavior
+## Lane authority
 
-- If the request is actually bounded low-risk work, reject migration entry and reroute to the quick lane
-- If the request is actually a net-new feature or requirement-definition problem, reject migration entry and reroute to `full_intake`
-- If the command explicitly asks for migration but the routing profile points to `quick` or `full`, reject migration admission instead of preserving a contradictory lane
-- If migration work uncovers product or requirements ambiguity, preserve escalation metadata while moving into `full_intake`
-- If the proposed approach is effectively a rewrite instead of a behavior-preserving migration, stop and restate the migration slices before continuing
-- If the main uncertainty is product behavior rather than compatibility or modernization, stop using migration and reroute to `full`
+The user selected `/migrate` explicitly. This is a **lane lock**: the Master Orchestrator must honor the user's lane choice.
+
+- Do **not** reject, reroute, or override the lane to `quick` or `full`
+- If the Master Orchestrator sees risk factors that suggest a different lane would be safer (e.g. the work looks like net-new feature delivery or bounded low-risk work), it must issue a **single advisory warning** explaining the concern and the recommended alternative
+- After the warning, if the user does not change their mind, proceed in migration mode without further objection
+- During execution, if the team encounters a hard blocker (product requirements are genuinely undefined, proposed approach is effectively a rewrite), report the blocker to the user and let the user decide whether to change lanes -- do not auto-escalate
 
 ## Validation guidance
 

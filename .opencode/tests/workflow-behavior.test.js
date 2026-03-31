@@ -46,20 +46,18 @@ function writeManifest(projectRoot) {
   )
 }
 
-test("quick requirement gaps escalate to full_intake with full-mode approvals", () => {
+test("quick requirement gaps stay in quick mode and report to user", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-300", "needs-clarification", "Started as a bounded quick task", statePath)
   const result = routeRework("requirement_gap", false, statePath)
 
-  assert.equal(result.state.mode, "full")
-  assert.equal(result.state.current_stage, "full_intake")
-  assert.equal(result.state.current_owner, "MasterOrchestrator")
-  assert.equal(result.state.escalated_from, "quick")
-  assert.match(result.state.escalation_reason, /requirement_gap/)
-  assert.equal(Object.hasOwn(result.state.approvals, "quick_verified"), false)
-  assert.equal(result.state.approvals.product_to_solution.status, "pending")
-  assert.equal(result.state.approvals.qa_to_done.status, "pending")
+  // Quick Agent does not auto-escalate requirement gaps; it reports to user and stays in quick_test
+  assert.equal(result.state.mode, "quick")
+  assert.equal(result.state.current_stage, "quick_test")
+  assert.equal(result.state.current_owner, "QuickAgent")
+  assert.equal(result.state.escalated_from, null)
+  assert.equal(Object.hasOwn(result.state.approvals, "quick_verified"), true)
 })
 
 test("quick stage advancement preserves the canonical owner chain", () => {
@@ -68,19 +66,23 @@ test("quick stage advancement preserves the canonical owner chain", () => {
   startTask("quick", "TASK-301", "owner-chain", "Follow quick-stage ownership", statePath)
   let result = validateState(statePath)
   assert.equal(result.state.current_stage, "quick_intake")
-  assert.equal(result.state.current_owner, "MasterOrchestrator")
+  assert.equal(result.state.current_owner, "QuickAgent")
+
+  result = advanceStage("quick_brainstorm", statePath)
+  assert.equal(result.state.current_stage, "quick_brainstorm")
+  assert.equal(result.state.current_owner, "QuickAgent")
 
   result = advanceStage("quick_plan", statePath)
   assert.equal(result.state.current_stage, "quick_plan")
-  assert.equal(result.state.current_owner, "MasterOrchestrator")
+  assert.equal(result.state.current_owner, "QuickAgent")
 
-  result = advanceStage("quick_build", statePath)
-  assert.equal(result.state.current_stage, "quick_build")
-  assert.equal(result.state.current_owner, "FullstackAgent")
+  result = advanceStage("quick_implement", statePath)
+  assert.equal(result.state.current_stage, "quick_implement")
+  assert.equal(result.state.current_owner, "QuickAgent")
 
-  result = advanceStage("quick_verify", statePath)
-  assert.equal(result.state.current_stage, "quick_verify")
-  assert.equal(result.state.current_owner, "QAAgent")
+  result = advanceStage("quick_test", statePath)
+  assert.equal(result.state.current_stage, "quick_test")
+  assert.equal(result.state.current_owner, "QuickAgent")
 })
 
 test("full workflows start in full_intake with full-mode state", () => {
@@ -105,6 +107,49 @@ test("migration workflows start in migration_intake with migration-mode state", 
   assert.equal(result.state.current_stage, "migration_intake")
   assert.notEqual(result.state.current_stage, "quick_intake")
   assert.notEqual(result.state.current_stage, "full_intake")
+  assert.equal(result.state.escalated_from, null)
+  assert.equal(result.state.lane_source, "orchestrator_routed")
+  assert.deepEqual(result.state.migration_context, {
+    baseline_summary: null,
+    target_outcome: null,
+    preserved_invariants: [],
+    allowed_behavior_changes: [],
+    compatibility_hotspots: [],
+    baseline_evidence_refs: [],
+    rollback_checkpoints: [],
+  })
+})
+
+test("migration requirement gaps stay in migration when lane_source is user_explicit", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-302", "explicit-migrate", "User-selected migration lane", statePath)
+  const opencodeDir = path.dirname(statePath)
+  const workItemStatePath = path.join(opencodeDir, "work-items", "migrate-302", "state.json")
+  const state = JSON.parse(fs.readFileSync(workItemStatePath, "utf8"))
+  state.lane_source = "user_explicit"
+  state.current_stage = "migration_verify"
+  state.current_owner = "QAAgent"
+  state.verification_evidence.push({
+    id: "migration-review-proof",
+    kind: "review",
+    scope: "migration_code_review",
+    summary: "Migration review completed before requirement gap surfaced",
+    source: "migration-review",
+    command: null,
+    exit_status: null,
+    artifact_refs: [],
+    recorded_at: "2026-03-21T00:00:00.000Z",
+  })
+  fs.writeFileSync(workItemStatePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+
+  const result = routeRework("requirement_gap", false, statePath)
+
+  assert.equal(result.state.mode, "migration")
+  assert.equal(result.state.current_stage, "migration_verify")
+  assert.equal(result.state.current_owner, "QAAgent")
+  assert.equal(result.state.status, "blocked")
   assert.equal(result.state.escalated_from, null)
 })
 

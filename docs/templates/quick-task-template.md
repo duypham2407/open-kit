@@ -1,10 +1,10 @@
 ---
 artifact_type: quick_task_card
-version: 1
+version: 2
 status: draft
 feature_id: TASK-000
 feature_slug: example-task
-owner: MasterOrchestrator
+owner: QuickAgent
 mode: quick
 approval_gate: quick_verified
 ---
@@ -13,24 +13,52 @@ approval_gate: quick_verified
 
 ## Goal
 
-- State the smallest useful outcome this quick task must achieve.
+- State the outcome this quick task must achieve.
 
-## Scope
+## Brainstorm
 
-- List the files, surfaces, or boundaries this task is allowed to touch.
+### Codebase Analysis
+- Key files and their roles:
+- Dependencies and affected areas:
+- Existing tests:
 
-## Acceptance Bullets
-- [ ]
+### Option A: <Name>
+- Approach:
+- Pros:
+- Cons:
+- Effort / Risk:
 
-## Risk Note
+### Option B: <Name>
+- Approach:
+- Pros:
+- Cons:
+- Effort / Risk:
 
-## Verification Path
+### Option C: <Name>
+- Approach:
+- Pros:
+- Cons:
+- Effort / Risk:
 
-- Record the real command or manual check that will be used.
+### Recommendation
+- Chosen option and reason:
+
+## Execution Plan
+
+### Steps
+1. <Action> — Files: [...] — Validation: <...>
+
+### Test Strategy
+- Existing tests:
+- New tests needed:
+- Manual checks:
+- Regression:
 
 ## Touched Files
 -
 
-## Verification Result
+## Test Results
 
-## Escalation Note
+## Verification Evidence
+
+## Notes

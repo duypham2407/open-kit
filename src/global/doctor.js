@@ -13,6 +13,7 @@ import { inspectMcpDoctor } from '../runtime/doctor/mcp-doctor.js';
 import { inspectModelDoctor } from '../runtime/doctor/model-doctor.js';
 import { inspectWorkflowDoctor } from '../runtime/doctor/workflow-doctor.js';
 import { readAgentModelSettings } from './agent-models.js';
+import { getOpenKitVersion } from '../version.js';
 
 function isOpenCodeAvailable(env = process.env) {
   return isCommandAvailable('opencode', { env });
@@ -135,6 +136,7 @@ export function renderGlobalDoctorSummary(result) {
   const workspaceShimRoot = path.join(result.workspacePaths.projectRoot, '.opencode', 'openkit');
   const compatibilityShimRoot = path.join(result.workspacePaths.projectRoot, '.opencode');
   const lines = [
+    `OpenKit version: ${getOpenKitVersion()}`,
     `Status: ${result.status}`,
     `Global kit root: ${result.globalPaths.kitRoot}`,
     `Workspace root: ${result.workspacePaths.workspaceRoot}`,

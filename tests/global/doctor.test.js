@@ -40,6 +40,7 @@ test('global doctor reports next steps for install-missing', () => {
   assert.equal(result.recommendedCommand, 'openkit run');
 
   const output = renderGlobalDoctorSummary(result);
+  assert.match(output, /OpenKit version:/);
   assert.match(output, /Next: Run openkit run for first-time setup\./);
   assert.match(output, /Recommended command: openkit run/);
   assert.match(output, /Default session entrypoint: \/task/);
@@ -77,6 +78,7 @@ test('global doctor reports next steps for healthy installs', () => {
   assert.equal(fs.existsSync(path.join(tempHome, 'workspaces')), false);
 
   const output = renderGlobalDoctorSummary(result);
+  assert.match(output, /OpenKit version:/);
   assert.match(output, /Default session entrypoint: \/task/);
   assert.match(output, /Workspace state path:/);
   assert.match(output, /Compatibility shim root:/);
@@ -212,6 +214,7 @@ test('global doctor summary surfaces workflow recommendations for stalled full-d
   });
 
   const output = renderGlobalDoctorSummary(result);
+  assert.match(output, /OpenKit version:/);
   assert.match(output, /Orchestration health: blocked/);
   assert.match(output, /Workflow recommendation: Unblock or replan blocked task 'TASK-777'/);
   assert.match(output, /Continuation recommendation: Unblock or replan blocked task 'TASK-777'/);

@@ -11,7 +11,8 @@ A work item is only done when:
 
 Current-state notes:
 
-- In `Quick Task`, this means the `quick_plan` checklist, acceptance bullets, verification path, QA Lite evidence, and `quick_verified` approval are recorded honestly; it does not imply the full-delivery `Product Lead -> scope package -> Solution Lead -> solution package` handoff.
+- In `Quick Task`, this means the Quick Agent has completed brainstorm (with codebase analysis and 3 options presented to the user), execution plan confirmed by user, implementation, and testing with real evidence; `quick_verified` approval is self-recorded by the Quick Agent based on concrete test output. Quick mode does not involve Master Orchestrator, QA Agent, or the full-delivery handoff chain.
+- In `Migration`, this means preserved invariants, baseline evidence, compatibility hotspots, rollback checkpoints, and the migration solution package remain inspectable; parity evidence is real; any migration slice board is complete enough for closure; and `migration_verified` is approved honestly.
 - In `Full Delivery`, this means the required stage artifacts, handoff readiness, and approvals exist for the live full-delivery contract.
 - If the repository has no build, lint, or test tooling for the work, done status requires explicit reporting of the real verification path rather than invented automation claims.
 - Runtime or workflow maintenance work should leave the repository documentation aligned with any newly introduced commands or bootstrap behavior.

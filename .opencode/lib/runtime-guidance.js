@@ -2,9 +2,9 @@ const { FULL_STAGE_SEQUENCE, MIGRATION_STAGE_SEQUENCE, QUICK_STAGE_SEQUENCE } = 
 
 const EVIDENCE_RULES = {
   quick: {
-    quick_verify: {
+    quick_test: {
       requiredKinds: ["manual", "runtime", "automated"],
-      summary: "QA Lite evidence proving each quick acceptance bullet was checked.",
+      summary: "Test and verification evidence proving each acceptance point was checked by the Quick Agent.",
     },
   },
   migration: {
@@ -22,11 +22,12 @@ const EVIDENCE_RULES = {
 }
 
 const NEXT_ACTION_BY_STAGE = {
-  quick_intake: "Confirm quick eligibility and bound the work before planning.",
-  quick_plan: "Record the bounded checklist, acceptance bullets, and short verification path.",
-  quick_build: "Implement the smallest safe change and keep the verification path short.",
-  quick_verify: "Inspect QA Lite evidence, resolve bugs, or escalate if the work is no longer safely bounded.",
-  quick_done: "Close the quick task or record any follow-up work.",
+  quick_intake: "Initialize workflow state and advance to brainstorm.",
+  quick_brainstorm: "Read the codebase deeply, generate 3 solution options with pros/cons, recommend the best, and wait for user choice.",
+  quick_plan: "Create a concrete execution plan from the chosen option and wait for user confirmation.",
+  quick_implement: "Execute the plan step by step, staying within the agreed scope.",
+  quick_test: "Run tests, verify acceptance points with real evidence, check regression, and approve quick_verified.",
+  quick_done: "Summarize changes, evidence, and notes, then close the quick task.",
   migration_intake: "Freeze preserved behavior and confirm the migration scope.",
   migration_baseline: "Capture the baseline, preserved invariants, and compatibility risks.",
   migration_strategy: "Create the migration solution package, then define staged upgrade slices, rollback checkpoints, and any required seams or adapters.",
@@ -47,7 +48,7 @@ const ARTIFACT_RULES = {
   quick: [
     {
       id: "task_card",
-      availableFrom: "quick_plan",
+      availableFrom: "quick_brainstorm",
       requiredFrom: null,
       recommendedFrom: "quick_plan",
       optional: true,
@@ -112,8 +113,8 @@ const DOD_RULES = {
   quick: {
     requiredArtifacts: [],
     requiredApprovals: ["quick_verified"],
-    requiredEvidenceStages: ["quick_verify"],
-    summary: "Quick work is done when QA Lite evidence exists, approval is explicit, and no unresolved issues remain.",
+    requiredEvidenceStages: ["quick_test"],
+    summary: "Quick work is done when the Quick Agent provides real test evidence, quick_verified is approved, and no unresolved issues remain.",
   },
   migration: {
     requiredArtifacts: ["solution_package"],
@@ -289,7 +290,7 @@ function getVerificationReadiness(state) {
   }
 
   const availableKinds = new Set(evidence.map((entry) => entry.kind))
-  const missingKinds = evidence.length > 0 ? [] : requirement.requiredKinds.filter((kind) => !availableKinds.has(kind))
+  const missingKinds = requirement.requiredKinds.filter((kind) => !availableKinds.has(kind))
 
   return {
     status: missingKinds.length === 0 && evidence.length > 0 ? "ready" : "missing-evidence",

@@ -22,7 +22,7 @@ The live quick lane uses `Quick Task+` successor semantics while preserving the 
 
 The kit is structured into several core directories:
 
-- `agents/`: Definitions for the primary team roles plus helper subagents such as `code-reviewer.md`
+- `agents/`: Definitions for the primary team roles plus helper subagents such as `code-reviewer.md` and `quick-agent.md`
 - `skills/`: Composable workflow procedures (TDD, brainstorming, planning, debugging)
 - `commands/`: User-facing triggers such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, and `/execute-solution`
 - `context/`: Shared intelligence (`navigation.md`, `core/code-quality.md`, `core/workflow.md`)
@@ -240,13 +240,14 @@ Use `context/core/workflow.md` as the canonical workflow reference and adapt it 
 - Record and respect the routing profile behind the lane choice: work intent, behavior delta, dominant uncertainty, and scope shape should support the chosen mode instead of contradicting it
 - Treat `Quick Task+` as the live successor semantics of the existing quick lane, not as permission to invent a third mode, rename commands, or change enums unless the repository explicitly does so
 - Plan before coding. Even quick tasks need a clear objective, acceptance bullets, and validation path
-- Keep responsibilities explicit. Quick mode follows the canonical `quick_*` stage chain in `context/core/workflow.md`, migration mode follows the canonical `migration_*` stage chain, and full mode uses the broader delivery team
-- Treat `Master Orchestrator` as a procedural controller only: route, dispatch, record state, and escalate, but do not let it author business or technical content artifacts
-- Treat `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form policy for daily role boundaries: `Product Lead` defines scope, `Solution Lead` defines technical direction, `Code Reviewer` is the code-facing gate before QA, and `QA Agent` is the runtime-facing verification gate
+- Keep responsibilities explicit. Quick mode follows the canonical `quick_*` stage chain in `context/core/workflow.md` and is entirely owned by `Quick Agent` (`agents/quick-agent.md`), migration mode follows the canonical `migration_*` stage chain, and full mode uses the broader delivery team
+- Treat `Master Orchestrator` as a procedural controller only: route, dispatch, record state, and escalate, but do not let it author business or technical content artifacts; in quick mode it hands off immediately to `Quick Agent` and does not intervene
+- Treat `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form policy for daily role boundaries: `Product Lead` defines scope, `Solution Lead` defines technical direction, `Code Reviewer` is the code-facing gate before QA, `QA Agent` is the runtime-facing verification gate for full and migration modes, and `Quick Agent` is the single owner of all quick-mode stages including verification
 - In the implemented full runtime, feature-level ownership still follows the stage owner while task-level ownership may be distributed through the full-delivery execution task board
 - Use feedback loops. Implementation is not complete until validation has run or the lack of validation tooling has been called out clearly
 - Do not skip review or validation because a task looks simple
-- Route issues by type and by mode: quick bugs loop within quick mode, migration bugs and compatibility flaws loop within migration mode, but product or requirement ambiguity must escalate to full delivery
+- Route issues by type and by mode: quick bugs, design flaws, and requirement gaps stay in quick mode and are reported to the user by Quick Agent without auto-escalation; only repeated failures crossing the retry threshold trigger escalation to full delivery; migration bugs and compatibility flaws loop within migration mode, but product or requirement ambiguity must escalate to full delivery
+- Lane-lock rule: when the user explicitly invokes `/quick-task`, `/migrate`, or `/delivery`, set `lane_source = user_explicit`; Master Orchestrator must honor that choice and may only issue one advisory warning if it detects a mismatch; it must not override the lane
 - Treat parallel support conservatively: only rely on task-board coordination, active-work-item switching, and task-level owner commands that the checked-in runtime actually enforces
 - Do not create commits unless the user explicitly asks for them, even if agent-level instructions mention frequent commit opportunities
 

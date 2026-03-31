@@ -200,7 +200,7 @@ function advanceMigrationWorkItemToStrategy(statePath, featureSlug = "migration-
     ].join("\n"),
   )
   advanceStage("migration_baseline", statePath)
-  setApproval("baseline_to_strategy", "approved", "SolutionLead", "2026-03-21", "Baseline approved", statePath)
+  setApproval("baseline_to_strategy", "approved", "MasterOrchestrator", "2026-03-21", "Baseline approved", statePath)
   advanceStage("migration_strategy", statePath)
   linkArtifact("solution_package", `docs/solution/2026-03-21-${state.feature_slug ?? featureSlug}.md`, statePath)
   setApproval("strategy_to_upgrade", "approved", "FullstackAgent", "2026-03-21", "Strategy approved", statePath)
@@ -253,7 +253,7 @@ test("startTask initializes quick mode with quick-only approvals", () => {
   assert.equal(result.state.mode, "quick")
   assert.equal(result.state.mode_reason, "Scoped text change")
   assert.equal(result.state.current_stage, "quick_intake")
-  assert.equal(result.state.current_owner, "MasterOrchestrator")
+  assert.equal(result.state.current_owner, "QuickAgent")
   assert.deepEqual(result.state.routing_profile, {
     work_intent: "maintenance",
     behavior_delta: "preserve",
@@ -267,22 +267,22 @@ test("startTask initializes quick mode with quick-only approvals", () => {
   assert.equal(result.state.escalation_reason, null)
 })
 
-test("quick mode requires quick_plan before quick_build", () => {
+test("quick mode requires quick_brainstorm before quick_implement", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-129", "needs-plan", "Bounded quick work", statePath)
 
-  assert.throws(() => advanceStage("quick_build", statePath), /immediate next stage 'quick_plan'/)
+  assert.throws(() => advanceStage("quick_implement", statePath), /immediate next stage 'quick_brainstorm'/)
 })
 
-test("quick_plan becomes the next stage after quick_intake", () => {
+test("quick_brainstorm becomes the next stage after quick_intake", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-130", "plan-stage", "Live quick plan stage", statePath)
-  const result = advanceStage("quick_plan", statePath)
+  const result = advanceStage("quick_brainstorm", statePath)
 
-  assert.equal(result.state.current_stage, "quick_plan")
-  assert.equal(result.state.current_owner, "MasterOrchestrator")
+  assert.equal(result.state.current_stage, "quick_brainstorm")
+  assert.equal(result.state.current_owner, "QuickAgent")
 })
 
 test("entering full_product auto-scaffolds the scope package", () => {
@@ -344,20 +344,43 @@ test("quick_done requires quick_verified approval", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-124", "verify-copy", "Copy verification task", statePath)
+  advanceStage("quick_brainstorm", statePath)
   advanceStage("quick_plan", statePath)
-  advanceStage("quick_build", statePath)
-  advanceStage("quick_verify", statePath)
+  advanceStage("quick_implement", statePath)
+  advanceStage("quick_test", statePath)
 
   assert.throws(() => advanceStage("quick_done", statePath), /quick_verified/)
 
-  setApproval("quick_verified", "approved", "system", "2026-03-21", "QA Lite passed", statePath)
+  setApproval("quick_verified", "approved", "QuickAgent", "2026-03-21", "Quick Agent verified", statePath)
   recordVerificationEvidence(
     {
-      id: "quick-qa-lite-gate",
+      id: "quick-agent-gate",
       kind: "manual",
-      scope: "quick_verify",
-      summary: "Manual QA Lite pass",
-      source: "qa-lite",
+      scope: "quick_test",
+      summary: "Quick Agent verification pass",
+      source: "quick-agent",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "quick-agent-runtime",
+      kind: "runtime",
+      scope: "quick_test",
+      summary: "Runtime smoke path completed",
+      source: "quick-agent",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "quick-agent-automated",
+      kind: "automated",
+      scope: "quick_test",
+      summary: "Targeted automated check completed",
+      source: "quick-agent",
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -372,20 +395,43 @@ test("quick_done also requires verification evidence", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-131", "verify-evidence", "Quick QA evidence gate", statePath)
+  advanceStage("quick_brainstorm", statePath)
   advanceStage("quick_plan", statePath)
-  advanceStage("quick_build", statePath)
-  advanceStage("quick_verify", statePath)
-  setApproval("quick_verified", "approved", "QAAgent", "2026-03-21", "QA Lite passed", statePath)
+  advanceStage("quick_implement", statePath)
+  advanceStage("quick_test", statePath)
+  setApproval("quick_verified", "approved", "QuickAgent", "2026-03-21", "Quick Agent verified", statePath)
 
   assert.throws(() => advanceStage("quick_done", statePath), /missing verification evidence/)
 
   recordVerificationEvidence(
     {
-      id: "quick-qa-lite",
+      id: "quick-agent-evidence",
       kind: "manual",
-      scope: "quick_verify",
+      scope: "quick_test",
       summary: "Checked bounded acceptance bullets manually",
-      source: "qa-lite",
+      source: "quick-agent",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "quick-agent-runtime-evidence",
+      kind: "runtime",
+      scope: "quick_test",
+      summary: "Runtime validation completed",
+      source: "quick-agent",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "quick-agent-automated-evidence",
+      kind: "automated",
+      scope: "quick_test",
+      summary: "Automated validation completed",
+      source: "quick-agent",
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -408,24 +454,18 @@ test("linkArtifact supports quick task cards", () => {
   assert.equal(result.state.artifacts.task_card, taskCardPath)
 })
 
-test("routeRework escalates quick design flaws into full delivery", () => {
+test("routeRework keeps quick design flaws inside quick mode and reports to user", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-126", "needs-spec", "Started as a quick task", statePath)
   const result = routeRework("design_flaw", false, statePath)
 
-  assert.equal(result.state.mode, "full")
-  assert.equal(result.state.current_stage, "full_intake")
-  assert.equal(result.state.current_owner, "MasterOrchestrator")
-  assert.equal(result.state.escalated_from, "quick")
-  assert.match(result.state.escalation_reason, /design_flaw/)
-  assert.deepEqual(Object.keys(result.state.approvals), [
-    "product_to_solution",
-    "solution_to_fullstack",
-    "fullstack_to_code_review",
-    "code_review_to_qa",
-    "qa_to_done",
-  ])
+  // Quick Agent does not auto-escalate design flaws; it reports to user and stays in quick_test
+  assert.equal(result.state.mode, "quick")
+  assert.equal(result.state.current_stage, "quick_test")
+  assert.equal(result.state.current_owner, "QuickAgent")
+  assert.equal(result.state.escalated_from, null)
+  assert.deepEqual(Object.keys(result.state.approvals), ["quick_verified"])
 })
 
 test("routeRework keeps full-mode bugs in full implementation", () => {
@@ -454,6 +494,16 @@ test("startTask initializes migration mode with migration approvals", () => {
     scope_shape: "adjacent",
     selection_reason: "Upgrade React stack safely",
   })
+  assert.equal(result.state.lane_source, "orchestrator_routed")
+  assert.deepEqual(result.state.migration_context, {
+    baseline_summary: null,
+    target_outcome: null,
+    preserved_invariants: [],
+    allowed_behavior_changes: [],
+    compatibility_hotspots: [],
+    baseline_evidence_refs: [],
+    rollback_checkpoints: [],
+  })
   assert.deepEqual(Object.keys(result.state.approvals), [
     "baseline_to_strategy",
     "strategy_to_upgrade",
@@ -471,7 +521,7 @@ test("migration mode advances through its canonical stage chain", () => {
   let result = advanceStage("migration_baseline", statePath)
   assert.equal(result.state.current_owner, "SolutionLead")
 
-  setApproval("baseline_to_strategy", "approved", "SolutionLead", "2026-03-21", "Baseline approved", statePath)
+  setApproval("baseline_to_strategy", "approved", "MasterOrchestrator", "2026-03-21", "Baseline approved", statePath)
   result = advanceStage("migration_strategy", statePath)
   assert.equal(result.state.current_owner, "SolutionLead")
 
@@ -512,6 +562,28 @@ test("migration mode advances through its canonical stage chain", () => {
       kind: "manual",
       scope: "migration_verify",
       summary: "Parity and compatibility checks reviewed",
+      source: "migration-qa",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "migration-runtime-check",
+      kind: "runtime",
+      scope: "migration_verify",
+      summary: "Runtime compatibility smoke checks passed",
+      source: "migration-qa",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "migration-automated-check",
+      kind: "automated",
+      scope: "migration_verify",
+      summary: "Automated regression checks passed",
       source: "migration-qa",
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
@@ -660,7 +732,7 @@ test("entering migration_strategy auto-scaffolds the migration solution package"
 
   startTask("migration", "MIGRATE-110", "auto-migration-solution", "Migration auto scaffold", statePath)
   advanceStage("migration_baseline", statePath)
-  setApproval("baseline_to_strategy", "approved", "SolutionLead", "2026-03-21", "Baseline approved", statePath)
+  setApproval("baseline_to_strategy", "approved", "MasterOrchestrator", "2026-03-21", "Baseline approved", statePath)
   const result = advanceStage("migration_strategy", statePath)
 
   assert.match(result.state.artifacts.solution_package, /docs\/solution\/\d{4}-\d{2}-\d{2}-auto-migration-solution\.md$/)
@@ -680,7 +752,7 @@ test("migration design flaws reroute within migration strategy", () => {
   assert.equal(result.state.current_owner, "SolutionLead")
 })
 
-test("migration requirement gaps escalate into full delivery", () => {
+test("migration requirement gaps escalate into full delivery when orchestrator routed the lane", () => {
   const statePath = createTempStateFile()
 
   startTask("migration", "MIGRATE-103", "upgrade-requirements", "Upgrade with requirement ambiguity", statePath)
@@ -692,6 +764,38 @@ test("migration requirement gaps escalate into full delivery", () => {
   assert.match(result.state.mode_reason, /Promoted from migration mode/)
   assert.match(result.state.escalation_reason, /migration work escalated/i)
   assert.equal(result.state.routing_profile.dominant_uncertainty, "product")
+})
+
+test("migration requirement gaps stay blocked in migration_verify when lane is user_explicit", () => {
+  const statePath = createTempStateFile()
+
+  startTask("migration", "MIGRATE-104", "explicit-user-lock", "Upgrade with explicit user-selected lane", statePath)
+  const workItemStatePath = path.join(path.dirname(statePath), "work-items", "migrate-104", "state.json")
+  const seeded = JSON.parse(fs.readFileSync(workItemStatePath, "utf8"))
+  seeded.lane_source = "user_explicit"
+  seeded.current_stage = "migration_verify"
+  seeded.current_owner = "QAAgent"
+  seeded.verification_evidence.push({
+    id: "migration-review-proof",
+    kind: "review",
+    scope: "migration_code_review",
+    summary: "Migration review completed before requirement ambiguity surfaced",
+    source: "migration-review",
+    command: null,
+    exit_status: null,
+    artifact_refs: [],
+    recorded_at: "2026-03-21T00:00:00.000Z",
+  })
+  fs.writeFileSync(workItemStatePath, `${JSON.stringify(seeded, null, 2)}\n`, "utf8")
+  fs.writeFileSync(statePath, `${JSON.stringify(seeded, null, 2)}\n`, "utf8")
+
+  const result = routeRework("requirement_gap", false, statePath)
+
+  assert.equal(result.state.mode, "migration")
+  assert.equal(result.state.current_stage, "migration_verify")
+  assert.equal(result.state.current_owner, "QAAgent")
+  assert.equal(result.state.status, "blocked")
+  assert.equal(result.state.escalated_from, null)
 })
 
 test("routeRework blocks after reaching the retry threshold", () => {
@@ -923,7 +1027,7 @@ test("quick mode rejects skipping stages", () => {
 
   startTask("quick", "TASK-128", "skip-stage", "Quick stage ordering", statePath)
 
-  assert.throws(() => advanceStage("quick_verify", statePath), /immediate next stage 'quick_plan'/)
+  assert.throws(() => advanceStage("quick_test", statePath), /immediate next stage 'quick_brainstorm'/)
 })
 
 test("full mode rejects quick stages", () => {
@@ -931,7 +1035,7 @@ test("full mode rejects quick stages", () => {
 
   startTask("full", "FEATURE-201", "wrong-lane-stage", "Full workflow stage validation", statePath)
 
-  assert.throws(() => advanceStage("quick_build", statePath), /does not belong to mode 'full'/)
+  assert.throws(() => advanceStage("quick_implement", statePath), /does not belong to mode 'full'/)
 })
 
 test("setRoutingProfile rejects contradictory routing metadata for quick mode", () => {
@@ -1625,12 +1729,12 @@ test("controller rolls back active-item writes when mirror refresh fails after t
   const controller = loadControllerWithWorkItemStoreMocks({
     writeCompatibilityMirror(projectRoot) {
       const activeState = originalStore.readWorkItemState(projectRoot, "task-801")
-      observedPrimaryWriteBeforeMirrorFailure ||= activeState.current_stage === "quick_plan"
+      observedPrimaryWriteBeforeMirrorFailure ||= activeState.current_stage === "quick_brainstorm"
       throw new Error("Simulated mirror write failure")
     },
   })
 
-  assert.throws(() => controller.advanceStage("quick_plan", statePath), /mirror/i)
+  assert.throws(() => controller.advanceStage("quick_brainstorm", statePath), /mirror/i)
 
   assert.equal(observedPrimaryWriteBeforeMirrorFailure, true)
 
@@ -1655,7 +1759,7 @@ test("controller restores primary and mirror state when index write fails late",
     },
   })
 
-  assert.throws(() => controller.advanceStage("quick_plan", statePath), /index write failure/)
+  assert.throws(() => controller.advanceStage("quick_brainstorm", statePath), /index write failure/)
 
   assert.equal(observedMirrorWriteBeforeIndexFailure, true)
 

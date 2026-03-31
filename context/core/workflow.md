@@ -33,35 +33,42 @@ Important role boundary:
 
 Canonical stage sequence:
 
-`quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`
+`quick_intake -> quick_brainstorm -> quick_plan -> quick_implement -> quick_test -> quick_done`
 
 Pipeline:
 
 ```text
 User Request
     ↓
-Master Orchestrator
+Quick Agent (single owner, no handoffs)
     ↓
-quick_plan
+quick_brainstorm   ← deep codebase reading, 3 solution options, user chooses
     ↓
-Fullstack Agent
+quick_plan         ← execution plan from chosen option, user confirms
     ↓
-QA Agent
+quick_implement    ← execute plan step by step
     ↓
-Master Orchestrator
+quick_test         ← run tests, verify acceptance, check regression
+    ↓
+quick_done         ← summarize and close
 ```
 
-Quick mode exists to reduce overhead, not to bypass quality.
+Quick mode is a **single-agent lane**. The Quick Agent owns every stage. Master Orchestrator does not participate except when `/task` routes to quick mode — after that single dispatch, Master disappears. QA Agent does not participate.
+
+When the user invokes `/quick-task`, the Quick Agent receives the request directly with no intermediary.
 
 Quick mode expectations:
 
-- clear scope up front
-- bounded planning before implementation
-- short acceptance bullet list
-- direct verification path
-- no architecture exploration
+- deep codebase reading before proposing solutions
+- 3 genuinely different solution options with pros, cons, effort, and risk analysis — unless the task is so simple that only one approach exists
+- user chooses the approach before implementation begins
+- concrete execution plan with specific files, changes, and validation per step
+- bounded implementation following the plan
+- real test evidence before claiming completion
+- no architecture exploration beyond what brainstorm requires
 - no full-delivery Product-Lead scope-package to Solution-Lead solution-package handoff requirement
 - no required code-review stage
+- no QA Agent involvement
 
 ## Full Delivery Lane
 
@@ -152,7 +159,8 @@ Migration mode expectations:
 - migrate in slices instead of performing a big-bang rewrite
 - verify parity with real before/after evidence, smoke tests, builds, type checks, codemods, and regression passes
 - no task board in the current live contract
-- migration slice boards remain optional and strategy-driven, but when a slice board is present the runtime enforces completion gates before review and closure
+- migration slice boards remain optional and strategy-driven; they are the only migration board form in the live contract
+- when a migration slice board is present, the runtime enforces completion gates before review and closure
 - entering `migration_code_review` requires no active or incomplete slices on the board; entering `migration_done` requires every slice to be `verified` or `cancelled`
 
 Canonical migration heuristic:
@@ -160,6 +168,25 @@ Canonical migration heuristic:
 `freeze invariants -> capture baseline -> decouple blockers -> migrate incrementally -> review for parity drift -> verify parity -> cleanup last`
 
 ## Lane Selection Rules
+
+### Lane Authority
+
+Lane authority depends on which command the user invokes:
+
+- `/task` -> the Master Orchestrator analyzes the request and selects the lane; `lane_source = orchestrator_routed`
+- `/quick-task`, `/migrate`, `/delivery` -> the user has explicitly chosen the lane; `lane_source = user_explicit`
+
+When `lane_source` is `user_explicit`:
+
+- the Master Orchestrator must **not** reject, reroute, or override the lane
+- if risk factors suggest a different lane, the Master Orchestrator issues a **single advisory warning** with the concern and the recommended alternative, then proceeds with the user's choice
+- during execution, if a hard blocker or lane mismatch surfaces, the Master Orchestrator reports the problem to the user and waits for an explicit user decision before changing lanes
+- auto-escalation is disabled; only the user can authorize a lane change
+
+When `lane_source` is `orchestrator_routed`:
+
+- the Master Orchestrator applies the routing profile and tie-breaker rules as before
+- auto-escalation from `quick` or `migration` into `full` is permitted when the canonical escalation conditions are met
 
 Primary routing heuristic:
 
@@ -185,10 +212,12 @@ Lane Decision Matrix:
 ### Quick Task loop
 
 ```text
-Fullstack → QA Lite → (pass) → quick_done
-                    → (bug)  → quick_build
-                    → (design flaw or requirement gap) → full_intake
+Quick Agent → quick_test → (pass)  → quick_done
+                         → (bug)   → fix at the spot, re-test
+                         → (large scope change or blocker) → report to user, user decides
 ```
+
+Quick mode has no inter-agent feedback loop. The Quick Agent fixes bugs internally during `quick_test`. If the Quick Agent encounters a problem that exceeds quick-mode boundaries, it reports to the user with options — it does not auto-escalate or call other agents.
 
 ### Full Delivery loop
 
@@ -211,15 +240,18 @@ Fullstack → Code Reviewer → (implementation issue) → migration_upgrade
 
 QA → (bug)             → migration_upgrade
    → (design flaw)     → migration_strategy
-   → (requirement gap) → full_intake
+   → (requirement gap) → see lane authority
    → (pass)            → migration_done
 ```
+
+When `lane_source` is `orchestrator_routed`, migration requirement gaps escalate to `full_intake` automatically.
+When `lane_source` is `user_explicit`, the finding is reported to the user; only the user can authorize escalation to `full_intake`.
 
 ## Approval Gates
 
 ### Quick Task
 
-- `quick_verified`
+- `quick_verified` (approval authority: `QuickAgent`)
 
 ### Migration
 
@@ -245,12 +277,14 @@ Approval state should be recorded in the managed active work-item state before a
 
 - optional lightweight task card: `docs/tasks/YYYY-MM-DD-<task>.md`
 - source code changes
-- bounded quick-plan/checklist state in `quick_plan`
-- concise QA Lite evidence in workflow communication and state
+- brainstorm analysis with 3 options and recommendation (in workflow communication)
+- execution plan confirmed by user (in workflow communication)
+- test and verification evidence with real command output
 
 ### Migration
 
 - baseline and strategy notes recorded in workflow communication and state
+- migration context in workflow state must keep preserved invariants, baseline evidence refs, compatibility hotspots, and rollback checkpoints inspectable
 - preferred technical artifact: `docs/solution/YYYY-MM-DD-<migration>.md` as the solution package
 - entering `migration_strategy` should auto-scaffold the primary solution package when it is still missing
 - preserved invariants and parity expectations recorded in workflow communication and state
@@ -279,7 +313,7 @@ Stage-entry note:
 3. **Use migration for upgrades** — Framework or dependency modernization should preserve baseline evidence, compatibility reasoning, and known behavior instead of pretending it is greenfield feature delivery.
 4. **Keep role boundaries explicit** — Even in a minimal repository, responsibilities stay conceptually separate.
 5. **Use Master Orchestrator for routing only** — All inter-agent delegation goes through Master, but Master does not author content artifacts.
-6. **Escalate honestly** — Quick mode stops when the work becomes a design or requirements problem, and migration mode stops when the work becomes a product-definition problem.
+6. **Escalate honestly** — Quick mode stops when the work becomes a design or requirements problem, and migration mode stops when the work becomes a product-definition problem. When the user chose the lane explicitly (`lane_source = user_explicit`), report the finding and let the user decide; do not auto-escalate.
 7. **Report real validation** — If tooling does not exist, document the actual verification path instead of inventing commands.
 8. **Make handoffs inspectable** — Every stage boundary should leave enough recorded context that the next role can resume without hidden assumptions.
 

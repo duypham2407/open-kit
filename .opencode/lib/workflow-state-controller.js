@@ -45,6 +45,7 @@ const {
   ISSUE_SEVERITIES,
   ISSUE_STATUS_VALUES,
   ISSUE_TYPES,
+  LANE_SOURCE_VALUES,
   MODE_VALUES,
   PARALLEL_MODES,
   RECOMMENDED_OWNERS,
@@ -57,6 +58,7 @@ const {
   STAGE_SEQUENCE,
   STATUS_VALUES,
   VERIFICATION_EVIDENCE_KINDS,
+  createDefaultMigrationContext,
   createDefaultRoutingProfile,
   createEmptyApprovals,
   createEmptyArtifacts,
@@ -1305,11 +1307,15 @@ function validatePrimaryArtifactContracts(state, projectRoot) {
   }
 
   if (state.mode === "migration" && ["migration_verify", "migration_done"].includes(state.current_stage)) {
-    const hasReviewEvidence = state.verification_evidence.some(
-      (entry) => entry.kind === "review" && entry.scope === "migration_code_review",
-    )
-    if (!hasReviewEvidence) {
-      fail("verification_evidence must include a review entry for 'migration_code_review' before verify or done")
+    // When blocked, the stage is a reporting/holding pen — skip evidence completeness checks.
+    // Evidence is required to transition OUT of migration_verify, not just to enter it while blocked.
+    if (state.status !== "blocked") {
+      const hasReviewEvidence = state.verification_evidence.some(
+        (entry) => entry.kind === "review" && entry.scope === "migration_code_review",
+      )
+      if (!hasReviewEvidence) {
+        fail("verification_evidence must include a review entry for 'migration_code_review' before verify or done")
+      }
     }
   }
 }
@@ -1351,6 +1357,45 @@ function validateParallelization(parallelization, mode) {
 
   if (mode === "quick" && parallelization.parallel_mode !== "none") {
     fail("parallelization.parallel_mode must be 'none' in quick mode")
+  }
+}
+
+function validateMigrationContext(mode, migrationContext) {
+  if (migrationContext === null || migrationContext === undefined) {
+    migrationContext = createDefaultMigrationContext()
+  }
+
+  ensureObject(migrationContext, "migration_context")
+
+  for (const key of [
+    "baseline_summary",
+    "target_outcome",
+    "preserved_invariants",
+    "allowed_behavior_changes",
+    "compatibility_hotspots",
+    "baseline_evidence_refs",
+    "rollback_checkpoints",
+  ]) {
+    if (!(key in migrationContext)) {
+      fail(`migration_context.${key} is required`)
+    }
+  }
+
+  ensureNullableString(migrationContext.baseline_summary, "migration_context.baseline_summary")
+  ensureNullableString(migrationContext.target_outcome, "migration_context.target_outcome")
+  ensureNonEmptyStringArray(migrationContext.preserved_invariants, "migration_context.preserved_invariants")
+  ensureNonEmptyStringArray(migrationContext.allowed_behavior_changes, "migration_context.allowed_behavior_changes")
+  ensureNonEmptyStringArray(migrationContext.compatibility_hotspots, "migration_context.compatibility_hotspots")
+  ensureNonEmptyStringArray(migrationContext.baseline_evidence_refs, "migration_context.baseline_evidence_refs")
+  ensureNonEmptyStringArray(migrationContext.rollback_checkpoints, "migration_context.rollback_checkpoints")
+
+  if (mode !== "migration") {
+    const expectedDefault = createDefaultMigrationContext()
+    for (const [key, value] of Object.entries(expectedDefault)) {
+      if (JSON.stringify(migrationContext[key]) !== JSON.stringify(value)) {
+        fail(`migration_context.${key} must stay at its default value outside migration mode`)
+      }
+    }
   }
 }
 
@@ -1410,12 +1455,20 @@ function validateStateObject(state, options = {}) {
 
   ensureKnown(state.mode, MODE_VALUES, "mode")
   ensureString(state.mode_reason, "mode_reason")
+  if (!("lane_source" in state) || state.lane_source === undefined) {
+    state.lane_source = "orchestrator_routed"
+  }
+  ensureKnown(state.lane_source, LANE_SOURCE_VALUES, "lane_source")
   if (!("parallelization" in state) || state.parallelization === undefined) {
     state.parallelization = createDefaultParallelization(state.mode)
+  }
+  if (!("migration_context" in state) || state.migration_context === undefined) {
+    state.migration_context = createDefaultMigrationContext()
   }
   validateRoutingProfile(state.routing_profile)
   validateRoutingProfileForMode(state.mode, state.routing_profile)
   validateParallelization(state.parallelization, state.mode)
+  validateMigrationContext(state.mode, state.migration_context)
   ensureKnown(state.current_stage, STAGE_SEQUENCE, "current_stage")
   ensureKnown(state.status, STATUS_VALUES, "status")
 
@@ -1466,7 +1519,7 @@ function validateStateObject(state, options = {}) {
   return state
 }
 
-function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason, updatedAt }) {
+function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason, laneSource, updatedAt }) {
   const initialStage = getInitialStageForMode(mode)
 
   return {
@@ -1475,7 +1528,9 @@ function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason
     feature_slug: featureSlug,
     mode,
     mode_reason: modeReason,
+    lane_source: LANE_SOURCE_VALUES.includes(laneSource) ? laneSource : "orchestrator_routed",
     routing_profile: createDefaultRoutingProfile(mode, modeReason),
+    migration_context: createDefaultMigrationContext(),
     parallelization: createDefaultParallelization(mode),
     current_stage: initialStage,
     status: "in_progress",
@@ -2745,6 +2800,113 @@ function setMigrationSliceStatus(workItemId, sliceId, nextStatus, customStatePat
   })
 }
 
+// ---------------------------------------------------------------------------
+// migration_context helpers
+// ---------------------------------------------------------------------------
+
+function setMigrationContext(fields, customStatePath) {
+  ensureObject(fields, "fields")
+
+  return mutate(customStatePath, (state) => {
+    if (state.mode !== "migration") {
+      fail("set-migration-context is only allowed in migration mode")
+    }
+
+    if ("baseline_summary" in fields) {
+      ensureNullableString(fields.baseline_summary, "baseline_summary")
+      state.migration_context.baseline_summary = fields.baseline_summary
+    }
+
+    if ("target_outcome" in fields) {
+      ensureNullableString(fields.target_outcome, "target_outcome")
+      state.migration_context.target_outcome = fields.target_outcome
+    }
+
+    return state
+  })
+}
+
+function appendPreservedInvariant(value, customStatePath) {
+  ensureString(value, "invariant")
+
+  return mutate(customStatePath, (state) => {
+    if (state.mode !== "migration") {
+      fail("append-preserved-invariant is only allowed in migration mode")
+    }
+
+    if (state.migration_context.preserved_invariants.includes(value)) {
+      fail(`Invariant already recorded: '${value}'`)
+    }
+
+    state.migration_context.preserved_invariants.push(value)
+    return state
+  })
+}
+
+function appendBaselineEvidence(ref, customStatePath) {
+  ensureString(ref, "ref")
+
+  return mutate(customStatePath, (state) => {
+    if (state.mode !== "migration") {
+      fail("append-baseline-evidence is only allowed in migration mode")
+    }
+
+    if (state.migration_context.baseline_evidence_refs.includes(ref)) {
+      fail(`Baseline evidence ref already recorded: '${ref}'`)
+    }
+
+    state.migration_context.baseline_evidence_refs.push(ref)
+    return state
+  })
+}
+
+function appendRollbackCheckpoint(checkpoint, customStatePath) {
+  ensureString(checkpoint, "checkpoint")
+
+  return mutate(customStatePath, (state) => {
+    if (state.mode !== "migration") {
+      fail("append-rollback-checkpoint is only allowed in migration mode")
+    }
+
+    if (state.migration_context.rollback_checkpoints.includes(checkpoint)) {
+      fail(`Rollback checkpoint already recorded: '${checkpoint}'`)
+    }
+
+    state.migration_context.rollback_checkpoints.push(checkpoint)
+    return state
+  })
+}
+
+function appendCompatibilityHotspot(hotspot, customStatePath) {
+  ensureString(hotspot, "hotspot")
+
+  return mutate(customStatePath, (state) => {
+    if (state.mode !== "migration") {
+      fail("append-compatibility-hotspot is only allowed in migration mode")
+    }
+
+    if (state.migration_context.compatibility_hotspots.includes(hotspot)) {
+      fail(`Compatibility hotspot already recorded: '${hotspot}'`)
+    }
+
+    state.migration_context.compatibility_hotspots.push(hotspot)
+    return state
+  })
+}
+
+function showMigrationContext(customStatePath) {
+  const { state, statePath } = readManagedState(customStatePath)
+  validateStateObject(state)
+
+  if (state.mode !== "migration") {
+    fail("show-migration-context is only available in migration mode")
+  }
+
+  return { statePath, migration_context: state.migration_context }
+}
+
+// ---------------------------------------------------------------------------
+
 function setTaskStatus(workItemId, taskId, nextStatus, customStatePath, options = {}) {
   validateTaskStatus(nextStatus)
 
@@ -3188,11 +3350,13 @@ function validateState(customStatePath) {
   return { statePath, state }
 }
 
-function startTask(mode, featureId, featureSlug, modeReason, customStatePath) {
+function startTask(mode, featureId, featureSlug, modeReason, customStatePath, options = {}) {
   ensureKnown(mode, MODE_VALUES, "mode")
   ensureString(featureId, "feature_id")
   ensureString(featureSlug, "feature_slug")
   ensureString(modeReason, "mode_reason")
+
+  const laneSource = options.laneSource ?? "orchestrator_routed"
 
   const workItemId = deriveWorkItemId({ feature_id: featureId })
   const projectRoot = ensureWorkItemStoreReady(customStatePath)
@@ -3207,6 +3371,7 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath) {
     featureId,
     featureSlug,
     modeReason,
+    laneSource,
     updatedAt: timestamp(),
   })
 
@@ -3559,7 +3724,7 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 
   return mutate(customStatePath, (state) => {
     const previousMode = state.mode
-    const route = getReworkRoute(state.mode, issueType)
+    const route = getReworkRoute(state.mode, issueType, state.lane_source)
     if (!route) {
       fail(`No rework route exists for issue type '${issueType}' in mode '${state.mode}'`)
     }
@@ -3577,7 +3742,7 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
     } else {
       state.current_stage = route.stage
       state.current_owner = route.owner
-      state.status = "in_progress"
+      state.status = route.blocked ? "blocked" : "in_progress"
     }
 
     if (repeatFailedFix) {
@@ -3612,6 +3777,10 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 }
 
 module.exports = {
+  appendBaselineEvidence,
+  appendCompatibilityHotspot,
+  appendPreservedInvariant,
+  appendRollbackCheckpoint,
   advanceStage,
   addReleaseWorkItem,
   assignMigrationQaOwner,
@@ -3671,6 +3840,7 @@ module.exports = {
   scaffoldAndLinkArtifact,
   selectActiveWorkItem,
   setParallelization,
+  setMigrationContext,
   setMigrationSliceStatus,
   setReleaseApproval,
   setReleaseStatus,
@@ -3679,6 +3849,7 @@ module.exports = {
   setApproval,
   startBackgroundRun,
   updateIssueStatus,
+  showMigrationContext,
   showState,
   showReleaseCandidate,
   showWorkItemState,

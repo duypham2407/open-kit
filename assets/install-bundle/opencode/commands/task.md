@@ -36,12 +36,12 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 ## Expected action
 
 - The Master Orchestrator chooses `quick`, `migration`, or `full` using the canonical workflow rules
-- Record `mode` and `mode_reason` in workflow state
+- Record `mode`, `mode_reason`, and `lane_source = orchestrator_routed` in workflow state
 - Tell the user the next action after routing:
   - quick -> confirm the bounded checklist and verification path
   - migration -> capture preserved invariants and baseline evidence before upgrade slices
   - full -> initialize `full_intake`, have `Product Lead` produce the scope package in `full_product`, then hand that package to `Solution Lead` to produce the solution package in `full_solution`
-- If the task enters the quick lane, initialize quick intake context and continue through the canonical quick stage chain
+- If the task enters the quick lane, dispatch to `Quick Agent` and step aside — Master Orchestrator does not participate further in quick mode
 - If the task enters the migration lane, initialize `migration_intake` and continue through the canonical migration stage chain
 - If the task enters the full lane, initialize `full_intake` and route to `Product Lead`
 - When `Product Lead` or `Solution Lead` enters `full_product`, `full_solution`, or `migration_strategy`, ensure the primary scope or solution package exists as a linked markdown artifact
@@ -68,5 +68,5 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 User: /task replace the deprecated helper in one module without changing behavior
 OpenKit: I am treating /task as the default entrypoint and classifying the work first.
 OpenKit: The dominant uncertainty is low and local, so I am routing this to Quick Task.
-OpenKit: Next action: confirm the bounded checklist and verification path, then continue into quick_build.
+OpenKit: Dispatching to Quick Agent. Quick Agent will brainstorm 3 solution options and present them for your choice.
 ```

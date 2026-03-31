@@ -1,0 +1,60 @@
+{
+  "work_item_id": "smoke-quick-test",
+  "feature_id": "smoke-quick-test",
+  "feature_slug": "Smoke test quick lifecycle",
+  "mode": "quick",
+  "mode_reason": "Testing the full quick agent lifecycle",
+  "routing_profile": {
+    "work_intent": "maintenance",
+    "behavior_delta": "preserve",
+    "dominant_uncertainty": "low_local",
+    "scope_shape": "local",
+    "selection_reason": "Testing the full quick agent lifecycle"
+  },
+  "parallelization": {
+    "parallel_mode": "none",
+    "why": null,
+    "safe_parallel_zones": [],
+    "sequential_constraints": [],
+    "integration_checkpoint": null,
+    "max_active_execution_tracks": null
+  },
+  "current_stage": "quick_done",
+  "status": "done",
+  "current_owner": "QuickAgent",
+  "artifacts": {
+    "task_card": null,
+    "scope_package": null,
+    "solution_package": null,
+    "migration_report": null,
+    "qa_report": null,
+    "adr": []
+  },
+  "approvals": {
+    "quick_verified": {
+      "status": "approved",
+      "approved_by": "QuickAgent",
+      "approved_at": "2026-03-31",
+      "notes": "Quick Agent verified"
+    }
+  },
+  "issues": [],
+  "verification_evidence": [
+    {
+      "artifact_refs": [],
+      "command": null,
+      "exit_status": null,
+      "id": "quick-agent",
+      "kind": "manual",
+      "scope": "quick_test",
+      "summary": "Quick Agent verification: all checks pass",
+      "source": "quick-agent",
+      "recorded_at": "2026-03-31T16:03:31.163Z"
+    }
+  ],
+  "retry_count": 0,
+  "escalated_from": null,
+  "escalation_reason": null,
+  "last_auto_scaffold": null,
+  "updated_at": "2026-03-31T16:03:39.974Z"
+}

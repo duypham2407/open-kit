@@ -31,17 +31,21 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Expected action
 
-- The Master Orchestrator records `mode = full` and `mode_reason`
+- The user chose this lane explicitly; record `lane_source = user_explicit`, `mode = full`, and `mode_reason` in workflow state
 - Tell the user the next action in full-delivery language: initialize intake, route to `Product Lead` for `full_product`, then hand off to `Solution Lead` for `full_solution`
 - Initialize `full_intake`
 - Route to `Product Lead` to begin the Full Delivery chain defined in `context/core/workflow.md`
 - Track approval gates in workflow state before each stage advance
 - Use this lane when the dominant uncertainty is product behavior, requirements, or cross-boundary solution design rather than compatibility modernization
 
-## Rejection or escalation behavior
+## Lane authority
 
+The user selected `/delivery` explicitly. This is a **lane lock**: the Master Orchestrator must honor the user's lane choice.
+
+- Do **not** reject, reroute, or override the lane to `quick` or `migration`
 - If the command is entered from an active quick or migration context, preserve escalation metadata while moving into `full_intake`
-- If the command explicitly asks for full mode but the routing profile still shows behavior-preserving modernization with compatibility uncertainty, reject full admission and reroute to migration instead of silently widening the lane
+- If the Master Orchestrator sees risk factors that suggest a different lane would be more appropriate (e.g. the work is behavior-preserving modernization that fits migration), it must issue a **single advisory warning** explaining the concern and the recommended alternative
+- After the warning, if the user does not change their mind, proceed in full delivery mode without further objection
 - If required full-mode context is missing or state is contradictory, stop at intake and report the mismatch instead of skipping a stage
 - Do not create a new lane, new stage, or alternate full-entry chain outside the canonical workflow doc
 

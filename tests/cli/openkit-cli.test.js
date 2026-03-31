@@ -151,6 +151,7 @@ test('openkit doctor reports install-missing when global install is absent', () 
   });
 
   assert.equal(result.status, 1);
+  assert.match(result.stdout, /OpenKit version:/);
   assert.match(result.stdout, /Status: install-missing/);
   assert.match(result.stdout, /Global OpenKit install was not found/);
   assert.match(result.stdout, /Next: Run openkit run for first-time setup/);
@@ -181,6 +182,7 @@ test('openkit doctor reports healthy without mutating workspace metadata', () =>
   });
 
   assert.equal(result.status, 0);
+  assert.match(result.stdout, /OpenKit version:/);
   assert.match(result.stdout, /Status: healthy/);
   assert.match(result.stdout, /Workspace root:/);
   assert.match(result.stdout, /Workspace state path:/);

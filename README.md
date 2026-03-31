@@ -74,7 +74,7 @@ User request
    v
 Master Orchestrator chooses mode
    |
-   +--> Quick ------> bounded implementation -> QA Lite -> done
+   +--> Quick ------> Quick Agent: brainstorm(3 options) -> plan -> implement -> test -> done
    |
    +--> Migration --> baseline -> strategy -> upgrade -> code review -> verify -> done
     |

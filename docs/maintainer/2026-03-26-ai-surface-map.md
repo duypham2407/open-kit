@@ -24,6 +24,7 @@ If these sources and any historical material disagree, the files above win.
 Only these role prompts are active:
 
 - `agents/master-orchestrator.md`
+- `agents/quick-agent.md`
 - `agents/product-lead-agent.md`
 - `agents/solution-lead-agent.md`
 - `agents/fullstack-agent.md`
@@ -127,10 +128,7 @@ AI should internalize the active workflow like this:
 
 ### Quick
 
-- `Master Orchestrator`
-- `Fullstack Agent`
-- `QA Agent`
-- `Master Orchestrator`
+- `Quick Agent` (single owner of all quick stages; no other agents participate)
 
 ### Migration
 

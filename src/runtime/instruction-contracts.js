@@ -10,10 +10,10 @@ export const COMMAND_INSTRUCTION_CONTRACTS = {
   },
   'quick-task': {
     command: '/quick-task',
-    purpose: 'Direct quick-lane entry for bounded low-risk work.',
-    nextAction: 'Confirm quick eligibility, define the bounded checklist, and route to quick_build.',
-    expectedOutputs: ['quick scope', 'quick_plan context', 'verification path'],
-    whenToUse: 'Use only when the work is clearly local, low-risk, and short to verify.',
+    purpose: 'Direct quick-lane entry routed to Quick Agent with no Master Orchestrator involvement.',
+    nextAction: 'Quick Agent reads the codebase, brainstorms 3 options, presents to user, then plans, implements, and tests.',
+    expectedOutputs: ['3 solution options', 'execution plan', 'test evidence'],
+    whenToUse: 'Use for daily work — bounded tasks where you want a single agent to handle everything.',
   },
   migrate: {
     command: '/migrate',

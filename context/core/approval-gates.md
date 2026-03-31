@@ -29,16 +29,16 @@ Quick mode uses one required gate:
 
 Meaning:
 
-- the user request is treated as implicit approval to start quick work unless the task is ambiguous or risky
-- `quick_verified` becomes `approved` only after QA Lite passes
-- `QA Agent` is the approval authority for `quick_verified`
-- the builder may supply evidence and recommended disposition, but cannot self-approve the gate
+- the user request is treated as implicit approval to start quick work
+- `quick_verified` becomes `approved` only after `quick_test` passes with real verification evidence
+- `Quick Agent` is the approval authority for `quick_verified`
+- the Quick Agent self-approves after providing real evidence via the `verification-before-completion` skill
 
 Transition rule:
 
-- `quick_verify -> quick_done` requires `quick_verified = approved`
+- `quick_test -> quick_done` requires `quick_verified = approved`
 
-`quick_plan` does not add a second quick approval gate. It is a required planning stage, but quick-mode completion still depends on `quick_verified` after QA Lite passes.
+Quick mode has no inter-agent approval gates. The Quick Agent owns every stage and approves `quick_verified` based on test evidence.
 
 ## Migration Gates
 
@@ -52,7 +52,7 @@ Migration mode uses five required gates:
 
 Approval authorities:
 
-- `baseline_to_strategy`: `SolutionLead`
+- `baseline_to_strategy`: `MasterOrchestrator`
 - `strategy_to_upgrade`: `FullstackAgent`
 - `upgrade_to_code_review`: `CodeReviewer`
 - `code_review_to_verify`: `QAAgent`
@@ -72,6 +72,14 @@ Readiness rule before migration approvals:
 - staged execution notes and rollback checkpoints are inspectable
 - review or validation evidence uses real project commands or honest manual evidence
 - requirement ambiguity is escalated to full delivery instead of being approved through migration
+
+Boundary-specific handoff focus for migration:
+
+- `baseline_to_strategy`: preserved invariants, baseline evidence, compatibility hotspots, and migration fit are inspectable enough for staged planning
+- `strategy_to_upgrade`: the migration solution package, rollback checkpoints, and slice/parity plan are inspectable enough for execution
+- `upgrade_to_code_review`: changed surfaces, seam or adapter work, and execution evidence are inspectable enough for parity review
+- `code_review_to_verify`: review findings are resolved or recorded, and parity-risk focus points are inspectable for QA
+- `migration_verified`: parity evidence, residual risks, rollback notes, and migration-slice completion state are inspectable enough for honest closure
 
 ## Full Delivery Gates
 

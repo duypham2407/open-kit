@@ -6,6 +6,10 @@ const path = require("path")
 const {
   ESCALATION_RETRY_THRESHOLD,
   addReleaseWorkItem,
+  appendBaselineEvidence,
+  appendCompatibilityHotspot,
+  appendPreservedInvariant,
+  appendRollbackCheckpoint,
   advanceStage,
   clearIssues,
   clearVerificationEvidence,
@@ -58,12 +62,14 @@ const {
   assignMigrationQaOwner,
   assignQaOwner,
   setParallelization,
+  setMigrationContext,
   setMigrationSliceStatus,
   setReleaseApproval,
   setReleaseStatus,
   setRoutingProfile,
   setTaskStatus,
   setApproval,
+  showMigrationContext,
   showState,
   showReleaseCandidate,
   showWorkItemState,
@@ -101,7 +107,7 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] sync-install-manifest <name>
   node .opencode/workflow-state.js [--state <path>] validate
   node .opencode/workflow-state.js [--state <path>] start-feature <feature_id> <feature_slug>
-  node .opencode/workflow-state.js [--state <path>] start-task <mode> <feature_id> <feature_slug> <mode_reason>
+  node .opencode/workflow-state.js [--state <path>] start-task <mode> <feature_id> <feature_slug> <mode_reason> [--lane-source <user_explicit|orchestrator_routed>]
   node .opencode/workflow-state.js [--state <path>] create-work-item <mode> <feature_id> <feature_slug> <mode_reason>
   node .opencode/workflow-state.js [--state <path>] list-work-items
   node .opencode/workflow-state.js [--state <path>] task-aging-report
@@ -167,7 +173,13 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] qa-failure-summary
   node .opencode/workflow-state.js [--state <path>] policy-trace
   node .opencode/workflow-state.js [--state <path>] clear-issues
-  node .opencode/workflow-state.js [--state <path>] route-rework <issue_type> [repeat_failed_fix=true|false]`)
+  node .opencode/workflow-state.js [--state <path>] route-rework <issue_type> [repeat_failed_fix=true|false]
+  node .opencode/workflow-state.js [--state <path>] show-migration-context
+  node .opencode/workflow-state.js [--state <path>] set-migration-context [--baseline-summary <text>] [--target-outcome <text>]
+  node .opencode/workflow-state.js [--state <path>] append-preserved-invariant <invariant>
+  node .opencode/workflow-state.js [--state <path>] append-baseline-evidence <ref>
+  node .opencode/workflow-state.js [--state <path>] append-rollback-checkpoint <checkpoint>
+  node .opencode/workflow-state.js [--state <path>] append-compatibility-hotspot <hotspot>`)
 }
 
 function parseGlobalFlags(argv) {
@@ -1002,11 +1014,27 @@ async function main() {
       console.log(`Started feature ${rest[0]} (${rest[1]})`)
       console.log(`State file: ${result.statePath}`)
       return
-    case "start-task":
-      result = startTask(rest[0], rest[1], rest[2], rest.slice(3).join(" "), statePath)
-      console.log(`Started ${result.state.mode} task ${rest[1]} (${rest[2]})`)
+    case "start-task": {
+      // Parse optional --lane-source flag from the tail of the args
+      const startTaskArgs = [...rest]
+      let laneSource = "orchestrator_routed"
+      const lsFlagIdx = startTaskArgs.indexOf("--lane-source")
+      if (lsFlagIdx !== -1) {
+        laneSource = startTaskArgs[lsFlagIdx + 1] ?? "orchestrator_routed"
+        startTaskArgs.splice(lsFlagIdx, 2)
+      }
+      result = startTask(
+        startTaskArgs[0],
+        startTaskArgs[1],
+        startTaskArgs[2],
+        startTaskArgs.slice(3).join(" "),
+        statePath,
+        { laneSource },
+      )
+      console.log(`Started ${result.state.mode} task ${startTaskArgs[1]} (${startTaskArgs[2]})`)
       console.log(`State file: ${result.statePath}`)
       return
+    }
     case "create-work-item":
       result = createWorkItem(rest[0], rest[1], rest[2], rest.slice(3).join(" "), statePath)
       console.log(`Created ${result.state.mode} work item ${rest[1]} (${rest[2]})`)
@@ -1378,6 +1406,49 @@ async function main() {
           `Escalation threshold reached: retry_count is at or above ${ESCALATION_RETRY_THRESHOLD}`,
         )
       }
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "show-migration-context": {
+      result = showMigrationContext(statePath)
+      console.log(JSON.stringify(result.migration_context, null, 2))
+      return
+    }
+    case "set-migration-context": {
+      const fields = {}
+      const flags = [...rest]
+      while (flags.length > 0) {
+        const flag = flags.shift()
+        if (flag === "--baseline-summary") {
+          fields.baseline_summary = flags.shift() ?? null
+        } else if (flag === "--target-outcome") {
+          fields.target_outcome = flags.shift() ?? null
+        } else {
+          throw new Error(`Unknown flag for set-migration-context: '${flag}'`)
+        }
+      }
+      result = setMigrationContext(fields, statePath)
+      console.log("Updated migration_context")
+      console.log(`State file: ${result.statePath}`)
+      return
+    }
+    case "append-preserved-invariant":
+      result = appendPreservedInvariant(rest[0], statePath)
+      console.log(`Appended preserved invariant: '${rest[0]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "append-baseline-evidence":
+      result = appendBaselineEvidence(rest[0], statePath)
+      console.log(`Appended baseline evidence ref: '${rest[0]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "append-rollback-checkpoint":
+      result = appendRollbackCheckpoint(rest[0], statePath)
+      console.log(`Appended rollback checkpoint: '${rest[0]}'`)
+      console.log(`State file: ${result.statePath}`)
+      return
+    case "append-compatibility-hotspot":
+      result = appendCompatibilityHotspot(rest[0], statePath)
+      console.log(`Appended compatibility hotspot: '${rest[0]}'`)
       console.log(`State file: ${result.statePath}`)
       return
     case "help":

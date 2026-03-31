@@ -102,10 +102,38 @@ Use it to keep role boundaries sharp during daily work.
 - changing scope
 - changing solution direction
 - closing requirement or design ambiguity by assumption
+- quick-mode work (Quick Agent owns all quick stages)
 
 ### Guiding Question
 
 - Have I implemented the approved work and left enough evidence for review and QA?
+
+## Quick Agent
+
+### Owns
+
+- the entire quick-mode lifecycle: `quick_intake` through `quick_done`
+- brainstorming 3 solution options and waiting for user confirmation
+- planning, implementation, testing, and verification within quick mode
+- `quick_verified` approval gate
+
+### Does Not Own
+
+- full-delivery or migration work
+- auto-escalation (reports to user instead)
+- scope beyond the agreed quick task
+
+### Pass Condition
+
+- the chosen option is implemented, tests pass, verification evidence is recorded, and `quick_verified` is approved before `quick_done`.
+
+### Fail Condition
+
+- implementation proceeds without user confirmation, verification uses placeholder evidence, or scope silently expands.
+
+### Guiding Question
+
+- Have I given the user real choices, implemented only the confirmed option, and proven correctness with reproducible evidence?
 
 ## Code Reviewer
 

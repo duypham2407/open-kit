@@ -6,7 +6,7 @@ Use this matrix instead of reconstructing the parallel-execution rules from mult
 
 | Mode | Default | Board type | When parallel work is allowed | What stays singleton |
 | --- | --- | --- | --- | --- |
-| `quick` | sequential | none | never in the live contract | `Master Orchestrator`, `Fullstack Agent`, `QA Agent` stay in a single bounded loop |
+| `quick` | sequential | none | never in the live contract | `Quick Agent` is the single owner of all quick stages; no other agents participate |
 | `migration` | sequential | migration slice board when strategy enables it | only after `migration_strategy` records a `Parallelization Assessment` that blesses safe slices | `Master Orchestrator` and `Solution Lead` remain singleton for baseline and strategy |
 | `full` | sequential until approved otherwise | execution task board | only after `full_solution` records a `Parallelization Assessment` and runtime checks allow task allocation | `Product Lead` and `Solution Lead` remain singleton |
 

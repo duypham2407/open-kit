@@ -55,7 +55,7 @@
         "path": "agents/master-orchestrator.md",
         "audience": "runtime",
         "status": "active",
-        "modes": ["quick", "migration", "full"]
+        "modes": ["migration", "full"]
       },
       {
         "id": "agent.product-lead-agent",
@@ -82,7 +82,7 @@
         "path": "agents/fullstack-agent.md",
         "audience": "runtime",
         "status": "active",
-        "modes": ["quick", "migration", "full"]
+        "modes": ["migration", "full"]
       },
       {
         "id": "agent.qa-agent",
@@ -91,7 +91,16 @@
         "path": "agents/qa-agent.md",
         "audience": "runtime",
         "status": "active",
-        "modes": ["quick", "migration", "full"]
+        "modes": ["migration", "full"]
+      },
+      {
+        "id": "agent.quick-agent",
+        "name": "Quick Agent",
+        "role": "primary",
+        "path": "agents/quick-agent.md",
+        "audience": "runtime",
+        "status": "active",
+        "modes": ["quick"]
       },
       {
         "id": "agent.code-reviewer",

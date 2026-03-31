@@ -106,7 +106,7 @@ function setupTempRuntime(projectRoot) {
       "Lane Decision Matrix: use examples to choose the lane when wording alone is not enough.",
       "Do not invent a quick task board; quick work stays task-board free.",
       "Full Delivery owns the execution task board when one exists.",
-      "Quick stages: `quick_intake -> quick_plan -> quick_build -> quick_verify -> quick_done`.",
+      "Quick stages: `quick_intake -> quick_brainstorm -> quick_plan -> quick_implement -> quick_test -> quick_done`.",
       "Migration stages: `migration_intake -> migration_baseline -> migration_strategy -> migration_upgrade -> migration_code_review -> migration_verify -> migration_done`.",
       "Full stages: `full_intake -> full_product -> full_solution -> full_implementation -> full_code_review -> full_qa -> full_done`.",
       "Quick approvals: `quick_verified`.",
@@ -123,7 +123,7 @@ function setupTempRuntime(projectRoot) {
       "# Workflow State Schema",
       "",
       "Modes: `quick`, `migration`, `full`.",
-      "Quick stages: `quick_intake`, `quick_plan`, `quick_build`, `quick_verify`, `quick_done`.",
+      "Quick stages: `quick_intake`, `quick_brainstorm`, `quick_plan`, `quick_implement`, `quick_test`, `quick_done`.",
       "Migration stages: `migration_intake`, `migration_baseline`, `migration_strategy`, `migration_upgrade`, `migration_code_review`, `migration_verify`, `migration_done`.",
       "Full stages: `full_intake`, `full_product`, `full_solution`, `full_implementation`, `full_code_review`, `full_qa`, `full_done`.",
       "Artifact keys: `task_card`, `scope_package`, `solution_package`, `migration_report`, `qa_report`, `adr`.",
@@ -609,7 +609,7 @@ test("status command reflects quick_plan as a live quick stage", () => {
   }
   state.current_stage = "quick_plan"
   state.status = "in_progress"
-  state.current_owner = "MasterOrchestrator"
+  state.current_owner = "QuickAgent"
   state.approvals = {
     quick_verified: {
       status: "pending",
@@ -633,7 +633,7 @@ test("status command reflects quick_plan as a live quick stage", () => {
   assert.equal(result.status, 0)
   assert.match(result.stdout, /mode: quick/)
   assert.match(result.stdout, /stage: quick_plan/)
-  assert.match(result.stdout, /owner: MasterOrchestrator/)
+  assert.match(result.stdout, /owner: QuickAgent/)
   assert.match(result.stdout, /work item: TASK-600 \(quick-plan-status\)/)
 })
 
@@ -749,7 +749,7 @@ test("status command fails when the active managed work item is invalid", () => 
   }
   state.current_stage = "quick_plan"
   state.status = "in_progress"
-  state.current_owner = "MasterOrchestrator"
+  state.current_owner = "QuickAgent"
   state.artifacts.task_card = null
   state.artifacts.scope_package = null
   state.artifacts.solution_package = null
@@ -766,7 +766,6 @@ test("status command fails when the active managed work item is invalid", () => 
   }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
   writeTaskBoard(projectRoot, "task-601", {
-    mode: "full",
     current_stage: "full_solution",
     tasks: [
       {
@@ -1032,6 +1031,54 @@ test("set-routing-profile updates explicit lane routing metadata", () => {
   assert.match(result.stdout, /"selection_reason": "Compatibility modernization with preserved behavior"/)
 })
 
+test("status reports missing migration evidence kinds until all required kinds are present", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, ["start-task", "migration", "MIGRATE-951", "evidence-gap", "Compatibility verification"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "MasterOrchestrator"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["record-verification-evidence", "migration-strategy-report", "review", "migration_strategy", "Strategy artifact reviewed", "solution-lead"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "strategy_to_upgrade", "approved", "FullstackAgent"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_upgrade"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "upgrade_to_code_review", "approved", "CodeReviewer"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_code_review"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["record-verification-evidence", "migration-review", "review", "migration_code_review", "Review complete", "migration-review"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["set-approval", "code_review_to_verify", "approved", "QAAgent"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["advance-stage", "migration_verify"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["record-verification-evidence", "migration-manual", "manual", "migration_verify", "Manual parity check", "migration-qa"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["status"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /verification: missing-evidence \(runtime, automated\)/)
+})
+
 test("status command shows task-aware runtime summary for active full-delivery work", () => {
   const projectRoot = makeTempProject()
   setupTempRuntime(projectRoot)
@@ -1092,7 +1139,7 @@ test("status and doctor surface migration slice summary for active migration wor
   result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "MasterOrchestrator"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
@@ -1140,7 +1187,7 @@ test("resume-summary JSON includes migration slice readiness when a migration bo
   result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "MasterOrchestrator"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
@@ -1550,7 +1597,7 @@ test("doctor reports invalid active migration slice board as an explicit error",
   result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "MasterOrchestrator"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
@@ -1611,7 +1658,7 @@ test("doctor does not require a migration slice board when migration slices are 
   result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "MasterOrchestrator"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
@@ -1900,7 +1947,7 @@ test("CLI migration slice commands require explicit strategy blessing", () => {
   result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "MasterOrchestrator"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
@@ -1951,7 +1998,7 @@ test("CLI rejects claiming a migration slice blocked by unresolved dependencies"
   result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "MasterOrchestrator"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
@@ -2031,7 +2078,7 @@ test("validate-migration-slice-board rejects active slices with unresolved depen
   result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "MasterOrchestrator"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["advance-stage", "migration_strategy"])
@@ -2111,7 +2158,7 @@ test("CLI advance-stage blocks migration review when slice board is still incomp
   result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
   assert.equal(result.status, 0)
 
-  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "SolutionLead"])
+  result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "MasterOrchestrator"])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["advance-stage", "migration_strategy"])

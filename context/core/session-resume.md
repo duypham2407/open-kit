@@ -24,17 +24,19 @@ Fast path:
 
 If `mode` is `quick`:
 
+- the Quick Agent is the sole owner of all quick stages — no other agent is involved
 - read the quick task card if `artifacts.task_card` is present
-- if there is no task card, treat missing recorded quick context as a repair need; resume only from inspectable repository state and recorded workflow evidence, and repair the missing quick context before advancing when the current stage requires it
-- if `current_stage` is `quick_plan`, inspect the bounded checklist, acceptance confirmation, and verification path before resuming implementation
-- if `current_stage` is `quick_build`, inspect the recorded `quick_plan` content first; do not treat the absence of a task card as missing workflow
-- if `current_stage` is `quick_verify`, inspect the latest QA Lite evidence before continuing
+- if there is no task card, treat missing recorded quick context as a repair need; resume only from inspectable repository state and recorded workflow evidence
+- if `current_stage` is `quick_brainstorm`, inspect any brainstorm notes or option analysis before resuming
+- if `current_stage` is `quick_plan`, inspect the execution plan, chosen option, and test strategy before resuming implementation
+- if `current_stage` is `quick_implement`, inspect the recorded plan and any partial implementation evidence before continuing
+- if `current_stage` is `quick_test`, inspect the latest test and verification evidence before continuing
 - if `current_stage` is `quick_done`, confirm `quick_verified` is approved and the closing evidence remains inspectable on resume
 
 Quick-lane reminder:
 
-- `quick_plan` is already part of the live contract, even when no separate doc artifact exists
-- QA Lite evidence is already part of the live contract, even when it is stored only in workflow state and session notes
+- Quick mode is a single-agent lane owned entirely by the Quick Agent
+- Master Orchestrator, QA Agent, and other agents do not participate in quick mode
 - do not invent a quick task board, extra lane, or extra artifact requirement while resuming quick work
 
 ### Full Delivery
@@ -58,12 +60,13 @@ If `mode` is `migration`:
 - read the linked architecture artifact when present because it carries the baseline and compatibility model for the upgrade
 - read the migration solution package in `docs/solution/` when it exists
 - if `current_stage` is `migration_baseline`, inspect `docs/templates/migration-baseline-checklist.md` and the recorded current versions, preserved invariants, compatibility hotspots, and likely breakpoints before planning
+- inspect `migration_context` for baseline summary, target outcome, preserved invariants, baseline evidence refs, compatibility hotspots, and rollback checkpoints before trusting migration continuity
 - if `current_stage` is `migration_strategy`, inspect the staged upgrade sequence, seam or adapter decisions, rollback notes, and validation path before resuming implementation
 - if `current_stage` is `migration_upgrade`, inspect the migration strategy and latest execution evidence before continuing
 - if `current_stage` is `migration_code_review`, inspect preserved invariants, migration strategy, and latest execution evidence before rerouting or advancing
 - if `current_stage` is `migration_verify`, inspect `docs/templates/migration-verify-checklist.md` and the latest regression, smoke, compatibility, and parity evidence before deciding closure or reroute
 - if `current_stage` is `migration_done`, confirm `migration_verified` is approved and the closing evidence remains inspectable on resume
-- migration mode still has no task board in the live contract
+- migration mode has no general task board; only strategy-enabled migration slice boards may exist
 
 ## General Resume Rules
 

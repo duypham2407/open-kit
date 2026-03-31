@@ -28,9 +28,9 @@ function makeQuickState(overrides = {}) {
       scope_shape: "local",
       selection_reason: "Scoped task",
     },
-    current_stage: "quick_verify",
+    current_stage: "quick_test",
     status: "in_progress",
-    current_owner: "QAAgent",
+    current_owner: "QuickAgent",
     artifacts: {
       task_card: null,
       scope_package: null,
@@ -156,7 +156,7 @@ test("session-start emits mode-aware resume hint for quick tasks", () => {
   assert.match(result.stdout, /node \.opencode\/workflow-state\.js doctor/)
   assert.match(result.stdout, /<workflow_resume_hint>/)
   assert.match(result.stdout, /mode: quick/)
-  assert.match(result.stdout, /stage: quick_verify/)
+  assert.match(result.stdout, /stage: quick_test/)
   assert.match(result.stdout, /work item: TASK-500 \(quick-copy-fix\)/)
 })
 
@@ -170,7 +170,7 @@ test("session-start reports quick_plan as a resumable quick stage", () => {
       feature_id: "TASK-502",
       feature_slug: "quick-plan-resume",
       current_stage: "quick_plan",
-      current_owner: "MasterOrchestrator",
+      current_owner: "QuickAgent",
     }),
   )
 
@@ -189,7 +189,7 @@ test("session-start reports quick_plan as a resumable quick stage", () => {
   assert.match(result.stdout, /<workflow_resume_hint>/)
   assert.match(result.stdout, /mode: quick/)
   assert.match(result.stdout, /stage: quick_plan/)
-  assert.match(result.stdout, /owner: MasterOrchestrator/)
+  assert.match(result.stdout, /owner: QuickAgent/)
 })
 
 test("session-start reports loaded startup skill when meta-skill exists", () => {
@@ -231,8 +231,8 @@ test("session-start prints canonical resume guidance and inspection commands", (
     makeQuickState({
       feature_id: "TASK-503",
       feature_slug: "canonical-resume-guidance",
-      current_stage: "quick_build",
-      current_owner: "FullstackAgent",
+      current_stage: "quick_implement",
+      current_owner: "QuickAgent",
     }),
   )
 

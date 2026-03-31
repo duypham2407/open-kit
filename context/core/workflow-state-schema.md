@@ -10,7 +10,9 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - `feature_slug`
 - `mode`
 - `mode_reason`
+- `lane_source`
 - `routing_profile`
+- `migration_context`
 - `current_stage`
 - `status`
 - `current_owner`
@@ -31,14 +33,22 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - `migration`
 - `full`
 
+## `lane_source` Values
+
+- `orchestrator_routed` — the Master Orchestrator chose the lane via `/task`
+- `user_explicit` — the user chose the lane directly via `/quick-task`, `/migrate`, or `/delivery`
+
+When `lane_source` is `user_explicit`, the Master Orchestrator must not reject, reroute, or auto-escalate the lane. It may issue a single advisory warning, but the user's choice is final unless the user explicitly requests a lane change.
+
 ## `current_stage` Values
 
 ### Quick Task stages
 
 - `quick_intake`
+- `quick_brainstorm`
 - `quick_plan`
-- `quick_build`
-- `quick_verify`
+- `quick_implement`
+- `quick_test`
 - `quick_done`
 
 ### Migration stages
@@ -78,6 +88,35 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - `scope_shape`
 - `selection_reason`
 
+## `migration_context` Shape
+
+`migration_context` must always contain these keys:
+
+- `baseline_summary`
+- `target_outcome`
+- `preserved_invariants`
+- `allowed_behavior_changes`
+- `compatibility_hotspots`
+- `baseline_evidence_refs`
+- `rollback_checkpoints`
+
+Current live semantics:
+
+- in `migration`, these fields hold the inspectable parity contract for the work item
+- outside `migration`, these fields stay at their empty/default values
+- `preserved_invariants`, `baseline_evidence_refs`, and `rollback_checkpoints` should be concrete enough to support review and verify decisions
+
+CLI commands for `migration_context`:
+
+- `set-migration-context [--baseline-summary <text>] [--target-outcome <text>]` — set the top-level string fields
+- `append-preserved-invariant <invariant>` — add a new preserved invariant
+- `append-baseline-evidence <ref>` — add a baseline evidence reference
+- `append-rollback-checkpoint <checkpoint>` — add a rollback checkpoint
+- `append-compatibility-hotspot <hotspot>` — add a compatibility hotspot
+- `show-migration-context` — print the current migration_context as JSON
+
+All `migration_context` commands reject non-migration mode. Append commands reject duplicate entries.
+
 Allowed values:
 
 - `work_intent`: `maintenance`, `modernization`, `feature`
@@ -89,11 +128,12 @@ Allowed values:
 
 | Stage | Default Owner |
 | --- | --- |
-| `quick_intake` | `MasterOrchestrator` |
-| `quick_plan` | `MasterOrchestrator` |
-| `quick_build` | `FullstackAgent` |
-| `quick_verify` | `QAAgent` |
-| `quick_done` | `MasterOrchestrator` |
+| `quick_intake` | `QuickAgent` |
+| `quick_brainstorm` | `QuickAgent` |
+| `quick_plan` | `QuickAgent` |
+| `quick_implement` | `QuickAgent` |
+| `quick_test` | `QuickAgent` |
+| `quick_done` | `QuickAgent` |
 | `migration_intake` | `MasterOrchestrator` |
 | `migration_baseline` | `SolutionLead` |
 | `migration_strategy` | `SolutionLead` |
@@ -113,8 +153,8 @@ Allowed values:
 
 | Gate | Approval Authority |
 | --- | --- |
-| `quick_verified` | `QAAgent` |
-| `baseline_to_strategy` | `SolutionLead` |
+| `quick_verified` | `QuickAgent` |
+| `baseline_to_strategy` | `MasterOrchestrator` |
 | `strategy_to_upgrade` | `FullstackAgent` |
 | `upgrade_to_code_review` | `CodeReviewer` |
 | `code_review_to_verify` | `QAAgent` |
@@ -204,4 +244,4 @@ Current live semantics:
 - `sequential_constraints` are ordered task-chain strings such as `TASK-A -> TASK-B -> TASK-C`
 - on full-delivery task boards, they compile into effective `depends_on` and `blocked_by` overlays instead of a separate sequencing field
 - tasks later in a chain should remain queued until the earlier task order is satisfied through the existing dependency model
-- current runtime enforcement is limited to full-delivery task boards; migration slice boards still rely on explicit slice-level dependencies
+- current runtime enforcement also applies to migration slice boards when a strategy enables them; migration slices remain migration-owned and never replace feature-stage ownership

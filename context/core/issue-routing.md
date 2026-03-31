@@ -31,15 +31,19 @@ Each issue should record:
 
 ### Quick Task routing
 
+Quick mode is a single-agent lane. The Quick Agent handles all issues internally.
+
 | Type | Route to | Expected action |
 | --- | --- | --- |
-| `bug` | `quick_build` / `FullstackAgent` | Fix in quick mode and re-verify |
-| `design_flaw` | `full_intake` / `MasterOrchestrator` | Escalate to full delivery |
-| `requirement_gap` | `full_intake` / `MasterOrchestrator` | Escalate to full delivery |
+| `bug` | `quick_test` / `QuickAgent` | Fix at the spot, re-test |
+| `design_flaw` | report to user | Quick Agent explains the finding and presents options to the user |
+| `requirement_gap` | report to user | Quick Agent explains the finding and presents options to the user |
 
-Quick mode must not absorb design or requirements work. When either appears, quick execution stops and the work is promoted to the full lane.
+Quick mode has no inter-agent routing. When the Quick Agent discovers a design flaw or requirement gap:
 
-With the stronger quick-lane semantics now live, quick work includes an explicit `quick_plan` stage, but that stronger quick lane does not relax the design/requirements guardrail.
+- explain the finding to the user with evidence
+- present options: adjust scope and continue in quick mode, or switch to `/delivery` for full treatment
+- the user decides — the Quick Agent does not auto-escalate
 
 Quick-mode guardrail:
 
@@ -67,7 +71,7 @@ Task-aware full-delivery note:
 | --- | --- | --- |
 | `bug` | `migration_upgrade` / `FullstackAgent` | Fix upgrade fallout and re-review |
 | `design_flaw` | `migration_strategy` / `SolutionLead` | Rework upgrade sequencing, compatibility assumptions, or rollback notes |
-| `requirement_gap` | `full_intake` / `MasterOrchestrator` | Escalate into full delivery because the issue is no longer primarily technical migration work |
+| `requirement_gap` | depends on `lane_source` | When `orchestrator_routed`, escalate into full delivery; when `user_explicit`, stay in `migration_verify`, report to user, and wait for their decision |
 
 Migration mode treats compatibility or upgrade-path mistakes as migration-stage work, but it must not absorb product-definition ambiguity.
 
@@ -86,9 +90,8 @@ Migration-mode guardrail:
 - `migration_parity_issue` -> route as `design_flaw` in `migration`, unless the evidence shows a true implementation-only regression
 
 - Increment `retry_count` when the same issue cycles back after a failed fix
-- In quick mode, repeated `bug` failures still stay in quick mode unless a design or requirement problem is uncovered and the work is no longer safely bounded
-- In quick mode, `design_flaw` and `requirement_gap` escalate immediately rather than retrying inside quick mode
+- In quick mode, the Quick Agent fixes bugs internally; if repeated failures reveal a design or requirement problem, the Quick Agent reports the finding to the user and lets the user decide whether to switch lanes
 - In migration mode, repeated `bug` failures still stay in migration mode unless product ambiguity is uncovered and the work no longer fits migration semantics
-- In migration mode, `requirement_gap` escalates immediately to full delivery instead of retrying inside migration mode
+- In migration mode, `requirement_gap` escalates immediately to full delivery when `lane_source` is `orchestrator_routed`; when `lane_source` is `user_explicit`, keep the work item in `migration_verify`, report the mismatch, and wait for user decision
 - In full mode, repeated task-local failures may keep a task in local rework only while the issue remains implementation-rooted and stage ownership does not need to change
 - Escalate to the user after 3 failed loops on the same issue family

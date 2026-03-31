@@ -2,13 +2,15 @@
   "schema": "openkit/active-contract@1",
   "workflow": {
     "modes": ["quick", "migration", "full"],
+    "lane_source_values": ["orchestrator_routed", "user_explicit"],
     "active_roles": [
       "Master Orchestrator",
       "Product Lead",
       "Solution Lead",
       "Fullstack Agent",
       "Code Reviewer",
-      "QA Agent"
+      "QA Agent",
+      "Quick Agent"
     ],
     "primary_artifacts": [
       "task_card",
@@ -17,6 +19,17 @@
       "qa_report",
       "migration_report",
       "adr"
+    ],
+    "quick_stages": [
+      "quick_intake",
+      "quick_brainstorm",
+      "quick_plan",
+      "quick_implement",
+      "quick_test",
+      "quick_done"
+    ],
+    "quick_gates": [
+      "quick_verified"
     ],
     "full_stages": [
       "full_intake",

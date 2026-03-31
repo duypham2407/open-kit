@@ -249,11 +249,12 @@ Expected outcome:
 
 ```bash
 node .opencode/workflow-state.js start-task quick TASK-900 copy-fix "Scoped text change"
+node .opencode/workflow-state.js advance-stage quick_brainstorm
 node .opencode/workflow-state.js advance-stage quick_plan
-node .opencode/workflow-state.js advance-stage quick_build
-node .opencode/workflow-state.js advance-stage quick_verify
-node .opencode/workflow-state.js record-verification-evidence quick-qa manual quick_verify "Manual QA Lite pass" qa-lite
-node .opencode/workflow-state.js set-approval quick_verified approved system 2026-03-21 "QA Lite passed"
+node .opencode/workflow-state.js advance-stage quick_implement
+node .opencode/workflow-state.js advance-stage quick_test
+node .opencode/workflow-state.js record-verification-evidence quick-agent manual quick_test "Quick Agent verification pass" quick-agent
+node .opencode/workflow-state.js set-approval quick_verified approved QuickAgent 2026-03-31 "Quick Agent verified"
 node .opencode/workflow-state.js advance-stage quick_done
 node .opencode/workflow-state.js show
 ```
@@ -274,6 +275,23 @@ node .opencode/workflow-state.js show
 ```
 
 Expected outcome:
+
+- `mode = quick`
+- `current_stage = quick_test`
+- `current_owner = QuickAgent`
+- Quick Agent reports the design gap to the user and waits for an explicit decision (continue quick or switch to /delivery)
+
+To test forced escalation after repeated failures:
+
+```bash
+node .opencode/workflow-state.js start-task quick TASK-902 repeat-fail "Repeated failure test"
+node .opencode/workflow-state.js route-rework bug true
+node .opencode/workflow-state.js route-rework bug true
+node .opencode/workflow-state.js route-rework bug true
+node .opencode/workflow-state.js show
+```
+
+Expected outcome after crossing `ESCALATION_RETRY_THRESHOLD`:
 
 - `mode = full`
 - `current_stage = full_intake`
@@ -308,6 +326,67 @@ Expected outcome:
 - `create-task` initializes the task board for the new full-delivery work item
 - `list-tasks feature-910` prints `Tasks for feature-910:` followed by task rows
 - `validate-work-item-board feature-910` prints `Task board is valid for work item 'feature-910'`
+
+### Migration happy path
+
+```bash
+node .opencode/workflow-state.js start-task migration MIGRATE-900 upgrade-react "React 17 to 18 upgrade" --lane-source user_explicit
+node .opencode/workflow-state.js advance-stage migration_baseline
+node .opencode/workflow-state.js set-migration-context --baseline-summary "React 17.0.2; all 342 tests passing" --target-outcome "React 18 with concurrent features"
+node .opencode/workflow-state.js append-preserved-invariant "Component render outputs must be identical"
+node .opencode/workflow-state.js append-baseline-evidence "docs/baseline/react17-tests.txt"
+node .opencode/workflow-state.js append-compatibility-hotspot "ReactDOM.render -> createRoot in src/index.js"
+node .opencode/workflow-state.js show-migration-context
+node .opencode/workflow-state.js set-approval baseline_to_strategy approved MasterOrchestrator 2026-03-31 "Baseline captured"
+node .opencode/workflow-state.js advance-stage migration_strategy
+node .opencode/workflow-state.js append-rollback-checkpoint "Git tag react17-baseline"
+node .opencode/workflow-state.js set-approval strategy_to_upgrade approved FullstackAgent 2026-03-31 "Strategy solid"
+node .opencode/workflow-state.js advance-stage migration_upgrade
+node .opencode/workflow-state.js create-migration-slice migrate-900 SLICE-001 "Migrate ReactDOM.render" upgrade
+node .opencode/workflow-state.js claim-migration-slice migrate-900 SLICE-001 FullstackAgent MasterOrchestrator
+node .opencode/workflow-state.js set-migration-slice-status migrate-900 SLICE-001 in_progress
+node .opencode/workflow-state.js assign-migration-qa-owner migrate-900 SLICE-001 QAAgent MasterOrchestrator
+node .opencode/workflow-state.js set-migration-slice-status migrate-900 SLICE-001 parity_ready
+node .opencode/workflow-state.js set-migration-slice-status migrate-900 SLICE-001 verified
+node .opencode/workflow-state.js set-approval upgrade_to_code_review approved CodeReviewer 2026-03-31 "Ready for review"
+node .opencode/workflow-state.js advance-stage migration_code_review
+node .opencode/workflow-state.js record-verification-evidence review-001 review migration_code_review "Parity review complete" CodeReviewer
+node .opencode/workflow-state.js set-approval code_review_to_verify approved QAAgent 2026-03-31 "Findings resolved"
+node .opencode/workflow-state.js advance-stage migration_verify
+node .opencode/workflow-state.js record-verification-evidence runtime-001 runtime migration_verify "App starts on React 18" QAAgent
+node .opencode/workflow-state.js record-verification-evidence auto-001 automated migration_verify "342 tests passing" QAAgent "npm test" 0
+node .opencode/workflow-state.js record-verification-evidence manual-001 manual migration_verify "Parity checklist complete" QAAgent
+node .opencode/workflow-state.js set-approval migration_verified approved QAAgent 2026-03-31 "Parity confirmed"
+node .opencode/workflow-state.js advance-stage migration_done
+node .opencode/workflow-state.js show
+```
+
+Expected outcome:
+
+- `mode = migration`
+- `lane_source = user_explicit`
+- `current_stage = migration_done`
+- `status = done`
+- `migration_context.baseline_summary` is set
+- `migration_context.preserved_invariants` has at least one entry
+- `show-migration-context` prints the full migration_context as JSON
+
+### Migration requirement gap with lane-lock
+
+```bash
+node .opencode/workflow-state.js start-task migration MIGRATE-901 upgrade-ts "TypeScript upgrade" --lane-source user_explicit
+node .opencode/workflow-state.js advance-stage migration_baseline
+node .opencode/workflow-state.js route-rework requirement_gap
+node .opencode/workflow-state.js show
+```
+
+Expected outcome:
+
+- `mode = migration` (NOT escalated to full)
+- `current_stage = migration_verify`
+- `status = blocked`
+- the lane-lock semantics prevented auto-escalation because `lane_source = user_explicit`
+- the operator must resolve the requirement gap manually before unblocking
 
 ## Notes
 
