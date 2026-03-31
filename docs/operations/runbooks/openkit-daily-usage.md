@@ -44,6 +44,29 @@ node .opencode/workflow-state.js show
 node .opencode/workflow-state.js validate
 ```
 
+## Path Model
+
+Treat these paths as distinct on purpose:
+
+- global kit root: `OPENCODE_HOME/kits/openkit`
+- workspace state root: `OPENCODE_HOME/workspaces/<workspace-id>/openkit/.opencode`
+- project compatibility shim: `projectRoot/.opencode`
+
+What each one means:
+
+- the global kit root holds the managed OpenKit kit, runtime helpers, commands, skills, and hooks used by `openkit run`
+- the workspace state root holds the active workflow state and other managed runtime files for the current project
+- the project compatibility shim exists so checked-in runtime commands like `node .opencode/workflow-state.js ...` still work, but it is not the default source of truth for managed runtime state
+
+Practical rule:
+
+- treat `OPENKIT_KIT_ROOT` as the canonical config and kit path
+- treat `OPENKIT_WORKFLOW_STATE` as the canonical workflow-state path
+- treat `OPENKIT_PROJECT_ROOT` as the repository you are working on
+- do not assume `projectRoot/.opencode/workflow-state.json` is the primary runtime state just because it exists
+
+When paths look inconsistent, run `openkit doctor` first. It now prints the global kit root, workspace root, workspace state path, compatibility shim root, and workspace shim root explicitly.
+
 ## Choose The Right Entry Point
 
 Use `/task` by default. It is the safest starting point when you are not fully sure whether the request belongs in `Quick Task`, `Migration`, or `Full Delivery`.
@@ -92,7 +115,7 @@ openkit doctor
 
 What to look for:
 
-- `doctor` confirms the global kit is installed, shows the derived workspace root, and reports whether the current project can launch with OpenKit cleanly without mutating local workspace files
+- `doctor` confirms the global kit is installed, shows the derived workspace root, workspace state path, and compatibility shim locations, and reports whether the current project can launch with OpenKit cleanly without mutating local workspace files
 
 If `doctor` reports `install-missing`, run `openkit run` for first-time setup. If `doctor` reports other errors, fix those before trusting resume or task-board behavior.
 
@@ -105,6 +128,8 @@ openkit run
 This launches OpenCode with the `openkit` profile and injects the workspace-specific OpenKit environment for the current project.
 
 On the first run on a machine or a fresh OpenCode home, `openkit run` also materializes the managed global kit automatically.
+
+Do not expect `openkit run` to use the checked-in project `.opencode/` directory as its only runtime source. The managed launch path reads kit assets from the global kit root and runtime state from the derived workspace state path, while leaving the project `.opencode/` surface available as a compatibility layer.
 
 ### Optional: configure per-agent models before launch
 
@@ -317,6 +342,12 @@ openkit uninstall
 `openkit install-global` still exists as a manual or compatibility setup command, but it is no longer the preferred onboarding step.
 
 Use the lower-level `.opencode/` runtime commands in this repository when you are validating or maintaining the checked-in compatibility runtime itself.
+
+If an agent or operator reports a missing path or runtime file, check which layer they actually mean before changing anything:
+
+- missing under `OPENCODE_HOME/kits/openkit` usually means a global install or upgrade problem
+- missing under `OPENCODE_HOME/workspaces/<workspace-id>/openkit/.opencode` usually means a workspace runtime-state problem
+- missing under `projectRoot/.opencode` may only mean the compatibility shim is stale or incomplete, not that the managed workspace state is gone
 
 ## Where To Read Next
 

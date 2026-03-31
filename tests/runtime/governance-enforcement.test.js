@@ -126,3 +126,37 @@ test('canonical docs expose role policy and package-first artifacts', () => {
   assert.match(reviewSchema, /required_finding_fields/);
   assert.match(qaSchema, /required_verification_fields/);
 });
+
+test('canonical docs keep the managed path model and environment anchors explicit', () => {
+  const agentsGuide = read('AGENTS.md');
+  const readme = read('README.md');
+  const operationsIndex = read('docs/operations/README.md');
+  const dailyUsage = read('docs/operations/runbooks/openkit-daily-usage.md');
+  const supportedSurfaces = read('docs/operator/supported-surfaces.md');
+  const surfaceContract = read('docs/operator/surface-contract.md');
+
+  assert.match(agentsGuide, /OPENKIT_KIT_ROOT/);
+  assert.match(agentsGuide, /OPENKIT_WORKFLOW_STATE/);
+  assert.match(agentsGuide, /OPENKIT_PROJECT_ROOT/);
+  assert.match(agentsGuide, /Path-model anti-confusion rule:/);
+  assert.match(agentsGuide, /OPENCODE_HOME\/kits\/openkit/);
+  assert.match(agentsGuide, /OPENCODE_HOME\/workspaces\/<workspace-id>\/openkit\/\.opencode/);
+  assert.match(agentsGuide, /projectRoot\/\.opencode/);
+
+  assert.match(readme, /Path model during managed launch:/);
+  assert.match(readme, /compatibility surface, not the default source of truth for managed runtime state/);
+
+  assert.match(operationsIndex, /Keep the path model explicit during operations work:/);
+  assert.match(operationsIndex, /compatibility-wrapper drift/);
+  assert.match(operationsIndex, /managed runtime-state problem/);
+
+  assert.match(dailyUsage, /## Path Model/);
+  assert.match(dailyUsage, /OPENKIT_KIT_ROOT/);
+  assert.match(dailyUsage, /OPENKIT_WORKFLOW_STATE/);
+  assert.match(dailyUsage, /OPENKIT_PROJECT_ROOT/);
+  assert.match(dailyUsage, /missing under `OPENCODE_HOME\/kits\/openkit` usually means a global install or upgrade problem/);
+  assert.match(dailyUsage, /missing under `projectRoot\/\.opencode` may only mean the compatibility shim is stale or incomplete/);
+
+  assert.match(supportedSurfaces, /separate layers and should not be treated as interchangeable paths/);
+  assert.match(surfaceContract, /keep the path model explicit: global kit root for managed kit\/config, workspace state root for active runtime state, project `\.opencode\/` for compatibility shim behavior/);
+});

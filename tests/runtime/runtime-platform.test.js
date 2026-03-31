@@ -3,12 +3,17 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { bootstrapRuntimeFoundation } from '../../src/runtime/index.js';
 import { createMcpPlatform } from '../../src/runtime/mcp/index.js';
 import { createContextInjection } from '../../src/runtime/context/index.js';
 import { createSkillRegistry } from '../../src/runtime/skills/index.js';
 import { loadRuntimeCommands } from '../../src/runtime/commands/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = path.resolve(__dirname, '..', '..');
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-runtime-platform-'));
@@ -29,7 +34,7 @@ function copyDir(sourceDir, targetDir) {
 }
 
 function createIsolatedWorkflowStateRoot() {
-  const sourceRoot = path.resolve('/Users/duypham/Code/open-kit');
+  const sourceRoot = repoRoot;
   const projectRoot = makeTempDir();
   const opencodeRoot = path.join(projectRoot, '.opencode');
 

@@ -113,14 +113,23 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
 }
 
 export function renderGlobalDoctorSummary(result) {
+  const workspaceShimRoot = path.join(result.workspacePaths.projectRoot, '.opencode', 'openkit');
+  const compatibilityShimRoot = path.join(result.workspacePaths.projectRoot, '.opencode');
   const lines = [
     `Status: ${result.status}`,
     `Global kit root: ${result.globalPaths.kitRoot}`,
     `Workspace root: ${result.workspacePaths.workspaceRoot}`,
     `Project root: ${result.workspacePaths.projectRoot}`,
+    `Workspace state path: ${result.workspacePaths.workflowStatePath}`,
+    `Compatibility shim root: ${compatibilityShimRoot}`,
+    `Workspace shim root: ${workspaceShimRoot}`,
     `Workspace id: ${result.workspacePaths.workspaceId}`,
     `Can run cleanly: ${result.canRunCleanly ? 'yes' : 'no'}`,
   ];
+
+  lines.push(
+    'Path model: config loads from the global kit root, runtime state lives under the workspace root, and project .opencode paths are compatibility shims.'
+  );
 
   if (Array.isArray(result.issues) && result.issues.length > 0) {
     lines.push('Issues:');

@@ -44,6 +44,7 @@ Use this document to decide which OpenKit surface to use for a given goal.
 - prefer the global product surface for daily work
 - prefer slash commands once OpenCode is running
 - prefer the low-level runtime CLI only when you need raw state inspection, maintainer diagnostics, or work-item/task-board operations
+- keep the path model explicit: global kit root for managed kit/config, workspace state root for active runtime state, project `.opencode/` for compatibility shim behavior
 - do not treat the checked-in `.opencode/` runtime as proof that every project should vendor OpenKit locally
 - do not treat `openkit doctor` and `node .opencode/workflow-state.js doctor` as substitutes; they answer different questions
 

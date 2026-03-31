@@ -36,6 +36,7 @@ If workflow state already exists and you need the next safe action, use `node .o
 ## Boundary Rules
 
 - The preferred product path is the managed global OpenKit install under the OpenCode home directory.
+- The managed global kit root, the derived workspace runtime state root, and the project `.opencode/` compatibility shim are separate layers and should not be treated as interchangeable paths.
 - The checked-in `.opencode/` runtime remains live and important, but it is primarily the authoring and compatibility surface.
 - Quick and migration work stay task-board free.
 - Full-delivery work may carry task boards, but parallel support stays bounded by the runtime commands and validations that actually exist.

@@ -151,6 +151,9 @@ const statePath = process.env.OPENKIT_WORKFLOW_STATE
   ? path.resolve(process.env.OPENKIT_WORKFLOW_STATE)
   : path.join(projectRoot, '.opencode', 'workflow-state.json');
 const kitRoot = resolveKitRoot(projectRoot, statePath);
+const workspaceRoot = path.dirname(path.dirname(statePath));
+const compatibilityShimRoot = path.join(projectRoot, '.opencode');
+const workspaceShimRoot = path.join(projectRoot, '.opencode', 'openkit');
 const metaSkillPath = path.join(kitRoot, 'skills', 'using-skills', 'SKILL.md');
 const manifestPath = path.join(kitRoot, '.opencode', 'opencode.json');
 const runtimeSummaryModulePath = path.join(kitRoot, '.opencode', 'lib', 'runtime-summary.js');
@@ -184,9 +187,15 @@ if (stateResult.malformed) {
 print('<openkit_runtime_status>');
 print(`kit: ${kitName} v${kitVersion}`);
 print(`entry agent: ${entryAgent}`);
+print(`project root: ${projectRoot}`);
+print(`global kit root: ${kitRoot}`);
+print(`workspace root: ${workspaceRoot}`);
+print(`compatibility shim root: ${compatibilityShimRoot}`);
+print(`workspace shim root: ${workspaceShimRoot}`);
 print(`state file: ${statePath}`);
 print(`startup skill: ${skillStatus}`);
 print(`json helper: ${jsonHelperStatus}`);
+print('path model: config loads from the global kit root, runtime state lives under the workspace root, and project .opencode paths are compatibility shims.');
 print('help: node .opencode/workflow-state.js status');
 print('doctor: node .opencode/workflow-state.js doctor');
 print('show: node .opencode/workflow-state.js show');

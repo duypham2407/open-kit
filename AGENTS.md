@@ -121,6 +121,8 @@ If guidance conflicts with repository state, trust the repository state and upda
 - When new top-level areas are introduced, add them to this guide
 - If a task is resumable, read `.opencode/workflow-state.json` as the active compatibility mirror, then inspect `.opencode/work-items/` when task-aware full-delivery context is relevant
 - When resuming workflow, determine `mode` first, then load the mode-appropriate artifact context
+- Keep the path model explicit when debugging runtime issues: global kit/config lives under the OpenCode home kit root, managed runtime state lives under the derived workspace root, and `projectRoot/.opencode` is a compatibility shim plus authoring surface rather than the default managed source of truth
+- Prefer `OPENKIT_KIT_ROOT`, `OPENKIT_WORKFLOW_STATE`, and `OPENKIT_PROJECT_ROOT` over guessed relative paths when the runtime environment provides them
 
 Because the repository is still minimal, agents should explain assumptions plainly and avoid acting as if hidden infrastructure exists.
 
@@ -164,6 +166,13 @@ The operating system layer is file-backed and should stay explicit.
 - Workflow-state CLI: `node .opencode/workflow-state.js ...`
 - Artifact templates: `docs/templates/`
 - Operational runbooks: `docs/operations/runbooks/`
+
+Path-model anti-confusion rule:
+
+- Global kit/config root: `OPENCODE_HOME/kits/openkit`
+- Managed workspace runtime state root: `OPENCODE_HOME/workspaces/<workspace-id>/openkit/.opencode`
+- Project compatibility shim: `projectRoot/.opencode`
+- Do not collapse these into one path during analysis, docs, or diagnostics. A missing file in one layer does not automatically mean the other layers are missing.
 
 Global-kit compatibility contract:
 

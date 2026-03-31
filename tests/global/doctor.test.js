@@ -78,6 +78,10 @@ test('global doctor reports next steps for healthy installs', () => {
 
   const output = renderGlobalDoctorSummary(result);
   assert.match(output, /Default session entrypoint: \/task/);
+  assert.match(output, /Workspace state path:/);
+  assert.match(output, /Compatibility shim root:/);
+  assert.match(output, /Workspace shim root:/);
+  assert.match(output, /Path model: config loads from the global kit root, runtime state lives under the workspace root, and project \.opencode paths are compatibility shims\./);
   assert.match(output, /Next action after launch:/);
   assert.match(output, /Runtime foundation: v1/);
   assert.match(output, /Runtime sessions:/);

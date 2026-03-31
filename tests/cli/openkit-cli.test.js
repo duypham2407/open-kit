@@ -183,6 +183,10 @@ test('openkit doctor reports healthy without mutating workspace metadata', () =>
   assert.equal(result.status, 0);
   assert.match(result.stdout, /Status: healthy/);
   assert.match(result.stdout, /Workspace root:/);
+  assert.match(result.stdout, /Workspace state path:/);
+  assert.match(result.stdout, /Compatibility shim root:/);
+  assert.match(result.stdout, /Workspace shim root:/);
+  assert.match(result.stdout, /Path model: config loads from the global kit root, runtime state lives under the workspace root, and project \.opencode paths are compatibility shims\./);
   assert.match(result.stdout, /Next: Run openkit run/);
   assert.match(result.stdout, /Recommended command: openkit run/);
   assert.match(result.stdout, /Default session entrypoint: \/task/);

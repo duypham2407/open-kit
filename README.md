@@ -159,6 +159,14 @@ Recommended flow:
 openkit run
 ```
 
+Path model during managed launch:
+
+- kit/config root: `OPENCODE_HOME/kits/openkit`
+- workspace runtime state: `OPENCODE_HOME/workspaces/<workspace-id>/openkit/.opencode`
+- project compatibility shim: `projectRoot/.opencode`
+
+Treat those as different layers. `openkit run` uses the managed global kit plus the derived workspace state. The checked-in project `.opencode/` path remains a compatibility surface, not the default source of truth for managed runtime state.
+
 ### Start work
 
 Inside OpenCode:

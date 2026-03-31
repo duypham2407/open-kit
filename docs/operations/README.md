@@ -29,6 +29,14 @@ The current operations surface includes both the global OpenKit install path and
 
 Prefer the global install path first for everyday use. Use the checked-in repository/runtime path when maintaining or validating the authoring source in this repository.
 
+Keep the path model explicit during operations work:
+
+- global kit/config root: `OPENCODE_HOME/kits/openkit`
+- managed workspace runtime state root: `OPENCODE_HOME/workspaces/<workspace-id>/openkit/.opencode`
+- project compatibility shim: `projectRoot/.opencode`
+
+Do not treat those paths as interchangeable when diagnosing runtime issues. A missing file under the project shim may indicate compatibility-wrapper drift, while a missing file under the workspace state root usually indicates a managed runtime-state problem.
+
 When OpenKit is installed globally, start with:
 
 - `npm install -g @duypham93/openkit`
