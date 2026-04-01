@@ -24,8 +24,10 @@ const GLOBAL_KIT_ASSETS = [
   'AGENTS.md',
   'README.md',
   'src/runtime',
-  'src/global/paths.js',
-  'src/global/tooling.js',
+  'src/global',
+  'src/install',
+  'src/command-detection.js',
+  'src/version.js',
 ];
 
 function removePathIfPresent(targetPath) {

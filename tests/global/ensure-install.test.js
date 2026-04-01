@@ -181,7 +181,7 @@ test('materializeGlobalInstall preserves existing agent model overrides during u
   assert.equal(settings.agentModels['fullstack-agent'].model, 'anthropic/claude-sonnet-4-5');
 });
 
-test('materializeGlobalInstall copies src/global/tooling.js into the managed kit', () => {
+test('materializeGlobalInstall copies the entire src/global directory into the managed kit', () => {
   const tempHome = makeTempDir();
 
   materializeGlobalInstall({
@@ -191,7 +191,11 @@ test('materializeGlobalInstall copies src/global/tooling.js into the managed kit
     },
   });
 
-  assert.equal(fs.existsSync(path.join(tempHome, 'kits', 'openkit', 'src', 'global', 'tooling.js')), true);
+  const globalDir = path.join(tempHome, 'kits', 'openkit', 'src', 'global');
+  assert.equal(fs.existsSync(globalDir), true);
+  assert.equal(fs.existsSync(path.join(globalDir, 'tooling.js')), true);
+  assert.equal(fs.existsSync(path.join(globalDir, 'paths.js')), true);
+  assert.equal(fs.existsSync(path.join(globalDir, 'config-merge.js')), true);
 });
 
 test('materializeGlobalInstall returns failed ast-grep tooling status instead of throwing on spawn error', () => {
@@ -213,4 +217,51 @@ test('materializeGlobalInstall returns failed ast-grep tooling status instead of
 
   assert.equal(result.tooling.action, 'failed');
   assert.equal(result.tooling.installed, false);
+});
+
+test('materializeGlobalInstall produces a kit where all runtime imports resolve to existing files', () => {
+  const tempHome = makeTempDir();
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+
+  const kitRoot = path.join(tempHome, 'kits', 'openkit');
+  const runtimeDir = path.join(kitRoot, 'src', 'runtime');
+  const missingImports = [];
+
+  function walkFiles(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const entryPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walkFiles(entryPath);
+      } else if (entry.name.endsWith('.js')) {
+        const content = fs.readFileSync(entryPath, 'utf8');
+        const importRegex = /from\s+['"](\.[^'"]+)['"]/g;
+        let match;
+        while ((match = importRegex.exec(content)) !== null) {
+          const importSpecifier = match[1];
+          const resolvedPath = path.resolve(path.dirname(entryPath), importSpecifier);
+          if (!fs.existsSync(resolvedPath) && !fs.existsSync(`${resolvedPath}.js`)) {
+            missingImports.push({
+              file: path.relative(kitRoot, entryPath),
+              import: importSpecifier,
+              resolvedPath: path.relative(kitRoot, resolvedPath),
+            });
+          }
+        }
+      }
+    }
+  }
+
+  walkFiles(runtimeDir);
+
+  assert.equal(
+    missingImports.length,
+    0,
+    `Found ${missingImports.length} broken import(s) in the materialized kit:\n${missingImports.map((entry) => `  ${entry.file} -> ${entry.import} (resolved: ${entry.resolvedPath})`).join('\n')}`
+  );
 });

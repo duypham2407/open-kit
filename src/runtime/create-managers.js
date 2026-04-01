@@ -162,7 +162,6 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     sessionStateManager,
     actionModelStateManager,
     agentProfileSwitchManager,
-    syntaxIndexManager,
     toolMetadataStore,
     concurrencyManager,
     workItemBridge,

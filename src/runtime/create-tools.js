@@ -30,8 +30,8 @@ function summarizeToolFamilies(toolList = []) {
   return [...families.values()].sort((left, right) => left.family.localeCompare(right.family));
 }
 
-export function createTools({ config, capabilityIndex, projectRoot, managers, mcpPlatform, modelRuntime }) {
-  const registry = createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime });
+export function createTools({ config, capabilityIndex, projectRoot, managers, mcpPlatform, modelRuntime, env = process.env }) {
+  const registry = createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, env });
   const toolList = registry.toolList.map((tool) => ({
     id: tool.id,
     name: tool.name ?? tool.id,

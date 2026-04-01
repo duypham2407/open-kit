@@ -4,15 +4,16 @@ export function createBackgroundOutputTool({ backgroundManager }) {
     description: 'Reads delegated background run output',
     execute(runId) {
       const run = backgroundManager.get(runId);
-      return run
-        ? {
-            runId,
-            workflowRunId: run.workflowRunId ?? null,
-            status: run.status,
-            output: run.output ?? null,
-            link: run.link ?? null,
-          }
-        : null;
+      if (!run) {
+        return { status: 'not-found', runId, message: `No background run found for id: ${runId}` };
+      }
+      return {
+        status: run.status,
+        runId,
+        workflowRunId: run.workflowRunId ?? null,
+        output: run.output ?? null,
+        link: run.link ?? null,
+      };
     },
   };
 }

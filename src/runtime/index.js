@@ -53,6 +53,7 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
     managers,
     mcpPlatform,
     modelRuntime,
+    env,
   });
   const hooks = createHooks({
     config: {

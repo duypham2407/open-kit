@@ -15,10 +15,11 @@ export function createSessionReadTool({ sessionStateManager }) {
         : sessions[input] ?? null;
 
       if (!session) {
-        return null;
+        return { status: 'not-found', message: `No session found for input: ${JSON.stringify(input)}` };
       }
 
       return {
+        status: 'ok',
         session,
         summary: summarizeSession(session),
       };

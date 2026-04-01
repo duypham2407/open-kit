@@ -340,7 +340,9 @@ test('runtime foundation exposes workflow-backed tools, supervisor, and persiste
 
   const status = workflowStateTool.execute({ command: 'status', customStatePath: statePath });
   assert.ok(status.state.current_stage);
-  assert.ok(runtimeSummaryTool.execute({ customStatePath: statePath }));
+  const runtimeSummaryResult = runtimeSummaryTool.execute({ customStatePath: statePath });
+  assert.equal(runtimeSummaryResult.status, 'ok');
+  assert.ok(runtimeSummaryResult.runtimeContext);
   assert.equal(evidenceTool.execute({
     id: 'runtime-platform-test',
     scope: 'full_qa',

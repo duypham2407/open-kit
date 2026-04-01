@@ -4,7 +4,12 @@ export function createRuntimeSummaryTool({ workflowKernel }) {
     description: 'Reads workflow-backed runtime summary',
     execute(input = {}) {
       const customStatePath = input?.customStatePath ?? null;
-      return workflowKernel.showRuntimeStatus(customStatePath)?.runtimeContext ?? null;
+      const result = workflowKernel.showRuntimeStatus(customStatePath);
+      const runtimeContext = result?.runtimeContext ?? null;
+      if (!runtimeContext) {
+        return { status: 'no-context', message: 'Workflow kernel returned no runtime context' };
+      }
+      return { status: 'ok', runtimeContext };
     },
   };
 }

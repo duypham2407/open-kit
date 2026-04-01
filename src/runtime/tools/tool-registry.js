@@ -34,7 +34,7 @@ import { createRuntimeSummaryTool } from './workflow/runtime-summary.js';
 import { createWorkflowStateTool } from './workflow/workflow-state.js';
 import { wrapToolExecution } from './wrap-tool-execution.js';
 
-export function createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime }) {
+export function createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, env = process.env }) {
   const disabledTools = new Set(config?.disabled?.tools ?? []);
   const definitions = [
     createWorkflowStateTool({ projectRoot, workflowKernel: managers.workflowKernel }),
@@ -73,7 +73,7 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     createSyntaxOutlineTool({ syntaxIndexManager: managers.syntaxIndexManager }),
     createSyntaxContextTool({ syntaxIndexManager: managers.syntaxIndexManager }),
     createSyntaxLocateTool({ syntaxIndexManager: managers.syntaxIndexManager }),
-    createBrowserVerifyTool({ config, env: process.env }),
+    createBrowserVerifyTool({ config, env }),
     createLspSymbolsTool({ projectRoot }),
     createLspDiagnosticsTool({ projectRoot }),
     createLspGotoDefinitionTool({ projectRoot }),
