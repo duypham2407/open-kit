@@ -34,7 +34,9 @@ export function createProfileSwitchTool({ specialists, modelRuntime, agentProfil
       const agentId = typeof input === 'object' && input !== null ? input.agentId ?? null : null;
 
       if (action === 'list') {
-        return modelRuntime.resolutions
+        return {
+          status: 'ok',
+          items: modelRuntime.resolutions
           .filter((entry) => Array.isArray(entry.profiles) && entry.profiles.length > 1)
           .map((entry) =>
             buildProfileSummary(
@@ -43,52 +45,69 @@ export function createProfileSwitchTool({ specialists, modelRuntime, agentProfil
               resolveLiveSelectedProfileIndex({ resolution: entry, agentProfileSwitchManager }),
               agentProfileSwitchManager.get(entry.trace.subjectId)
             )
-          );
+          ),
+        };
       }
 
       if (!agentId) {
-        throw new Error('profile-switch requires agentId for get/set/toggle/clear actions.');
+        return { status: 'invalid-input', message: 'profile-switch requires agentId for get/set/toggle/clear actions.' };
       }
 
       const resolution = modelRuntime.resolutions.find((entry) => entry.trace.subjectId === agentId);
       if (!resolution) {
-        throw new Error(`Unknown runtime agent '${agentId}'.`);
+        return { status: 'unknown-agent', agentId, message: `Unknown runtime agent '${agentId}'.` };
       }
 
       const profiles = Array.isArray(resolution.profiles) ? resolution.profiles : [];
       if (profiles.length < 2) {
-        throw new Error(`Agent '${agentId}' does not have multiple profiles configured.`);
+        return { status: 'profiles-unavailable', agentId, message: `Agent '${agentId}' does not have multiple profiles configured.` };
       }
 
       if (action === 'get') {
-        return buildProfileSummary(
-          agentId,
-          profiles,
-          resolveLiveSelectedProfileIndex({ resolution, agentProfileSwitchManager }),
-          agentProfileSwitchManager.get(agentId)
-        );
+        return {
+          status: 'ok',
+          ...buildProfileSummary(
+            agentId,
+            profiles,
+            resolveLiveSelectedProfileIndex({ resolution, agentProfileSwitchManager }),
+            agentProfileSwitchManager.get(agentId)
+          ),
+        };
       }
 
       if (action === 'toggle') {
         const selection = agentProfileSwitchManager.toggle(agentId, profiles.length);
-        return buildProfileSummary(agentId, profiles, selection.profileIndex, selection);
+        return {
+          status: 'ok',
+          ...buildProfileSummary(agentId, profiles, selection.profileIndex, selection),
+        };
       }
 
       if (action === 'set') {
         const profileIndex = Number.isInteger(input.profileIndex) ? input.profileIndex : Number.parseInt(String(input.profileIndex), 10);
         if (!Number.isInteger(profileIndex) || profileIndex < 0 || profileIndex >= profiles.length) {
-          throw new Error(`profile-switch received an invalid profileIndex for '${agentId}'.`);
+          return {
+            status: 'invalid-input',
+            agentId,
+            message: `profile-switch received an invalid profileIndex for '${agentId}'.`,
+          };
         }
         const selection = agentProfileSwitchManager.set(agentId, profileIndex, profiles.length);
-        return buildProfileSummary(agentId, profiles, selection.profileIndex, selection);
+        return {
+          status: 'ok',
+          ...buildProfileSummary(agentId, profiles, selection.profileIndex, selection),
+        };
       }
 
       if (action === 'clear') {
         agentProfileSwitchManager.clear(agentId);
-        return buildProfileSummary(agentId, profiles, resolution.selectedProfileIndex ?? 0, null);
+        return {
+          status: 'ok',
+          ...buildProfileSummary(agentId, profiles, resolution.selectedProfileIndex ?? 0, null),
+        };
       }
 
-      throw new Error(`Unknown profile-switch action '${action}'.`);
+      return { status: 'invalid-input', agentId, message: `Unknown profile-switch action '${action}'.` };
     },
   };
 }

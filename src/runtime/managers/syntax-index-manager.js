@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import { Language, Parser } from 'web-tree-sitter';
 
-import { isInsideProjectRoot } from '../tools/shared/project-file-utils.js';
+import { isInsideProjectRoot, resolveProjectPath } from '../tools/shared/project-file-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -101,13 +101,21 @@ export class SyntaxIndexManager {
   }
 
   async readFile(filePath) {
-    const resolvedPath = path.resolve(this.projectRoot, filePath);
-    if (!isInsideProjectRoot(this.projectRoot, resolvedPath)) {
-      throw new Error('syntax manager only supports files inside the project root.');
+    const resolvedPath = resolveProjectPath(this.projectRoot, filePath);
+    if (!resolvedPath || !isInsideProjectRoot(this.projectRoot, resolvedPath)) {
+      return {
+        status: 'invalid-path',
+        filePath,
+        language: null,
+      };
     }
 
     if (!fs.existsSync(resolvedPath)) {
-      throw new Error(`file does not exist: ${resolvedPath}`);
+      return {
+        status: 'missing-file',
+        filePath: resolvedPath,
+        language: null,
+      };
     }
 
     const language = resolveLanguage(resolvedPath);

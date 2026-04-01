@@ -143,42 +143,49 @@ function main() {
   const profileCount = parsed.agentId ? readProfileCount(paths.projectRoot, process.env, parsed.agentId) : 0;
 
   if (parsed.command === 'list') {
-    process.stdout.write(`${JSON.stringify(manager.list(), null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({ status: 'ok', items: manager.list() }, null, 2)}\n`);
     return;
   }
 
   if (!parsed.agentId) {
-    throw new Error('profile-switch requires --agent for this command.');
+    process.stderr.write('profile-switch requires --agent for this command.\n');
+    process.exitCode = 1;
+    return;
   }
 
   if (parsed.command === 'get') {
-    process.stdout.write(`${JSON.stringify(manager.get(parsed.agentId), null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({ status: 'ok', selection: manager.get(parsed.agentId) }, null, 2)}\n`);
     return;
   }
 
   if (parsed.command === 'toggle') {
-    process.stdout.write(`${JSON.stringify(manager.toggle(parsed.agentId, profileCount || 2), null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({ status: 'ok', selection: manager.toggle(parsed.agentId, profileCount || 2) }, null, 2)}\n`);
     return;
   }
 
   if (parsed.command === 'clear') {
     manager.clear(parsed.agentId);
-    process.stdout.write('null\n');
+    process.stdout.write(`${JSON.stringify({ status: 'ok', selection: null }, null, 2)}\n`);
     return;
   }
 
   if (parsed.command === 'set') {
     if (!Number.isInteger(parsed.profileIndex) || parsed.profileIndex < 0) {
-      throw new Error('profile-switch set requires --profile <0|1>.');
+      process.stderr.write('profile-switch set requires --profile <0|1>.\n');
+      process.exitCode = 1;
+      return;
     }
     if (profileCount > 0 && parsed.profileIndex >= profileCount) {
-      throw new Error(`profile-switch set received an invalid profile for '${parsed.agentId}'.`);
+      process.stderr.write(`profile-switch set received an invalid profile for '${parsed.agentId}'.\n`);
+      process.exitCode = 1;
+      return;
     }
-    process.stdout.write(`${JSON.stringify(manager.set(parsed.agentId, parsed.profileIndex, profileCount || 2), null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify({ status: 'ok', selection: manager.set(parsed.agentId, parsed.profileIndex, profileCount || 2) }, null, 2)}\n`);
     return;
   }
 
-  throw new Error(`Unknown profile-switch command '${parsed.command}'.`);
+  process.stderr.write(`Unknown profile-switch command '${parsed.command}'.\n`);
+  process.exitCode = 1;
 }
 
 main();

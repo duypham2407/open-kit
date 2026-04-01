@@ -550,8 +550,9 @@ test('profile-switch wrapper updates live workspace selection state during a man
 
   assert.equal(result.status, 0);
   const selection = JSON.parse(result.stdout);
-  assert.equal(selection.agentId, 'specialist.oracle');
-  assert.equal(selection.profileIndex, 1);
+  assert.equal(selection.status, 'ok');
+  assert.equal(selection.selection.agentId, 'specialist.oracle');
+  assert.equal(selection.selection.profileIndex, 1);
 
   const [workspaceId] = fs.readdirSync(path.join(tempHome, 'workspaces'));
   const statePath = path.join(tempHome, 'workspaces', workspaceId, 'openkit', '.opencode', 'agent-profile-switches.json');
@@ -586,7 +587,7 @@ test('profile-switch wrapper supports short in-session syntax', () => {
     },
   });
   assert.equal(result.status, 0);
-  assert.equal(JSON.parse(result.stdout).profileIndex, 1);
+  assert.equal(JSON.parse(result.stdout).selection.profileIndex, 1);
 
   result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'specialist.oracle'], {
     cwd: projectRoot,
@@ -597,7 +598,7 @@ test('profile-switch wrapper supports short in-session syntax', () => {
     },
   });
   assert.equal(result.status, 0);
-  assert.equal(JSON.parse(result.stdout).profileIndex, 1);
+  assert.equal(JSON.parse(result.stdout).selection.profileIndex, 1);
 
   result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'specialist.oracle', 't'], {
     cwd: projectRoot,
@@ -608,7 +609,7 @@ test('profile-switch wrapper supports short in-session syntax', () => {
     },
   });
   assert.equal(result.status, 0);
-  assert.equal(JSON.parse(result.stdout).profileIndex, 0);
+  assert.equal(JSON.parse(result.stdout).selection.profileIndex, 0);
 
   result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'specialist.oracle'], {
     cwd: projectRoot,
@@ -619,7 +620,7 @@ test('profile-switch wrapper supports short in-session syntax', () => {
     },
   });
   assert.equal(result.status, 0);
-  assert.equal(JSON.parse(result.stdout).profileIndex, 0);
+  assert.equal(JSON.parse(result.stdout).selection.profileIndex, 0);
 
   result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'specialist.oracle', 'c'], {
     cwd: projectRoot,
@@ -630,7 +631,8 @@ test('profile-switch wrapper supports short in-session syntax', () => {
     },
   });
   assert.equal(result.status, 0);
-  assert.equal(result.stdout.trim(), 'null');
+  assert.equal(JSON.parse(result.stdout).status, 'ok');
+  assert.equal(JSON.parse(result.stdout).selection, null);
 });
 
 test('profile-switch wrapper rejects invalid profile indices', () => {
@@ -794,6 +796,29 @@ test('openkit run reports missing opencode after first-time setup completes', ()
   assert.match(result.stdout, /Performing first-time setup/);
   assert.match(result.stdout, /Installed OpenKit globally/);
   assert.match(result.stderr, /Could not find `opencode` on your PATH/);
+});
+
+test('openkit run returns structured launcher failure for unexpected spawn errors', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(
+    path.join(fakeBinDir, 'opencode'),
+    '#!/usr/bin/env node\nprocess.stderr.write("spawn failed\\n");\nprocess.exit(3);\n'
+  );
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 3);
+  assert.match(result.stderr, /spawn failed/);
 });
 
 test('openkit run blocks on invalid global install state and recommends upgrade', () => {

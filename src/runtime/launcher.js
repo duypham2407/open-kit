@@ -44,7 +44,13 @@ export function launchManagedOpenCode(
   }
 
   if (result.error) {
-    throw result.error;
+    return {
+      exitCode: 1,
+      stdout: result.stdout ?? '',
+      stderr: result.error.message ?? result.stderr ?? 'Failed to launch opencode.',
+      layering,
+      runtimeFoundation,
+    };
   }
 
   runtimeFoundation.managers.sessionStateManager?.recordRuntimeSession({

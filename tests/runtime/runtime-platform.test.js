@@ -205,28 +205,44 @@ test('profile switch tool can list, set, toggle, and clear agent profile selecti
 
   const tool = result.tools.tools['tool.profile-switch'];
   const listing = tool.execute({ action: 'list' });
-  assert.equal(listing.length >= 1, true);
-  assert.equal(listing.some((entry) => entry.agentId === 'specialist.oracle'), true);
+  assert.equal(listing.status, 'ok');
+  assert.equal(listing.items.length >= 1, true);
+  assert.equal(listing.items.some((entry) => entry.agentId === 'specialist.oracle'), true);
 
   let current = tool.execute({ action: 'get', agentId: 'specialist.oracle' });
+  assert.equal(current.status, 'ok');
   assert.equal(current.selectedProfileIndex, 0);
 
   current = tool.execute({ action: 'set', agentId: 'specialist.oracle', profileIndex: 1 });
+  assert.equal(current.status, 'ok');
   assert.equal(current.selectedProfileIndex, 1);
   assert.equal(current.manualSelection.profileIndex, 1);
 
   current = tool.execute({ action: 'get', agentId: 'specialist.oracle' });
+  assert.equal(current.status, 'ok');
   assert.equal(current.selectedProfileIndex, 1);
 
   const refreshedListing = tool.execute({ action: 'list' });
-  assert.equal(refreshedListing.find((entry) => entry.agentId === 'specialist.oracle').selectedProfileIndex, 1);
+  assert.equal(refreshedListing.items.find((entry) => entry.agentId === 'specialist.oracle').selectedProfileIndex, 1);
 
   current = tool.execute({ action: 'toggle', agentId: 'specialist.oracle' });
+  assert.equal(current.status, 'ok');
   assert.equal(current.selectedProfileIndex, 0);
 
   current = tool.execute({ action: 'clear', agentId: 'specialist.oracle' });
+  assert.equal(current.status, 'ok');
   assert.equal(current.selectedProfileIndex, 0);
   assert.equal(current.manualSelection, null);
+});
+
+test('profile switch tool returns structured errors', () => {
+  const projectRoot = makeTempDir();
+  const homeRoot = makeTempDir();
+  const result = bootstrapRuntimeFoundation({ projectRoot, env: { HOME: homeRoot } });
+  const tool = result.tools.tools['tool.profile-switch'];
+
+  assert.equal(tool.execute({ action: 'get' }).status, 'invalid-input');
+  assert.equal(tool.execute({ action: 'get', agentId: 'missing.agent' }).status, 'unknown-agent');
 });
 
 test('delegated task planning exposes specialist action state for profile switching', () => {
@@ -656,6 +672,17 @@ test('syntax tools report unsupported languages honestly', async () => {
   const outline = await result.tools.tools['tool.syntax-outline'].execute({ filePath: 'notes.txt' });
   assert.equal(outline.status, 'unsupported-language');
   assert.equal(outline.language, null);
+});
+
+test('syntax tools return structured invalid-path and missing-file responses', async () => {
+  const projectRoot = makeTempDir();
+  const result = bootstrapRuntimeFoundation({ projectRoot, env: { HOME: makeTempDir() } });
+
+  const invalidPath = await result.tools.tools['tool.syntax-outline'].execute({ filePath: '../outside.js' });
+  const missingFile = await result.tools.tools['tool.syntax-outline'].execute({ filePath: 'missing.js' });
+
+  assert.equal(invalidPath.status, 'invalid-path');
+  assert.equal(missingFile.status, 'missing-file');
 });
 
 test('wrapToolExecution records degraded and invalid statuses as failures', async () => {
