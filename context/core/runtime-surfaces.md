@@ -37,3 +37,5 @@ Use this file to keep the product path, in-session path, and compatibility runti
 - continuation tooling: start, handoff, stop, and status are runtime controls only; they do not approve gates or advance workflow stages
 - browser verification: `/browser-verify` and browser-oriented runtime tools plan verification and evidence capture, but they do not declare QA complete
 - LSP, AST, and safer-edit tooling are additive execution aids; they must stay honest about degraded or preview-only status when full external dependencies are unavailable
+- AST tooling should prefer structural search semantics and expose whether execution is using AST-Grep-backed capability detection or a narrower JSON/JSONC fallback path
+- Syntax tooling should expose supported languages, outline/context/locate semantics, and any unsupported-language fallback clearly rather than pretending all files are parseable

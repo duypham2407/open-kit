@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import { buildAgentModelConfigOverrides } from './agent-models.js';
 import { deepMergeConfig, parseInlineConfig } from './config-merge.js';
 import { ensureWorkspaceBootstrap } from './workspace-state.js';
+import { getToolingEnv } from './tooling.js';
 import { bootstrapRuntimeFoundation, createRuntimeFoundationEnvironment } from '../runtime/index.js';
 
 function formatMissingOpenCodeError() {
@@ -29,7 +30,7 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
   const runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot, env: runtimeBootstrapEnv });
   const runtimeEnv = createRuntimeFoundationEnvironment(runtimeFoundation);
   const launcherEnv = {
-    ...runtimeBootstrapEnv,
+    ...getToolingEnv(runtimeBootstrapEnv),
     ...runtimeEnv,
     OPENCODE_CONFIG_CONTENT: Object.keys(layeredInlineConfig).length > 0
       ? JSON.stringify(layeredInlineConfig)

@@ -62,6 +62,8 @@ export function getGlobalPaths(options = {}) {
     workspacesRoot,
     settingsRoot,
     agentModelSettingsPath: path.join(settingsRoot, 'agent-models.json'),
+    toolingRoot: path.join(settingsRoot, 'tooling'),
+    toolingBinRoot: path.join(settingsRoot, 'tooling', 'node_modules', '.bin'),
   };
 }
 

@@ -5,6 +5,7 @@ import { readJsonIfPresent, validateGlobalInstallState } from './install-state.j
 import { inspectWorkspaceMeta } from './workspace-state.js';
 import { getGlobalPaths, getWorkspacePaths } from './paths.js';
 import { isCommandAvailable } from '../command-detection.js';
+import { isAstGrepAvailable, isCodemodAvailable, isSemgrepAvailable } from './tooling.js';
 import { DEFAULT_ENTRY_COMMAND, getCommandInstructionContract } from '../runtime/instruction-contracts.js';
 import { bootstrapRuntimeFoundation } from '../runtime/index.js';
 import { inspectBackgroundDoctor } from '../runtime/doctor/background-doctor.js';
@@ -17,6 +18,14 @@ import { getOpenKitVersion } from '../version.js';
 
 function isOpenCodeAvailable(env = process.env) {
   return isCommandAvailable('opencode', { env });
+}
+
+function isAstToolingAvailable(env = process.env) {
+  return isAstGrepAvailable({ env });
+}
+
+function isRuleAuditToolingAvailable(env = process.env) {
+  return isSemgrepAvailable({ env });
 }
 
 const REQUIRED_GLOBAL_KIT_TEMPLATE_PATHS = [
@@ -87,6 +96,18 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
 
   if (!isOpenCodeAvailable(env)) {
     issues.push('OpenCode executable is not available on PATH.');
+  }
+
+  if (!isAstToolingAvailable(env)) {
+    issues.push('ast-grep executable is not available on PATH or the OpenKit tooling bin path.');
+  }
+
+  if (!isRuleAuditToolingAvailable(env)) {
+    issues.push('semgrep executable is not available on PATH or the OpenKit tooling bin path.');
+  }
+
+  if (!isCodemodAvailable()) {
+    issues.push('jscodeshift package is not installed; codemod tools will report dependency-missing.');
   }
 
   const agentModelSettings = readAgentModelSettings(globalPaths.agentModelSettingsPath);

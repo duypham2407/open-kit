@@ -1,5 +1,7 @@
 import { createWorkItemBridge } from './background/work-item-bridge.js';
 import { BackgroundManager } from './managers/background-manager.js';
+import { ActionModelStateManager } from './managers/action-model-state-manager.js';
+import { AgentProfileSwitchManager } from './managers/agent-profile-switch-manager.js';
 import { ConcurrencyManager } from './managers/concurrency-manager.js';
 import { ContinuationStateManager } from './managers/continuation-state-manager.js';
 import { DelegationSupervisor } from './managers/delegation-supervisor.js';
@@ -8,6 +10,7 @@ import { NotificationManager } from './managers/notification-manager.js';
 import { PersistentBackgroundStore } from './managers/persistent-background-store.js';
 import { SessionStateManager } from './managers/session-state-manager.js';
 import { SkillMcpManager } from './managers/skill-mcp-manager.js';
+import { SyntaxIndexManager } from './managers/syntax-index-manager.js';
 import { TmuxSessionManager } from './managers/tmux-session-manager.js';
 import { ToolMetadataStore } from './managers/tool-metadata-store.js';
 import { resolveRuntimeRoot } from './runtime-root.js';
@@ -17,6 +20,7 @@ function createManagerList({
   configHandler,
   backgroundManager,
   skillMcpManager,
+  syntaxIndexManager,
   notificationManager,
   tmuxSessionManager,
   delegationSupervisor,
@@ -46,6 +50,14 @@ function createManagerList({
       name: 'Skill MCP Manager',
       description: 'Runtime registry for built-in and skill-provided MCP surfaces.',
       enabled: true,
+      lifecycle: 'foundation',
+      dispose() {},
+    },
+    {
+      id: 'manager.syntax-index',
+      name: 'Syntax Index Manager',
+      description: 'Tree-sitter-backed syntax parsing cache for structure-aware AI context building.',
+      enabled: syntaxIndexManager !== null,
       lifecycle: 'foundation',
       dispose() {},
     },
@@ -93,7 +105,6 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     modelConcurrency: config?.backgroundTask?.modelConcurrency,
   });
   const workflowKernel = createWorkflowKernelAdapter({ projectRoot, env });
-  const workItemBridge = createWorkItemBridge({ projectRoot, workflowKernel });
   const configHandler = createConfigHandler({ configResult });
   const notificationManager = new NotificationManager({
     enabled: config?.notifications?.enabled === true,
@@ -103,8 +114,12 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     layout: config?.tmux?.layout,
   });
   const skillMcpManager = new SkillMcpManager();
+  const syntaxIndexManager = new SyntaxIndexManager({ projectRoot });
   const sessionStateManager = new SessionStateManager({ projectRoot, runtimeRoot, mode });
   const continuationStateManager = new ContinuationStateManager({ projectRoot, runtimeRoot, mode });
+  const actionModelStateManager = new ActionModelStateManager({ projectRoot, runtimeRoot, mode });
+  const agentProfileSwitchManager = new AgentProfileSwitchManager({ projectRoot, runtimeRoot, mode });
+  const workItemBridge = createWorkItemBridge({ projectRoot, workflowKernel, actionModelStateManager });
   const toolMetadataStore = new ToolMetadataStore();
   const backgroundManager = new BackgroundManager({
     enabled: config?.backgroundTask?.enabled === true,
@@ -117,11 +132,13 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     backgroundManager,
     specialists,
     concurrencyManager,
+    actionModelStateManager,
   });
   const managerList = createManagerList({
     configHandler,
     backgroundManager,
     skillMcpManager,
+    syntaxIndexManager,
     delegationSupervisor,
     continuationStateManager,
     notificationManager,
@@ -137,11 +154,15 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     configHandler,
     backgroundManager,
     skillMcpManager,
+    syntaxIndexManager,
     delegationSupervisor,
     continuationStateManager,
     notificationManager,
     tmuxSessionManager,
     sessionStateManager,
+    actionModelStateManager,
+    agentProfileSwitchManager,
+    syntaxIndexManager,
     toolMetadataStore,
     concurrencyManager,
     workItemBridge,

@@ -90,6 +90,38 @@ test('background manager can spawn, complete, and cancel runs', () => {
   assert.equal(foundation.managers.backgroundManager.get(liveRun.id).status, 'cancelled');
 });
 
+test('action model state manager tracks consecutive failures per action and resets on success', () => {
+  const projectRoot = makeTempDir();
+  const foundation = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  foundation.managers.actionModelStateManager.recordFailure({
+    subjectId: 'specialist.oracle',
+    actionKey: 'tool.mcp-dispatch:websearch',
+    detail: 'timeout 1',
+  });
+  foundation.managers.actionModelStateManager.recordFailure({
+    subjectId: 'specialist.oracle',
+    actionKey: 'tool.mcp-dispatch:websearch',
+    detail: 'timeout 2',
+  });
+
+  let state = foundation.managers.actionModelStateManager.get('specialist.oracle', 'tool.mcp-dispatch:websearch');
+  assert.equal(state.consecutiveFailures, 2);
+  assert.equal(state.lastStatus, 'failure');
+
+  foundation.managers.actionModelStateManager.recordSuccess({
+    subjectId: 'specialist.oracle',
+    actionKey: 'tool.mcp-dispatch:websearch',
+  });
+
+  state = foundation.managers.actionModelStateManager.get('specialist.oracle', 'tool.mcp-dispatch:websearch');
+  assert.equal(state.consecutiveFailures, 0);
+  assert.equal(state.lastStatus, 'success');
+});
+
 test('skill and command loaders discover added runtime surfaces', () => {
   const projectRoot = makeTempDir();
   writeText(path.join(projectRoot, 'README.md'), '# project');
@@ -101,14 +133,16 @@ test('skill and command loaders discover added runtime surfaces', () => {
   writeText(path.join(projectRoot, 'commands', 'handoff.md'), '# Command');
   writeText(path.join(projectRoot, 'commands', 'stop-continuation.md'), '# Command');
   writeText(path.join(projectRoot, 'commands', 'browser-verify.md'), '# Command');
+  writeText(path.join(projectRoot, 'commands', 'switch.md'), '# Command');
 
   const skillRegistry = createSkillRegistry({ projectRoot, env: { HOME: makeTempDir() } });
   const commands = loadRuntimeCommands({ projectRoot });
   const context = createContextInjection({ projectRoot, mode: 'full', category: 'deep' });
 
   assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill'));
-  assert.equal(commands.length, 6);
+  assert.equal(commands.length, 7);
   assert.ok(commands.some((entry) => entry.name === '/browser-verify' && entry.compatibility === 'builtin-compatible'));
+  assert.ok(commands.some((entry) => entry.name === '/switch' && entry.compatibility === 'builtin-compatible'));
   assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill' && entry.compatibility === 'project-local'));
   assert.equal(context.agentsPath, path.join(projectRoot, 'AGENTS.md'));
   assert.equal(context.readmePath, path.join(projectRoot, 'README.md'));
@@ -143,6 +177,122 @@ test('mcp platform loads builtin mcps and optional config file', () => {
   assert.deepEqual(platform.loadedServers, ['custom']);
   assert.deepEqual(platform.enabledBuiltinIds, ['websearch']);
   assert.equal(platform.dispatch('websearch', { q: 'openkit' }).status, 'dispatched');
+});
+
+test('profile switch tool can list, set, toggle, and clear agent profile selections', () => {
+  const projectRoot = makeTempDir();
+  const homeRoot = makeTempDir();
+
+  writeText(
+    path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc'),
+    `{
+      "agents": {
+        "specialist.oracle": {
+          "profiles": [
+            { "model": "openai/gpt-5.4", "variant": "high" },
+            { "model": "azure/gpt-5.4", "variant": "high" }
+          ]
+        }
+      }
+    }`
+  );
+
+  const result = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: { HOME: homeRoot },
+  });
+
+  const tool = result.tools.tools['tool.profile-switch'];
+  const listing = tool.execute({ action: 'list' });
+  assert.equal(listing.length >= 1, true);
+  assert.equal(listing.some((entry) => entry.agentId === 'specialist.oracle'), true);
+
+  let current = tool.execute({ action: 'get', agentId: 'specialist.oracle' });
+  assert.equal(current.selectedProfileIndex, 0);
+
+  current = tool.execute({ action: 'set', agentId: 'specialist.oracle', profileIndex: 1 });
+  assert.equal(current.selectedProfileIndex, 1);
+  assert.equal(current.manualSelection.profileIndex, 1);
+
+  current = tool.execute({ action: 'get', agentId: 'specialist.oracle' });
+  assert.equal(current.selectedProfileIndex, 1);
+
+  const refreshedListing = tool.execute({ action: 'list' });
+  assert.equal(refreshedListing.find((entry) => entry.agentId === 'specialist.oracle').selectedProfileIndex, 1);
+
+  current = tool.execute({ action: 'toggle', agentId: 'specialist.oracle' });
+  assert.equal(current.selectedProfileIndex, 0);
+
+  current = tool.execute({ action: 'clear', agentId: 'specialist.oracle' });
+  assert.equal(current.selectedProfileIndex, 0);
+  assert.equal(current.manualSelection, null);
+});
+
+test('delegated task planning exposes specialist action state for profile switching', () => {
+  const { projectRoot, statePath, sourceRoot } = createIsolatedWorkflowStateRoot();
+  const workItemId = 'feature-001';
+  const workItemStatePath = path.join(projectRoot, '.opencode', 'work-items', workItemId, 'state.json');
+  const taskBoardPath = path.join(projectRoot, '.opencode', 'work-items', workItemId, 'tasks.json');
+  const baseState = JSON.parse(fs.readFileSync(workItemStatePath, 'utf8'));
+
+  baseState.current_stage = 'full_implementation';
+  baseState.status = 'in_progress';
+  baseState.current_owner = 'FullstackAgent';
+  writeJson(statePath, baseState);
+  writeJson(workItemStatePath, baseState);
+  writeJson(taskBoardPath, {
+    mode: 'full',
+    current_stage: 'full_implementation',
+    tasks: [
+      {
+        task_id: 'TASK-RUNTIME-ACTION',
+        title: 'Implement runtime bridge',
+        summary: 'Expose action tracking in delegated plan',
+        kind: 'implementation',
+        status: 'ready',
+        primary_owner: null,
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: [],
+        plan_refs: ['docs/solution/2026-03-20-task-intake-dashboard.md'],
+        branch_or_worktree: '.worktrees/runtime/TASK-RUNTIME-ACTION',
+        concurrency_class: 'parallel_safe',
+        created_by: 'SolutionLead',
+        created_at: '2026-03-21T00:00:00.000Z',
+        updated_at: '2026-03-21T00:00:00.000Z',
+      },
+    ],
+    issues: [],
+  });
+  writeText(path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc'), `{"backgroundTask":{"enabled":true}}`);
+
+  const result = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: {
+      ...process.env,
+      HOME: makeTempDir(),
+      OPENKIT_KIT_ROOT: sourceRoot,
+      OPENKIT_WORKFLOW_STATE: statePath,
+    },
+  });
+
+  result.managers.actionModelStateManager.recordFailure({
+    subjectId: 'specialist.oracle',
+    actionKey: 'delegation-task:TASK-RUNTIME-ACTION',
+    detail: 'provider timeout',
+  });
+
+  const dispatch = result.tools.tools['tool.delegation-task'].execute({
+    dispatchReadyTask: true,
+    workItemId,
+    owner: 'FullstackAgent',
+    customStatePath: statePath,
+  });
+
+  assert.equal(dispatch.plan.specialistId, 'specialist.oracle');
+  assert.equal(dispatch.plan.actionKey, 'delegation-task:TASK-RUNTIME-ACTION');
+  assert.equal(dispatch.plan.actionState.consecutiveFailures, 1);
 });
 
 test('runtime foundation exposes workflow-backed tools, supervisor, and persisted skill MCP bindings when kernel is available', () => {
@@ -349,10 +499,10 @@ test('continuation hook escalates to attention-required when risks are present a
   assert.ok(relaxedResult.continuationRisk.length >= 1);
 });
 
-test('session, continuation, browser, safer-edit, ast, and lsp tools expose runtime depth without mutating workflow state', () => {
+test('session, continuation, browser, safer-edit, ast, syntax, and lsp tools expose runtime depth without mutating workflow state', async () => {
   const projectRoot = makeTempDir();
-  writeText(path.join(projectRoot, 'src', 'sample.ts'), 'export function greet() {\n  return "hi";\n}\n');
-  writeText(path.join(projectRoot, 'src', 'consumer.ts'), 'import { greet } from "./sample";\nexport const message = greet();\n');
+  writeText(path.join(projectRoot, 'src', 'sample.js'), 'export function greet() {\n  return "hi";\n}\n');
+  writeText(path.join(projectRoot, 'src', 'consumer.js'), 'import { greet } from "./sample.js";\nexport const message = greet();\n');
   writeText(path.join(projectRoot, 'config.jsonc'), '{\n  // comment\n  "feature": { "enabled": true },\n  "name": "demo"\n}\n');
   writeText(
     path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc'),
@@ -401,10 +551,13 @@ test('session, continuation, browser, safer-edit, ast, and lsp tools expose runt
   const continuationStop = result.tools.tools['tool.continuation-stop'].execute({ reason: 'manual pause' });
   const browserVerify = result.tools.tools['tool.browser-verify'].execute({ target: '/onboarding' });
   const hashlineEdit = result.tools.tools['tool.hashline-edit'].execute({
-    filePath: 'src/sample.ts',
+    filePath: 'src/sample.js',
     anchor: 'return "hi";',
     replacement: 'return "hello";',
   });
+  const syntaxOutline = await result.tools.tools['tool.syntax-outline'].execute({ filePath: 'src/sample.js' });
+  const syntaxContext = await result.tools.tools['tool.syntax-context'].execute({ filePath: 'src/sample.js', line: 1, column: 0, depth: 1 });
+  const syntaxLocate = await result.tools.tools['tool.syntax-locate'].execute({ filePath: 'src/sample.js', nodeType: 'function_declaration' });
   const astSearch = result.tools.tools['tool.ast-search'].execute({ filePath: 'config.jsonc', query: { key: 'enabled', value: 'true' } });
   const astReplace = result.tools.tools['tool.ast-replace'].execute({
     filePath: 'config.jsonc',
@@ -430,9 +583,22 @@ test('session, continuation, browser, safer-edit, ast, and lsp tools expose runt
   assert.equal(browserVerify.providerStatus, 'dependency-missing');
   assert.equal(hashlineEdit.status, 'preview-ready');
   assert.equal(hashlineEdit.preview.after.includes('hello'), true);
-  assert.equal(astSearch.status, 'ok');
+  assert.equal(syntaxOutline.status, 'ok');
+  assert.equal(syntaxOutline.language, 'javascript');
+  assert.equal(syntaxOutline.nodeCount >= 1, true);
+  assert.equal(syntaxContext.status, 'ok');
+  assert.equal(syntaxContext.language, 'javascript');
+  assert.ok(syntaxContext.node);
+  assert.equal(syntaxLocate.status, 'ok');
+  assert.equal(syntaxLocate.matchCount >= 1, true);
+  assert.equal(['ok', 'degraded'].includes(astSearch.status), true);
+  assert.equal(astSearch.tooling.providerStatus === 'available' || astSearch.tooling.providerStatus === 'fallback-active', true);
+  assert.equal(astSearch.language, 'jsonc');
+  assert.equal(astSearch.matchCount, 1);
   assert.equal(astSearch.matches.length, 1);
-  assert.equal(astReplace.status, 'preview-ready');
+  assert.equal(['preview-ready', 'preview-degraded'].includes(astReplace.status), true);
+  assert.equal(astReplace.tooling.providerStatus === 'available' || astReplace.tooling.providerStatus === 'fallback-active', true);
+  assert.equal(astReplace.language, 'jsonc');
   assert.equal(astReplace.after, false);
   assert.equal(lspSymbols.symbols.length >= 1, true);
   assert.equal(Array.isArray(lspDiagnostics.diagnostics), true);
@@ -440,6 +606,55 @@ test('session, continuation, browser, safer-edit, ast, and lsp tools expose runt
   assert.equal(lspReferences.references.length >= 2, true);
   assert.equal(lspPrepareRename.ready, true);
   assert.equal(lspRename.replacements.length >= 1, true);
+});
+
+test('ast tools report degraded fallback status honestly when ast-grep is unavailable', () => {
+  const projectRoot = makeTempDir();
+  writeText(path.join(projectRoot, 'config.jsonc'), '{"feature":{"enabled":true}}');
+
+  const originalPath = process.env.PATH;
+  const originalOpenCodeHome = process.env.OPENCODE_HOME;
+  process.env.PATH = '';
+  process.env.OPENCODE_HOME = path.join(projectRoot, 'empty-opencode-home');
+
+  try {
+    const result = bootstrapRuntimeFoundation({
+      projectRoot,
+      env: {
+        ...process.env,
+        HOME: makeTempDir(),
+      },
+    });
+
+    const astSearch = result.tools.tools['tool.ast-search'].execute({ filePath: 'config.jsonc', query: { key: 'enabled', value: 'true' } });
+    const astReplace = result.tools.tools['tool.ast-replace'].execute({
+      filePath: 'config.jsonc',
+      pointer: '/feature/enabled',
+      replacement: false,
+    });
+
+    assert.equal(astSearch.status, 'degraded');
+    assert.equal(astSearch.tooling.providerStatus, 'fallback-active');
+    assert.equal(astReplace.status, 'preview-degraded');
+    assert.equal(astReplace.tooling.providerStatus, 'fallback-active');
+  } finally {
+    process.env.PATH = originalPath;
+    process.env.OPENCODE_HOME = originalOpenCodeHome;
+  }
+});
+
+test('syntax tools report unsupported languages honestly', async () => {
+  const projectRoot = makeTempDir();
+  writeText(path.join(projectRoot, 'notes.txt'), 'plain text');
+
+  const result = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  const outline = await result.tools.tools['tool.syntax-outline'].execute({ filePath: 'notes.txt' });
+  assert.equal(outline.status, 'unsupported-language');
+  assert.equal(outline.language, null);
 });
 
 test('delegated implementation runs round-trip task status through the workflow kernel', () => {

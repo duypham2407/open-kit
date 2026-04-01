@@ -290,6 +290,14 @@
         "audience": "operator",
         "surface": "in-session",
         "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "command.switch",
+        "name": "/switch",
+        "path": "commands/switch.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
       }
     ],
     "artifacts": [

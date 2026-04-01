@@ -142,6 +142,7 @@ Current workflow-state behavior:
 - `openkit run` materializes the globally managed kit into the OpenCode home directory on first use when needed.
 - `openkit doctor` checks the global install and the current workspace bootstrap.
 - `openkit install-global` remains available as a manual or compatibility setup path.
+- The global OpenKit install now provisions `ast-grep` into the managed tooling path and doctor verifies that tooling path is available.
 - `openkit run` launches OpenCode with the OpenKit-managed config directory and workspace-specific environment.
 - `openkit run` now also injects runtime foundation metadata through environment variables for capability bootstrap.
 - `openkit upgrade` refreshes the global managed kit bundle in place.
@@ -172,7 +173,7 @@ Current workflow-state behavior:
 - Migration remains sequential by default; migration slice execution, when enabled, is strategy-driven and parity-oriented rather than a copy of the full-delivery task board.
 - Runtime foundation phase 1 currently exposes config, capability, manager, tool, and hook metadata rather than a full MCP or background execution layer.
 - The checked-in runtime now also includes thin foundation implementations for background execution, MCP loading, categories, specialists, skills, commands, context injection, and recovery. These surfaces are intentionally lightweight but real and testable.
-- Runtime config now supports category and specialist overrides for `model`, `fallback_models`, prompt append data, and related model-shaping fields through `.opencode/openkit.runtime.jsonc`.
+- Runtime config now supports category and specialist overrides for `model`, `fallback_models`, prompt append data, related model-shaping fields, automatic fallback policy, and dual quick-switch profiles through `.opencode/openkit.runtime.jsonc`.
 - `file://` prompt references are supported in runtime config for agent `prompt`, agent `prompt_append`, and category `prompt_append` values.
 - Runtime doctor now exposes model-resolution trace data so maintainers can inspect where a resolved model came from and which fallback entries are available.
 

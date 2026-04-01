@@ -4,6 +4,7 @@ export function inspectModelDoctor(modelRuntime) {
     uniqueResolvedModels: [...new Set(modelRuntime?.resolvedModels ?? [])].length,
     diagnostics: modelRuntime?.diagnostics ?? null,
     fallbackChains: modelRuntime?.fallbackChains ?? [],
+    executionState: modelRuntime?.executionState ?? [],
     resolutionTrace: modelRuntime?.resolutionTrace ?? [],
   };
 }

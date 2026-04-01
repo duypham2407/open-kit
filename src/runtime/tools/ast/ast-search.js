@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+import { getAstToolingStatus } from './ast-tooling-status.js';
 import { parseJsonc, toJsonPointer } from '../shared/jsonc-utils.js';
 import { isInsideProjectRoot, resolveProjectPath } from '../shared/project-file-utils.js';
 
@@ -40,6 +41,7 @@ export function createAstSearchTool({ projectRoot = process.cwd() } = {}) {
       const content = fs.readFileSync(filePath, 'utf8');
       const json = parseJsonc(content, filePath);
       const matches = [];
+      const tooling = getAstToolingStatus(process.env);
 
       walkJson(json, (value, pathSegments) => {
         if (query === null || query === undefined) {
@@ -65,9 +67,13 @@ export function createAstSearchTool({ projectRoot = process.cwd() } = {}) {
       });
 
       return {
-        status: 'ok',
+        status: tooling.degraded ? 'degraded' : 'ok',
         filePath,
+        query,
+        language: filePath.endsWith('.jsonc') ? 'jsonc' : 'json',
+        tooling,
         matches,
+        matchCount: matches.length,
       };
     },
   };

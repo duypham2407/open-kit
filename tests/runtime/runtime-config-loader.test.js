@@ -223,3 +223,75 @@ test('loadRuntimeConfig validates hook settings', () => {
     /hooks\.toolOutputTruncation\.maxChars must be a positive integer|hooks\.rulesInjector\.byMode\.full entries must be non-empty strings/i
   );
 });
+
+test('loadRuntimeConfig supports global and per-agent auto-fallback settings', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+
+  writeText(
+    projectConfigPath,
+    `{
+      "modelExecution": {
+        "autoFallback": {
+          "enabled": true,
+          "afterFailures": 3
+        }
+      },
+      "agents": {
+        "specialist.oracle": {
+          "model": "openai/gpt-5.4",
+          "fallback_models": [
+            { "model": "anthropic/claude-sonnet-4-6", "variant": "high" }
+          ],
+          "auto_fallback": {
+            "enabled": true,
+            "after_failures": 4
+          }
+        }
+      }
+    }`
+  );
+
+  const result = loadRuntimeConfig({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  assert.equal(result.config.modelExecution.autoFallback.enabled, true);
+  assert.equal(result.config.modelExecution.autoFallback.afterFailures, 3);
+  assert.equal(result.config.agents['specialist.oracle'].auto_fallback.enabled, true);
+  assert.equal(result.config.agents['specialist.oracle'].auto_fallback.after_failures, 4);
+});
+
+test('loadRuntimeConfig supports dual quick-switch profiles for an agent', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+
+  writeText(
+    projectConfigPath,
+    `{
+      "modelExecution": {
+        "quickSwitchProfiles": {
+          "enabled": true
+        }
+      },
+      "agents": {
+        "specialist.oracle": {
+          "profiles": [
+            { "model": "openai/gpt-5.4", "variant": "high" },
+            { "model": "azure/gpt-5.4", "variant": "high" }
+          ]
+        }
+      }
+    }`
+  );
+
+  const result = loadRuntimeConfig({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  assert.equal(result.config.modelExecution.quickSwitchProfiles.enabled, true);
+  assert.equal(result.config.agents['specialist.oracle'].profiles.length, 2);
+  assert.equal(result.config.agents['specialist.oracle'].profiles[1].model, 'azure/gpt-5.4');
+});

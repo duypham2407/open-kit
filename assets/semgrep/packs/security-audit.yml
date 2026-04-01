@@ -1,0 +1,43 @@
+rules:
+  - id: openkit.security.no-eval
+    patterns:
+      - pattern: eval(...)
+    message: "eval() is a code injection vector. Remove or replace with a safe alternative."
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  - id: openkit.security.no-innerhtml
+    patterns:
+      - pattern: $EL.innerHTML = $VALUE
+    message: "Direct innerHTML assignment is an XSS vector. Use textContent or a sanitizer."
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  - id: openkit.security.no-exec-sync-untrusted
+    patterns:
+      - pattern: execSync($CMD)
+      - pattern: spawnSync($CMD, ...)
+    message: "Verify that command arguments are not constructed from untrusted input."
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: openkit.security.no-hardcoded-secret
+    patterns:
+      - pattern-regex: "(password|secret|api_key|apikey|token)\\s*[:=]\\s*['\"][^'\"]{8,}['\"]"
+    message: "Possible hardcoded secret. Use environment variables or a secrets manager."
+    languages: [javascript, typescript, python, json]
+    severity: ERROR
+
+  - id: openkit.security.no-http-url
+    patterns:
+      - pattern-regex: "http://(?!localhost|127\\.0\\.0\\.1|\\[::1\\])"
+    message: "Use HTTPS instead of HTTP for non-local URLs."
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: openkit.security.no-new-function
+    patterns:
+      - pattern: new Function(...)
+    message: "new Function() is similar to eval() and can enable code injection."
+    languages: [javascript, typescript]
+    severity: ERROR

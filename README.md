@@ -265,6 +265,8 @@ The current runtime config path also supports:
 
 - category and specialist model overrides through `.opencode/openkit.runtime.jsonc`
 - `fallback_models` chains for categories and specialists
+- automatic fallback activation after repeated model failures through `modelExecution.autoFallback` and agent `auto_fallback`
+- two agent model profiles for quick provider switching, useful when the same model family is available from multiple providers
 - `file://` prompt references for agent prompts and category prompt appends
 - model-resolution trace visibility in doctor/runtime diagnostics
 
@@ -273,6 +275,14 @@ This foundation is additive. The canonical workflow contract still lives in `con
 ### Model Overrides
 
 Per-agent model overrides are saved by the global OpenKit install and reused by future `openkit run` sessions.
+
+Current limitation: the checked-in runtime does not yet hot-reload provider/model profile changes into an already-running `openkit run` child `opencode` session. Profile switching state can be updated live inside OpenKit-managed files, but the active child session only receives model config at bootstrap time.
+
+Global install behavior: OpenKit now provisions `ast-grep` into its managed global tooling path by default and prepends that tooling bin directory during `openkit run`, so AST tooling is available without requiring a separate manual install in the common case.
+
+Current AST tooling scope: the runtime surfaces expose structural-search metadata and preview-first replacement semantics, but the checked-in AST tools still operate on JSON and JSONC documents today. They must report degraded or fallback status honestly when broader language-aware structural search is not yet active.
+
+Syntax parsing scope: OpenKit now exposes a Tree-sitter-backed syntax layer for JavaScript, TypeScript, JSON, and JSONC so agents can request file outlines, locate node types, and inspect nearest structure around a position without reading full files blindly.
 
 Use them when you want different strengths per role, for example:
 

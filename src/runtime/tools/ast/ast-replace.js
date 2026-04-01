@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 
+import { getAstToolingStatus } from './ast-tooling-status.js';
 import { parseJsonc, toJsonPointer } from '../shared/jsonc-utils.js';
 import { isInsideProjectRoot, resolveProjectPath } from '../shared/project-file-utils.js';
 
@@ -49,6 +50,7 @@ export function createAstReplaceTool({ projectRoot = process.cwd() } = {}) {
 
       const content = fs.readFileSync(resolvedPath, 'utf8');
       const json = parseJsonc(content, resolvedPath);
+      const tooling = getAstToolingStatus(process.env);
       const located = readJsonPath(json, pointer ?? '/');
       if (!located.found) {
         return { status: 'pointer-missing', filePath: resolvedPath, pointer, replacement };
@@ -59,9 +61,11 @@ export function createAstReplaceTool({ projectRoot = process.cwd() } = {}) {
         : cloneAndSet(json, located.segments, replacement);
 
       return {
-        status: 'preview-ready',
+        status: tooling.degraded ? 'preview-degraded' : 'preview-ready',
         filePath: resolvedPath,
         pointer: pointer ?? '/',
+        language: resolvedPath.endsWith('.jsonc') ? 'jsonc' : 'json',
+        tooling,
         before: located.value,
         after: pointer === '/' ? replacement : readJsonPath(preview, pointer).value,
         preview,

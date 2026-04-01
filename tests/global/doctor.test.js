@@ -58,6 +58,8 @@ test('global doctor reports next steps for healthy installs', () => {
     },
   });
   writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'semgrep'), '#!/bin/sh\nexit 0\n');
 
   const result = inspectGlobalDoctor({
     projectRoot,
@@ -91,6 +93,40 @@ test('global doctor reports next steps for healthy installs', () => {
   assert.match(output, /Tool families \(total\/active\/degraded\):/);
   assert.match(output, /Workflow runtime:/);
   assert.match(output, /capabilities/);
+});
+
+test('global doctor reports missing ast-grep tooling explicitly', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+    ensureAstGrep: () => ({ action: 'failed', installed: false }),
+  });
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  fs.rmSync(path.join(tempHome, 'openkit', 'tooling'), { recursive: true, force: true });
+  const originalNodePath = process.execPath;
+  process.execPath = path.join(tempHome, 'missing-node');
+
+  try {
+    const result = inspectGlobalDoctor({
+      projectRoot,
+      env: {
+        ...process.env,
+        OPENCODE_HOME: tempHome,
+        PATH: fakeBinDir,
+      },
+    });
+
+    assert.equal(result.status, 'workspace-ready-with-issues');
+    assert.match(result.issues.join('\n'), /ast-grep executable is not available/i);
+  } finally {
+    process.execPath = originalNodePath;
+  }
 });
 
 test('global doctor summary surfaces workflow recommendations for stalled full-delivery work', () => {
@@ -934,4 +970,31 @@ test('global doctor summary surfaces invalid migration slice board diagnostics',
   const output = renderGlobalDoctorSummary(result);
   assert.match(output, /Workflow runtime: connected \| mode=migration \| stage=migration_strategy \| active=migrate-781/);
   assert.match(output, /Migration slice board: invalid \| Migration slice 'SLICE-781-BROKEN' in 'in_progress' status requires a primary_owner/);
+});
+
+test('global doctor reports missing semgrep tooling explicitly', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+    ensureSemgrep: () => ({ action: 'failed', installed: false }),
+  });
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep'), '#!/bin/sh\nexit 0\n');
+
+  const result = inspectGlobalDoctor({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: fakeBinDir,
+    },
+  });
+
+  assert.match(result.issues.join('\n'), /semgrep executable is not available/i);
 });

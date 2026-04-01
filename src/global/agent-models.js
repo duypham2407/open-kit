@@ -26,6 +26,23 @@ function deriveAgentNameFromPath(agentPath) {
   return path.basename(agentPath, path.extname(agentPath));
 }
 
+function normalizeProfileEntry(entry) {
+  if (!isPlainObject(entry) || typeof entry.model !== 'string' || entry.model.trim().length === 0) {
+    return null;
+  }
+
+  return {
+    model: entry.model,
+    ...(typeof entry.variant === 'string' && entry.variant.length > 0 ? { variant: entry.variant } : {}),
+    ...(Array.isArray(entry.fallback_models) && entry.fallback_models.length > 0 ? { fallback_models: entry.fallback_models } : {}),
+    ...(isPlainObject(entry.auto_fallback) ? { auto_fallback: entry.auto_fallback } : {}),
+  };
+}
+
+function normalizeProfiles(profiles = []) {
+  return (Array.isArray(profiles) ? profiles : [profiles]).map(normalizeProfileEntry).filter(Boolean).slice(0, 2);
+}
+
 export function isValidModelId(model) {
   if (typeof model !== 'string') {
     return false;
@@ -93,13 +110,81 @@ export function writeAgentModelSettings(settingsPath, settings) {
 
 export function setAgentModel(settingsPath, agentId, model, variant = null) {
   const settings = readAgentModelSettings(settingsPath);
+  const current = isPlainObject(settings.agentModels[agentId]) ? settings.agentModels[agentId] : {};
   settings.agentModels = {
     ...settings.agentModels,
     [agentId]: {
+      ...current,
       model,
       ...(typeof variant === 'string' && variant.length > 0 ? { variant } : {}),
     },
   };
+  writeAgentModelSettings(settingsPath, settings);
+  return settings;
+}
+
+export function setAgentModelProfiles(settingsPath, agentId, profiles = []) {
+  const settings = readAgentModelSettings(settingsPath);
+  const current = isPlainObject(settings.agentModels[agentId]) ? settings.agentModels[agentId] : {};
+  const normalizedProfiles = normalizeProfiles(profiles);
+  const primaryProfile = normalizedProfiles[0] ?? null;
+
+  settings.agentModels = {
+    ...settings.agentModels,
+    [agentId]: {
+      ...current,
+      ...(primaryProfile?.model ? { model: primaryProfile.model } : {}),
+      ...(primaryProfile?.variant ? { variant: primaryProfile.variant } : {}),
+      ...(primaryProfile?.fallback_models ? { fallback_models: primaryProfile.fallback_models } : {}),
+      ...(primaryProfile?.auto_fallback ? { auto_fallback: primaryProfile.auto_fallback } : {}),
+      ...(normalizedProfiles.length > 0 ? { profiles: normalizedProfiles } : {}),
+    },
+  };
+
+  writeAgentModelSettings(settingsPath, settings);
+  return settings;
+}
+
+export function setAgentFallbackModels(settingsPath, agentId, fallbackModels = []) {
+  const settings = readAgentModelSettings(settingsPath);
+  const current = isPlainObject(settings.agentModels[agentId]) ? settings.agentModels[agentId] : {};
+  const normalizedFallbackModels = (Array.isArray(fallbackModels) ? fallbackModels : [fallbackModels]).filter(
+    (entry) =>
+      (typeof entry === 'string' && entry.trim().length > 0) ||
+      (isPlainObject(entry) && typeof entry.model === 'string' && entry.model.trim().length > 0)
+  );
+
+  settings.agentModels = {
+    ...settings.agentModels,
+    [agentId]: {
+      ...current,
+      ...(typeof current.model === 'string' && current.model.length > 0 ? { model: current.model } : {}),
+      ...(typeof current.variant === 'string' && current.variant.length > 0 ? { variant: current.variant } : {}),
+      ...(normalizedFallbackModels.length > 0 ? { fallback_models: normalizedFallbackModels } : {}),
+    },
+  };
+
+  writeAgentModelSettings(settingsPath, settings);
+  return settings;
+}
+
+export function setAgentAutoFallback(settingsPath, agentId, autoFallback = null) {
+  const settings = readAgentModelSettings(settingsPath);
+  const current = isPlainObject(settings.agentModels[agentId]) ? settings.agentModels[agentId] : {};
+
+  settings.agentModels = {
+    ...settings.agentModels,
+    [agentId]: {
+      ...current,
+      ...(typeof current.model === 'string' && current.model.length > 0 ? { model: current.model } : {}),
+      ...(typeof current.variant === 'string' && current.variant.length > 0 ? { variant: current.variant } : {}),
+      ...(Array.isArray(current.fallback_models) && current.fallback_models.length > 0
+        ? { fallback_models: current.fallback_models }
+        : {}),
+      ...(autoFallback && typeof autoFallback === 'object' ? { auto_fallback: autoFallback } : {}),
+    },
+  };
+
   writeAgentModelSettings(settingsPath, settings);
   return settings;
 }
@@ -122,6 +207,13 @@ export function buildAgentModelConfigOverrides(settingsPath) {
       {
         model: value.model,
         ...(typeof value.variant === 'string' && value.variant.length > 0 ? { variant: value.variant } : {}),
+        ...(Array.isArray(value.fallback_models) && value.fallback_models.length > 0
+          ? { fallback_models: value.fallback_models }
+          : {}),
+        ...(isPlainObject(value.auto_fallback) ? { auto_fallback: value.auto_fallback } : {}),
+        ...(Array.isArray(value.profiles) && value.profiles.length > 0
+          ? { profiles: normalizeProfiles(value.profiles) }
+          : {}),
       },
     ]);
 

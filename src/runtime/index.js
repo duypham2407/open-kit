@@ -19,7 +19,6 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
   const skills = createSkillRegistry({ projectRoot, env });
   const categories = createCategoryRuntime(configResult.config);
   const specialists = createSpecialistRegistry(configResult.config);
-  const modelRuntime = createModelRuntime({ categories, specialists, config: configResult.config });
   const managers = createManagers({
     config: configResult.config,
     capabilityIndex,
@@ -28,6 +27,18 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
     mode,
     specialists: specialists.specialists,
     env,
+  });
+  const modelRuntime = createModelRuntime({
+    categories,
+    specialists,
+    config: {
+      ...configResult.config,
+      __runtime: {
+        ...(configResult.config.__runtime ?? {}),
+        actionModelStateManager: managers.actionModelStateManager,
+        agentProfileSwitchManager: managers.agentProfileSwitchManager,
+      },
+    },
   });
   managers.skillMcpManager.registerSkillBindings(skills.skills);
   const mcpPlatform = createMcpPlatform({
@@ -41,6 +52,7 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
     projectRoot,
     managers,
     mcpPlatform,
+    modelRuntime,
   });
   const hooks = createHooks({
     config: {

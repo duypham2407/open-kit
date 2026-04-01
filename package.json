@@ -1,7 +1,13 @@
 {
   "name": "@duypham93/openkit",
-  "version": "0.3.12",
+  "version": "0.3.14",
   "type": "module",
+  "dependencies": {
+    "@ast-grep/cli": "^0.42.0",
+    "jscodeshift": "^17.3.0",
+    "tree-sitter-javascript": "^0.25.0",
+    "web-tree-sitter": "^0.26.8"
+  },
   "files": [
     ".opencode/install-manifest.json",
     ".opencode/lib/",

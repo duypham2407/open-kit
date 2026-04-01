@@ -4,6 +4,7 @@ import path from 'node:path';
 import { validateInstallState } from '../install/install-state.js';
 import { discoverProjectShape } from '../install/discovery.js';
 import { isCommandAvailable } from '../command-detection.js';
+import { isAstGrepAvailable, isCodemodAvailable, isSemgrepAvailable } from '../global/tooling.js';
 import { bootstrapRuntimeFoundation } from './index.js';
 import { inspectBackgroundDoctor } from './doctor/background-doctor.js';
 import { inspectCapabilityDoctor } from './doctor/capability-doctor.js';
@@ -270,6 +271,18 @@ export function inspectManagedDoctor({
 
   if (!isOpenCodeAvailable(env)) {
     issues.push('OpenCode executable is not available on PATH');
+  }
+
+  if (!isAstGrepAvailable({ env })) {
+    issues.push('ast-grep executable is not available on PATH or the OpenKit tooling bin path');
+  }
+
+  if (!isSemgrepAvailable({ env })) {
+    issues.push('semgrep executable is not available on PATH or the OpenKit tooling bin path');
+  }
+
+  if (!isCodemodAvailable()) {
+    issues.push('jscodeshift package is not installed; codemod tools will report dependency-missing');
   }
 
   if (issues.length > 0) {

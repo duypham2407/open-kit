@@ -21,6 +21,12 @@ export const installGlobalCommand = {
     io.stdout.write(`Installed OpenKit globally.\n`);
     io.stdout.write(`Kit root: ${result.kitRoot}\n`);
     io.stdout.write(`Profile root: ${result.profilesRoot}\n`);
+    if (result.tooling?.installed) {
+      io.stdout.write(`Installed ast-grep tooling into ${result.tooling.toolingRoot}\n`);
+    }
+    if (result.semgrepTooling?.installed) {
+      io.stdout.write(`Installed semgrep tooling into ${result.semgrepTooling.toolingRoot}\n`);
+    }
     return 0;
   },
 };

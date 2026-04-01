@@ -36,6 +36,13 @@ export const COMMAND_INSTRUCTION_CONTRACTS = {
     expectedOutputs: ['browser verification plan', 'scenario checklist', 'evidence-ready notes'],
     whenToUse: 'Use when acceptance depends on page behavior, interactive flows, or browser evidence.',
   },
+  switch: {
+    command: '/switch',
+    purpose: 'Inspect or quickly switch a runtime agent between configured model profiles.',
+    nextAction: 'List the current profile selection, choose the target agent, and prefer the short in-session syntax like `node .opencode/profile-switch.js specialist.oracle 1` or `node .opencode/profile-switch.js specialist.oracle t`.',
+    expectedOutputs: ['target agent', 'active profile index', 'manual selection state', 'affected future actions'],
+    whenToUse: 'Use when the same agent has multiple provider-backed profiles and you want to swap quickly or pin one manually during a running session for later actions that re-read selection state.',
+  },
   'start-work': {
     command: '/start-work',
     purpose: 'Resume approved execution work from explicit task-board or workflow-state context.',

@@ -1,5 +1,9 @@
+import { createRuleScanTool } from './audit/rule-scan.js';
+import { createSecurityScanTool } from './audit/security-scan.js';
 import { createAstReplaceTool } from './ast/ast-replace.js';
 import { createAstSearchTool } from './ast/ast-search.js';
+import { createCodemodApplyTool } from './codemod/codemod-apply.js';
+import { createCodemodPreviewTool } from './codemod/codemod-preview.js';
 import { createLookAtTool } from './analysis/look-at.js';
 import { createBrowserVerifyTool } from './browser/browser-verify.js';
 import { createContinuationHandoffTool } from './continuation/continuation-handoff.js';
@@ -18,14 +22,19 @@ import { createLspPrepareRenameTool } from './lsp/lsp-prepare-rename.js';
 import { createLspRenameTool } from './lsp/lsp-rename.js';
 import { createLspSymbolsTool } from './lsp/lsp-symbols.js';
 import { createMcpDispatchTool } from './mcp/mcp-dispatch.js';
+import { createProfileSwitchTool } from './models/profile-switch.js';
 import { createSessionListTool } from './session/session-list.js';
 import { createSessionReadTool } from './session/session-read.js';
 import { createSessionSearchTool } from './session/session-search.js';
+import { createSyntaxContextTool } from './syntax/syntax-context.js';
+import { createSyntaxLocateTool } from './syntax/syntax-locate.js';
+import { createSyntaxOutlineTool } from './syntax/syntax-outline.js';
 import { createEvidenceCaptureTool } from './workflow/evidence-capture.js';
 import { createRuntimeSummaryTool } from './workflow/runtime-summary.js';
 import { createWorkflowStateTool } from './workflow/workflow-state.js';
+import { wrapToolExecution } from './wrap-tool-execution.js';
 
-export function createToolRegistry({ projectRoot, managers, config, mcpPlatform }) {
+export function createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime }) {
   const disabledTools = new Set(config?.disabled?.tools ?? []);
   const definitions = [
     createWorkflowStateTool({ projectRoot, workflowKernel: managers.workflowKernel }),
@@ -49,9 +58,21 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform 
     createBackgroundOutputTool({ backgroundManager: managers.backgroundManager }),
     createBackgroundCancelTool({ backgroundManager: managers.backgroundManager }),
     createMcpDispatchTool({ mcpPlatform }),
+    createProfileSwitchTool({
+      specialists: managers.delegationSupervisor?.specialists ?? [],
+      modelRuntime: modelRuntime ?? { resolutions: [] },
+      agentProfileSwitchManager: managers.agentProfileSwitchManager,
+    }),
     createInteractiveBashTool(),
     createHashlineEditTool({ projectRoot }),
     createLookAtTool({ projectRoot }),
+    createRuleScanTool({ projectRoot }),
+    createSecurityScanTool({ projectRoot }),
+    createCodemodPreviewTool({ projectRoot }),
+    createCodemodApplyTool({ projectRoot }),
+    createSyntaxOutlineTool({ syntaxIndexManager: managers.syntaxIndexManager }),
+    createSyntaxContextTool({ syntaxIndexManager: managers.syntaxIndexManager }),
+    createSyntaxLocateTool({ syntaxIndexManager: managers.syntaxIndexManager }),
     createBrowserVerifyTool({ config, env: process.env }),
     createLspSymbolsTool({ projectRoot }),
     createLspDiagnosticsTool({ projectRoot }),
@@ -63,7 +84,9 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform 
     createAstReplaceTool({ projectRoot }),
   ];
 
-  const enabledTools = definitions.filter((tool) => !disabledTools.has(tool.id));
+  const enabledTools = definitions
+    .filter((tool) => !disabledTools.has(tool.id))
+    .map((tool) => wrapToolExecution(tool, { actionModelStateManager: managers.actionModelStateManager }));
 
   return {
     toolList: enabledTools,

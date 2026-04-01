@@ -170,26 +170,31 @@ function findQueuedExclusiveTask(tasks = [], taskBoardSummary = null) {
 }
 
 export class DelegationSupervisor {
-  constructor({ workflowKernel = null, backgroundManager = null, specialists = [], concurrencyManager = null } = {}) {
+  constructor({ workflowKernel = null, backgroundManager = null, specialists = [], concurrencyManager = null, actionModelStateManager = null } = {}) {
     this.workflowKernel = workflowKernel;
     this.backgroundManager = backgroundManager;
     this.specialists = specialists;
     this.concurrencyManager = concurrencyManager;
+    this.actionModelStateManager = actionModelStateManager;
   }
 
   planForTask(task) {
     const specialist = selectSpecialistForTask(task, this.specialists);
     const category = selectCategoryForTask(task);
+    const actionKey = task?.task_id ? `delegation-task:${task.task_id}` : `delegation-kind:${task?.kind ?? 'generic'}`;
+    const actionState = specialist ? this.actionModelStateManager?.get?.(specialist.id, actionKey) ?? null : null;
     return {
       category,
       specialistId: specialist?.id ?? null,
       specialistName: specialist?.name ?? null,
       defaultModel: specialist?.defaultModel ?? null,
+      actionKey,
+      actionState,
       concurrency: this.concurrencyManager?.describe?.() ?? null,
     };
   }
 
-  dispatchReadyTask({ workItemId, requestedBy = 'MasterOrchestrator', owner = 'FullstackAgent', customStatePath = null }) {
+  dispatchReadyTask({ workItemId, requestedBy = 'MasterOrchestrator', owner = 'FullstackAgent', customStatePath = null, actionTracking = null }) {
     const taskListing = this.workflowKernel?.listTasks?.(workItemId, customStatePath);
     const tasks = taskListing?.tasks ?? [];
     const boardStage = taskListing?.board?.current_stage ?? null;
@@ -323,6 +328,10 @@ export class DelegationSupervisor {
       workItemId,
       taskId: readyTask.task_id,
       customStatePath,
+      actionTracking: actionTracking ?? {
+        subjectId: plan.specialistId ?? 'tool.delegation-task',
+        actionKey: plan.actionKey,
+      },
     }) ?? null;
 
     return {

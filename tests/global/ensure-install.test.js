@@ -11,6 +11,12 @@ function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-global-ensure-'));
 }
 
+function writeExecutable(filePath, content) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content, 'utf8');
+  fs.chmodSync(filePath, 0o755);
+}
+
 function writeJson(filePath, value) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
@@ -32,9 +38,8 @@ test('ensureGlobalInstall returns none when install is healthy', () => {
     },
   });
 
-  fs.mkdirSync(fakeBinDir, { recursive: true });
-  fs.writeFileSync(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n', 'utf8');
-  fs.chmodSync(path.join(fakeBinDir, 'opencode'), 0o755);
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'semgrep'), '#!/bin/sh\nexit 0\n');
 
   const result = ensureGlobalInstall({
     projectRoot,
@@ -56,9 +61,8 @@ test('ensureGlobalInstall materializes the global install when it is missing', (
   const projectRoot = makeTempDir();
   const fakeBinDir = path.join(tempHome, 'bin');
 
-  fs.mkdirSync(fakeBinDir, { recursive: true });
-  fs.writeFileSync(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n', 'utf8');
-  fs.chmodSync(path.join(fakeBinDir, 'opencode'), 0o755);
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(fakeBinDir, 'semgrep'), '#!/bin/sh\nexit 0\n');
 
   const result = ensureGlobalInstall({
     projectRoot,
@@ -73,6 +77,42 @@ test('ensureGlobalInstall materializes the global install when it is missing', (
   assert.equal(result.installed, true);
   assert.equal(result.doctor.status, 'healthy');
   assert.equal(fs.existsSync(path.join(tempHome, 'kits', 'openkit', '.opencode', 'workflow-state.js')), true);
+});
+
+test('ensureGlobalInstall installs ast-grep tooling into managed global state', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  fs.mkdirSync(fakeBinDir, { recursive: true });
+  fs.writeFileSync(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n', 'utf8');
+  fs.chmodSync(path.join(fakeBinDir, 'opencode'), 0o755);
+
+  const fakeEnsureAstGrepInstalled = ({ env }) => {
+    const toolingRoot = path.join(env.OPENCODE_HOME, 'openkit', 'tooling');
+    const binRoot = path.join(toolingRoot, 'node_modules', '.bin');
+    fs.mkdirSync(binRoot, { recursive: true });
+    fs.writeFileSync(path.join(binRoot, 'ast-grep'), '#!/bin/sh\nexit 0\n', 'utf8');
+    fs.chmodSync(path.join(binRoot, 'ast-grep'), 0o755);
+    return {
+      action: 'installed',
+      installed: true,
+      toolingRoot,
+      toolingBinRoot: binRoot,
+    };
+  };
+
+  const result = materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+    ensureAstGrep: fakeEnsureAstGrepInstalled,
+  });
+
+  assert.equal(result.tooling.installed, true);
+  assert.equal(fs.existsSync(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep')), true);
 });
 
 test('ensureGlobalInstall returns blocked when install state is invalid', () => {

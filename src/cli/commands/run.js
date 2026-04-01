@@ -28,6 +28,12 @@ export const runCommand = {
       io.stdout.write(`Installed OpenKit globally.\n`);
       io.stdout.write(`Kit root: ${ensured.install.kitRoot}\n`);
       io.stdout.write(`Profile root: ${ensured.install.profilesRoot}\n`);
+      if (ensured.install.tooling?.action === 'installed') {
+        io.stdout.write(`Installed ast-grep tooling into ${ensured.install.tooling.toolingRoot}\n`);
+      }
+      if (ensured.install.semgrepTooling?.action === 'installed') {
+        io.stdout.write(`Installed semgrep tooling into ${ensured.install.semgrepTooling.toolingRoot}\n`);
+      }
       io.stdout.write(`Next action after launch: start with ${DEFAULT_ENTRY_COMMAND}.\n`);
     }
 

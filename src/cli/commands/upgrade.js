@@ -20,6 +20,12 @@ export const upgradeCommand = {
     const result = materializeGlobalInstall({ env: process.env });
     io.stdout.write('Upgraded OpenKit global install.\n');
     io.stdout.write(`Kit root: ${result.kitRoot}\n`);
+    if (result.tooling?.installed) {
+      io.stdout.write(`Installed ast-grep tooling into ${result.tooling.toolingRoot}\n`);
+    }
+    if (result.semgrepTooling?.installed) {
+      io.stdout.write(`Installed semgrep tooling into ${result.semgrepTooling.toolingRoot}\n`);
+    }
     return 0;
   },
 };

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createGlobalInstallState, writeJson } from './install-state.js';
 import { createEmptyAgentModelSettings, readAgentModelSettings, writeAgentModelSettings } from './agent-models.js';
 import { getGlobalPaths } from './paths.js';
+import { ensureAstGrepInstalled, ensureSemgrepInstalled } from './tooling.js';
 import { getOpenKitVersion } from '../version.js';
 
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,7 @@ const GLOBAL_KIT_ASSETS = [
   'AGENTS.md',
   'README.md',
   'src/runtime',
+  'src/global/paths.js',
 ];
 
 function removePathIfPresent(targetPath) {
@@ -92,7 +94,12 @@ function createOpenCodeConfig() {
   };
 }
 
-export function materializeGlobalInstall({ env = process.env, kitVersion = getOpenKitVersion() } = {}) {
+export function materializeGlobalInstall({
+  env = process.env,
+  kitVersion = getOpenKitVersion(),
+  ensureAstGrep = ensureAstGrepInstalled,
+  ensureSemgrep = ensureSemgrepInstalled,
+} = {}) {
   const paths = getGlobalPaths({ env });
   const existingAgentModelSettings = fs.existsSync(paths.agentModelSettingsPath)
     ? readAgentModelSettings(paths.agentModelSettingsPath)
@@ -141,8 +148,13 @@ export function materializeGlobalInstall({ env = process.env, kitVersion = getOp
     files: listManagedFiles(paths.kitRoot),
   });
 
+  const tooling = ensureAstGrep({ env });
+  const semgrepTooling = ensureSemgrep({ env });
+
   return {
     ...paths,
     installState,
+    tooling,
+    semgrepTooling,
   };
 }

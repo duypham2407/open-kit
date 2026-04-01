@@ -12,7 +12,7 @@ export class BackgroundManager {
     this.outputStore = new TaskOutputStore();
   }
 
-  spawn({ title, payload, workItemId = null, taskId = null, customStatePath = null }) {
+  spawn({ title, payload, workItemId = null, taskId = null, customStatePath = null, actionTracking = null }) {
     if (!this.enabled) {
       return null;
     }
@@ -26,6 +26,7 @@ export class BackgroundManager {
       customStatePath,
     }) ?? null;
     run.customStatePath = customStatePath;
+    run.actionTracking = actionTracking;
     run.workflowRunId = this.workItemBridge?.onRunStarted?.({
       runId: run.id,
       title,
@@ -54,6 +55,7 @@ export class BackgroundManager {
       taskId: run.link?.taskId ?? null,
       workItemId: run.link?.workItemId ?? null,
       customStatePath: customStatePath ?? run.customStatePath ?? run.link?.customStatePath ?? null,
+      actionTracking: run.actionTracking ?? null,
     });
     this.persistentStore?.save(run);
     return run;
@@ -71,6 +73,7 @@ export class BackgroundManager {
       runId,
       workflowRunId: run.workflowRunId,
       customStatePath: customStatePath ?? run.customStatePath ?? run.link?.customStatePath ?? null,
+      actionTracking: run.actionTracking ?? null,
     });
     this.persistentStore?.save(run);
     return run;

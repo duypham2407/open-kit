@@ -1,3 +1,4 @@
 .worktrees/
 .opencode/background-runs/
+node_modules/
 *.tgz

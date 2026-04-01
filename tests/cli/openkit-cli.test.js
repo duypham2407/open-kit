@@ -110,7 +110,8 @@ test('openkit install-global materializes global kit and profile files', () => {
   assert.equal(fs.existsSync(path.join(profileRoot, 'opencode.json')), true);
   assert.equal(readJson(path.join(profileRoot, 'opencode.json')).default_agent, 'master-orchestrator');
   assert.equal(fs.existsSync(path.join(kitRoot, 'opencode.json')), true);
-  assert.match(readJson(path.join(kitRoot, 'install-state.json')).kit.version, /^0\.3\.12$/);
+  assert.equal(fs.existsSync(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep')), true);
+  assert.match(readJson(path.join(kitRoot, 'install-state.json')).kit.version, /^0\.3\.13$/);
   assert.match(readJson(path.join(profileRoot, 'hooks.json')).hooks.SessionStart[0].hooks[0].command, /session-start\.js/);
   assert.deepEqual(readJson(path.join(tempHome, 'openkit', 'agent-models.json')).agentModels, {});
 });
@@ -171,6 +172,8 @@ test('openkit doctor reports healthy without mutating workspace metadata', () =>
     },
   });
   assert.equal(installResult.status, 0);
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'semgrep'), '#!/bin/sh\nexit 0\n');
 
   const result = runCli(['doctor'], {
     cwd: projectRoot,
@@ -210,6 +213,8 @@ test('openkit run launches opencode with the global profile and workspace env', 
     },
   });
   assert.equal(installResult.status, 0);
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'semgrep'), '#!/bin/sh\nexit 0\n');
 
   writeExecutable(
     path.join(fakeBinDir, 'opencode'),
@@ -221,6 +226,7 @@ fs.writeFileSync(process.env.OPENKIT_TEST_LOG_PATH, JSON.stringify({
   projectRoot: process.env.OPENKIT_PROJECT_ROOT,
   workflowState: process.env.OPENKIT_WORKFLOW_STATE,
   kitRoot: process.env.OPENKIT_KIT_ROOT,
+  path: process.env.PATH,
   configDir: process.env.OPENCODE_CONFIG_DIR,
   runtimeFoundation: process.env.OPENKIT_RUNTIME_FOUNDATION,
   runtimeFoundationVersion: process.env.OPENKIT_RUNTIME_FOUNDATION_VERSION,
@@ -255,15 +261,18 @@ process.stdout.write('mock opencode launched\\n');
   assert.equal(invocation.runtimeFoundationVersion, '1');
   assert.match(invocation.workflowState, /workspaces\/.*\/openkit\/\.opencode\/workflow-state\.json$/);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
+  assert.equal(invocation.path.startsWith(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'context', 'core', 'workflow.md')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.js')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'profile-switch.js')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'work-items')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'work-items')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, 'context', 'core', 'workflow.md')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.json')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.js')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'profile-switch.js')), true);
 });
 
 test('openkit run does not reinstall when the global install already exists', () => {
@@ -311,6 +320,7 @@ fs.writeFileSync(process.env.OPENKIT_TEST_LOG_PATH, JSON.stringify({
   projectRoot: process.env.OPENKIT_PROJECT_ROOT,
   workflowState: process.env.OPENKIT_WORKFLOW_STATE,
   kitRoot: process.env.OPENKIT_KIT_ROOT,
+  path: process.env.PATH,
   configDir: process.env.OPENCODE_CONFIG_DIR,
   runtimeFoundation: process.env.OPENKIT_RUNTIME_FOUNDATION,
 }, null, 2));
@@ -340,6 +350,7 @@ process.stdout.write('mock opencode launched after auto-install\\n');
   ]);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
   assert.equal(invocation.runtimeFoundation, '1');
+  assert.equal(invocation.path.startsWith(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
 });
 
@@ -494,6 +505,11 @@ test('openkit run creates CommonJS workflow wrappers without module-boundary war
   assert.match(workspaceWrapper, /OPENKIT_PROJECT_ROOT/);
   assert.doesNotMatch(workspaceWrapper, /import \{ spawnSync \} from 'node:child_process';/);
 
+  const profileSwitchWrapper = fs.readFileSync(path.join(projectRoot, '.opencode', 'openkit', 'profile-switch.js'), 'utf8');
+  assert.match(profileSwitchWrapper, /profile-switch-cli\.js/);
+  assert.match(profileSwitchWrapper, /OPENKIT_WORKFLOW_STATE/);
+  assert.doesNotMatch(profileSwitchWrapper, /import \{ spawnSync \} from 'node:child_process';/);
+
   const wrapperRun = spawnSync(process.execPath, ['.opencode/openkit/workflow-state.js', 'help'], {
     cwd: projectRoot,
     encoding: 'utf8',
@@ -502,6 +518,165 @@ test('openkit run creates CommonJS workflow wrappers without module-boundary war
   assert.equal(wrapperRun.status, 0);
   assert.match(wrapperRun.stdout, /Usage:/);
   assert.doesNotMatch(wrapperRun.stderr, /MODULE_TYPELESS_PACKAGE_JSON/);
+});
+
+test('profile-switch wrapper updates live workspace selection state during a managed session', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  let result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+
+  result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'set', '--agent', 'specialist.oracle', '--profile', '1'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+
+  assert.equal(result.status, 0);
+  const selection = JSON.parse(result.stdout);
+  assert.equal(selection.agentId, 'specialist.oracle');
+  assert.equal(selection.profileIndex, 1);
+
+  const [workspaceId] = fs.readdirSync(path.join(tempHome, 'workspaces'));
+  const statePath = path.join(tempHome, 'workspaces', workspaceId, 'openkit', '.opencode', 'agent-profile-switches.json');
+  const state = readJson(statePath);
+  assert.equal(state.manualSelections['specialist.oracle'].profileIndex, 1);
+});
+
+test('profile-switch wrapper supports short in-session syntax', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  let result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+
+  result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'specialist.oracle', '1'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).profileIndex, 1);
+
+  result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'specialist.oracle'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).profileIndex, 1);
+
+  result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'specialist.oracle', 't'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).profileIndex, 0);
+
+  result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'specialist.oracle'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).profileIndex, 0);
+
+  result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'specialist.oracle', 'c'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout.trim(), 'null');
+});
+
+test('profile-switch wrapper rejects invalid profile indices', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  fs.mkdirSync(path.join(projectRoot, '.opencode'), { recursive: true });
+  fs.writeFileSync(
+    path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc'),
+    JSON.stringify(
+      {
+        agents: {
+          'specialist.oracle': {
+            profiles: [{ model: 'openai/gpt-5.4' }, { model: 'azure/gpt-5.4' }],
+          },
+        },
+      },
+      null,
+      2
+    ),
+    'utf8'
+  );
+
+  let result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+
+  result = spawnSync(process.execPath, ['.opencode/profile-switch.js', 'specialist.oracle', '7'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /invalid profile/i);
 });
 
 test('openkit run hydrates workspace state from repo-local work-items before wrapper status commands', () => {
@@ -603,13 +778,14 @@ test('openkit run hydrates workspace state from repo-local work-items before wra
 test('openkit run reports missing opencode after first-time setup completes', () => {
   const tempHome = makeTempDir();
   const projectRoot = makeTempDir();
+  const nodeBinDir = path.dirname(process.execPath);
 
   const result = runCli(['run'], {
     cwd: projectRoot,
     env: {
       ...process.env,
       OPENCODE_HOME: tempHome,
-      PATH: '',
+      PATH: nodeBinDir,
     },
   });
 
@@ -705,6 +881,7 @@ test('openkit uninstall removes the global kit and profile and can remove worksp
     },
   });
   assert.equal(result.status, 0);
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'semgrep'), '#!/bin/sh\nexit 0\n');
 
   result = runCli(['doctor'], {
     cwd: projectRoot,

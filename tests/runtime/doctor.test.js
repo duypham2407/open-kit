@@ -20,6 +20,22 @@ function writeText(filePath, value) {
   fs.writeFileSync(filePath, value, 'utf8');
 }
 
+function writeExecutable(filePath, content) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content, 'utf8');
+  fs.chmodSync(filePath, 0o755);
+}
+
+function withAstGrepPath(projectRoot, env = {}) {
+  const fakeBinDir = path.join(projectRoot, '.bin');
+  writeExecutable(path.join(fakeBinDir, 'ast-grep'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(fakeBinDir, 'semgrep'), '#!/bin/sh\nexit 0\n');
+  return {
+    ...env,
+    PATH: env.PATH ? `${fakeBinDir}${path.delimiter}${env.PATH}` : fakeBinDir,
+  };
+}
+
 function materializeManagedInstall(projectRoot) {
   writeJson(path.join(projectRoot, 'opencode.json'), {
     installState: {
@@ -85,7 +101,7 @@ test('doctor reports install missing when managed install files are absent', () 
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => false,
   });
 
@@ -136,7 +152,7 @@ test('doctor reports install incomplete when install state is missing', () => {
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -176,7 +192,7 @@ test('doctor reports install incomplete for a partial install when install state
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -209,7 +225,7 @@ test('doctor reports drift when a managed asset changed on disk', () => {
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -253,7 +269,7 @@ test('doctor reports drift for managed install-state assets it owns in phase 1',
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -278,7 +294,7 @@ test('doctor reports malformed install manifest JSON as diagnosable drift instea
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -299,7 +315,7 @@ test('doctor reports malformed managed install-state JSON as diagnosable drift i
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -314,35 +330,48 @@ test('doctor reports malformed managed install-state JSON as diagnosable drift i
 
 test('doctor reports runtime prerequisites missing when install is intact but launcher prerequisites are absent', () => {
   const projectRoot = makeTempDir();
+  const originalNodePath = process.execPath;
+  const originalOpenCodeHome = process.env.OPENCODE_HOME;
 
   materializeManagedInstall(projectRoot);
+  process.execPath = path.join(projectRoot, 'missing-node');
+  process.env.OPENCODE_HOME = path.join(projectRoot, 'empty-opencode-home');
 
-  const result = inspectManagedDoctor({
-    projectRoot,
-    env: {},
-    isOpenCodeAvailable: () => false,
-  });
+  try {
+    const result = inspectManagedDoctor({
+      projectRoot,
+      env: { PATH: '' },
+      isOpenCodeAvailable: () => false,
+    });
 
-  assert.equal(result.status, 'runtime-prerequisites-missing');
-  assert.equal(result.canRunCleanly, false);
-  assert.deepEqual(result.driftedAssets, []);
-  assert.deepEqual(result.ownedAssets.managed, ['opencode.json', '.openkit/openkit-install.json']);
-  assert.match(result.summary, /runtime launch prerequisites are missing/i);
-  assert.match(result.issues.join('\n'), /Missing runtime manifest: \.opencode\/opencode\.json/);
-  assert.match(result.issues.join('\n'), /OpenCode executable is not available on PATH/);
+    assert.equal(result.status, 'runtime-prerequisites-missing');
+    assert.equal(result.canRunCleanly, false);
+    assert.deepEqual(result.driftedAssets, []);
+    assert.deepEqual(result.ownedAssets.managed, ['opencode.json', '.openkit/openkit-install.json']);
+    assert.match(result.summary, /runtime launch prerequisites are missing/i);
+    assert.match(result.issues.join('\n'), /Missing runtime manifest: \.opencode\/opencode\.json/);
+    assert.match(result.issues.join('\n'), /OpenCode executable is not available on PATH/);
+    assert.match(result.issues.join('\n'), /ast-grep executable is not available/i);
+  } finally {
+    process.execPath = originalNodePath;
+    process.env.OPENCODE_HOME = originalOpenCodeHome;
+  }
 });
 
 test('doctor reports healthy state when install is intact and launcher prerequisites are available', () => {
   const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(projectRoot, '.bin');
 
   materializeManagedInstall(projectRoot);
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
     model: 'managed-model',
   });
+  writeExecutable(path.join(fakeBinDir, 'ast-grep'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(fakeBinDir, 'semgrep'), '#!/bin/sh\nexit 0\n');
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: { PATH: fakeBinDir },
     isOpenCodeAvailable: () => true,
   });
 
@@ -454,7 +483,7 @@ test('doctor surfaces orchestration-health risk for stalled full-delivery boards
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -566,7 +595,7 @@ test('doctor surfaces waiting-stage-advance health without marking the board blo
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -699,7 +728,7 @@ test('doctor surfaces stale background runs linked to no-longer-active tasks', (
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -833,7 +862,7 @@ test('doctor background summary surfaces long-running active runs separately fro
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -961,7 +990,7 @@ test('doctor surfaces shared-artifact waiting health without marking the board b
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -1087,7 +1116,7 @@ test('doctor surfaces safe-parallel-zone waiting health without marking the boar
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -1213,7 +1242,7 @@ test('doctor surfaces sequential-constraint waiting health without marking the b
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -1323,7 +1352,7 @@ test('doctor surfaces invalid migration slice boards without collapsing read-onl
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -1453,7 +1482,7 @@ test('doctor surfaces migration slice readiness when review is blocked by incomp
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -1493,7 +1522,7 @@ test('doctor surfaces model-resolution trace for runtime category and specialist
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -1503,6 +1532,17 @@ test('doctor surfaces model-resolution trace for runtime category and specialist
   assert.ok(
     result.runtimeDoctor.models.resolutionTrace.some(
       (entry) => entry.subjectId === 'specialist.oracle' && entry.fallbackEntries.some((fallback) => fallback.model === 'anthropic/claude-sonnet-4-6')
+    )
+  );
+  assert.ok(Array.isArray(result.runtimeDoctor.models.executionState));
+  assert.ok(
+    result.runtimeDoctor.models.executionState.some(
+      (entry) => entry.subjectId === 'specialist.oracle' && entry.threshold === 3 && entry.enabled === true
+    )
+  );
+  assert.ok(
+    result.runtimeDoctor.models.resolutionTrace.some(
+      (entry) => entry.subjectId === 'specialist.oracle' && entry.selectedProfileIndex === 0
     )
   );
 });
@@ -1583,7 +1623,7 @@ test('doctor keeps workflow visibility when migration slice board JSON is malfor
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -1645,7 +1685,7 @@ test('doctor does not report healthy when an adopted root manifest is incompatib
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 
@@ -1728,7 +1768,7 @@ test('doctor can report healthy when an adopted root manifest still satisfies th
 
   const result = inspectManagedDoctor({
     projectRoot,
-    env: {},
+    env: withAstGrepPath(projectRoot, {}),
     isOpenCodeAvailable: () => true,
   });
 

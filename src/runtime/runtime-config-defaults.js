@@ -25,6 +25,15 @@ export function createDefaultRuntimeConfig() {
     },
     agents: {},
     categories: {},
+    modelExecution: {
+      autoFallback: {
+        enabled: true,
+        afterFailures: 3,
+      },
+      quickSwitchProfiles: {
+        enabled: true,
+      },
+    },
     hooks: {
       continuationRuntime: {
         attentionOnRisk: true,

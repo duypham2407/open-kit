@@ -46,6 +46,8 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Role boundary quick policy: `docs/maintainer/2026-03-26-role-operating-policy.md`
 - AI reading-surface map: `docs/maintainer/2026-03-26-ai-surface-map.md`
 - Runtime smoke tests: `docs/operations/runbooks/workflow-state-smoke-tests.md`
+- Semgrep integration: `docs/operator/semgrep.md`
+- Codemod integration: `docs/operator/codemod.md`
 - Governance policy: `docs/governance/README.md`
 - Operations support: `docs/operations/README.md`
 

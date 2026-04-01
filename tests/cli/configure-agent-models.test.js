@@ -110,6 +110,57 @@ test('configure-agent-models lists agents and saves a provider-qualified overrid
   assert.equal(settings.agentModels['qa-agent'].model, 'openai/gpt-5');
 });
 
+test('configure-agent-models preserves fallback policy fields already stored for an agent', async () => {
+  const tempHome = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  fs.mkdirSync(path.join(tempHome, 'openkit'), { recursive: true });
+  fs.writeFileSync(
+    path.join(tempHome, 'openkit', 'agent-models.json'),
+    `${JSON.stringify(
+      {
+        schema: 'openkit/agent-model-settings@1',
+        stateVersion: 1,
+        updatedAt: '2026-03-24T00:00:00.000Z',
+        agentModels: {
+          'qa-agent': {
+            model: 'openai/gpt-5',
+            fallback_models: ['openai/gpt-5-mini'],
+            auto_fallback: { enabled: true, after_failures: 3 },
+            profiles: [
+              { model: 'openai/gpt-5' },
+              { model: 'azure/gpt-5' },
+            ],
+          },
+        },
+      },
+      null,
+      2
+    )}\n`,
+    'utf8'
+  );
+
+  const result = await runCli(['configure-agent-models', '--agent', 'qa-agent', '--model', 'anthropic/claude-sonnet-4-5'], {
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+
+  const settings = readJson(path.join(tempHome, 'openkit', 'agent-models.json'));
+  assert.equal(settings.agentModels['qa-agent'].model, 'anthropic/claude-sonnet-4-5');
+  assert.deepEqual(settings.agentModels['qa-agent'].fallback_models, ['openai/gpt-5-mini']);
+  assert.deepEqual(settings.agentModels['qa-agent'].auto_fallback, { enabled: true, after_failures: 3 });
+  assert.deepEqual(settings.agentModels['qa-agent'].profiles, [
+    { model: 'openai/gpt-5' },
+    { model: 'azure/gpt-5' },
+  ]);
+});
+
 test('configure-agent-models rejects invalid model ids and can clear overrides', async () => {
   const tempHome = makeTempDir();
   const fakeBinDir = path.join(tempHome, 'bin');

@@ -1,0 +1,43 @@
+rules:
+  - id: openkit.quality.no-console-log
+    patterns:
+      - pattern: console.log(...)
+    message: "Avoid console.log in production code. Use a structured logger or remove the statement."
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: openkit.quality.no-debugger
+    patterns:
+      - pattern: debugger
+    message: "Remove debugger statements before committing."
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  - id: openkit.quality.no-todo-fixme
+    patterns:
+      - pattern-regex: "//\\s*(TODO|FIXME|HACK|XXX)\\b"
+    message: "Unresolved TODO/FIXME/HACK/XXX comment detected. Resolve or track explicitly."
+    languages: [javascript, typescript]
+    severity: INFO
+
+  - id: openkit.quality.no-empty-catch
+    patterns:
+      - pattern: |
+          try { ... } catch ($ERR) { }
+    message: "Empty catch block silently swallows errors. Log, rethrow, or document why this is safe."
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: openkit.quality.no-var-declaration
+    patterns:
+      - pattern: var $X = ...;
+    message: "Prefer const or let over var."
+    languages: [javascript, typescript]
+    severity: WARNING
+
+  - id: openkit.quality.no-eval
+    patterns:
+      - pattern: eval(...)
+    message: "Avoid eval(). It creates security and maintainability risks."
+    languages: [javascript, typescript]
+    severity: ERROR

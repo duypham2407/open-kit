@@ -52,6 +52,12 @@ function validateNumberMap(value, label, errors) {
   }
 }
 
+function validatePositiveIntegerIfPresent(value, label, errors) {
+  if (value !== undefined && (!Number.isInteger(value) || value <= 0)) {
+    errors.push(`${label} must be a positive integer when provided.`);
+  }
+}
+
 function validatePromptField(value, label, errors) {
   if (value === undefined) {
     return;
@@ -191,6 +197,23 @@ function validateAgentConfig(agentConfig, label, errors) {
   validatePromptField(agentConfig.prompt, `${label}.prompt`, errors);
   validatePromptField(agentConfig.prompt_append, `${label}.prompt_append`, errors);
   validateFallbackModels(agentConfig.fallback_models, `${label}.fallback_models`, errors);
+  if (agentConfig.profiles !== undefined) {
+    if (!Array.isArray(agentConfig.profiles) || agentConfig.profiles.length === 0 || agentConfig.profiles.length > 2) {
+      errors.push(`${label}.profiles must be an array with 1 or 2 entries when provided.`);
+    } else {
+      for (const [index, profile] of agentConfig.profiles.entries()) {
+        validateAgentConfig(profile, `${label}.profiles.${index}`, errors);
+      }
+    }
+  }
+  if (agentConfig.auto_fallback !== undefined) {
+    if (!isPlainObject(agentConfig.auto_fallback)) {
+      errors.push(`${label}.auto_fallback must be an object when provided.`);
+    } else {
+      validateBooleanIfPresent(agentConfig.auto_fallback.enabled, `${label}.auto_fallback.enabled`, errors);
+      validatePositiveIntegerIfPresent(agentConfig.auto_fallback.after_failures, `${label}.auto_fallback.after_failures`, errors);
+    }
+  }
   validateToolPermissionMap(agentConfig.tools, `${label}.tools`, errors);
   validatePermissionMap(agentConfig.permission, `${label}.permission`, errors);
 }
@@ -272,6 +295,7 @@ export function validateRuntimeConfig(config) {
   validateObjectIfPresent(config.disabled, 'disabled', errors);
   validateObjectIfPresent(config.agents, 'agents', errors);
   validateObjectIfPresent(config.categories, 'categories', errors);
+  validateObjectIfPresent(config.modelExecution, 'modelExecution', errors);
   validateObjectIfPresent(config.hooks, 'hooks', errors);
   validateObjectIfPresent(config.tools, 'tools', errors);
   validateObjectIfPresent(config.skills, 'skills', errors);
@@ -310,6 +334,33 @@ export function validateRuntimeConfig(config) {
         }
 
         validateBooleanIfPresent(value, `runtime.featureFlags.${key}`, errors);
+      }
+    }
+  }
+
+  if (isPlainObject(config.modelExecution)) {
+    if (config.modelExecution.autoFallback !== undefined) {
+      if (!isPlainObject(config.modelExecution.autoFallback)) {
+        errors.push('modelExecution.autoFallback must be an object when provided.');
+      } else {
+        validateBooleanIfPresent(config.modelExecution.autoFallback.enabled, 'modelExecution.autoFallback.enabled', errors);
+        validatePositiveIntegerIfPresent(
+          config.modelExecution.autoFallback.afterFailures,
+          'modelExecution.autoFallback.afterFailures',
+          errors
+        );
+      }
+    }
+
+    if (config.modelExecution.quickSwitchProfiles !== undefined) {
+      if (!isPlainObject(config.modelExecution.quickSwitchProfiles)) {
+        errors.push('modelExecution.quickSwitchProfiles must be an object when provided.');
+      } else {
+        validateBooleanIfPresent(
+          config.modelExecution.quickSwitchProfiles.enabled,
+          'modelExecution.quickSwitchProfiles.enabled',
+          errors
+        );
       }
     }
   }

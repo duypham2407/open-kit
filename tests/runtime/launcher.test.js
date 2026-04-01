@@ -275,6 +275,18 @@ test('launchGlobalOpenKit injects saved per-agent model overrides into inline co
       'qa-agent': {
         model: 'openai/gpt-5',
         variant: 'high',
+        fallback_models: [
+          'openai/gpt-5-mini',
+          { model: 'anthropic/claude-sonnet-4-5', variant: 'high' },
+        ],
+        auto_fallback: {
+          enabled: true,
+          after_failures: 3,
+        },
+        profiles: [
+          { model: 'openai/gpt-5', variant: 'high' },
+          { model: 'azure/gpt-5', variant: 'high' },
+        ],
       },
     },
   });
@@ -302,6 +314,18 @@ test('launchGlobalOpenKit injects saved per-agent model overrides into inline co
   assert.equal(inlineConfig.customSetting, true);
   assert.equal(inlineConfig.agent['qa-agent'].model, 'openai/gpt-5');
   assert.equal(inlineConfig.agent['qa-agent'].variant, 'high');
+  assert.deepEqual(inlineConfig.agent['qa-agent'].fallback_models, [
+    'openai/gpt-5-mini',
+    { model: 'anthropic/claude-sonnet-4-5', variant: 'high' },
+  ]);
+  assert.deepEqual(inlineConfig.agent['qa-agent'].auto_fallback, {
+    enabled: true,
+    after_failures: 3,
+  });
+  assert.deepEqual(inlineConfig.agent['qa-agent'].profiles, [
+    { model: 'openai/gpt-5', variant: 'high' },
+    { model: 'azure/gpt-5', variant: 'high' },
+  ]);
 });
 
 test('launchGlobalOpenKit records runtime sessions in the managed workspace root', () => {

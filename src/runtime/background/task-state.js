@@ -9,5 +9,6 @@ export function createBackgroundRun({ id, title, payload, createdAt = new Date()
     createdAt,
     updatedAt: createdAt,
     output: null,
+    actionTracking: null,
   };
 }
