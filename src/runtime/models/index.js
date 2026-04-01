@@ -26,7 +26,9 @@ export function createModelRuntime({ categories, specialists, config }) {
   const resolvedModels = resolutions.map((entry) => entry.model);
   const fallbackChains = resolutions.map((entry) => resolveModelFallback([entry.model, ...(entry.fallbackModels ?? [])]));
   const executionState = resolutions.map((entry) => {
-    const failureCount = Number.isInteger(entry.failureCount) ? entry.failureCount : 0;
+    const failureCount = Number.isInteger(entry.actionState?.consecutiveFailures)
+      ? entry.actionState.consecutiveFailures
+      : 0;
     return {
       subjectId: entry.trace.subjectId,
       subjectType: entry.trace.subjectType,

@@ -48,14 +48,15 @@ export function createWorkItemBridge({ projectRoot, workflowKernel = null, actio
         const task = workflowKernel.listTasks(workItemId, customStatePath)?.tasks?.find((entry) => entry.task_id === taskId) ?? null;
 
         if (task?.status === 'in_progress') {
-          workflowKernel.setTaskStatus({
+          const devDoneResult = workflowKernel.setTaskStatus({
             workItemId,
             taskId,
             status: 'dev_done',
             customStatePath,
           });
 
-          if (task.qa_owner) {
+          const updatedTask = devDoneResult?.board?.tasks?.find((entry) => entry.task_id === taskId) ?? null;
+          if (updatedTask?.status === 'dev_done' && updatedTask.qa_owner) {
             workflowKernel.setTaskStatus({
               workItemId,
               taskId,

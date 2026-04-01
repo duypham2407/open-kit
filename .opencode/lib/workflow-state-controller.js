@@ -96,6 +96,26 @@ const {
   getVerificationReadiness,
 } = require("./runtime-guidance")
 const { getRuntimeContext } = require("./runtime-summary")
+const {
+  applySequentialConstraintsToTasks: applySequentialConstraintsToTasksBase,
+  getSequentialConstraintChains: getSequentialConstraintChainsBase,
+} = require("./sequential-constraints")
+
+function getSequentialConstraintChains(parallelization) {
+  try {
+    return getSequentialConstraintChainsBase(parallelization)
+  } catch (error) {
+    fail(error.message)
+  }
+}
+
+function applySequentialConstraintsToTasks(tasks, parallelization) {
+  try {
+    return applySequentialConstraintsToTasksBase(tasks, parallelization)
+  } catch (error) {
+    fail(error.message)
+  }
+}
 
 function fail(message) {
   const error = new Error(message)
@@ -918,56 +938,6 @@ function validateSafeParallelZoneCoverage(activeTasks, parallelization) {
       )
     }
   }
-}
-
-function parseSequentialConstraintChain(constraint) {
-  ensureString(constraint, "parallelization.sequential_constraints[]")
-
-  const taskIds = constraint
-    .split("->")
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-
-  if (taskIds.length < 2) {
-    fail(
-      `parallelization.sequential_constraints entry '${constraint}' must describe an ordered task chain like 'TASK-A -> TASK-B'`,
-    )
-  }
-
-  return taskIds
-}
-
-function getSequentialConstraintChains(parallelization) {
-  const sequentialConstraints = Array.isArray(parallelization?.sequential_constraints)
-    ? parallelization.sequential_constraints
-    : []
-
-  return sequentialConstraints.map(parseSequentialConstraintChain)
-}
-
-function applySequentialConstraintsToTasks(tasks, parallelization) {
-  const normalizedTasks = JSON.parse(JSON.stringify(Array.isArray(tasks) ? tasks : []))
-  const taskIndex = new Map(normalizedTasks.map((task) => [task.task_id, task]))
-
-  for (const chain of getSequentialConstraintChains(parallelization)) {
-    for (const taskId of chain) {
-      if (!taskIndex.has(taskId)) {
-        fail(`parallelization.sequential_constraints references unknown task '${taskId}'`)
-      }
-    }
-
-    for (let index = 1; index < chain.length; index += 1) {
-      const previousTaskId = chain[index - 1]
-      const task = taskIndex.get(chain[index])
-      task.depends_on = [...new Set([...(task.depends_on ?? []), previousTaskId])]
-      task.blocked_by = [...new Set([...(task.blocked_by ?? []), previousTaskId])]
-      task.sequential_constraint_dependencies = [
-        ...new Set([...(task.sequential_constraint_dependencies ?? []), previousTaskId]),
-      ]
-    }
-  }
-
-  return normalizedTasks
 }
 
 function ensureString(value, label) {

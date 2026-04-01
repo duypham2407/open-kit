@@ -3,7 +3,7 @@
   "registryVersion": 1,
   "kit": {
     "name": "OpenKit AI Software Factory",
-    "version": "0.3.12",
+    "version": "0.3.16",
     "description": "Local component metadata for the checked-in OpenKit repository and the global-kit compatibility surface.",
     "repositoryRoot": ".",
     "productSurface": {
@@ -55,7 +55,7 @@
         "path": "agents/master-orchestrator.md",
         "audience": "runtime",
         "status": "active",
-        "modes": ["migration", "full"]
+        "modes": ["quick", "migration", "full"]
       },
       {
         "id": "agent.product-lead-agent",
@@ -216,6 +216,62 @@
         "audience": "runtime",
         "typicalRoles": ["Product Lead"],
         "modes": ["full"]
+      },
+      {
+        "id": "skill.browser-automation",
+        "name": "browser-automation",
+        "path": "skills/browser-automation/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Fullstack Agent", "QA Agent"],
+        "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "skill.codebase-exploration",
+        "name": "codebase-exploration",
+        "path": "skills/codebase-exploration/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Master Orchestrator", "Solution Lead", "Fullstack Agent"],
+        "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "skill.deep-research",
+        "name": "deep-research",
+        "path": "skills/deep-research/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Product Lead", "Solution Lead"],
+        "modes": ["migration", "full"]
+      },
+      {
+        "id": "skill.dev-browser",
+        "name": "dev-browser",
+        "path": "skills/dev-browser/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Fullstack Agent", "QA Agent"],
+        "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "skill.frontend-ui-ux",
+        "name": "frontend-ui-ux",
+        "path": "skills/frontend-ui-ux/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Solution Lead", "Fullstack Agent", "Code Reviewer"],
+        "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "skill.git-master",
+        "name": "git-master",
+        "path": "skills/git-master/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Master Orchestrator", "Fullstack Agent"],
+        "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "skill.refactoring",
+        "name": "refactoring",
+        "path": "skills/refactoring/SKILL.md",
+        "audience": "runtime",
+        "typicalRoles": ["Solution Lead", "Fullstack Agent", "Code Reviewer"],
+        "modes": ["quick", "migration", "full"]
       }
     ],
     "commands": [
@@ -295,6 +351,46 @@
         "id": "command.switch",
         "name": "/switch",
         "path": "commands/switch.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "command.handoff",
+        "name": "/handoff",
+        "path": "commands/handoff.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "command.init-deep",
+        "name": "/init-deep",
+        "path": "commands/init-deep.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "command.refactor",
+        "name": "/refactor",
+        "path": "commands/refactor.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "command.start-work",
+        "name": "/start-work",
+        "path": "commands/start-work.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
+      },
+      {
+        "id": "command.stop-continuation",
+        "name": "/stop-continuation",
+        "path": "commands/stop-continuation.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": ["quick", "migration", "full"]

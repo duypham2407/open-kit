@@ -100,52 +100,60 @@ function validateTaskShape(task) {
     fail("Task must be an object")
   }
 
-  if (!("concurrency_class" in task) || task.concurrency_class === undefined || task.concurrency_class === null) {
-    task.concurrency_class = "parallel_safe"
+  const normalizedTask = {
+    ...task,
+    concurrency_class:
+      "concurrency_class" in task && task.concurrency_class !== undefined && task.concurrency_class !== null
+        ? task.concurrency_class
+        : "parallel_safe",
   }
 
   for (const [field, kind] of Object.entries(REQUIRED_TASK_FIELDS)) {
-    if (!(field in task) || task[field] === undefined) {
+    if (!(field in normalizedTask) || normalizedTask[field] === undefined) {
       fail(`Task is missing required field '${field}'`)
     }
 
-    if (kind === "string" && !isNonEmptyString(task[field])) {
+    if (kind === "string" && !isNonEmptyString(normalizedTask[field])) {
       fail(`Task field '${field}' must be a non-empty string`)
     }
 
-    if (kind === "array" && !Array.isArray(task[field])) {
+    if (kind === "array" && !Array.isArray(normalizedTask[field])) {
       fail(`Task field '${field}' must be an array`)
     }
 
-    if (kind === "array" && Array.isArray(task[field])) {
-      validateStringArrayEntries(field, task[field])
+    if (kind === "array" && Array.isArray(normalizedTask[field])) {
+      validateStringArrayEntries(field, normalizedTask[field])
     }
 
     if (
       kind === "nullable_string" &&
-      task[field] !== null &&
-      task[field] !== undefined &&
-      !isNonEmptyString(task[field])
+      normalizedTask[field] !== null &&
+      normalizedTask[field] !== undefined &&
+      !isNonEmptyString(normalizedTask[field])
     ) {
       fail(`Task field '${field}' must be null or a non-empty string`)
     }
   }
 
-  if (task.primary_owner !== null && task.primary_owner !== undefined && !isNonEmptyString(task.primary_owner)) {
+  if (
+    normalizedTask.primary_owner !== null &&
+    normalizedTask.primary_owner !== undefined &&
+    !isNonEmptyString(normalizedTask.primary_owner)
+  ) {
     fail("Task field 'primary_owner' must be null or a non-empty string")
   }
 
-  if (task.qa_owner !== null && task.qa_owner !== undefined && !isNonEmptyString(task.qa_owner)) {
+  if (normalizedTask.qa_owner !== null && normalizedTask.qa_owner !== undefined && !isNonEmptyString(normalizedTask.qa_owner)) {
     fail("Task field 'qa_owner' must be null or a non-empty string")
   }
 
-  validateTaskStatus(task.status)
+  validateTaskStatus(normalizedTask.status)
 
-  if (!CONCURRENCY_CLASSES.has(task.concurrency_class)) {
+  if (!CONCURRENCY_CLASSES.has(normalizedTask.concurrency_class)) {
     fail(`Task field 'concurrency_class' must be one of: ${[...CONCURRENCY_CLASSES].join(", ")}`)
   }
 
-  return task
+  return normalizedTask
 }
 
 function hasBlockedDependencies(task) {

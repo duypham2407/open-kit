@@ -71,7 +71,7 @@ Fullstack Agent does not participate in quick mode. Quick mode is owned entirely
 - Prefer builds, tests, type checks, smoke tests, codemods, and manual regression evidence over forcing TDD-first work by default
 - Add focused tests only where the migration exposes a well-understood behavior gap and the repository has working test tooling for that slice
 
-### Stop and reroute conditions
+### Full mode stop and reroute conditions
 
 - the migration solution package no longer matches the discovered baseline or target stack reality
 - preserving the approved behavior now requires a larger architectural move than the solution package allowed

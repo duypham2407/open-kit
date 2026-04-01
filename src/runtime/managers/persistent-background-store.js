@@ -14,7 +14,11 @@ function readJsonIfExists(filePath) {
   if (!fs.existsSync(filePath)) {
     return null;
   }
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  try {
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return null;
+  }
 }
 
 export class PersistentBackgroundStore {

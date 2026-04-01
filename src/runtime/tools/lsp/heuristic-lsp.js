@@ -183,6 +183,7 @@ export function previewRename(projectRoot, { symbol, newName } = {}) {
   return {
     ...preparation,
     replacements: [...replacements.values()],
-    pattern,
+    patternSource: pattern.source,
+    patternFlags: pattern.flags,
   };
 }

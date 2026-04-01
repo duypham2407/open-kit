@@ -1,16 +1,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
 
 import { Language, Parser } from 'web-tree-sitter';
 
 import { isInsideProjectRoot, resolveProjectPath } from '../tools/shared/project-file-utils.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..', '..', '..');
-const parserWasmPath = path.join(repoRoot, 'node_modules', 'web-tree-sitter', 'web-tree-sitter.wasm');
-const javascriptWasmPath = path.join(repoRoot, 'node_modules', 'tree-sitter-javascript', 'tree-sitter-javascript.wasm');
+const require = createRequire(import.meta.url);
+const parserWasmPath = require.resolve('web-tree-sitter/web-tree-sitter.wasm');
+const javascriptWasmPath = require.resolve('tree-sitter-javascript/tree-sitter-javascript.wasm');
 
 const SUPPORTED_EXTENSIONS = new Map([
   ['.js', 'javascript'],
@@ -20,6 +19,7 @@ const SUPPORTED_EXTENSIONS = new Map([
 ]);
 
 let parserRuntimeReady = false;
+let parserRuntimePromise = null;
 let javascriptLanguage = null;
 
 function resolveLanguage(filePath) {
@@ -31,17 +31,26 @@ async function ensureParserRuntime() {
     return;
   }
 
-  await Parser.init({
-    locateFile(scriptName) {
-      if (scriptName === 'web-tree-sitter.wasm') {
-        return pathToFileURL(parserWasmPath).href;
-      }
-      return scriptName;
-    },
-  });
+  if (!parserRuntimePromise) {
+    parserRuntimePromise = (async () => {
+      await Parser.init({
+        locateFile(scriptName) {
+          if (scriptName === 'web-tree-sitter.wasm') {
+            return pathToFileURL(parserWasmPath).href;
+          }
+          return scriptName;
+        },
+      });
 
-  javascriptLanguage = await Language.load(javascriptWasmPath);
-  parserRuntimeReady = true;
+      javascriptLanguage = await Language.load(javascriptWasmPath);
+      parserRuntimeReady = true;
+    })().catch((error) => {
+      parserRuntimePromise = null;
+      throw error;
+    });
+  }
+
+  await parserRuntimePromise;
 }
 
 function textPreview(source, node, limit = 240) {

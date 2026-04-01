@@ -22,7 +22,7 @@ export function resolveAutoFallbackState({
     ...fallbackEntries.map((entry) => (typeof entry === 'string' ? entry : entry?.model ?? null)),
   ]);
   const enabled = autoFallback?.enabled !== false;
-  const threshold = autoFallback?.afterFailures ?? 3;
+  const threshold = autoFallback?.after_failures ?? autoFallback?.afterFailures ?? 3;
   const shouldUseFallback = enabled && fallbackChain.retryable && failureCount >= threshold;
   const activeEntry = shouldUseFallback ? fallbackEntries[0] ?? null : null;
 

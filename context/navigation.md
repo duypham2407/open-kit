@@ -27,9 +27,15 @@ context/
 ├── navigation.md          ← You are here
 ├── core/
 │   ├── approval-gates.md  ← Approval recording rules
+│   ├── active-contract.json ← Machine-readable active roles/stages/gates
 │   ├── code-quality.md    ← Coding standards (all agents)
+│   ├── code-review-output-schema.json ← Code review output contract
 │   ├── issue-routing.md   ← QA classification and routing
+│   ├── lane-selection.md   ← Lane routing tie-breakers
+│   ├── prompt-contracts.md ← Shared prompt/runtime path contract
 │   ├── project-config.md  ← Current command reality
+│   ├── qa-output-schema.json ← QA output contract
+│   ├── runtime-surfaces.md ← Product vs compatibility runtime surfaces
 │   ├── session-resume.md  ← New-session resume protocol
 │   ├── workflow-state-schema.md ← Canonical workflow-state fields and enums
 │   └── workflow.md        ← Hard-split Quick Task and Full Delivery contract

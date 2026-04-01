@@ -219,7 +219,7 @@ function summarizeChecks(checks) {
       }
       return counts
     },
-    { ok: 0, warn: 0, error: 0 },
+    { ok: 0, error: 0 },
   )
 
   return { checks, summary }

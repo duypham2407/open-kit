@@ -20,7 +20,7 @@ function getOpenCodeHome(env = process.env) {
 function detectProjectRoot(startDir) {
   let current = path.resolve(startDir || process.cwd())
 
-  while (true) {
+  for (;;) {
     if (fs.existsSync(path.join(current, ".git")) || fs.existsSync(path.join(current, "package.json"))) {
       return current
     }
@@ -38,13 +38,13 @@ function createWorkspaceId(projectRoot) {
   return crypto.createHash("sha256").update(seed).digest("hex").slice(0, 16)
 }
 
-function resolveProjectRoot(customStatePath) {
-  if (process.env.OPENKIT_PROJECT_ROOT) {
-    return path.resolve(process.env.OPENKIT_PROJECT_ROOT)
+function resolveProjectRoot(customStatePath, env = process.env) {
+  if (env.OPENKIT_PROJECT_ROOT) {
+    return path.resolve(env.OPENKIT_PROJECT_ROOT)
   }
 
   if (customStatePath) {
-    if (process.env.OPENKIT_GLOBAL_MODE === "1" || process.env.OPENKIT_KIT_ROOT || process.env.OPENCODE_HOME) {
+    if (env.OPENKIT_GLOBAL_MODE === "1" || env.OPENKIT_KIT_ROOT || env.OPENCODE_HOME) {
       return detectProjectRoot(process.cwd())
     }
 
@@ -54,34 +54,34 @@ function resolveProjectRoot(customStatePath) {
   return detectProjectRoot(process.cwd())
 }
 
-function resolveKitRoot(projectRoot) {
-  if (process.env.OPENKIT_KIT_ROOT) {
-    return path.resolve(process.env.OPENKIT_KIT_ROOT)
+function resolveKitRoot(projectRoot, env = process.env) {
+  if (env.OPENKIT_KIT_ROOT) {
+    return path.resolve(env.OPENKIT_KIT_ROOT)
   }
 
   return projectRoot
 }
 
-function resolveStatePath(customStatePath) {
+function resolveStatePath(customStatePath, env = process.env) {
   if (customStatePath) {
     return path.resolve(customStatePath)
   }
 
-  if (process.env.OPENKIT_WORKFLOW_STATE) {
-    return path.resolve(process.env.OPENKIT_WORKFLOW_STATE)
+  if (env.OPENKIT_WORKFLOW_STATE) {
+    return path.resolve(env.OPENKIT_WORKFLOW_STATE)
   }
 
-  if (process.env.OPENKIT_GLOBAL_MODE === "1" || process.env.OPENKIT_KIT_ROOT || process.env.OPENCODE_HOME) {
-    const projectRoot = resolveProjectRoot(customStatePath)
+  if (env.OPENKIT_GLOBAL_MODE === "1" || env.OPENKIT_KIT_ROOT || env.OPENCODE_HOME) {
+    const projectRoot = resolveProjectRoot(customStatePath, env)
     const workspaceId = createWorkspaceId(projectRoot)
-    return path.join(getOpenCodeHome(), "workspaces", workspaceId, "openkit", ".opencode", "workflow-state.json")
+    return path.join(getOpenCodeHome(env), "workspaces", workspaceId, "openkit", ".opencode", "workflow-state.json")
   }
 
   return path.resolve(process.cwd(), ".opencode", "workflow-state.json")
 }
 
-function resolveRuntimeRoot(customStatePath) {
-  return path.dirname(path.dirname(resolveStatePath(customStatePath)))
+function resolveRuntimeRoot(customStatePath, env = process.env) {
+  return path.dirname(path.dirname(resolveStatePath(customStatePath, env)))
 }
 
 module.exports = {

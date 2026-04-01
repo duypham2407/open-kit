@@ -128,42 +128,42 @@ Allowed values:
 
 | Stage | Default Owner |
 | --- | --- |
-| `quick_intake` | `QuickAgent` |
-| `quick_brainstorm` | `QuickAgent` |
-| `quick_plan` | `QuickAgent` |
-| `quick_implement` | `QuickAgent` |
-| `quick_test` | `QuickAgent` |
-| `quick_done` | `QuickAgent` |
-| `migration_intake` | `MasterOrchestrator` |
-| `migration_baseline` | `SolutionLead` |
-| `migration_strategy` | `SolutionLead` |
-| `migration_upgrade` | `FullstackAgent` |
-| `migration_code_review` | `CodeReviewer` |
-| `migration_verify` | `QAAgent` |
-| `migration_done` | `MasterOrchestrator` |
-| `full_intake` | `MasterOrchestrator` |
-| `full_product` | `ProductLead` |
-| `full_solution` | `SolutionLead` |
-| `full_implementation` | `FullstackAgent` |
-| `full_code_review` | `CodeReviewer` |
-| `full_qa` | `QAAgent` |
-| `full_done` | `MasterOrchestrator` |
+| `quick_intake` | `Quick Agent` |
+| `quick_brainstorm` | `Quick Agent` |
+| `quick_plan` | `Quick Agent` |
+| `quick_implement` | `Quick Agent` |
+| `quick_test` | `Quick Agent` |
+| `quick_done` | `Quick Agent` |
+| `migration_intake` | `Master Orchestrator` |
+| `migration_baseline` | `Solution Lead` |
+| `migration_strategy` | `Solution Lead` |
+| `migration_upgrade` | `Fullstack Agent` |
+| `migration_code_review` | `Code Reviewer` |
+| `migration_verify` | `QA Agent` |
+| `migration_done` | `Master Orchestrator` |
+| `full_intake` | `Master Orchestrator` |
+| `full_product` | `Product Lead` |
+| `full_solution` | `Solution Lead` |
+| `full_implementation` | `Fullstack Agent` |
+| `full_code_review` | `Code Reviewer` |
+| `full_qa` | `QA Agent` |
+| `full_done` | `Master Orchestrator` |
 
 ## Approval Authority Map
 
 | Gate | Approval Authority |
 | --- | --- |
-| `quick_verified` | `QuickAgent` |
-| `baseline_to_strategy` | `MasterOrchestrator` |
-| `strategy_to_upgrade` | `FullstackAgent` |
-| `upgrade_to_code_review` | `CodeReviewer` |
-| `code_review_to_verify` | `QAAgent` |
-| `migration_verified` | `QAAgent` |
-| `product_to_solution` | `SolutionLead` |
-| `solution_to_fullstack` | `FullstackAgent` |
-| `fullstack_to_code_review` | `CodeReviewer` |
-| `code_review_to_qa` | `QAAgent` |
-| `qa_to_done` | `MasterOrchestrator` |
+| `quick_verified` | `Quick Agent` |
+| `baseline_to_strategy` | `Master Orchestrator` |
+| `strategy_to_upgrade` | `Fullstack Agent` |
+| `upgrade_to_code_review` | `Code Reviewer` |
+| `code_review_to_verify` | `QA Agent` |
+| `migration_verified` | `QA Agent` |
+| `product_to_solution` | `Solution Lead` |
+| `solution_to_fullstack` | `Fullstack Agent` |
+| `fullstack_to_code_review` | `Code Reviewer` |
+| `code_review_to_qa` | `QA Agent` |
+| `qa_to_done` | `Master Orchestrator` |
 
 ## Artifacts Shape
 

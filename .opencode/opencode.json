@@ -1,5 +1,10 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "kit": {
+    "name": "OpenKit AI Software Factory",
+    "version": "0.3.16",
+    "entryAgent": "MasterOrchestrator"
+  },
   "permission": {
     "npm": "allow",
     "task": "allow",

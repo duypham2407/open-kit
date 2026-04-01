@@ -16,6 +16,10 @@ for (const asset of OPENKIT_ASSET_MANIFEST.bundle.assets) {
   const sourcePath = path.join(projectRoot, asset.sourcePath);
   const bundledPath = path.join(projectRoot, asset.bundledPath);
 
+  if (!fs.existsSync(sourcePath)) {
+    throw new Error(`Install bundle source file is missing: ${asset.sourcePath}`);
+  }
+
   fs.mkdirSync(path.dirname(bundledPath), { recursive: true });
   fs.copyFileSync(sourcePath, bundledPath);
 }

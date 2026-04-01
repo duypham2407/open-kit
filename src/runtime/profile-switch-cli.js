@@ -5,12 +5,7 @@ import path from 'node:path';
 
 import { getWorkspacePaths } from '../global/paths.js';
 import { AgentProfileSwitchManager } from './managers/agent-profile-switch-manager.js';
-
-function stripJsonComments(content) {
-  return content
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '');
-}
+import { parseJsonc } from './tools/shared/jsonc-utils.js';
 
 function readProfileCount(projectRoot, _env, agentId) {
   try {
@@ -19,7 +14,7 @@ function readProfileCount(projectRoot, _env, agentId) {
       return 0;
     }
 
-    const parsed = JSON.parse(stripJsonComments(fs.readFileSync(runtimeConfigPath, 'utf8')));
+    const parsed = parseJsonc(fs.readFileSync(runtimeConfigPath, 'utf8'));
     const profiles = parsed?.agents?.[agentId]?.profiles;
     return Array.isArray(profiles) ? profiles.length : 0;
   } catch {
