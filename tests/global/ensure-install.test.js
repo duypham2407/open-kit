@@ -26,6 +26,24 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }
 
+const noopTooling = () => ({ action: 'skipped', installed: false });
+
+function fakeToolingStub(toolName) {
+  return ({ env }) => {
+    const globalPaths = {
+      toolingRoot: path.join(env.OPENCODE_HOME, 'openkit', 'tooling'),
+      toolingBinRoot: path.join(env.OPENCODE_HOME, 'openkit', 'tooling', 'node_modules', '.bin'),
+    };
+    writeExecutable(path.join(globalPaths.toolingBinRoot, toolName), '#!/bin/sh\nexit 0\n');
+    return {
+      action: 'installed',
+      installed: true,
+      toolingRoot: globalPaths.toolingRoot,
+      toolingBinRoot: globalPaths.toolingBinRoot,
+    };
+  };
+}
+
 test('ensureGlobalInstall returns none when install is healthy', () => {
   const tempHome = makeTempDir();
   const projectRoot = makeTempDir();
@@ -36,10 +54,11 @@ test('ensureGlobalInstall returns none when install is healthy', () => {
       ...process.env,
       OPENCODE_HOME: tempHome,
     },
+    ensureAstGrep: fakeToolingStub('ast-grep'),
+    ensureSemgrep: fakeToolingStub('semgrep'),
   });
 
   writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
-  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'semgrep'), '#!/bin/sh\nexit 0\n');
 
   const result = ensureGlobalInstall({
     projectRoot,
@@ -62,7 +81,6 @@ test('ensureGlobalInstall materializes the global install when it is missing', (
   const fakeBinDir = path.join(tempHome, 'bin');
 
   writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
-  writeExecutable(path.join(fakeBinDir, 'semgrep'), '#!/bin/sh\nexit 0\n');
 
   const result = ensureGlobalInstall({
     projectRoot,
@@ -71,12 +89,60 @@ test('ensureGlobalInstall materializes the global install when it is missing', (
       OPENCODE_HOME: tempHome,
       PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
     },
+    ensureAstGrep: fakeToolingStub('ast-grep'),
+    ensureSemgrep: fakeToolingStub('semgrep'),
   });
 
   assert.equal(result.action, 'installed');
   assert.equal(result.installed, true);
   assert.equal(result.doctor.status, 'healthy');
   assert.equal(fs.existsSync(path.join(tempHome, 'kits', 'openkit', '.opencode', 'workflow-state.js')), true);
+});
+
+test('ensureGlobalInstall repairs missing tooling for existing installs', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+    ensureAstGrep: noopTooling,
+    ensureSemgrep: noopTooling,
+  });
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(fakeBinDir, 'semgrep'), '#!/bin/sh\nexit 0\n');
+  fs.rmSync(path.join(tempHome, 'openkit', 'tooling'), { recursive: true, force: true });
+
+  const repairedAstGrep = {
+    action: 'installed',
+    installed: true,
+    toolingRoot: path.join(tempHome, 'openkit', 'tooling'),
+    toolingBinRoot: path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin'),
+  };
+
+  const result = ensureGlobalInstall({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+    ensureAstGrep: () => {
+      writeExecutable(path.join(repairedAstGrep.toolingBinRoot, 'ast-grep'), '#!/bin/sh\nexit 0\n');
+      writeExecutable(path.join(repairedAstGrep.toolingBinRoot, 'sg'), '#!/bin/sh\nexit 0\n');
+      return repairedAstGrep;
+    },
+  });
+
+  assert.equal(result.action, 'repaired-tooling');
+  assert.equal(result.installed, false);
+  assert.equal(result.tooling?.astGrep?.installed, true);
+  assert.equal(result.tooling?.semgrep, null);
+  assert.equal(result.doctor.status, 'healthy');
 });
 
 test('ensureGlobalInstall installs ast-grep tooling into managed global state', () => {
@@ -109,6 +175,7 @@ test('ensureGlobalInstall installs ast-grep tooling into managed global state', 
       PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
     },
     ensureAstGrep: fakeEnsureAstGrepInstalled,
+    ensureSemgrep: noopTooling,
   });
 
   assert.equal(result.tooling.installed, true);
@@ -173,6 +240,8 @@ test('materializeGlobalInstall preserves existing agent model overrides during u
       ...process.env,
       OPENCODE_HOME: tempHome,
     },
+    ensureAstGrep: noopTooling,
+    ensureSemgrep: noopTooling,
   });
 
   const settings = readJson(settingsPath);
@@ -189,6 +258,8 @@ test('materializeGlobalInstall copies the entire src/global directory into the m
       ...process.env,
       OPENCODE_HOME: tempHome,
     },
+    ensureAstGrep: noopTooling,
+    ensureSemgrep: noopTooling,
   });
 
   const globalDir = path.join(tempHome, 'kits', 'openkit', 'src', 'global');
@@ -213,6 +284,7 @@ test('materializeGlobalInstall returns failed ast-grep tooling status instead of
       toolingBinRoot: path.join(env.OPENCODE_HOME, 'openkit', 'tooling', 'node_modules', '.bin'),
       reason: 'spawn error',
     }),
+    ensureSemgrep: noopTooling,
   });
 
   assert.equal(result.tooling.action, 'failed');
@@ -227,6 +299,8 @@ test('materializeGlobalInstall produces a kit where all runtime imports resolve 
       ...process.env,
       OPENCODE_HOME: tempHome,
     },
+    ensureAstGrep: noopTooling,
+    ensureSemgrep: noopTooling,
   });
 
   const kitRoot = path.join(tempHome, 'kits', 'openkit');

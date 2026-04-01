@@ -37,6 +37,16 @@ export const runCommand = {
       io.stdout.write(`Next action after launch: start with ${DEFAULT_ENTRY_COMMAND}.\n`);
     }
 
+    if (ensured.action === 'repaired-tooling') {
+      io.stdout.write('OpenKit detected missing runtime tooling and repaired it automatically.\n');
+      if (ensured.tooling?.astGrep?.installed) {
+        io.stdout.write(`Installed ast-grep tooling into ${ensured.tooling.astGrep.toolingRoot}\n`);
+      }
+      if (ensured.tooling?.semgrep?.installed) {
+        io.stdout.write(`Installed semgrep tooling into ${ensured.tooling.semgrep.toolingRoot}\n`);
+      }
+    }
+
     if (ensured.action === 'blocked' || (!ensured.doctor.canRunCleanly && ensured.doctor.status !== 'workspace-ready-with-issues')) {
       for (const issue of ensured.doctor.issues ?? []) {
         io.stderr.write(`${issue}\n`);
