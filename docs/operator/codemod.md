@@ -164,6 +164,7 @@ Same parameters as preview, plus:
 ## Safety guidance
 
 - **Preview first.** Always run `codemod-preview` before `codemod-apply`. Review the diffs.
+- **Project-scoped only.** Transform files and target files must stay inside the current project root. Codemod tools do not allow reads or writes outside the project.
 - **Inline transforms are eval.** The `inlineTransform` parameter compiles arbitrary code via `new Function()`. Only run transforms you trust. In agent workflows, treat inline transforms the same way you would treat generated code: review before applying.
 - **Version control.** Run codemods on a clean git working tree so you can `git diff` after apply and `git checkout` to revert.
 - **Scope narrowly.** Target specific files rather than globbing entire directories. Narrow scope reduces blast radius.

@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { isInsideProjectRoot, resolveProjectPath } from '../shared/project-file-utils.js';
+
 /**
  * Runs a jscodeshift transform against a source string and returns the transformed result
  * without writing anything to disk (preview-only).
@@ -106,7 +108,15 @@ export function createCodemodPreviewTool({ projectRoot }) {
           };
         }
       } else {
-        const resolvedPath = path.isAbsolute(transformPath) ? transformPath : path.resolve(projectRoot, transformPath);
+        const resolvedPath = resolveProjectPath(projectRoot, transformPath);
+        if (!resolvedPath || !isInsideProjectRoot(projectRoot, resolvedPath)) {
+          return {
+            status: 'invalid-path',
+            provider: 'jscodeshift',
+            message: 'Transform path must stay inside the project root.',
+            previews: [],
+          };
+        }
         try {
           transformFn = await loadTransform(resolvedPath);
         } catch (error) {
@@ -130,7 +140,12 @@ export function createCodemodPreviewTool({ projectRoot }) {
 
       const previews = [];
       for (const file of targetFiles) {
-        const resolvedFile = path.isAbsolute(file) ? file : path.resolve(projectRoot, file);
+        const resolvedFile = resolveProjectPath(projectRoot, file);
+        if (!resolvedFile || !isInsideProjectRoot(projectRoot, resolvedFile)) {
+          previews.push({ filePath: file, status: 'invalid-path', diff: null });
+          continue;
+        }
+
         if (!fs.existsSync(resolvedFile)) {
           previews.push({ filePath: file, status: 'file-not-found', diff: null });
           continue;

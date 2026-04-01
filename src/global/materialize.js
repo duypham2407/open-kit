@@ -25,6 +25,7 @@ const GLOBAL_KIT_ASSETS = [
   'README.md',
   'src/runtime',
   'src/global/paths.js',
+  'src/global/tooling.js',
 ];
 
 function removePathIfPresent(targetPath) {

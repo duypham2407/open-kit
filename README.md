@@ -282,7 +282,7 @@ Global install behavior: OpenKit now provisions `ast-grep` into its managed glob
 
 Current AST tooling scope: the runtime surfaces expose structural-search metadata and preview-first replacement semantics, but the checked-in AST tools still operate on JSON and JSONC documents today. They must report degraded or fallback status honestly when broader language-aware structural search is not yet active.
 
-Syntax parsing scope: OpenKit now exposes a Tree-sitter-backed syntax layer for JavaScript, TypeScript, JSON, and JSONC so agents can request file outlines, locate node types, and inspect nearest structure around a position without reading full files blindly.
+Syntax parsing scope: OpenKit now exposes a Tree-sitter-backed syntax layer for JavaScript-family files (`.js`, `.jsx`, `.cjs`, `.mjs`) so agents can request file outlines, locate node types, and inspect nearest structure around a position without reading full files blindly.
 
 Use them when you want different strengths per role, for example:
 

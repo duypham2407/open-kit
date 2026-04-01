@@ -180,3 +180,37 @@ test('materializeGlobalInstall preserves existing agent model overrides during u
   assert.equal(settings.agentModels['qa-agent'].variant, 'high');
   assert.equal(settings.agentModels['fullstack-agent'].model, 'anthropic/claude-sonnet-4-5');
 });
+
+test('materializeGlobalInstall copies src/global/tooling.js into the managed kit', () => {
+  const tempHome = makeTempDir();
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+
+  assert.equal(fs.existsSync(path.join(tempHome, 'kits', 'openkit', 'src', 'global', 'tooling.js')), true);
+});
+
+test('materializeGlobalInstall returns failed ast-grep tooling status instead of throwing on spawn error', () => {
+  const tempHome = makeTempDir();
+
+  const result = materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+    ensureAstGrep: ({ env }) => ({
+      action: 'failed',
+      installed: false,
+      toolingRoot: path.join(env.OPENCODE_HOME, 'openkit', 'tooling'),
+      toolingBinRoot: path.join(env.OPENCODE_HOME, 'openkit', 'tooling', 'node_modules', '.bin'),
+      reason: 'spawn error',
+    }),
+  });
+
+  assert.equal(result.tooling.action, 'failed');
+  assert.equal(result.tooling.installed, false);
+});

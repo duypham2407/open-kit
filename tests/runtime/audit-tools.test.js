@@ -298,6 +298,44 @@ test('rule-scan tool returns scan-failed for non-zero/non-one exit codes', () =>
   }
 });
 
+test('rule-scan returns invalid-path for targets outside project root', () => {
+  const projectRoot = makeTempDir();
+  const tempHome = makeTempDir();
+  const toolingBin = path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin');
+  writeExecutable(path.join(toolingBin, 'semgrep'), '#!/bin/sh\necho "{\"results\":[]}"\n');
+
+  const originalEnv = process.env;
+  process.env = { ...process.env, OPENCODE_HOME: tempHome, PATH: toolingBin };
+
+  try {
+    const tool = createRuleScanTool({ projectRoot });
+    const result = tool.execute({ path: '/tmp/outside-project.js' });
+    assert.equal(result.status, 'invalid-path');
+  } finally {
+    process.env = originalEnv;
+  }
+});
+
+test('rule-scan returns scan-failed when semgrep output is invalid json', () => {
+  const projectRoot = makeTempDir();
+  const tempHome = makeTempDir();
+  const toolingBin = path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin');
+
+  writeExecutable(path.join(toolingBin, 'semgrep'), '#!/bin/sh\necho not-json\n');
+
+  const originalEnv = process.env;
+  process.env = { ...process.env, OPENCODE_HOME: tempHome, PATH: toolingBin };
+
+  try {
+    const tool = createRuleScanTool({ projectRoot });
+    const result = tool.execute({ config: 'p/test' });
+    assert.equal(result.status, 'scan-failed');
+    assert.match(result.message, /parse semgrep output/i);
+  } finally {
+    process.env = originalEnv;
+  }
+});
+
 test('rule-scan tool treats exit code 1 (findings present) as ok', () => {
   const projectRoot = makeTempDir();
   const tempHome = makeTempDir();
@@ -394,6 +432,29 @@ test('security-scan tool allows config override', () => {
 
     assert.equal(result.status, 'ok');
     assert.equal(result.config, '/custom/rules.yml');
+  } finally {
+    process.env = originalEnv;
+  }
+});
+
+test('security-scan preserves string target input', () => {
+  const projectRoot = makeTempDir();
+  const tempHome = makeTempDir();
+  const toolingBin = path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin');
+  const targetPath = path.join(projectRoot, 'src', 'index.js');
+  writeText(targetPath, 'console.log("hi");\n');
+  writeText(path.join(projectRoot, 'src', 'dummy.js'), 'export const x = 1;\n');
+
+  writeExecutable(path.join(toolingBin, 'semgrep'), "#!/bin/sh\nnode -e \"process.stdout.write(JSON.stringify({results:[]}))\"\n");
+
+  const originalEnv = process.env;
+  process.env = { ...process.env, OPENCODE_HOME: tempHome, PATH: toolingBin };
+
+  try {
+    const tool = createSecurityScanTool({ projectRoot });
+    const result = tool.execute('src/index.js');
+    assert.equal(result.targetPath, path.join(projectRoot, 'src', 'index.js'));
+    assert.equal(['ok', 'scan-failed'].includes(result.status), true);
   } finally {
     process.env = originalEnv;
   }

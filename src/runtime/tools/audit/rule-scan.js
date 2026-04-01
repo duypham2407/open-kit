@@ -2,7 +2,8 @@ import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { isSemgrepAvailable } from '../../../global/tooling.js';
+import { getToolingEnv, isSemgrepAvailable } from '../../../global/tooling.js';
+import { isInsideProjectRoot, resolveProjectPath } from '../shared/project-file-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKS_DIR = path.resolve(__dirname, '../../../../assets/semgrep/packs');
@@ -36,7 +37,8 @@ export function createRuleScanTool({ projectRoot }) {
     stage: 'foundation',
     status: 'active',
     execute(input = {}) {
-      if (!isSemgrepAvailable({ env: process.env })) {
+      const toolingEnv = getToolingEnv(process.env);
+      if (!isSemgrepAvailable({ env: toolingEnv })) {
         return {
           status: 'dependency-missing',
           provider: 'semgrep',
@@ -44,20 +46,55 @@ export function createRuleScanTool({ projectRoot }) {
         };
       }
 
-      const targetPath = typeof input === 'string' ? input : input.path ?? projectRoot;
+      const requestedPath = typeof input === 'string' ? input : input.path ?? projectRoot;
+      const targetPath = requestedPath === projectRoot ? projectRoot : resolveProjectPath(projectRoot, requestedPath);
+      if (!targetPath || !isInsideProjectRoot(projectRoot, targetPath)) {
+        return {
+          status: 'invalid-path',
+          provider: 'semgrep',
+          findings: [],
+          findingCount: 0,
+        };
+      }
+
       const rawConfig = typeof input === 'object' && input !== null ? input.config ?? 'auto' : 'auto';
       const config = resolveSemgrepConfig(rawConfig);
       const result = spawnSync('semgrep', ['scan', '--json', '--config', config, targetPath], {
         cwd: projectRoot,
         encoding: 'utf8',
-        env: process.env,
+        env: toolingEnv,
       });
 
       if (result.error) {
-        throw result.error;
+        return {
+          status: 'scan-failed',
+          provider: 'semgrep',
+          targetPath,
+          config,
+          findings: [],
+          findingCount: 0,
+          exitCode: result.status ?? 1,
+          stderr: result.error.message ?? result.stderr ?? '',
+        };
       }
 
-      const parsed = result.stdout ? JSON.parse(result.stdout) : { results: [] };
+      let parsed = { results: [] };
+      try {
+        parsed = result.stdout ? JSON.parse(result.stdout) : { results: [] };
+      } catch (error) {
+        return {
+          status: 'scan-failed',
+          provider: 'semgrep',
+          targetPath,
+          config,
+          findings: [],
+          findingCount: 0,
+          exitCode: result.status ?? 1,
+          stderr: result.stderr ?? '',
+          message: `Failed to parse semgrep output: ${error.message}`,
+        };
+      }
+
       return {
         status: result.status === 0 || result.status === 1 ? 'ok' : 'scan-failed',
         provider: 'semgrep',

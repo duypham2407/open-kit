@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { isInsideProjectRoot, resolveProjectPath } from '../shared/project-file-utils.js';
+
 /**
  * Applies a jscodeshift codemod transformation and writes changes to disk.
  * This is the mutating counterpart to codemod-preview.
@@ -64,7 +66,15 @@ export function createCodemodApplyTool({ projectRoot }) {
           };
         }
       } else {
-        const resolvedPath = path.isAbsolute(transformPath) ? transformPath : path.resolve(projectRoot, transformPath);
+        const resolvedPath = resolveProjectPath(projectRoot, transformPath);
+        if (!resolvedPath || !isInsideProjectRoot(projectRoot, resolvedPath)) {
+          return {
+            status: 'invalid-path',
+            provider: 'jscodeshift',
+            message: 'Transform path must stay inside the project root.',
+            applied: [],
+          };
+        }
         try {
           const mod = await import(resolvedPath);
           transformFn = mod.default ?? mod;
@@ -80,7 +90,12 @@ export function createCodemodApplyTool({ projectRoot }) {
 
       const applied = [];
       for (const file of targetFiles) {
-        const resolvedFile = path.isAbsolute(file) ? file : path.resolve(projectRoot, file);
+        const resolvedFile = resolveProjectPath(projectRoot, file);
+        if (!resolvedFile || !isInsideProjectRoot(projectRoot, resolvedFile)) {
+          applied.push({ filePath: file, status: 'invalid-path', written: false });
+          continue;
+        }
+
         if (!fs.existsSync(resolvedFile)) {
           applied.push({ filePath: file, status: 'file-not-found', written: false });
           continue;

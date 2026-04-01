@@ -19,6 +19,18 @@ function sanitizeInput(input) {
   return next;
 }
 
+function shouldRecordSuccess(result) {
+  if (!result || typeof result !== 'object' || Array.isArray(result)) {
+    return true;
+  }
+
+  if (typeof result.status !== 'string') {
+    return true;
+  }
+
+  return !/failed|error|missing|invalid|unsupported|degraded/i.test(result.status);
+}
+
 export function wrapToolExecution(tool, { actionModelStateManager } = {}) {
   if (!tool || typeof tool.execute !== 'function' || !actionModelStateManager) {
     return tool;
@@ -37,10 +49,18 @@ export function wrapToolExecution(tool, { actionModelStateManager } = {}) {
         if (result && typeof result.then === 'function') {
           return result
             .then((value) => {
-              actionModelStateManager.recordSuccess({
-                subjectId: tracking.subjectId,
-                actionKey: tracking.actionKey,
-              });
+              if (shouldRecordSuccess(value)) {
+                actionModelStateManager.recordSuccess({
+                  subjectId: tracking.subjectId,
+                  actionKey: tracking.actionKey,
+                });
+              } else {
+                actionModelStateManager.recordFailure({
+                  subjectId: tracking.subjectId,
+                  actionKey: tracking.actionKey,
+                  detail: value.status,
+                });
+              }
               return value;
             })
             .catch((error) => {
@@ -53,10 +73,18 @@ export function wrapToolExecution(tool, { actionModelStateManager } = {}) {
             });
         }
 
-        actionModelStateManager.recordSuccess({
-          subjectId: tracking.subjectId,
-          actionKey: tracking.actionKey,
-        });
+        if (shouldRecordSuccess(result)) {
+          actionModelStateManager.recordSuccess({
+            subjectId: tracking.subjectId,
+            actionKey: tracking.actionKey,
+          });
+        } else {
+          actionModelStateManager.recordFailure({
+            subjectId: tracking.subjectId,
+            actionKey: tracking.actionKey,
+            detail: result.status,
+          });
+        }
         return result;
       } catch (error) {
         actionModelStateManager.recordFailure({

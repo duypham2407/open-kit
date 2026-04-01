@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { inspectGlobalDoctor } from '../../src/global/doctor.js';
+import { getOpenKitVersion } from '../../src/version.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -111,7 +112,7 @@ test('openkit install-global materializes global kit and profile files', () => {
   assert.equal(readJson(path.join(profileRoot, 'opencode.json')).default_agent, 'master-orchestrator');
   assert.equal(fs.existsSync(path.join(kitRoot, 'opencode.json')), true);
   assert.equal(fs.existsSync(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep')), true);
-  assert.match(readJson(path.join(kitRoot, 'install-state.json')).kit.version, /^0\.3\.13$/);
+  assert.equal(readJson(path.join(kitRoot, 'install-state.json')).kit.version, getOpenKitVersion());
   assert.match(readJson(path.join(profileRoot, 'hooks.json')).hooks.SessionStart[0].hooks[0].command, /session-start\.js/);
   assert.deepEqual(readJson(path.join(tempHome, 'openkit', 'agent-models.json')).agentModels, {});
 });

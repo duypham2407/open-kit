@@ -121,14 +121,49 @@ test('codemod-preview reports transform-not-found for missing transform file', a
   const projectRoot = makeTempDir();
   const filePath = path.join(projectRoot, 'test.js');
   writeText(filePath, 'const x = 1;\n');
+  const missingTransform = path.join(projectRoot, 'missing-transform.js');
 
   const tool = createCodemodPreviewTool({ projectRoot });
   const result = await tool.execute({
-    transform: '/nonexistent/transform.js',
+    transform: missingTransform,
     files: [filePath],
   });
 
   assert.equal(result.status, 'transform-not-found');
+});
+
+test('codemod-preview rejects transform paths outside project root', async () => {
+  const projectRoot = makeTempDir();
+  const outsideRoot = makeTempDir();
+  const filePath = path.join(projectRoot, 'test.js');
+  const transformPath = path.join(outsideRoot, 'transform.js');
+  writeText(filePath, 'const x = 1;\n');
+  writeText(transformPath, 'export default function transformer(fileInfo) { return fileInfo.source; }\n');
+
+  const tool = createCodemodPreviewTool({ projectRoot });
+  const result = await tool.execute({
+    transform: transformPath,
+    files: [filePath],
+  });
+
+  assert.equal(result.status, 'invalid-path');
+});
+
+test('codemod-apply rejects target files outside project root', async () => {
+  const projectRoot = makeTempDir();
+  const outsideRoot = makeTempDir();
+  const filePath = path.join(outsideRoot, 'outside.js');
+  writeText(filePath, 'var x = 1;\n');
+
+  const tool = createCodemodApplyTool({ projectRoot });
+  const result = await tool.execute({
+    inlineTransform: 'return fileInfo.source.replace("var", "const");',
+    files: [filePath],
+  });
+
+  assert.equal(result.status, 'ok');
+  assert.equal(result.applied[0].status, 'invalid-path');
+  assert.equal(fs.readFileSync(filePath, 'utf8'), 'var x = 1;\n');
 });
 
 test('codemod-preview handles multiple files', async () => {
@@ -265,11 +300,12 @@ test('codemod-apply reports file-not-found for missing files', async () => {
 test('codemod-apply with transform file path that does not exist', async () => {
   const projectRoot = makeTempDir();
   const filePath = path.join(projectRoot, 'test.js');
+  const missingTransform = path.join(projectRoot, 'missing-transform.js');
   writeText(filePath, 'const x = 1;\n');
 
   const tool = createCodemodApplyTool({ projectRoot });
   const result = await tool.execute({
-    transform: '/nonexistent/transform.js',
+    transform: missingTransform,
     files: [filePath],
   });
 

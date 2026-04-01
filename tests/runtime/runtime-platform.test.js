@@ -10,6 +10,7 @@ import { createMcpPlatform } from '../../src/runtime/mcp/index.js';
 import { createContextInjection } from '../../src/runtime/context/index.js';
 import { createSkillRegistry } from '../../src/runtime/skills/index.js';
 import { loadRuntimeCommands } from '../../src/runtime/commands/index.js';
+import { wrapToolExecution } from '../../src/runtime/tools/wrap-tool-execution.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -655,6 +656,38 @@ test('syntax tools report unsupported languages honestly', async () => {
   const outline = await result.tools.tools['tool.syntax-outline'].execute({ filePath: 'notes.txt' });
   assert.equal(outline.status, 'unsupported-language');
   assert.equal(outline.language, null);
+});
+
+test('wrapToolExecution records degraded and invalid statuses as failures', async () => {
+  const calls = [];
+  const wrapped = wrapToolExecution(
+    {
+      id: 'tool.example',
+      execute(input) {
+        return input;
+      },
+    },
+    {
+      actionModelStateManager: {
+        recordSuccess(payload) {
+          calls.push({ type: 'success', payload });
+        },
+        recordFailure(payload) {
+          calls.push({ type: 'failure', payload });
+        },
+      },
+    }
+  );
+
+  wrapped.execute({ status: 'invalid-input' });
+  wrapped.execute({ status: 'dependency-missing' });
+  wrapped.execute({ status: 'ok' });
+
+  assert.equal(calls[0].type, 'failure');
+  assert.equal(calls[0].payload.detail, 'invalid-input');
+  assert.equal(calls[1].type, 'failure');
+  assert.equal(calls[1].payload.detail, 'dependency-missing');
+  assert.equal(calls[2].type, 'success');
 });
 
 test('delegated implementation runs round-trip task status through the workflow kernel', () => {

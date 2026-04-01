@@ -144,8 +144,17 @@ export function isSemgrepAvailable({ env = process.env, platform = process.platf
 }
 
 export function isCodemodAvailable() {
-  const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../node_modules/jscodeshift');
-  return fs.existsSync(packageRoot);
+  const localPackageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../node_modules/jscodeshift');
+  if (fs.existsSync(localPackageRoot)) {
+    return true;
+  }
+
+  const kitRoot = process.env.OPENKIT_KIT_ROOT;
+  if (typeof kitRoot === 'string' && kitRoot.length > 0) {
+    return fs.existsSync(path.join(kitRoot, 'node_modules', 'jscodeshift'));
+  }
+
+  return false;
 }
 
 export function ensureAstGrepInstalled({ env = process.env, platform = process.platform, spawn = spawnSync } = {}) {
@@ -183,7 +192,13 @@ export function ensureAstGrepInstalled({ env = process.env, platform = process.p
   });
 
   if (result.error) {
-    throw result.error;
+    return {
+      action: 'failed',
+      installed: false,
+      toolingRoot: globalPaths.toolingRoot,
+      toolingBinRoot: globalPaths.toolingBinRoot,
+      reason: result.error.message ?? 'spawn error',
+    };
   }
 
   if (typeof result.status === 'number' && result.status !== 0) {
