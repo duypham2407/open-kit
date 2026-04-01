@@ -10,20 +10,35 @@ import { isInsideProjectRoot, resolveProjectPath } from '../tools/shared/project
 const require = createRequire(import.meta.url);
 const parserWasmPath = require.resolve('web-tree-sitter/web-tree-sitter.wasm');
 const javascriptWasmPath = require.resolve('tree-sitter-javascript/tree-sitter-javascript.wasm');
+const typescriptWasmPath = require.resolve('tree-sitter-typescript/tree-sitter-typescript.wasm');
+const tsxWasmPath = require.resolve('tree-sitter-typescript/tree-sitter-tsx.wasm');
 
 const SUPPORTED_EXTENSIONS = new Map([
   ['.js', 'javascript'],
   ['.jsx', 'javascript'],
   ['.cjs', 'javascript'],
   ['.mjs', 'javascript'],
+  ['.ts', 'typescript'],
+  ['.tsx', 'tsx'],
 ]);
 
 let parserRuntimeReady = false;
 let parserRuntimePromise = null;
 let javascriptLanguage = null;
+let typescriptLanguage = null;
+let tsxLanguage = null;
 
 function resolveLanguage(filePath) {
   return SUPPORTED_EXTENSIONS.get(path.extname(filePath).toLowerCase()) ?? null;
+}
+
+function getLanguageInstance(languageId) {
+  switch (languageId) {
+    case 'javascript': return javascriptLanguage;
+    case 'typescript': return typescriptLanguage;
+    case 'tsx': return tsxLanguage;
+    default: return null;
+  }
 }
 
 async function ensureParserRuntime() {
@@ -42,7 +57,11 @@ async function ensureParserRuntime() {
         },
       });
 
-      javascriptLanguage = await Language.load(javascriptWasmPath);
+      [javascriptLanguage, typescriptLanguage, tsxLanguage] = await Promise.all([
+        Language.load(javascriptWasmPath),
+        Language.load(typescriptWasmPath),
+        Language.load(tsxWasmPath),
+      ]);
       parserRuntimeReady = true;
     })().catch((error) => {
       parserRuntimePromise = null;
@@ -139,7 +158,7 @@ export class SyntaxIndexManager {
     await ensureParserRuntime();
     const source = fs.readFileSync(resolvedPath, 'utf8');
     const parser = new Parser();
-    parser.setLanguage(javascriptLanguage);
+    parser.setLanguage(getLanguageInstance(language));
     const tree = parser.parse(source);
 
     return {

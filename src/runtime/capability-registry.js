@@ -118,7 +118,7 @@ const DEFAULT_RUNTIME_CAPABILITIES = [
   {
     id: 'capability.ast-tooling',
     category: 'runtime',
-    description: 'Structural search and preview-first replacement tooling, with AST-Grep-backed capability metadata and JSON/JSONC fallback behavior.',
+    description: 'Structural JSON/JSONC search and preview-first replacement tooling with built-in JSON walker. AST-Grep availability is checked for status metadata but actual search uses the built-in parser.',
     status: 'foundation',
     enabledByDefault: true,
   },

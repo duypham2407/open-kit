@@ -44,6 +44,21 @@ Load these skills when relevant:
 - `vercel-react-native-skills` — when working in React Native or Expo code
 - `find-skills` — when the task needs a capability not covered by bundled skills
 
+## Available Runtime Tools
+
+Use these tools when the task benefits from structural code analysis or automated checks:
+
+| Tool ID | Purpose | When to use |
+|---------|---------|-------------|
+| `tool.syntax-outline` | Tree-sitter outline of a source file | Understanding file structure during brainstorm |
+| `tool.syntax-context` | Position-aware syntax node context | Navigating to specific code locations |
+| `tool.syntax-locate` | Find nodes by syntax type | Locating functions, classes, imports in a file |
+| `tool.rule-scan` | Semgrep quality rule scan | Quick quality check before completion |
+| `tool.security-scan` | Semgrep security audit scan | Checking for security anti-patterns |
+| `tool.codemod-preview` | Preview jscodeshift transform diffs | Evaluating automated refactoring before apply |
+| `tool.codemod-apply` | Apply jscodeshift transforms to disk | Executing approved codemods after preview |
+| `tool.ast-search` | Structural JSON/JSONC search | Searching config and manifest files |
+
 ## Stage Contract
 
 ```text

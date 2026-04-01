@@ -50,6 +50,17 @@ Only perform this after Stage 1 passes.
 
 Review against `.opencode/openkit/context/core/code-quality.md`:
 
+## Available Runtime Tools
+
+Use these tools when code review benefits from structural analysis or automated checks:
+
+| Tool ID | Purpose | When to use |
+|---------|---------|-------------|
+| `tool.syntax-outline` | Tree-sitter outline of a source file | Understanding structure of reviewed files |
+| `tool.syntax-locate` | Find nodes by syntax type | Verifying structural patterns (exports, error handling) |
+| `tool.rule-scan` | Semgrep quality rule scan | Automated quality checks on reviewed code |
+| `tool.security-scan` | Semgrep security audit scan | Checking for security anti-patterns |
+
 **Categories:**
 - **Critical** — Block progress (security holes, data loss risk)
 - **Important** — Should be fixed (naming, error handling)

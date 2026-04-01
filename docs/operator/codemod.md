@@ -175,5 +175,5 @@ Same parameters as preview, plus:
 - jscodeshift only supports JavaScript and TypeScript transforms (JSX/TSX included)
 - Inline transforms use `new Function()` which does not support `import` statements inside the transform body
 - Transform file paths are resolved relative to `projectRoot`; use absolute paths for transforms outside the project
-- No built-in codemod pack is bundled yet; bring your own transforms or use inline transforms
+- Two seed transforms are bundled in `assets/codemods/` (`var-to-const.js` and `console-to-logger.js`); bring your own transforms or use inline transforms for project-specific needs
 - No scheduling, batching, or caching layer exists; codemods run synchronously per invocation

@@ -607,6 +607,31 @@
         "id": "capability.ast-tooling",
         "name": "AST Tooling",
         "path": "src/runtime/tools/ast/",
+        "description": "Structural JSON/JSONC search and preview-first replacement tooling with JSON-parser fallback. AST-Grep availability is checked for status metadata but actual search uses a built-in JSON walker.",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.syntax-parsing",
+        "name": "Syntax Parsing",
+        "path": "src/runtime/managers/syntax-index-manager.js",
+        "description": "Tree-sitter-backed syntax parsing, outline extraction, and position-aware structure context for supported languages.",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.rule-audit",
+        "name": "Rule Audit",
+        "path": "src/runtime/tools/audit/",
+        "description": "Semgrep-backed rule scanning and security auditing with bundled quality-default and security-audit rule packs.",
+        "status": "foundation",
+        "category": "runtime"
+      },
+      {
+        "id": "capability.codemod",
+        "name": "Codemod",
+        "path": "src/runtime/tools/codemod/",
+        "description": "jscodeshift-backed codemod preview and apply for migration and refactoring workflows, with bundled seed transforms.",
         "status": "foundation",
         "category": "runtime"
       },
@@ -740,6 +765,48 @@
         "name": "AST Replace Surface",
         "path": "src/runtime/tools/ast/ast-replace.js",
         "status": "foundation"
+      },
+      {
+        "id": "tool.syntax-outline",
+        "name": "Syntax Outline",
+        "path": "src/runtime/tools/syntax/syntax-outline.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.syntax-context",
+        "name": "Syntax Context",
+        "path": "src/runtime/tools/syntax/syntax-context.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.syntax-locate",
+        "name": "Syntax Locate",
+        "path": "src/runtime/tools/syntax/syntax-locate.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.codemod-preview",
+        "name": "Codemod Preview",
+        "path": "src/runtime/tools/codemod/codemod-preview.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.codemod-apply",
+        "name": "Codemod Apply",
+        "path": "src/runtime/tools/codemod/codemod-apply.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.rule-scan",
+        "name": "Rule Scan",
+        "path": "src/runtime/tools/audit/rule-scan.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.security-scan",
+        "name": "Security Scan",
+        "path": "src/runtime/tools/audit/security-scan.js",
+        "status": "active"
       },
       {
         "id": "tool.lsp-diagnostics",
