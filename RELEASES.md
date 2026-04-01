@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.15`](release-notes/0.3.15.md) - harden codemod boundaries, audit failure handling, and managed-kit runtime parity
-- npm latest: `@duypham93/openkit@0.3.15`
-- git tag: `v0.3.15`
+- [`0.3.16`](release-notes/0.3.16.md) - normalize runtime error responses across profile switching, syntax indexing, and launchers
+- npm latest: `@duypham93/openkit@0.3.16`
+- git tag: `v0.3.16`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.16`](release-notes/0.3.16.md) - normalize runtime error responses across profile switching, syntax indexing, and launchers
 - [`0.3.15`](release-notes/0.3.15.md) - harden codemod boundaries, audit failure handling, and managed-kit runtime parity
 - [`0.3.14`](release-notes/0.3.14.md) - add managed AST, syntax, audit, codemod, and profile-switch runtime capabilities
 - [`0.3.12`](release-notes/0.3.12.md) - teach global doctor to flag missing migration templates as stale-kit drift
