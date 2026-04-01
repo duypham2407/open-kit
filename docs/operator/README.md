@@ -17,7 +17,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Read `README.md` for the top-level product and runtime boundary summary
 - Read `docs/operations/runbooks/openkit-daily-usage.md` for the detailed day-to-day usage path in this repository
 - Read `docs/operator/surface-contract.md` when you need a fast answer to "which OpenKit surface should I use right now?"
-- Install the CLI with `npm install -g @duypham93/openkit`, then run `openkit run` for first-time setup and `openkit doctor` to verify readiness
+- Install the CLI with `npm install -g @duypham93/openkit`, then run `openkit install` to provision all runtime tooling, then `openkit run` for first-time setup and `openkit doctor` to verify readiness
 - Once OpenCode is open, use `Ctrl+P` and choose `/task`, `/quick-task`, `/migrate`, or `/delivery` to enter the right workflow lane
 - If you want different providers or models per agent, run `/configure-agent-models`, `openkit configure-agent-models --interactive`, or `openkit configure-agent-models --models` before starting the session you care about
 - Use `/task` unless you already know the work must start in `Quick Task`, `Migration`, or `Full Delivery`
@@ -26,6 +26,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 ## Minimal First Session
 
 - `npm install -g @duypham93/openkit`
+- `openkit install`
 - `openkit doctor`
 - `openkit run`
 - Wait for OpenCode to open with `master-orchestrator`
@@ -56,7 +57,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Slash commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`
 - Global diagnostics: `openkit doctor`
 - Global launcher: `openkit run`
-- Global lifecycle: `npm install -g @duypham93/openkit`, `openkit upgrade`, `openkit uninstall`
+- Global lifecycle: `npm install -g @duypham93/openkit`, `openkit install`, `openkit upgrade`, `openkit uninstall`
 - Onboarding helper: `openkit onboard`
 - Runtime foundation visibility: `openkit doctor`
 - Runtime foundation config template: `assets/openkit.runtime.jsonc.template`

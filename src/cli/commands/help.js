@@ -11,7 +11,7 @@ function topLevelHelp() {
     '  help      Show CLI help',
     '  install-global  Manual global setup command',
     '  init      Compatibility alias for install-global',
-    '  install   Compatibility alias for install-global',
+    '  install   Install the global kit and provision all runtime tooling',
     '  run       Launch OpenCode and perform first-time setup if needed',
     '  upgrade   Refresh the global OpenKit install',
     '  uninstall Remove the global OpenKit install',
