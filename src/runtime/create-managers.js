@@ -11,6 +11,7 @@ import { PersistentBackgroundStore } from './managers/persistent-background-stor
 import { SessionStateManager } from './managers/session-state-manager.js';
 import { SkillMcpManager } from './managers/skill-mcp-manager.js';
 import { SyntaxIndexManager } from './managers/syntax-index-manager.js';
+import { ProjectGraphManager } from './managers/project-graph-manager.js';
 import { TmuxSessionManager } from './managers/tmux-session-manager.js';
 import { ToolMetadataStore } from './managers/tool-metadata-store.js';
 import { resolveRuntimeRoot } from './runtime-root.js';
@@ -21,6 +22,7 @@ function createManagerList({
   backgroundManager,
   skillMcpManager,
   syntaxIndexManager,
+  projectGraphManager,
   notificationManager,
   tmuxSessionManager,
   delegationSupervisor,
@@ -60,6 +62,16 @@ function createManagerList({
       enabled: syntaxIndexManager !== null,
       lifecycle: 'foundation',
       dispose() {},
+    },
+    {
+      id: 'manager.project-graph',
+      name: 'Project Graph Manager',
+      description: 'SQLite-backed import graph and symbol index for cross-file dependency analysis.',
+      enabled: projectGraphManager?.available === true,
+      lifecycle: 'foundation',
+      dispose() {
+        projectGraphManager?.dispose?.();
+      },
     },
     {
       id: 'manager.delegation-supervisor',
@@ -115,6 +127,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
   });
   const skillMcpManager = new SkillMcpManager();
   const syntaxIndexManager = new SyntaxIndexManager({ projectRoot });
+  const projectGraphManager = new ProjectGraphManager({ projectRoot, runtimeRoot, syntaxIndexManager, mode });
   const sessionStateManager = new SessionStateManager({ projectRoot, runtimeRoot, mode });
   const continuationStateManager = new ContinuationStateManager({ projectRoot, runtimeRoot, mode });
   const actionModelStateManager = new ActionModelStateManager({ projectRoot, runtimeRoot, mode });
@@ -139,6 +152,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     backgroundManager,
     skillMcpManager,
     syntaxIndexManager,
+    projectGraphManager,
     delegationSupervisor,
     continuationStateManager,
     notificationManager,
@@ -155,6 +169,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     backgroundManager,
     skillMcpManager,
     syntaxIndexManager,
+    projectGraphManager,
     delegationSupervisor,
     continuationStateManager,
     notificationManager,

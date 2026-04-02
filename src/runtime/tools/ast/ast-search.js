@@ -160,7 +160,7 @@ export function createAstSearchTool({ projectRoot = process.cwd(), syntaxIndexMa
     family: 'ast',
     stage: 'foundation',
     status: 'active',
-    async execute(input = {}) {
+    execute(input = {}) {
       const filePath = resolveProjectPath(projectRoot, typeof input === 'string' ? input : input.filePath);
       if (!filePath || !isInsideProjectRoot(projectRoot, filePath)) {
         return { status: 'invalid-path', matches: [] };
@@ -181,28 +181,29 @@ export function createAstSearchTool({ projectRoot = process.cwd(), syntaxIndexMa
 
       // --- JS/TS path (new: tree-sitter AST search) ---
       if (isSourceFile(filePath) && syntaxIndexManager) {
-        const parsed = await syntaxIndexManager.readFile(filePath);
-        if (parsed.status !== 'parsed') {
+        return syntaxIndexManager.readFile(filePath).then((parsed) => {
+          if (parsed.status !== 'parsed') {
+            return {
+              status: parsed.status,
+              filePath,
+              query,
+              language: null,
+              matches: [],
+              matchCount: 0,
+            };
+          }
+
+          const matches = searchTreeSitter(parsed, query);
           return {
-            status: parsed.status,
+            status: 'ok',
             filePath,
             query,
-            language: null,
-            matches: [],
-            matchCount: 0,
+            language: parsed.language,
+            tooling,
+            matches,
+            matchCount: matches.length,
           };
-        }
-
-        const matches = searchTreeSitter(parsed, query);
-        return {
-          status: 'ok',
-          filePath,
-          query,
-          language: parsed.language,
-          tooling,
-          matches,
-          matchCount: matches.length,
-        };
+        });
       }
 
       // Fallback: unsupported file type

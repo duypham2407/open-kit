@@ -15,6 +15,10 @@ import { createBackgroundCancelTool } from './delegation/background-cancel.js';
 import { createBackgroundOutputTool } from './delegation/background-output.js';
 import { createDelegationTaskTool } from './delegation/task.js';
 import { createHashlineEditTool } from './edit/hashline-edit.js';
+import { createFindDependenciesTool } from './graph/find-dependencies.js';
+import { createFindDependentsTool } from './graph/find-dependents.js';
+import { createFindSymbolTool } from './graph/find-symbol.js';
+import { createImportGraphTool } from './graph/import-graph.js';
 import { createInteractiveBashTool } from './interactive/interactive-bash.js';
 import { createLspDiagnosticsTool } from './lsp/lsp-diagnostics.js';
 import { createLspFindReferencesTool } from './lsp/lsp-find-references.js';
@@ -84,6 +88,10 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     createAstSearchTool({ projectRoot, syntaxIndexManager: managers.syntaxIndexManager }),
     createAstGrepSearchTool({ projectRoot }),
     createAstReplaceTool({ projectRoot }),
+    createImportGraphTool({ projectGraphManager: managers.projectGraphManager }),
+    createFindDependenciesTool({ projectGraphManager: managers.projectGraphManager }),
+    createFindDependentsTool({ projectGraphManager: managers.projectGraphManager }),
+    createFindSymbolTool({ projectGraphManager: managers.projectGraphManager }),
   ];
 
   const enabledTools = definitions

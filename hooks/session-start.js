@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -158,6 +159,7 @@ const metaSkillPath = path.join(kitRoot, 'skills', 'using-skills', 'SKILL.md');
 const toolSubstitutionRulesPath = path.join(kitRoot, 'context', 'core', 'tool-substitution-rules.md');
 const manifestPath = path.join(kitRoot, '.opencode', 'opencode.json');
 const runtimeSummaryModulePath = path.join(kitRoot, '.opencode', 'lib', 'runtime-summary.js');
+const graphIndexerPath = path.join(kitRoot, 'hooks', 'graph-indexer.js');
 
 let kitName = 'OpenKit AI Software Factory';
 let kitVersion = 'unknown';
@@ -231,4 +233,27 @@ if (!process.env.OPENKIT_SESSION_START_NO_TOOL_RULES && fs.existsSync(toolSubsti
 
 if (jsonHelperStatus === 'ok' && !stateResult.malformed && stateResult.value) {
   renderResumeHint(stateResult.value, runtimeSummaryModulePath, statePath);
+}
+
+// ---------------------------------------------------------------------------
+// Background graph indexing — fire-and-forget after all output is written
+// ---------------------------------------------------------------------------
+
+if (!process.env.OPENKIT_SESSION_START_NO_GRAPH_INDEX && fs.existsSync(graphIndexerPath)) {
+  // Spawn the graph indexer detached so it does not block the session
+  try {
+    const child = spawn(process.execPath, [graphIndexerPath], {
+      env: {
+        ...process.env,
+        OPENKIT_PROJECT_ROOT: projectRoot,
+        OPENKIT_KIT_ROOT: kitRoot,
+        OPENKIT_WORKFLOW_STATE: statePath,
+      },
+      stdio: 'ignore',
+      detached: true,
+    });
+    child.unref();
+  } catch {
+    // Non-critical: indexing failure should not block session startup
+  }
 }

@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 
 import { isInsideProjectRoot, resolveProjectPath } from '../shared/project-file-utils.js';
-import { isAstGrepAvailable } from './ast-tooling-status.js';
+import { isAstGrepAvailable } from '../../../global/tooling.js';
 
 /**
  * tool.ast-grep-search
@@ -21,9 +21,9 @@ export function createAstGrepSearchTool({ projectRoot = process.cwd() } = {}) {
       'Structural code search using ast-grep patterns. Finds code matching an AST pattern across the project or a specific file.',
     family: 'ast',
     stage: 'active',
-    status: isAstGrepAvailable(process.env) ? 'active' : 'degraded',
+    status: isAstGrepAvailable({ env: process.env }) ? 'active' : 'degraded',
     execute(input = {}) {
-      if (!isAstGrepAvailable(process.env)) {
+      if (!isAstGrepAvailable({ env: process.env })) {
         return {
           status: 'dependency-missing',
           reason: 'ast-grep CLI is not available on PATH. Install with: npm install -g @ast-grep/cli',

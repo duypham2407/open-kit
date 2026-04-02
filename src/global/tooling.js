@@ -5,9 +5,21 @@ import { fileURLToPath } from 'node:url';
 
 import { getGlobalPaths } from './paths.js';
 import { isCommandAvailable } from '../command-detection.js';
+import { createRequire } from 'node:module';
 
 export const AST_GREP_PACKAGE = '@ast-grep/cli';
 export const SEMGREP_PACKAGE = 'semgrep';
+
+const _require = createRequire(import.meta.url);
+
+export function isBetterSqliteAvailable() {
+  try {
+    _require('better-sqlite3');
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function listWindowsExecutableExtensions(env) {
   const raw = env.PATHEXT ?? '.COM;.EXE;.BAT;.CMD';

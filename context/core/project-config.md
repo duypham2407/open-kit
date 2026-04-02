@@ -38,6 +38,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - Registry metadata lives in `registry.json`.
 - Install metadata lives in `.opencode/install-manifest.json`.
 - The repository does not contain a root `opencode.json` entrypoint.
+- The project graph database lives at `<runtimeRoot>/.opencode/project-graph.db` (SQLite via better-sqlite3). It stores the import graph, symbol index, and file nodes for cross-file dependency analysis. It is created automatically by `ProjectGraphManager` on first use and is not created in read-only mode. The database uses WAL journal mode. The schema includes `nodes`, `edges`, and `symbols` tables. Run `openkit doctor` to check whether better-sqlite3 is available.
 
 ## Permission Policy
 

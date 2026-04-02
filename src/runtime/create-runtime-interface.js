@@ -53,6 +53,7 @@ export function createRuntimeInterface({
       backgroundRuns: managers.backgroundManager?.list?.().length ?? 0,
       actionModelState: managers.actionModelStateManager?.list?.() ?? [],
       syntaxIndex: managers.syntaxIndexManager?.describe?.() ?? null,
+      projectGraph: managers.projectGraphManager?.getGraphSummary?.() ?? null,
       skillMcpBindings: managers.skillMcpManager?.listBindings?.().length ?? 0,
       latestSession,
       recovery,

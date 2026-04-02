@@ -5,7 +5,7 @@ import { readJsonIfPresent, validateGlobalInstallState } from './install-state.j
 import { inspectWorkspaceMeta } from './workspace-state.js';
 import { getGlobalPaths, getWorkspacePaths } from './paths.js';
 import { isCommandAvailable } from '../command-detection.js';
-import { isAstGrepAvailable, isCodemodAvailable, isSemgrepAvailable } from './tooling.js';
+import { isAstGrepAvailable, isBetterSqliteAvailable, isCodemodAvailable, isSemgrepAvailable } from './tooling.js';
 import { DEFAULT_ENTRY_COMMAND, getCommandInstructionContract } from '../runtime/instruction-contracts.js';
 import { bootstrapRuntimeFoundation } from '../runtime/index.js';
 import { inspectBackgroundDoctor } from '../runtime/doctor/background-doctor.js';
@@ -108,6 +108,10 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
 
   if (!isCodemodAvailable()) {
     issues.push('jscodeshift package is not installed; codemod tools will report dependency-missing.');
+  }
+
+  if (!isBetterSqliteAvailable()) {
+    issues.push('better-sqlite3 native module is not available; project graph / import-graph tools will be degraded. Run npm install -g @duypham93/openkit to rebuild native addons.');
   }
 
   const agentModelSettings = readAgentModelSettings(globalPaths.agentModelSettingsPath);

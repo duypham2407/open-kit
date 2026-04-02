@@ -45,6 +45,9 @@ Current repository facts:
 - `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item
 - `.opencode/work-items/` is present as the internal per-item workflow backing store for managed runtime state
 - `.opencode/workflow-state.js` now supports the live mode-aware workflow state contract
+- The runtime analysis layer (`src/runtime/analysis/`) includes a SQLite-backed project graph (`project-graph-db.js`) and an import-graph builder (`import-graph-builder.js`) that extract cross-file import/export and symbol data using tree-sitter
+- The project graph manager (`src/runtime/managers/project-graph-manager.js`) coordinates indexing and queries; graph tools (`src/runtime/tools/graph/`) expose `tool.import-graph`, `tool.find-dependencies`, `tool.find-dependents`, and `tool.find-symbol` to the runtime
+- The project graph database requires `better-sqlite3` (native module); `openkit doctor` reports availability
 - No repo-native build command is currently defined for application code
 - No repo-native lint command is currently defined for application code
 - No repo-native test command is currently defined for application code
