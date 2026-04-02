@@ -1,4 +1,4 @@
-const TASK_STATUS_VALUES = [
+export const TASK_STATUS_VALUES = [
   "queued",
   "ready",
   "claimed",
@@ -87,7 +87,7 @@ function validateStringArrayEntries(field, values) {
   }
 }
 
-function validateTaskStatus(status) {
+export function validateTaskStatus(status) {
   if (!TASK_STATUS_VALUES.includes(status)) {
     fail(`Unknown task status '${status}'`)
   }
@@ -95,7 +95,7 @@ function validateTaskStatus(status) {
   return status
 }
 
-function validateTaskShape(task) {
+export function validateTaskShape(task) {
   if (!task || typeof task !== "object" || Array.isArray(task)) {
     fail("Task must be an object")
   }
@@ -160,7 +160,7 @@ function hasBlockedDependencies(task) {
   return Array.isArray(task.blocked_by) && task.blocked_by.length > 0
 }
 
-function validateTaskTransition(task, nextStatus, options = {}) {
+export function validateTaskTransition(task, nextStatus, options = {}) {
   validateTaskShape(task)
   validateTaskStatus(nextStatus)
 
@@ -371,7 +371,7 @@ function validateAggregateRules(board, tasks) {
   }
 }
 
-function validateTaskBoard(board) {
+export function validateTaskBoard(board) {
   validateBoardShape(board)
 
   const tasks = board.tasks.map((task) => validateTaskShape(task))
@@ -383,12 +383,4 @@ function validateTaskBoard(board) {
   validateAggregateRules(board, tasks)
 
   return board
-}
-
-module.exports = {
-  TASK_STATUS_VALUES,
-  validateTaskBoard,
-  validateTaskShape,
-  validateTaskStatus,
-  validateTaskTransition,
 }

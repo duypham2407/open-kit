@@ -1,10 +1,13 @@
-const test = require("node:test")
-const assert = require("node:assert/strict")
-const fs = require("fs")
-const os = require("os")
-const path = require("path")
+import test from "node:test"
+import assert from "node:assert/strict"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-const { runDoctor, getContractConsistencyReport } = require("../lib/workflow-state-controller")
+import { runDoctor, getContractConsistencyReport } from "../lib/workflow-state-controller.js"
 
 function makeTempProject() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "openkit-contract-check-"))

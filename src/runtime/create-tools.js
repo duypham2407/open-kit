@@ -1,4 +1,9 @@
+import { createRequire } from 'node:module';
 import { createToolRegistry } from './tools/index.js';
+
+const require = createRequire(import.meta.url);
+const { createInvocationLogger } = require('../../.opencode/lib/invocation-log.js');
+const { readWorkItemIndex } = require('../../.opencode/lib/work-item-store.js');
 
 function summarizeToolFamilies(toolList = []) {
   const families = new Map();
@@ -31,7 +36,30 @@ function summarizeToolFamilies(toolList = []) {
 }
 
 export function createTools({ config, capabilityIndex, projectRoot, managers, mcpPlatform, modelRuntime, env = process.env }) {
-  const registry = createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, env });
+  let invocationLogger = null;
+  try {
+    // Use a dynamic getter so the invocation logger writes to the
+    // per-work-item log of the currently active work item.  This
+    // ensures runtime tool invocations are visible to the policy
+    // engine which reads per-work-item logs during stage transitions.
+    function getActiveWorkItemId() {
+      try {
+        const index = readWorkItemIndex(projectRoot);
+        return index?.active_work_item_id ?? null;
+      } catch {
+        return null;
+      }
+    }
+
+    invocationLogger = createInvocationLogger({
+      runtimeRoot: projectRoot,
+      getWorkItemId: getActiveWorkItemId,
+    });
+  } catch {
+    // Invocation logger creation is best-effort; runtime should still function without it
+  }
+
+  const registry = createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, invocationLogger, env });
   const toolList = registry.toolList.map((tool) => ({
     id: tool.id,
     name: tool.name ?? tool.id,

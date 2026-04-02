@@ -50,16 +50,44 @@ Only perform this after Stage 1 passes.
 
 Review against `.opencode/openkit/context/core/code-quality.md`:
 
-## Available Runtime Tools
+## Required Tool Usage
 
-Use these tools when code review benefits from structural analysis or automated checks:
+Tools are classified by enforcement level. **MUST** tools are mandatory before the corresponding output stage. **SHOULD** tools are expected unless the task context makes them irrelevant. **MAY** tools are optional helpers.
+
+### MUST — run before writing Stage 2 result
+
+| Tool ID | Purpose | Enforcement |
+|---------|---------|-------------|
+| `tool.rule-scan` | Semgrep quality rule scan on all changed files | Run before Stage 2. Do not write Stage 2 findings until scan output is available |
+| `tool.security-scan` | Semgrep security audit scan on all changed files | Run before Stage 2. Do not write Stage 2 findings until scan output is available |
+
+### MUST — run for files over 100 lines or files not yet read in session
+
+| Tool ID | Purpose | Enforcement |
+|---------|---------|-------------|
+| `tool.syntax-outline` | Tree-sitter outline of a source file | Run before reviewing any changed file that exceeds 100 lines or that you have not read in this session |
+
+### SHOULD — use when structurally verifying patterns
 
 | Tool ID | Purpose | When to use |
 |---------|---------|-------------|
-| `tool.syntax-outline` | Tree-sitter outline of a source file | Understanding structure of reviewed files |
-| `tool.syntax-locate` | Find nodes by syntax type | Verifying structural patterns (exports, error handling) |
-| `tool.rule-scan` | Semgrep quality rule scan | Automated quality checks on reviewed code |
-| `tool.security-scan` | Semgrep security audit scan | Checking for security anti-patterns |
+| `tool.syntax-locate` | Find nodes by syntax type | Verifying structural patterns (exports, error handling, interface shape) |
+| `tool.heuristic-lsp` | Symbol references and rename impact | Tracing call sites or rename impact across files |
+
+### Gate rule
+
+Do not output the Stage 2 result until `tool.rule-scan` and `tool.security-scan` have both been executed on the changed files. If either tool is unavailable (e.g. semgrep not installed), record `tool.<id>: unavailable — <reason>` in the review output and proceed with manual-only evidence for that check.
+
+### Evidence requirement in output
+
+The review output must include a `Tool Evidence` section:
+
+```text
+Tool Evidence:
+- rule-scan: <finding_count> findings on <file_count> files (or: unavailable — <reason>)
+- security-scan: <finding_count> findings on <file_count> files (or: unavailable — <reason>)
+- syntax-outline: <file_count> files outlined (or: not needed — all files under 100 lines)
+```
 
 **Categories:**
 - **Critical** — Block progress (security holes, data loss risk)

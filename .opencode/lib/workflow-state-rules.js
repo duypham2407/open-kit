@@ -1,4 +1,4 @@
-const QUICK_STAGE_SEQUENCE = [
+export const QUICK_STAGE_SEQUENCE = [
   "quick_intake",
   "quick_brainstorm",
   "quick_plan",
@@ -7,7 +7,7 @@ const QUICK_STAGE_SEQUENCE = [
   "quick_done",
 ]
 
-const FULL_STAGE_SEQUENCE = [
+export const FULL_STAGE_SEQUENCE = [
   "full_intake",
   "full_product",
   "full_solution",
@@ -17,7 +17,7 @@ const FULL_STAGE_SEQUENCE = [
   "full_done",
 ]
 
-const MIGRATION_STAGE_SEQUENCE = [
+export const MIGRATION_STAGE_SEQUENCE = [
   "migration_intake",
   "migration_baseline",
   "migration_strategy",
@@ -27,9 +27,9 @@ const MIGRATION_STAGE_SEQUENCE = [
   "migration_done",
 ]
 
-const STAGE_SEQUENCE = [...QUICK_STAGE_SEQUENCE, ...MIGRATION_STAGE_SEQUENCE, ...FULL_STAGE_SEQUENCE]
+export const STAGE_SEQUENCE = [...QUICK_STAGE_SEQUENCE, ...MIGRATION_STAGE_SEQUENCE, ...FULL_STAGE_SEQUENCE]
 
-const STAGE_OWNERS = {
+export const STAGE_OWNERS = {
   quick_intake: "QuickAgent",
   quick_brainstorm: "QuickAgent",
   quick_plan: "QuickAgent",
@@ -52,21 +52,21 @@ const STAGE_OWNERS = {
   full_done: "MasterOrchestrator",
 }
 
-const MODE_VALUES = ["quick", "migration", "full"]
-const LANE_SOURCE_VALUES = ["orchestrator_routed", "user_explicit"]
+export const MODE_VALUES = ["quick", "migration", "full"]
+export const LANE_SOURCE_VALUES = ["orchestrator_routed", "user_explicit"]
 
-const ROUTING_WORK_INTENT_VALUES = ["maintenance", "modernization", "feature"]
-const ROUTING_BEHAVIOR_DELTA_VALUES = ["preserve", "extend", "redefine"]
-const ROUTING_DOMINANT_UNCERTAINTY_VALUES = ["low_local", "compatibility", "product"]
-const ROUTING_SCOPE_SHAPE_VALUES = ["local", "adjacent", "cross_boundary"]
+export const ROUTING_WORK_INTENT_VALUES = ["maintenance", "modernization", "feature"]
+export const ROUTING_BEHAVIOR_DELTA_VALUES = ["preserve", "extend", "redefine"]
+export const ROUTING_DOMINANT_UNCERTAINTY_VALUES = ["low_local", "compatibility", "product"]
+export const ROUTING_SCOPE_SHAPE_VALUES = ["local", "adjacent", "cross_boundary"]
 
-const MODE_STAGE_SEQUENCES = {
+export const MODE_STAGE_SEQUENCES = {
   quick: QUICK_STAGE_SEQUENCE,
   migration: MIGRATION_STAGE_SEQUENCE,
   full: FULL_STAGE_SEQUENCE,
 }
 
-const MODE_APPROVAL_GATES = {
+export const MODE_APPROVAL_GATES = {
   quick: ["quick_verified"],
   migration: [
     "baseline_to_strategy",
@@ -84,7 +84,7 @@ const MODE_APPROVAL_GATES = {
   ],
 }
 
-const TRANSITION_GATES = {
+export const TRANSITION_GATES = {
   quick: {
     "quick_test->quick_done": "quick_verified",
   },
@@ -104,10 +104,10 @@ const TRANSITION_GATES = {
   },
 }
 
-const STATUS_VALUES = ["idle", "in_progress", "blocked", "done"]
-const PARALLEL_MODES = ["none", "limited", "enabled"]
+export const STATUS_VALUES = ["idle", "in_progress", "blocked", "done"]
+export const PARALLEL_MODES = ["none", "limited", "enabled"]
 
-const ARTIFACT_KINDS = [
+export const ARTIFACT_KINDS = [
   "task_card",
   "scope_package",
   "solution_package",
@@ -116,22 +116,22 @@ const ARTIFACT_KINDS = [
   "adr",
 ]
 
-const ISSUE_TYPES = ["bug", "design_flaw", "requirement_gap"]
-const ISSUE_SEVERITIES = ["critical", "high", "medium", "low"]
-const ISSUE_STATUS_VALUES = ["open", "in_progress", "resolved", "closed"]
-const ROOTED_IN_VALUES = ["implementation", "architecture", "requirements"]
+export const ISSUE_TYPES = ["bug", "design_flaw", "requirement_gap"]
+export const ISSUE_SEVERITIES = ["critical", "high", "medium", "low"]
+export const ISSUE_STATUS_VALUES = ["open", "in_progress", "resolved", "closed"]
+export const ROOTED_IN_VALUES = ["implementation", "architecture", "requirements"]
 
-const VERIFICATION_EVIDENCE_KINDS = ["automated", "manual", "runtime", "review"]
+export const VERIFICATION_EVIDENCE_KINDS = ["automated", "manual", "runtime", "review"]
 
-const RECOMMENDED_OWNERS = {
+export const RECOMMENDED_OWNERS = {
   bug: ["FullstackAgent"],
   design_flaw: ["SolutionLead", "MasterOrchestrator"],
   requirement_gap: ["ProductLead", "MasterOrchestrator"],
 }
 
-const ESCALATION_RETRY_THRESHOLD = 3
+export const ESCALATION_RETRY_THRESHOLD = 3
 
-function createPendingGate() {
+export function createPendingGate() {
   return {
     status: "pending",
     approved_by: null,
@@ -140,14 +140,14 @@ function createPendingGate() {
   }
 }
 
-function createEmptyApprovals(mode) {
+export function createEmptyApprovals(mode) {
   return getApprovalGatesForMode(mode).reduce((accumulator, gate) => {
     accumulator[gate] = createPendingGate()
     return accumulator
   }, {})
 }
 
-function createEmptyArtifacts() {
+export function createEmptyArtifacts() {
   return {
     task_card: null,
     scope_package: null,
@@ -158,7 +158,7 @@ function createEmptyArtifacts() {
   }
 }
 
-function createDefaultParallelization(mode) {
+export function createDefaultParallelization(mode) {
   return {
     parallel_mode: mode === "quick" ? "none" : "none",
     why: null,
@@ -169,7 +169,7 @@ function createDefaultParallelization(mode) {
   }
 }
 
-function createDefaultRoutingProfile(mode, selectionReason) {
+export function createDefaultRoutingProfile(mode, selectionReason) {
   if (mode === "quick") {
     return {
       work_intent: "maintenance",
@@ -199,7 +199,7 @@ function createDefaultRoutingProfile(mode, selectionReason) {
   }
 }
 
-function createDefaultMigrationContext() {
+export function createDefaultMigrationContext() {
   return {
     baseline_summary: null,
     target_outcome: null,
@@ -211,16 +211,16 @@ function createDefaultMigrationContext() {
   }
 }
 
-function getApprovalGatesForMode(mode) {
+export function getApprovalGatesForMode(mode) {
   return MODE_APPROVAL_GATES[mode] ?? []
 }
 
-function getInitialStageForMode(mode) {
+export function getInitialStageForMode(mode) {
   const sequence = MODE_STAGE_SEQUENCES[mode] ?? []
   return sequence[0] ?? null
 }
 
-function getModeForStage(stage) {
+export function getModeForStage(stage) {
   if (QUICK_STAGE_SEQUENCE.includes(stage)) {
     return "quick"
   }
@@ -236,7 +236,7 @@ function getModeForStage(stage) {
   return null
 }
 
-function getNextStage(mode, currentStage) {
+export function getNextStage(mode, currentStage) {
   const sequence = MODE_STAGE_SEQUENCES[mode] ?? []
   const index = sequence.indexOf(currentStage)
   if (index === -1 || index === sequence.length - 1) {
@@ -246,11 +246,11 @@ function getNextStage(mode, currentStage) {
   return sequence[index + 1]
 }
 
-function getTransitionGate(mode, fromStage, toStage) {
+export function getTransitionGate(mode, fromStage, toStage) {
   return TRANSITION_GATES[mode]?.[`${fromStage}->${toStage}`] ?? null
 }
 
-function getReworkRoute(mode, issueType, laneSource = "orchestrator_routed") {
+export function getReworkRoute(mode, issueType, laneSource = "orchestrator_routed") {
   if (mode === "quick") {
     if (issueType === "bug") {
       return {
@@ -342,43 +342,4 @@ function getReworkRoute(mode, issueType, laneSource = "orchestrator_routed") {
   }
 
   return null
-}
-
-module.exports = {
-  ARTIFACT_KINDS,
-  ESCALATION_RETRY_THRESHOLD,
-  FULL_STAGE_SEQUENCE,
-  ISSUE_SEVERITIES,
-  ISSUE_STATUS_VALUES,
-  ISSUE_TYPES,
-  LANE_SOURCE_VALUES,
-  MIGRATION_STAGE_SEQUENCE,
-  MODE_APPROVAL_GATES,
-  MODE_STAGE_SEQUENCES,
-  MODE_VALUES,
-  QUICK_STAGE_SEQUENCE,
-  RECOMMENDED_OWNERS,
-  ROOTED_IN_VALUES,
-  ROUTING_BEHAVIOR_DELTA_VALUES,
-  ROUTING_DOMINANT_UNCERTAINTY_VALUES,
-  ROUTING_SCOPE_SHAPE_VALUES,
-  ROUTING_WORK_INTENT_VALUES,
-  STAGE_OWNERS,
-  STAGE_SEQUENCE,
-  STATUS_VALUES,
-  TRANSITION_GATES,
-  VERIFICATION_EVIDENCE_KINDS,
-  createDefaultMigrationContext,
-  createDefaultRoutingProfile,
-  createEmptyApprovals,
-  createEmptyArtifacts,
-  createPendingGate,
-  getApprovalGatesForMode,
-  getInitialStageForMode,
-  getModeForStage,
-  getNextStage,
-  getReworkRoute,
-  getTransitionGate,
-  PARALLEL_MODES,
-  createDefaultParallelization,
 }

@@ -1,10 +1,10 @@
-const fs = require("fs")
-const path = require("path")
+import fs from "node:fs"
+import path from "node:path"
 
-const { listBackgroundRuns } = require("./background-run-store")
-const { validateMigrationSliceBoard } = require("./migration-slice-rules")
-const { readWorkItemIndex, resolveWorkItemPaths } = require("./work-item-store")
-const {
+import { listBackgroundRuns } from "./background-run-store.js"
+import { validateMigrationSliceBoard } from "./migration-slice-rules.js"
+import { readWorkItemIndex, resolveWorkItemPaths } from "./work-item-store.js"
+import {
   getArtifactReadiness,
   getIssueTelemetry,
   getNextAction,
@@ -13,8 +13,8 @@ const {
   summarizeArtifactReadinessLines,
   summarizeVerificationEvidence,
   summarizeVerificationReadinessLine,
-} = require("./runtime-guidance")
-const { applySequentialConstraintsToTasks } = require("./sequential-constraints")
+} from "./runtime-guidance.js"
+import { applySequentialConstraintsToTasks } from "./sequential-constraints.js"
 
 const ACTIVE_TASK_STATUSES = new Set(["claimed", "in_progress", "qa_in_progress"])
 const ALLOCATION_ACTIVE_TASK_STATUSES = new Set(["claimed", "in_progress", "qa_ready", "qa_in_progress"])
@@ -958,6 +958,6 @@ function getRuntimeContext(projectRoot, state) {
   }
 }
 
-module.exports = {
+export {
   getRuntimeContext,
 }

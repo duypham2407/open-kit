@@ -1,8 +1,8 @@
-const fs = require("fs")
-const path = require("path")
-const crypto = require("crypto")
+import fs from "node:fs"
+import path from "node:path"
+import crypto from "node:crypto"
 
-function resolveBackgroundRunPaths(projectRoot) {
+export function resolveBackgroundRunPaths(projectRoot) {
   const root = path.join(projectRoot, ".opencode", "background-runs")
   return {
     root,
@@ -31,7 +31,7 @@ function createEmptyIndex() {
   return { runs: [] }
 }
 
-function bootstrapBackgroundRunStore(projectRoot) {
+export function bootstrapBackgroundRunStore(projectRoot) {
   const paths = resolveBackgroundRunPaths(projectRoot)
   ensureDir(paths.root)
   if (!fs.existsSync(paths.indexPath)) {
@@ -55,7 +55,7 @@ function resolveBackgroundRunPath(projectRoot, runId) {
   return path.join(resolveBackgroundRunPaths(projectRoot).root, `${runId}.json`)
 }
 
-function createBackgroundRun({
+export function createBackgroundRun({
   runId = `bg_${crypto.randomBytes(4).toString("hex")}`,
   title,
   payload = {},
@@ -78,7 +78,7 @@ function createBackgroundRun({
   }
 }
 
-function recordBackgroundRun(projectRoot, run) {
+export function recordBackgroundRun(projectRoot, run) {
   bootstrapBackgroundRunStore(projectRoot)
   const index = readBackgroundRunIndex(projectRoot)
   const existing = index.runs.findIndex((entry) => entry.run_id === run.run_id)
@@ -103,7 +103,7 @@ function recordBackgroundRun(projectRoot, run) {
   return run
 }
 
-function readBackgroundRun(projectRoot, runId) {
+export function readBackgroundRun(projectRoot, runId) {
   const run = readJsonIfExists(resolveBackgroundRunPath(projectRoot, runId))
   if (!run) {
     throw new Error(`Background run '${runId}' not found`)
@@ -111,25 +111,15 @@ function readBackgroundRun(projectRoot, runId) {
   return run
 }
 
-function listBackgroundRuns(projectRoot) {
+export function listBackgroundRuns(projectRoot) {
   return readBackgroundRunIndex(projectRoot).runs
 }
 
-function updateBackgroundRun(projectRoot, runId, updates) {
+export function updateBackgroundRun(projectRoot, runId, updates) {
   const current = readBackgroundRun(projectRoot, runId)
   return recordBackgroundRun(projectRoot, {
     ...current,
     ...updates,
     updated_at: new Date().toISOString(),
   })
-}
-
-module.exports = {
-  bootstrapBackgroundRunStore,
-  createBackgroundRun,
-  listBackgroundRuns,
-  readBackgroundRun,
-  recordBackgroundRun,
-  resolveBackgroundRunPaths,
-  updateBackgroundRun,
 }

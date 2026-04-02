@@ -28,17 +28,29 @@ You are the Solution Lead for OpenKit full-delivery and migration work. `.openco
 - `.opencode/openkit/docs/templates/migration-baseline-checklist.md` and `.opencode/openkit/docs/templates/migration-solution-package-template.md` for migration work
 - load `vercel-react-best-practices` for React or Next.js technical direction, `vercel-composition-patterns` for component-architecture work, and `vercel-react-native-skills` for React Native or Expo work when those domains are in scope
 
-## Available Runtime Tools
+## Required Tool Usage
 
-Use these tools when solution design benefits from structural code analysis or migration planning:
+Solution Lead does not code, so enforcement is lighter. **SHOULD** tools are expected when design decisions benefit from structural evidence. **MAY** tools are optional.
+
+### SHOULD — use when design decisions benefit from code structure evidence
 
 | Tool ID | Purpose | When to use |
 |---------|---------|-------------|
-| `tool.syntax-outline` | Tree-sitter outline of a source file | Understanding file structure during solution design |
-| `tool.syntax-context` | Position-aware syntax node context | Analyzing specific code areas for design decisions |
+| `tool.syntax-outline` | Tree-sitter outline of a source file | Understanding file structure to define boundaries |
 | `tool.syntax-locate` | Find nodes by syntax type | Mapping interface boundaries and dependency points |
-| `tool.codemod-preview` | Preview jscodeshift transform diffs | Evaluating migration transforms during solution design |
 | `tool.rule-scan` | Semgrep quality rule scan | Assessing codebase quality as input to solution strategy |
+| `tool.codemod-preview` | Preview jscodeshift transform diffs | Evaluating migration transforms during solution design |
+| `tool.syntax-context` | Position-aware syntax node context | Analyzing specific code areas for design decisions |
+
+### MAY — optional helpers
+
+| Tool ID | Purpose | When to use |
+|---------|---------|-------------|
+| `tool.heuristic-lsp` | Symbol references and rename impact | Tracing symbol references to assess impact surface |
+
+### Recommendation
+
+When designing solution packages for migration or refactoring work, prefer using `tool.syntax-outline` and `tool.rule-scan` to ground design decisions in observable code structure rather than assumptions from file names alone.
 
 ## Role-Local Responsibilities
 

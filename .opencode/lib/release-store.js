@@ -1,5 +1,5 @@
-const fs = require("fs")
-const path = require("path")
+import fs from "node:fs"
+import path from "node:path"
 
 function fail(message) {
   const error = new Error(message)
@@ -34,7 +34,7 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8")
 }
 
-function resolveReleasePaths(projectRoot) {
+export function resolveReleasePaths(projectRoot) {
   const releasesDir = path.join(projectRoot, ".opencode", "releases")
   return {
     releasesDir,
@@ -42,7 +42,7 @@ function resolveReleasePaths(projectRoot) {
   }
 }
 
-function resolveReleaseCandidatePaths(projectRoot, releaseId) {
+export function resolveReleaseCandidatePaths(projectRoot, releaseId) {
   const paths = resolveReleasePaths(projectRoot)
   const releaseDir = path.join(paths.releasesDir, releaseId)
   return {
@@ -60,7 +60,7 @@ function createEmptyReleaseIndex() {
   }
 }
 
-function bootstrapReleaseStore(projectRoot) {
+export function bootstrapReleaseStore(projectRoot) {
   const paths = resolveReleasePaths(projectRoot)
   ensureDir(paths.releasesDir)
   if (!fs.existsSync(paths.indexPath)) {
@@ -69,25 +69,25 @@ function bootstrapReleaseStore(projectRoot) {
   return readReleaseIndex(projectRoot)
 }
 
-function readReleaseIndex(projectRoot) {
+export function readReleaseIndex(projectRoot) {
   return readJson(resolveReleasePaths(projectRoot).indexPath, "Release index missing")
 }
 
-function writeReleaseIndex(projectRoot, index) {
+export function writeReleaseIndex(projectRoot, index) {
   writeJson(resolveReleasePaths(projectRoot).indexPath, index)
   return index
 }
 
-function readReleaseCandidate(projectRoot, releaseId) {
+export function readReleaseCandidate(projectRoot, releaseId) {
   return readJson(resolveReleaseCandidatePaths(projectRoot, releaseId).releasePath, `Release candidate '${releaseId}' missing`)
 }
 
-function writeReleaseCandidate(projectRoot, releaseId, candidate) {
+export function writeReleaseCandidate(projectRoot, releaseId, candidate) {
   writeJson(resolveReleaseCandidatePaths(projectRoot, releaseId).releasePath, candidate)
   return candidate
 }
 
-function upsertReleaseIndexEntry(index, candidate, releaseId, relativeReleasePath) {
+export function upsertReleaseIndexEntry(index, candidate, releaseId, relativeReleasePath) {
   const nextEntry = {
     release_id: releaseId,
     title: candidate.title,
@@ -105,15 +105,4 @@ function upsertReleaseIndexEntry(index, candidate, releaseId, relativeReleasePat
   }
 
   return nextEntry
-}
-
-module.exports = {
-  bootstrapReleaseStore,
-  readReleaseCandidate,
-  readReleaseIndex,
-  resolveReleaseCandidatePaths,
-  resolveReleasePaths,
-  upsertReleaseIndexEntry,
-  writeReleaseCandidate,
-  writeReleaseIndex,
 }

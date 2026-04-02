@@ -1,4 +1,4 @@
-const MIGRATION_SLICE_STATUS_VALUES = [
+export const MIGRATION_SLICE_STATUS_VALUES = [
   "queued",
   "ready",
   "claimed",
@@ -56,7 +56,7 @@ function validateStringArrayEntries(field, values) {
   }
 }
 
-function validateMigrationSliceStatus(status) {
+export function validateMigrationSliceStatus(status) {
   if (!MIGRATION_SLICE_STATUS_VALUES.includes(status)) {
     fail(`Unknown migration slice status '${status}'`)
   }
@@ -64,7 +64,7 @@ function validateMigrationSliceStatus(status) {
   return status
 }
 
-function validateMigrationSliceShape(slice) {
+export function validateMigrationSliceShape(slice) {
   if (!slice || typeof slice !== "object" || Array.isArray(slice)) {
     fail("Migration slice must be an object")
   }
@@ -109,7 +109,7 @@ function buildSliceIndex(slices) {
   return index
 }
 
-function validateMigrationSliceTransition(slice, nextStatus) {
+export function validateMigrationSliceTransition(slice, nextStatus) {
   validateMigrationSliceShape(slice)
   validateMigrationSliceStatus(nextStatus)
   const allowed = TRANSITIONS.get(slice.status)
@@ -136,7 +136,7 @@ function validateMigrationSliceTransition(slice, nextStatus) {
   }
 }
 
-function validateMigrationSliceBoard(board) {
+export function validateMigrationSliceBoard(board) {
   if (!board || typeof board !== "object" || Array.isArray(board)) {
     fail("Migration slice board must be an object")
   }
@@ -208,12 +208,4 @@ function validateMigrationSliceBoard(board) {
   }
 
   return board
-}
-
-module.exports = {
-  MIGRATION_SLICE_STATUS_VALUES,
-  validateMigrationSliceBoard,
-  validateMigrationSliceShape,
-  validateMigrationSliceStatus,
-  validateMigrationSliceTransition,
 }

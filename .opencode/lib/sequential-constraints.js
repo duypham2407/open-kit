@@ -1,4 +1,4 @@
-function parseSequentialConstraintChain(constraint) {
+export function parseSequentialConstraintChain(constraint) {
   if (typeof constraint !== "string" || constraint.trim().length === 0) {
     throw new Error("parallelization.sequential_constraints[] must be a non-empty string")
   }
@@ -17,7 +17,7 @@ function parseSequentialConstraintChain(constraint) {
   return taskIds
 }
 
-function getSequentialConstraintChains(parallelization) {
+export function getSequentialConstraintChains(parallelization) {
   const sequentialConstraints = Array.isArray(parallelization?.sequential_constraints)
     ? parallelization.sequential_constraints
     : []
@@ -25,7 +25,7 @@ function getSequentialConstraintChains(parallelization) {
   return sequentialConstraints.map(parseSequentialConstraintChain)
 }
 
-function applySequentialConstraintsToTasks(tasks, parallelization) {
+export function applySequentialConstraintsToTasks(tasks, parallelization) {
   const normalizedTasks = JSON.parse(JSON.stringify(Array.isArray(tasks) ? tasks : []))
   const taskIndex = new Map(normalizedTasks.map((task) => [task.task_id, task]))
 
@@ -48,10 +48,4 @@ function applySequentialConstraintsToTasks(tasks, parallelization) {
   }
 
   return normalizedTasks
-}
-
-module.exports = {
-  applySequentialConstraintsToTasks,
-  getSequentialConstraintChains,
-  parseSequentialConstraintChain,
 }

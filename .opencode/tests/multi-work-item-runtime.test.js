@@ -1,13 +1,16 @@
-const test = require("node:test")
-const assert = require("node:assert/strict")
-const fs = require("fs")
-const os = require("os")
-const path = require("path")
+import test from "node:test"
+import assert from "node:assert/strict"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
-const {
+import {
   advanceStage,
   claimTask,
-  createTask: createBoardTask,
+  createTask as createBoardTask,
   linkArtifact,
   listTasks,
   reassignTask,
@@ -20,8 +23,8 @@ const {
   startFeature,
   startTask,
   validateWorkItemBoard,
-} = require("../lib/workflow-state-controller")
-const { readWorkItemIndex, readWorkItemState } = require("../lib/work-item-store")
+} from "../lib/workflow-state-controller.js"
+import { readWorkItemIndex, readWorkItemState } from "../lib/work-item-store.js"
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "openkit-multi-work-item-"))
@@ -35,9 +38,17 @@ function loadFixtureState() {
 function createTempStateFile() {
   const dir = makeTempDir()
   const opencodeDir = path.join(dir, ".opencode")
+  const templatesDir = path.join(dir, "docs", "templates")
   fs.mkdirSync(path.join(dir, "docs", "scope"), { recursive: true })
   fs.mkdirSync(path.join(dir, "docs", "solution"), { recursive: true })
+  fs.mkdirSync(templatesDir, { recursive: true })
   fs.mkdirSync(opencodeDir, { recursive: true })
+  for (const template of ["scope-package-template.md", "solution-package-template.md", "migration-solution-package-template.md", "migration-report-template.md"]) {
+    const src = path.resolve(__dirname, "../../docs/templates", template)
+    if (fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(templatesDir, template))
+    }
+  }
   const statePath = path.join(opencodeDir, "workflow-state.json")
   fs.writeFileSync(statePath, `${JSON.stringify(loadFixtureState(), null, 2)}\n`, "utf8")
   return statePath

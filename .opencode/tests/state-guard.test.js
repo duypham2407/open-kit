@@ -1,12 +1,12 @@
-const test = require("node:test")
-const assert = require("node:assert/strict")
+import test from "node:test"
+import assert from "node:assert/strict"
 
-const {
+import {
   captureRevision,
   detectMirrorDivergence,
   guardWrite,
   planGuardedMirrorRefresh,
-} = require("../lib/state-guard")
+} from "../lib/state-guard.js"
 
 function createState(overrides = {}) {
   return {

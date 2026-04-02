@@ -44,20 +44,47 @@ Load these skills when relevant:
 - `vercel-react-native-skills` — when working in React Native or Expo code
 - `find-skills` — when the task needs a capability not covered by bundled skills
 
-## Available Runtime Tools
+## Required Tool Usage
 
-Use these tools when the task benefits from structural code analysis or automated checks:
+Tools are classified by enforcement level. **MUST** tools are mandatory before advancing the corresponding stage. **SHOULD** tools are expected when the task context benefits. **MAY** tools are optional helpers.
+
+### MUST — run during `quick_test` before `quick_done`
+
+| Tool ID | Purpose | Enforcement |
+|---------|---------|-------------|
+| `tool.evidence-capture` | Record verification evidence into workflow state | Write at least one evidence record during `quick_test`. Do not advance to `quick_done` without an `evidence-capture` record in workflow state |
+
+### SHOULD — use during `quick_brainstorm` and `quick_test`
 
 | Tool ID | Purpose | When to use |
 |---------|---------|-------------|
-| `tool.syntax-outline` | Tree-sitter outline of a source file | Understanding file structure during brainstorm |
+| `tool.syntax-outline` | Tree-sitter outline of a source file | During `quick_brainstorm` when understanding file structure |
+| `tool.rule-scan` | Semgrep quality rule scan | During `quick_test` before claiming verified |
 | `tool.syntax-context` | Position-aware syntax node context | Navigating to specific code locations |
 | `tool.syntax-locate` | Find nodes by syntax type | Locating functions, classes, imports in a file |
-| `tool.rule-scan` | Semgrep quality rule scan | Quick quality check before completion |
-| `tool.security-scan` | Semgrep security audit scan | Checking for security anti-patterns |
+
+### MAY — optional helpers
+
+| Tool ID | Purpose | When to use |
+|---------|---------|-------------|
+| `tool.security-scan` | Semgrep security audit scan | When task touches auth or security surface |
 | `tool.codemod-preview` | Preview jscodeshift transform diffs | Evaluating automated refactoring before apply |
 | `tool.codemod-apply` | Apply jscodeshift transforms to disk | Executing approved codemods after preview |
 | `tool.ast-search` | Structural JSON/JSONC search | Searching config and manifest files |
+
+### Gate rule
+
+Do not advance to `quick_done` until at least one `tool.evidence-capture` record has been written to workflow state. If `tool.evidence-capture` is unavailable, record `tool.evidence-capture: unavailable — <reason>` in the output and document manual verification evidence explicitly in the `quick_test` output.
+
+### Evidence requirement in output
+
+The `quick_test` output must include a `Tool Evidence` section:
+
+```text
+Tool Evidence:
+- evidence-capture: <record_count> records written (or: unavailable — <reason>, manual evidence documented)
+- rule-scan: <finding_count> findings (or: not run — <reason>)
+```
 
 ## Stage Contract
 

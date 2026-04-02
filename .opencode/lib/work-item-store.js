@@ -1,5 +1,5 @@
-const fs = require("fs")
-const path = require("path")
+import fs from "node:fs"
+import path from "node:path"
 
 function fail(message) {
   const error = new Error(message)
@@ -59,7 +59,7 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "")
 }
 
-function deriveWorkItemId(state) {
+export function deriveWorkItemId(state) {
   if (state && typeof state.work_item_id === "string" && state.work_item_id.length > 0) {
     return state.work_item_id
   }
@@ -83,7 +83,7 @@ function resolvePaths(projectRoot) {
   }
 }
 
-function resolveWorkItemPaths(projectRoot, workItemId) {
+export function resolveWorkItemPaths(projectRoot, workItemId) {
   const paths = resolvePaths(projectRoot)
   const workItemDir = path.join(paths.workItemsDir, workItemId)
 
@@ -102,7 +102,7 @@ function createEmptyIndex() {
   }
 }
 
-function bootstrapRuntimeStore(runtimeRoot) {
+export function bootstrapRuntimeStore(runtimeRoot) {
   const paths = resolvePaths(runtimeRoot)
 
   ensureDir(paths.workItemsDir)
@@ -121,23 +121,23 @@ function bootstrapRuntimeStore(runtimeRoot) {
   return index
 }
 
-function readWorkItemIndex(projectRoot) {
+export function readWorkItemIndex(projectRoot) {
   const { indexPath } = resolvePaths(projectRoot)
   return readJson(indexPath, `Work-item index missing at '${indexPath}'`)
 }
 
-function writeWorkItemIndex(projectRoot, index) {
+export function writeWorkItemIndex(projectRoot, index) {
   const { indexPath } = resolvePaths(projectRoot)
   writeJson(indexPath, index)
   return index
 }
 
-function readWorkItemState(projectRoot, workItemId) {
+export function readWorkItemState(projectRoot, workItemId) {
   const { statePath } = resolveWorkItemPaths(projectRoot, workItemId)
   return readJson(statePath, `Work-item state missing at '${statePath}'`)
 }
 
-function writeWorkItemState(projectRoot, workItemId, state) {
+export function writeWorkItemState(projectRoot, workItemId, state) {
   const { statePath } = resolveWorkItemPaths(projectRoot, workItemId)
   const nextState = {
     ...state,
@@ -176,7 +176,7 @@ function readLegacyWorkflowState(projectRoot) {
   return readJson(workflowStatePath, `Compatibility workflow state missing at '${workflowStatePath}'`)
 }
 
-function refreshCompatibilityMirror(projectRoot) {
+export function refreshCompatibilityMirror(projectRoot) {
   const { workflowStatePath } = resolvePaths(projectRoot)
   const index = readWorkItemIndex(projectRoot)
 
@@ -190,13 +190,13 @@ function refreshCompatibilityMirror(projectRoot) {
   return activeState
 }
 
-function writeCompatibilityMirror(projectRoot, state) {
+export function writeCompatibilityMirror(projectRoot, state) {
   const { workflowStatePath } = resolvePaths(projectRoot)
   writeJson(workflowStatePath, state)
   return state
 }
 
-function bootstrapLegacyWorkflowState(projectRoot) {
+export function bootstrapLegacyWorkflowState(projectRoot) {
   const legacyState = readLegacyWorkflowState(projectRoot)
   const workItemId = deriveWorkItemId(legacyState)
   const workItemPaths = resolveWorkItemPaths(projectRoot, workItemId)
@@ -223,7 +223,7 @@ function bootstrapLegacyWorkflowState(projectRoot) {
   }
 }
 
-function setActiveWorkItem(projectRoot, workItemId) {
+export function setActiveWorkItem(projectRoot, workItemId) {
   const index = readWorkItemIndex(projectRoot)
   const entry = index.work_items.find((item) => item.work_item_id === workItemId)
 
@@ -239,7 +239,7 @@ function setActiveWorkItem(projectRoot, workItemId) {
   return index
 }
 
-function validateActiveMirror(projectRoot) {
+export function validateActiveMirror(projectRoot) {
   const { workflowStatePath } = resolvePaths(projectRoot)
   const index = readWorkItemIndex(projectRoot)
 
@@ -262,19 +262,4 @@ function validateActiveMirror(projectRoot) {
     active_work_item_id: index.active_work_item_id,
     mirror_state_path: workflowStatePath,
   }
-}
-
-module.exports = {
-  bootstrapRuntimeStore,
-  bootstrapLegacyWorkflowState,
-  deriveWorkItemId,
-  readWorkItemIndex,
-  readWorkItemState,
-  refreshCompatibilityMirror,
-  resolveWorkItemPaths,
-  setActiveWorkItem,
-  validateActiveMirror,
-  writeCompatibilityMirror,
-  writeWorkItemIndex,
-  writeWorkItemState,
 }

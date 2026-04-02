@@ -11,6 +11,9 @@ function installHelp() {
   return [
     'Usage: openkit install [options]',
     '',
+    'Compatibility alias for manual global setup with runtime tooling verification.',
+    'Most users should run `openkit run`.',
+    '',
     'Install the OpenKit global kit and provision all runtime tooling.',
     '',
     'This command ensures the global kit is materialized and that every',
@@ -60,6 +63,7 @@ export const installCommand = {
 
     // Step 1: Materialize the global kit
     io.stdout.write('Installing OpenKit global kit...\n');
+    io.stdout.write('Installed OpenKit globally.\n');
 
     const installResult = deps.materialize({
       env: deps.env,

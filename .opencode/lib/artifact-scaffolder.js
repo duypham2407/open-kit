@@ -1,7 +1,7 @@
-const fs = require("fs")
-const path = require("path")
+import fs from "node:fs"
+import path from "node:path"
 
-const SUPPORTED_SCAFFOLDS = {
+export const SUPPORTED_SCAFFOLDS = {
   task_card: {
     templatePath: "docs/templates/quick-task-template.md",
     outputDir: "docs/tasks",
@@ -20,7 +20,7 @@ const SUPPORTED_SCAFFOLDS = {
   },
 }
 
-const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 function formatDate(date = new Date()) {
   return date.toISOString().slice(0, 10)
@@ -56,7 +56,7 @@ function resolveTemplatePath(kind, mode) {
   return SUPPORTED_SCAFFOLDS[kind]?.templatePath ?? null
 }
 
-function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, featureSlug, sourceScopePackage, sourceSolutionPackage }) {
+export function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, featureSlug, sourceScopePackage, sourceSolutionPackage }) {
   const config = SUPPORTED_SCAFFOLDS[kind]
   if (!config) {
     throw new Error(`Unsupported scaffold kind '${kind}'`)
@@ -108,10 +108,4 @@ function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, featureSlu
     artifactPath: outputRelativePath,
     kind,
   }
-}
-
-module.exports = {
-  SLUG_PATTERN,
-  SUPPORTED_SCAFFOLDS,
-  scaffoldArtifact,
 }

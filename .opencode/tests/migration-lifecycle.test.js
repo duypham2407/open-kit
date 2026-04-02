@@ -16,12 +16,15 @@
  *   - migration_context CLI commands (set, append-*, show)
  */
 
-const test = require("node:test")
-const assert = require("node:assert/strict")
-const fs = require("fs")
-const os = require("os")
-const path = require("path")
-const { spawnSync } = require("child_process")
+import test from "node:test"
+import assert from "node:assert/strict"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+import { spawnSync } from "node:child_process"
+import { fileURLToPath } from "node:url"
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const CLI = path.resolve(__dirname, "../workflow-state.js")
 
@@ -373,6 +376,31 @@ test("full migration lifecycle: start-task to migration_done", () => {
   assertOk(r, "SLICE-002 parity_ready")
   r = run(projectRoot, ["set-migration-slice-status", workItemId, "SLICE-002", "verified"])
   assertOk(r, "SLICE-002 verified")
+
+  // 10b. Record tool evidence required by migration_code_review gates.
+  //      Two gates must be satisfied:
+  //      1. Tool evidence gate (Mức 2): needs rule-scan or codemod-preview source
+  //      2. Runtime policy engine (Mức 3): needs tool invocation log entries or a manual override
+  r = run(projectRoot, [
+    "record-verification-evidence",
+    "tool-rule-scan-001",
+    "automated",
+    "migration_upgrade",
+    "Ran rule-scan on migrated sources; no violations detected",
+    "rule-scan",
+  ])
+  assertOk(r, "record rule-scan tool evidence")
+
+  // Override the runtime policy gate (no actual tool invocation log in test env)
+  r = run(projectRoot, [
+    "record-verification-evidence",
+    "policy-override-migration-cr",
+    "manual",
+    "tool-evidence-override:migration_code_review",
+    "Test environment override: rule-scan evidence recorded above",
+    "manual",
+  ])
+  assertOk(r, "record policy override for migration_code_review")
 
   // 11. Approve upgrade_to_code_review → advance to migration_code_review
   r = run(projectRoot, [

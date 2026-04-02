@@ -6,6 +6,8 @@ function resolveActionTracking(input, tool) {
   return {
     subjectId: tool.id,
     actionKey: tool.id,
+    stage: null,
+    owner: null,
   };
 }
 
@@ -31,25 +33,45 @@ function shouldRecordSuccess(result) {
   return !/failed|error|missing|invalid|unsupported|degraded/i.test(result.status);
 }
 
-export function wrapToolExecution(tool, { actionModelStateManager } = {}) {
+export function wrapToolExecution(tool, { actionModelStateManager, invocationLogger } = {}) {
   if (!tool || typeof tool.execute !== 'function' || !actionModelStateManager) {
     return tool;
   }
 
   const execute = tool.execute.bind(tool);
 
+  function recordInvocation(status, startTime, tracking) {
+    if (!invocationLogger) {
+      return;
+    }
+
+    try {
+      invocationLogger.record({
+        toolId: tool.id,
+        status,
+        durationMs: Date.now() - startTime,
+        stage: tracking.stage ?? null,
+        owner: tracking.owner ?? null,
+      });
+    } catch {
+      // Invocation logging is best-effort; do not block tool execution
+    }
+  }
+
   return {
     ...tool,
     execute(...args) {
       const tracking = resolveActionTracking(args[0], tool);
       const sanitizedArgs = args.map((entry, index) => (index === 0 ? sanitizeInput(entry) : entry));
+      const startTime = Date.now();
 
       try {
         const result = execute(...sanitizedArgs);
         if (result && typeof result.then === 'function') {
           return result
             .then((value) => {
-              if (shouldRecordSuccess(value)) {
+              const success = shouldRecordSuccess(value);
+              if (success) {
                 actionModelStateManager.recordSuccess({
                   subjectId: tracking.subjectId,
                   actionKey: tracking.actionKey,
@@ -61,6 +83,7 @@ export function wrapToolExecution(tool, { actionModelStateManager } = {}) {
                   detail: value.status,
                 });
               }
+              recordInvocation(success ? 'success' : 'failure', startTime, tracking);
               return value;
             })
             .catch((error) => {
@@ -69,11 +92,13 @@ export function wrapToolExecution(tool, { actionModelStateManager } = {}) {
                 actionKey: tracking.actionKey,
                 detail: error instanceof Error ? error.message : String(error),
               });
+              recordInvocation('error', startTime, tracking);
               throw error;
             });
         }
 
-        if (shouldRecordSuccess(result)) {
+        const success = shouldRecordSuccess(result);
+        if (success) {
           actionModelStateManager.recordSuccess({
             subjectId: tracking.subjectId,
             actionKey: tracking.actionKey,
@@ -85,6 +110,7 @@ export function wrapToolExecution(tool, { actionModelStateManager } = {}) {
             detail: result.status,
           });
         }
+        recordInvocation(success ? 'success' : 'failure', startTime, tracking);
         return result;
       } catch (error) {
         actionModelStateManager.recordFailure({
@@ -92,6 +118,7 @@ export function wrapToolExecution(tool, { actionModelStateManager } = {}) {
           actionKey: tracking.actionKey,
           detail: error instanceof Error ? error.message : String(error),
         });
+        recordInvocation('error', startTime, tracking);
         throw error;
       }
     },

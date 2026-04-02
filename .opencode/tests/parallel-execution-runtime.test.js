@@ -1,7 +1,7 @@
-const test = require("node:test")
-const assert = require("node:assert/strict")
+import test from "node:test"
+import assert from "node:assert/strict"
 
-const {
+import {
   VALID_ASSIGNMENT_AUTHORITIES,
   decideQaFailLocalRework,
   validateFailureIsolation,
@@ -9,7 +9,7 @@ const {
   validateReassignmentAuthority,
   validateTaskScopedFinding,
   validateWorktreeMetadata,
-} = require("../lib/parallel-execution-rules")
+} from "../lib/parallel-execution-rules.js"
 
 function makeTask(overrides = {}) {
   return {

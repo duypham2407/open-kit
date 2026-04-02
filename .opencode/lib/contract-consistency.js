@@ -1,12 +1,12 @@
-const fs = require("fs")
-const path = require("path")
+import fs from "node:fs"
+import path from "node:path"
 
-const {
+import {
   ARTIFACT_KINDS,
   MODE_VALUES,
   MODE_STAGE_SEQUENCES,
   MODE_APPROVAL_GATES,
-} = require("./workflow-state-rules")
+} from "./workflow-state-rules.js"
 
 function listExistingMarkdownLiterals(markdown, values) {
   return values.filter((value) => markdown.includes(`\`${value}\``))
@@ -225,6 +225,6 @@ function summarizeChecks(checks) {
   return { checks, summary }
 }
 
-module.exports = {
+export {
   getContractConsistencyReport,
 }

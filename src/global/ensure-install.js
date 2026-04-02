@@ -1,11 +1,20 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 import { inspectGlobalDoctor } from './doctor.js';
 import { materializeGlobalInstall } from './materialize.js';
+import { getGlobalPaths } from './paths.js';
 import {
   ensureAstGrepInstalled,
   ensureSemgrepInstalled,
   isAstGrepAvailable,
   isSemgrepAvailable,
 } from './tooling.js';
+
+function hasManagedAstGrepShims(env) {
+  const { toolingBinRoot } = getGlobalPaths({ env });
+  return fs.existsSync(path.join(toolingBinRoot, 'ast-grep')) || fs.existsSync(path.join(toolingBinRoot, 'sg'));
+}
 
 export function ensureGlobalInstall({
   projectRoot = process.cwd(),
@@ -24,7 +33,7 @@ export function ensureGlobalInstall({
   }
 
   if (initialDoctor.status !== 'install-missing') {
-    const astGrepMissing = !isAstGrepAvailable({ env });
+    const astGrepMissing = !hasManagedAstGrepShims(env) || !isAstGrepAvailable({ env });
     const semgrepMissing = !isSemgrepAvailable({ env });
 
     if (!astGrepMissing && !semgrepMissing) {

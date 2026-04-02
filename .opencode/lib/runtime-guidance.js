@@ -1,4 +1,4 @@
-const { FULL_STAGE_SEQUENCE, MIGRATION_STAGE_SEQUENCE, QUICK_STAGE_SEQUENCE } = require("./workflow-state-rules")
+import { FULL_STAGE_SEQUENCE, MIGRATION_STAGE_SEQUENCE, QUICK_STAGE_SEQUENCE } from "./workflow-state-rules.js"
 
 const EVIDENCE_RULES = {
   quick: {
@@ -107,6 +107,87 @@ const ARTIFACT_RULES = {
       summary: "Optional architecture decision records.",
     },
   ],
+}
+
+// ---------------------------------------------------------------------------
+// Tool evidence gates (Mức 2)
+//
+// Each entry maps a target stage to the tool-sourced evidence that MUST exist
+// in state.verification_evidence before advanceStage allows the transition.
+//
+// The `requiredSources` array is an array of groups.  Each group is an array of
+// acceptable `source` field values.  At least one evidence entry whose `source`
+// matches each group must be present.
+//
+// When `fallbackManualAllowed` is true, a single entry with source "manual" and
+// the special scope `tool-evidence-override:<target_stage>` satisfies the entire
+// gate.  This exists so human operators can unblock the pipeline when a tool is
+// genuinely unavailable.
+//
+// Terminal `*_done` stages are NOT gated here because the existing EVIDENCE_RULES
+// and assertStageExitReadiness already enforce kind-based evidence requirements
+// at those stages.
+// ---------------------------------------------------------------------------
+const TOOL_EVIDENCE_GATES = {
+  quick: {},
+  migration: {
+    migration_code_review: {
+      requiredSources: [["rule-scan", "tool.rule-scan", "codemod-preview", "tool.codemod-preview"]],
+      fallbackManualAllowed: true,
+      summary: "Migration upgrade must record a rule-scan or codemod-preview before entering code review.",
+    },
+  },
+  full: {
+    full_code_review: {
+      requiredSources: [["rule-scan", "tool.rule-scan"]],
+      fallbackManualAllowed: true,
+      summary: "Fullstack must run rule-scan on changed files before entering code review.",
+    },
+    full_qa: {
+      requiredSources: [
+        ["rule-scan", "tool.rule-scan"],
+        ["security-scan", "tool.security-scan"],
+      ],
+      fallbackManualAllowed: true,
+      summary: "Code Reviewer must run rule-scan and security-scan before QA begins.",
+    },
+  },
+}
+
+function checkToolEvidenceGate(state, targetStage) {
+  const gate = TOOL_EVIDENCE_GATES[state?.mode]?.[targetStage]
+  if (!gate) {
+    return { passed: true, missingGroups: [], summary: null }
+  }
+
+  const evidence = getVerificationEvidence(state)
+  const availableSources = new Set(evidence.map((entry) => entry.source))
+
+  // Check for manual override
+  if (gate.fallbackManualAllowed) {
+    const overrideScope = `tool-evidence-override:${targetStage}`
+    const hasOverride = evidence.some(
+      (entry) => entry.source === "manual" && entry.scope === overrideScope,
+    )
+    if (hasOverride) {
+      return { passed: true, missingGroups: [], summary: gate.summary }
+    }
+  }
+
+  const missingGroups = []
+  for (const sourceGroup of gate.requiredSources) {
+    const satisfied = sourceGroup.some((src) => availableSources.has(src))
+    if (!satisfied) {
+      missingGroups.push(sourceGroup)
+    }
+  }
+
+  return {
+    passed: missingGroups.length === 0,
+    missingGroups,
+    summary: gate.summary,
+    fallbackManualAllowed: gate.fallbackManualAllowed,
+  }
 }
 
 const DOD_RULES = {
@@ -332,7 +413,8 @@ function getDodRule(mode) {
   return DOD_RULES[mode] ?? null
 }
 
-module.exports = {
+export {
+  checkToolEvidenceGate,
   getDodRule,
   flattenArtifactRefs,
   getArtifactReadiness,
@@ -345,4 +427,5 @@ module.exports = {
   summarizeArtifactReadinessLines,
   summarizeVerificationEvidence,
   summarizeVerificationReadinessLine,
+  TOOL_EVIDENCE_GATES,
 }

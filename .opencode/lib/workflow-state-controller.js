@@ -1,23 +1,23 @@
-const fs = require("fs")
-const path = require("path")
+import fs from "node:fs"
+import path from "node:path"
 
-const {
+import {
   bootstrapBackgroundRunStore,
   createBackgroundRun,
   listBackgroundRuns,
   readBackgroundRun,
   recordBackgroundRun,
   updateBackgroundRun,
-} = require("./background-run-store")
+} from "./background-run-store.js"
 
-const {
+import {
   resolveKitRoot,
   resolveProjectRoot,
   resolveRuntimeRoot,
   resolveStatePath,
-} = require("./runtime-paths")
+} from "./runtime-paths.js"
 
-const {
+import {
   bootstrapRuntimeStore,
   bootstrapLegacyWorkflowState,
   deriveWorkItemId,
@@ -28,8 +28,8 @@ const {
   writeCompatibilityMirror,
   writeWorkItemIndex,
   writeWorkItemState,
-} = require("./work-item-store")
-const {
+} from "./work-item-store.js"
+import {
   bootstrapReleaseStore,
   readReleaseCandidate,
   readReleaseIndex,
@@ -38,8 +38,8 @@ const {
   upsertReleaseIndexEntry,
   writeReleaseCandidate,
   writeReleaseIndex,
-} = require("./release-store")
-const {
+} from "./release-store.js"
+import {
   ARTIFACT_KINDS,
   ESCALATION_RETRY_THRESHOLD,
   ISSUE_SEVERITIES,
@@ -47,6 +47,7 @@ const {
   ISSUE_TYPES,
   LANE_SOURCE_VALUES,
   MODE_VALUES,
+  MODE_STAGE_SEQUENCES,
   PARALLEL_MODES,
   RECOMMENDED_OWNERS,
   ROOTED_IN_VALUES,
@@ -69,37 +70,65 @@ const {
   getNextStage,
   getReworkRoute,
   getTransitionGate,
-} = require("./workflow-state-rules")
-const { getContractConsistencyReport: buildContractConsistencyReport } = require("./contract-consistency")
-const { SUPPORTED_SCAFFOLDS, scaffoldArtifact } = require("./artifact-scaffolder")
-const { captureRevision, guardWrite, planGuardedMirrorRefresh } = require("./state-guard")
-const {
+} from "./workflow-state-rules.js"
+import { getContractConsistencyReport as buildContractConsistencyReport } from "./contract-consistency.js"
+import { SUPPORTED_SCAFFOLDS, scaffoldArtifact } from "./artifact-scaffolder.js"
+import { captureRevision, guardWrite, planGuardedMirrorRefresh } from "./state-guard.js"
+import {
   VALID_ASSIGNMENT_AUTHORITIES,
   decideQaFailLocalRework,
   validateParallelAssignments,
   validateReassignmentAuthority,
   validateWorktreeMetadata,
-} = require("./parallel-execution-rules")
-const { validateTaskBoard, validateTaskShape, validateTaskStatus, validateTaskTransition } = require("./task-board-rules")
-const {
+} from "./parallel-execution-rules.js"
+import { validateTaskBoard, validateTaskShape, validateTaskStatus, validateTaskTransition } from "./task-board-rules.js"
+import {
   validateMigrationSliceBoard,
   validateMigrationSliceShape,
   validateMigrationSliceStatus,
   validateMigrationSliceTransition,
-} = require("./migration-slice-rules")
-const {
+} from "./migration-slice-rules.js"
+import {
+  checkToolEvidenceGate,
   flattenArtifactRefs,
   getArtifactReadiness,
   getDodRule,
   getIssueTelemetry,
   getNextAction,
   getVerificationReadiness,
-} = require("./runtime-guidance")
-const { getRuntimeContext } = require("./runtime-summary")
-const {
-  applySequentialConstraintsToTasks: applySequentialConstraintsToTasksBase,
-  getSequentialConstraintChains: getSequentialConstraintChainsBase,
-} = require("./sequential-constraints")
+  TOOL_EVIDENCE_GATES,
+} from "./runtime-guidance.js"
+import { checkPolicy, enforcePolicy, listPolicies, TOOL_INVOCATION_POLICIES } from "./policy-engine.js"
+import { readInvocationLog, resolveLogPath } from "./invocation-log.js"
+import { getRuntimeContext } from "./runtime-summary.js"
+import {
+  applySequentialConstraintsToTasks as applySequentialConstraintsToTasksBase,
+  getSequentialConstraintChains as getSequentialConstraintChainsBase,
+} from "./sequential-constraints.js"
+
+// ---------------------------------------------------------------------------
+// Injectable store bindings (allows test-time DI without require.cache hacks)
+// ---------------------------------------------------------------------------
+// These bindings default to the real implementations from work-item-store.js.
+// Tests can call _overrideWorkItemStore({ readWorkItemState: mockFn, ... })
+// to substitute specific functions before invoking controller functions, and
+// _resetWorkItemStore() to restore the originals afterwards.
+
+const _storeDefaults = {
+  readWorkItemState,
+  writeCompatibilityMirror,
+  writeWorkItemIndex,
+}
+
+const _store = { ..._storeDefaults }
+
+export function _overrideWorkItemStore(overrides) {
+  Object.assign(_store, overrides)
+}
+
+export function _resetWorkItemStore() {
+  Object.assign(_store, _storeDefaults)
+}
 
 function getSequentialConstraintChains(parallelization) {
   try {
@@ -325,7 +354,7 @@ function readManagedState(customStatePath, workItemId = null) {
     projectRoot,
     index,
     workItemId: resolvedWorkItemId,
-    state: readWorkItemState(projectRoot, resolvedWorkItemId),
+    state: _store.readWorkItemState(projectRoot, resolvedWorkItemId),
   }
 }
 
@@ -338,7 +367,7 @@ function persistManagedState(customStatePath, state, options = {}) {
     ? readWorkItemIndex(projectRoot)
     : createEmptyWorkItemIndex()
   const hasPersistedState = fs.existsSync(workItemPaths.statePath)
-  const currentPersistedState = hasPersistedState ? readWorkItemState(projectRoot, workItemId) : null
+  const currentPersistedState = hasPersistedState ? _store.readWorkItemState(projectRoot, workItemId) : null
   const previousIndexSnapshot = JSON.parse(JSON.stringify(index))
   const hadMirrorState = fs.existsSync(statePath)
   const previousMirrorState = hadMirrorState ? readState(statePath).state : null
@@ -373,7 +402,7 @@ function persistManagedState(customStatePath, state, options = {}) {
         })
       }
 
-      writeCompatibilityMirror(projectRoot, persistedState)
+      _store.writeCompatibilityMirror(projectRoot, persistedState)
 
       const mirrorState = readState(statePath).state
       const mirrorRevision = captureRevision(mirrorState)
@@ -387,7 +416,7 @@ function persistManagedState(customStatePath, state, options = {}) {
 
     upsertWorkItemIndexEntry(index, persistedState, workItemId, workItemPaths.relativeStatePath)
     index.active_work_item_id = nextActiveWorkItemId
-    writeWorkItemIndex(projectRoot, index)
+    _store.writeWorkItemIndex(projectRoot, index)
   } catch (error) {
     if (currentPersistedState) {
       writeWorkItemState(projectRoot, workItemId, currentPersistedState)
@@ -396,13 +425,13 @@ function persistManagedState(customStatePath, state, options = {}) {
     }
 
     if (previousMirrorState) {
-      writeCompatibilityMirror(projectRoot, previousMirrorState)
+      _store.writeCompatibilityMirror(projectRoot, previousMirrorState)
     } else if (!hadMirrorState && fs.existsSync(statePath)) {
       fs.rmSync(statePath)
     }
 
     try {
-      writeWorkItemIndex(projectRoot, previousIndexSnapshot)
+      _store.writeWorkItemIndex(projectRoot, previousIndexSnapshot)
     } catch (_rollbackError) {
       // Preserve the original failure after best-effort rollback.
     }
@@ -490,7 +519,7 @@ function readWorkItemContext(workItemId, customStatePath) {
   ensureString(workItemId, "work_item_id")
   const statePath = resolveStatePath(customStatePath)
   const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  const state = readWorkItemState(projectRoot, workItemId)
+  const state = _store.readWorkItemState(projectRoot, workItemId)
   validateStateObject(state)
   validateManagedState(state, projectRoot, workItemId)
 
@@ -1771,7 +1800,7 @@ function listWorkItems(customStatePath) {
     projectRoot,
     index,
     workItems: index.work_items.map((entry) => {
-      const state = readWorkItemState(projectRoot, entry.work_item_id)
+      const state = _store.readWorkItemState(projectRoot, entry.work_item_id)
       return {
         ...entry,
         next_action: getNextAction(state),
@@ -1966,7 +1995,7 @@ function getTaskAgingReport(customStatePath) {
   const reports = []
 
   for (const item of index.work_items) {
-    const state = readWorkItemState(projectRoot, item.work_item_id)
+    const state = _store.readWorkItemState(projectRoot, item.work_item_id)
     const board = state.mode === "full" ? readTaskBoardIfExists(projectRoot, item.work_item_id) : null
     const tasks = Array.isArray(board?.tasks) ? board.tasks : []
     const staleTasks = tasks.filter((task) => ["claimed", "in_progress", "qa_in_progress", "blocked"].includes(task.status))
@@ -2109,6 +2138,63 @@ function getDefinitionOfDone(customStatePath) {
     )
   }
 
+  const doneStage = state.mode === "quick" ? "quick_done" : state.mode === "migration" ? "migration_done" : "full_done"
+  const toolEvidenceGate = checkToolEvidenceGate(state, doneStage)
+  const toolEvidenceBlockers = []
+
+  // Also check any intermediate gated transitions that have not yet been passed.
+  // Skip gates for stages the work item has already reached or moved beyond.
+  const modeSeq = MODE_STAGE_SEQUENCES[state.mode] ?? []
+  const currentIdx = modeSeq.indexOf(state.current_stage)
+  const modeGates = TOOL_EVIDENCE_GATES[state.mode] ?? {}
+  for (const [gatedStage, _gate] of Object.entries(modeGates)) {
+    const gatedIdx = modeSeq.indexOf(gatedStage)
+    if (gatedIdx >= 0 && currentIdx >= 0 && currentIdx >= gatedIdx) {
+      continue
+    }
+    const gateResult = checkToolEvidenceGate(state, gatedStage)
+    if (!gateResult.passed) {
+      toolEvidenceBlockers.push(
+        ...gateResult.missingGroups.map((group) => `missing tool evidence for ${gatedStage}: ${group.join(" or ")}`),
+      )
+    }
+  }
+
+  // Mức 3: Runtime Policy Engine — check invocation log for required tool runs
+  // Only check policies for stages that have NOT yet been passed.  When a
+  // work item is already at or beyond a gated stage, the policy was enforced
+  // at transition time and should not retroactively block DoD.
+  const policyBlockers = []
+  const policyEnforcementMode = state.policy_enforcement ?? "enforce"
+  if (policyEnforcementMode !== "off") {
+    const modePolicies = TOOL_INVOCATION_POLICIES[state.mode] ?? {}
+    for (const [policyStage, _policy] of Object.entries(modePolicies)) {
+      const policyStageIndex = modeSeq.indexOf(policyStage)
+      // Skip policies for stages already passed (current stage is at or beyond the policy stage)
+      if (policyStageIndex >= 0 && currentIdx >= 0 && currentIdx >= policyStageIndex) {
+        continue
+      }
+      const hasManualOverride = Array.isArray(state.verification_evidence) && state.verification_evidence.some(
+        (entry) => entry.source === "manual" && entry.scope === `tool-evidence-override:${policyStage}`,
+      )
+      if (hasManualOverride) {
+        continue
+      }
+      const policyResult = enforcePolicy({
+        mode: state.mode,
+        targetStage: policyStage,
+        runtimeRoot: projectRoot,
+        workItemId: state.work_item_id ?? workItemId,
+        enforcementMode: policyEnforcementMode,
+      })
+      if (!policyResult.allowed) {
+        policyBlockers.push(
+          ...policyResult.violations.map((v) => `runtime policy for ${policyStage}: ${v.message}`),
+        )
+      }
+    }
+  }
+
   return {
     statePath,
     workItemId,
@@ -2121,12 +2207,17 @@ function getDefinitionOfDone(customStatePath) {
     missingApprovals,
     missingArtifacts,
     migrationSliceBlockers,
+    toolEvidenceGate: { passed: toolEvidenceBlockers.length === 0 },
+    toolEvidenceBlockers,
+    policyBlockers,
     verificationReadiness: readiness.verificationReadiness,
     unresolvedIssues: readiness.unresolvedIssues,
     ready:
       missingApprovals.length === 0 &&
       missingArtifacts.length === 0 &&
       migrationSliceBlockers.length === 0 &&
+      toolEvidenceBlockers.length === 0 &&
+      policyBlockers.length === 0 &&
       readiness.ready,
   }
 }
@@ -2175,7 +2266,7 @@ function getWorkflowAnalytics(customStatePath) {
   }
 
   for (const item of index.work_items) {
-    const state = readWorkItemState(projectRoot, item.work_item_id)
+    const state = _store.readWorkItemState(projectRoot, item.work_item_id)
     analytics.byMode[state.mode] += 1
     analytics.totalRetries += state.retry_count ?? 0
     analytics.totalEscalations += state.escalated_from ? 1 : 0
@@ -2261,6 +2352,21 @@ function getPolicyExecutionTrace() {
           ".opencode/tests/workflow-contract-consistency.test.js",
         ],
       },
+      {
+        id: "tool-invocation-policy-engine",
+        level: "muc-3",
+        docs: [
+          "context/core/approval-gates.md",
+        ],
+        runtime: [
+          ".opencode/lib/policy-engine.js#enforcePolicy",
+          ".opencode/lib/invocation-log.js#readInvocationLog",
+          ".opencode/lib/workflow-state-controller.js#advanceStage",
+        ],
+        tests: [
+          ".opencode/tests/workflow-state-controller.test.js",
+        ],
+      },
     ],
   }
 }
@@ -2322,7 +2428,7 @@ function mutateReleaseCandidate(releaseId, customStatePath, mutator) {
 function addReleaseWorkItem(releaseId, workItemId, customStatePath) {
   ensureString(workItemId, "work_item_id")
   const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  readWorkItemState(projectRoot, workItemId)
+  _store.readWorkItemState(projectRoot, workItemId)
   return mutateReleaseCandidate(releaseId, customStatePath, (candidate) => {
     if (!candidate.included_work_items.includes(workItemId)) {
       candidate.included_work_items.push(workItemId)
@@ -2380,7 +2486,7 @@ function draftReleaseNotes(releaseId, customStatePath) {
 
   const notesPath = path.join(projectRoot, candidate.notes_path)
   const bullets = candidate.included_work_items.map((workItemId) => {
-    const state = readWorkItemState(projectRoot, workItemId)
+    const state = _store.readWorkItemState(projectRoot, workItemId)
     return `- ${state.feature_id ?? workItemId}: ${state.feature_slug ?? "work item"} (${state.mode})`
   })
   const content = [
@@ -3077,7 +3183,7 @@ function selectActiveWorkItem(workItemId, customStatePath) {
 
   try {
     setActiveWorkItem(projectRoot, workItemId)
-    const nextActiveState = readWorkItemState(projectRoot, workItemId)
+    const nextActiveState = _store.readWorkItemState(projectRoot, workItemId)
     const mirrorRefreshPlan = planGuardedMirrorRefresh({
       activeWorkItemId: workItemId,
       targetWorkItemId: workItemId,
@@ -3093,7 +3199,7 @@ function selectActiveWorkItem(workItemId, customStatePath) {
       })
     }
 
-    writeCompatibilityMirror(projectRoot, nextActiveState)
+    _store.writeCompatibilityMirror(projectRoot, nextActiveState)
     const state = readState(statePath).state
     const mirrorRevision = captureRevision(state)
 
@@ -3332,7 +3438,7 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath, op
   const projectRoot = ensureWorkItemStoreReady(customStatePath)
   const workItemPaths = resolveWorkItemPaths(projectRoot, workItemId)
   const index = readWorkItemIndex(projectRoot)
-  const existingState = fs.existsSync(workItemPaths.statePath) ? readWorkItemState(projectRoot, workItemId) : null
+  const existingState = fs.existsSync(workItemPaths.statePath) ? _store.readWorkItemState(projectRoot, workItemId) : null
   const expectedRevision = existingState ? captureRevision(existingState) : null
   const expectedMirrorRevision = index.active_work_item_id === workItemId && existingState ? expectedRevision : null
   const nextState = createFreshState({
@@ -3476,6 +3582,67 @@ function advanceStage(targetStage, customStatePath) {
     const requiredGate = getTransitionGate(state.mode, state.current_stage, targetStage)
     if (requiredGate && state.approvals[requiredGate].status !== "approved") {
       fail(`Cannot advance from '${state.current_stage}' to '${targetStage}' until gate '${requiredGate}' is approved`)
+    }
+
+    const toolGateResult = checkToolEvidenceGate(state, targetStage)
+    if (!toolGateResult.passed) {
+      const missingLabel = toolGateResult.missingGroups
+        .map((group) => group.join(" or "))
+        .join(", ")
+      const manualHint = toolGateResult.fallbackManualAllowed
+        ? ` To override, record manual evidence with scope 'tool-evidence-override:${targetStage}'.`
+        : ""
+      fail(
+        `Tool evidence gate blocked advance to '${targetStage}': missing tool-sourced evidence for [${missingLabel}].${manualHint}`,
+      )
+    }
+
+    // Mức 3: Runtime Policy Engine — check invocation log for required tool runs
+    const policyEnforcementMode = state.policy_enforcement ?? "enforce"
+    const hasManualPolicyOverride = Array.isArray(state.verification_evidence) && state.verification_evidence.some(
+      (entry) => entry.source === "manual" && entry.scope === `tool-evidence-override:${targetStage}`,
+    )
+    if (!hasManualPolicyOverride) {
+      const policyResult = enforcePolicy({
+        mode: state.mode,
+        targetStage,
+        runtimeRoot: projectRoot,
+        workItemId: state.work_item_id ?? workItemId,
+        enforcementMode: policyEnforcementMode,
+      })
+
+      if (!policyResult.allowed) {
+        const violationMessages = policyResult.violations.map((v) => v.message).join("; ")
+        fail(
+          `Runtime policy blocked advance to '${targetStage}': ${violationMessages}. ` +
+          `To override, record manual evidence with source 'manual' and scope 'tool-evidence-override:${targetStage}'.`,
+        )
+      }
+
+      if (policyResult.warnings.length > 0) {
+        const warningMessages = policyResult.warnings.map((w) => w.message)
+        if (!Array.isArray(state.issues)) {
+          state.issues = []
+        }
+        for (const warning of warningMessages) {
+          state.issues.push({
+            issue_id: `policy-warn-${targetStage}-${Date.now()}`,
+            title: `Policy warning for ${targetStage}`,
+            type: "bug",
+            severity: "low",
+            rooted_in: "implementation",
+            recommended_owner: "FullstackAgent",
+            evidence: warning,
+            artifact_refs: [],
+            current_status: "open",
+            opened_at: timestamp(),
+            last_updated_at: timestamp(),
+            reopen_count: 0,
+            repeat_count: 0,
+            blocked_since: null,
+          })
+        }
+      }
     }
 
     if (targetStage === "quick_done") {
@@ -3746,7 +3913,95 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
   })
 }
 
-module.exports = {
+// ---------------------------------------------------------------------------
+// Invocation log inspection (Mức 3 diagnostics)
+// ---------------------------------------------------------------------------
+
+function getInvocationLog(workItemId, customStatePath) {
+  const runtimeRoot = resolveRuntimeRoot(customStatePath)
+
+  // When no explicit workItemId is given, fall back to the active work item
+  let effectiveWorkItemId = workItemId ?? null
+  if (!effectiveWorkItemId) {
+    try {
+      const index = readWorkItemIndex(runtimeRoot)
+      effectiveWorkItemId = index?.active_work_item_id ?? null
+    } catch {
+      // no work item store — will use global log
+    }
+  }
+
+  const entries = readInvocationLog(runtimeRoot, effectiveWorkItemId)
+
+  return {
+    workItemId: effectiveWorkItemId,
+    logPath: resolveLogPath(runtimeRoot, effectiveWorkItemId),
+    entries,
+    totalEntries: entries.length,
+    successfulEntries: entries.filter((e) => e.status === "success").length,
+    failedEntries: entries.filter((e) => e.status === "failure" || e.status === "error").length,
+    uniqueTools: [...new Set(entries.map((e) => e.tool_id))],
+  }
+}
+
+function getPolicyStatus(customStatePath) {
+  const runtimeRoot = resolveRuntimeRoot(customStatePath)
+  const { state, statePath } = readState(customStatePath)
+
+  const workItemId = state.work_item_id ?? null
+  const mode = state.mode
+  const currentStage = state.current_stage
+  const enforcementMode = state.policy_enforcement ?? "enforce"
+
+  // Determine the next stage to transition to
+  const nextStage = getNextStage(mode, currentStage)
+
+  // Check if manual override exists for next stage
+  const hasManualOverride = Array.isArray(state.verification_evidence) &&
+    state.verification_evidence.some(
+      (entry) =>
+        entry.source === "manual" &&
+        entry.scope === `tool-evidence-override:${nextStage}`,
+    )
+
+  // Evaluate the policy for the next stage
+  let policyResult = null
+  if (nextStage) {
+    policyResult = checkPolicy({
+      mode,
+      targetStage: nextStage,
+      runtimeRoot,
+      workItemId,
+    })
+  }
+
+  // Also show the tool evidence gate status (Mức 2)
+  const toolEvidenceGate = nextStage ? checkToolEvidenceGate(state, nextStage) : null
+
+  return {
+    statePath,
+    mode,
+    currentStage,
+    nextStage,
+    enforcementMode,
+    hasManualOverride,
+    policy: policyResult
+      ? {
+          passed: policyResult.passed,
+          violations: policyResult.violations,
+          summary: policyResult.summary,
+        }
+      : null,
+    toolEvidenceGate: toolEvidenceGate
+      ? {
+          passed: toolEvidenceGate.passed,
+          blockers: toolEvidenceGate.blockers ?? [],
+        }
+      : null,
+  }
+}
+
+export {
   appendBaselineEvidence,
   appendCompatibilityHotspot,
   appendPreservedInvariant,
@@ -3770,6 +4025,7 @@ module.exports = {
   getBackgroundRuns,
   getContractConsistencyReport,
   getInstallManifest,
+  getInvocationLog,
   getIssueAgingReport,
   getProfile,
   getRegistry,
@@ -3777,6 +4033,7 @@ module.exports = {
   getDefinitionOfDone,
   getQaFailureSummary,
   getPolicyExecutionTrace,
+  getPolicyStatus,
   getReleaseCandidateReadiness,
   getReleaseDashboard,
   getReleaseReadiness,

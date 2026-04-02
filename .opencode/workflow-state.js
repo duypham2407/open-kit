@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-const fs = require("fs")
-const path = require("path")
+import fs from "node:fs"
+import path from "node:path"
 
-const {
+import {
   ESCALATION_RETRY_THRESHOLD,
   addReleaseWorkItem,
   appendBaselineEvidence,
@@ -24,9 +24,11 @@ const {
   getBackgroundRun,
   getBackgroundRuns,
   getDefinitionOfDone,
+  getInvocationLog,
   getIssueAgingReport,
   getOpsSummary,
   getPolicyExecutionTrace,
+  getPolicyStatus,
   getProfile,
   getQaFailureSummary,
   getReleaseCandidateReadiness,
@@ -87,10 +89,10 @@ const {
   validateHotfix,
   validateWorkItemBoard,
   validateState,
-} = require("./lib/workflow-state-controller")
-const { resolveWorkItemPaths, validateActiveMirror } = require("./lib/work-item-store")
-const { getRuntimeContext } = require("./lib/runtime-summary")
-const { flattenArtifactRefs } = require("./lib/runtime-guidance")
+} from "./lib/workflow-state-controller.js"
+import { resolveWorkItemPaths, validateActiveMirror } from "./lib/work-item-store.js"
+import { getRuntimeContext } from "./lib/runtime-summary.js"
+import { flattenArtifactRefs } from "./lib/runtime-guidance.js"
 
 function printUsage() {
   console.log(`Usage:
@@ -172,6 +174,8 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] approval-bottlenecks
   node .opencode/workflow-state.js [--state <path>] qa-failure-summary
   node .opencode/workflow-state.js [--state <path>] policy-trace
+  node .opencode/workflow-state.js [--state <path>] show-invocations [work_item_id]
+  node .opencode/workflow-state.js [--state <path>] show-policy-status
   node .opencode/workflow-state.js [--state <path>] clear-issues
   node .opencode/workflow-state.js [--state <path>] route-rework <issue_type> [repeat_failed_fix=true|false]
   node .opencode/workflow-state.js [--state <path>] show-migration-context
@@ -747,6 +751,12 @@ function printDefinitionOfDone(result) {
   if (result.missingArtifacts.length > 0) {
     console.log(`missing artifacts: ${result.missingArtifacts.join(", ")}`)
   }
+  console.log(`tool evidence gate: ${result.toolEvidenceGate?.passed ? "passed" : "blocked"}`)
+  if (Array.isArray(result.toolEvidenceBlockers) && result.toolEvidenceBlockers.length > 0) {
+    for (const blocker of result.toolEvidenceBlockers) {
+      console.log(`  ${blocker}`)
+    }
+  }
   console.log(`verification readiness: ${result.verificationReadiness.status}`)
   console.log(`unresolved issues: ${result.unresolvedIssues.length}`)
 }
@@ -787,6 +797,57 @@ function printPolicyTrace(result) {
     console.log(`  docs: ${policy.docs.join(", ")}`)
     console.log(`  runtime: ${policy.runtime.join(", ")}`)
     console.log(`  tests: ${policy.tests.join(", ")}`)
+  }
+}
+
+function printInvocationLog(result) {
+  console.log(`work item: ${result.workItemId ?? "global"}`)
+  console.log(`log path: ${result.logPath}`)
+  console.log(`total entries: ${result.totalEntries}`)
+  console.log(`successful: ${result.successfulEntries}`)
+  console.log(`failed: ${result.failedEntries}`)
+  if (result.uniqueTools.length > 0) {
+    console.log(`unique tools: ${result.uniqueTools.join(", ")}`)
+  }
+  if (result.entries.length === 0) {
+    console.log("no invocations recorded")
+    return
+  }
+  console.log("entries:")
+  for (const entry of result.entries) {
+    const duration = entry.duration_ms != null ? ` ${entry.duration_ms}ms` : ""
+    const stage = entry.stage ? ` stage=${entry.stage}` : ""
+    const owner = entry.owner ? ` owner=${entry.owner}` : ""
+    console.log(`  ${entry.recorded_at} | ${entry.tool_id} | ${entry.status}${duration}${stage}${owner}`)
+  }
+}
+
+function printPolicyStatus(result) {
+  console.log(`mode: ${result.mode}`)
+  console.log(`current stage: ${result.currentStage}`)
+  console.log(`next stage: ${result.nextStage ?? "none (terminal)"}`)
+  console.log(`enforcement mode: ${result.enforcementMode}`)
+  console.log(`manual override: ${result.hasManualOverride ? "yes" : "no"}`)
+  if (result.toolEvidenceGate) {
+    console.log(`tool evidence gate (Mức 2): ${result.toolEvidenceGate.passed ? "passed" : "blocked"}`)
+    if (result.toolEvidenceGate.blockers.length > 0) {
+      for (const blocker of result.toolEvidenceGate.blockers) {
+        console.log(`  ${blocker}`)
+      }
+    }
+  }
+  if (result.policy) {
+    console.log(`runtime policy (Mức 3): ${result.policy.passed ? "passed" : "blocked"}`)
+    if (result.policy.summary) {
+      console.log(`  policy: ${result.policy.summary}`)
+    }
+    if (result.policy.violations.length > 0) {
+      for (const violation of result.policy.violations) {
+        console.log(`  violation: ${violation.message}`)
+      }
+    }
+  } else {
+    console.log("runtime policy (Mức 3): no policy defined for next stage")
   }
 }
 
@@ -1259,6 +1320,17 @@ async function main() {
     case "policy-trace":
       result = getPolicyExecutionTrace()
       printPolicyTrace(result)
+      return
+    case "show-invocations":
+      result = getInvocationLog(rest[0] ?? null, statePath)
+      printInvocationLog(result)
+      return
+    case "show-policy-status":
+      result = getPolicyStatus(statePath)
+      printPolicyStatus(result)
+      process.exit(
+        (result.policy?.passed !== false && result.toolEvidenceGate?.passed !== false) || result.hasManualOverride ? 0 : 1,
+      )
       return
     case "claim-task":
       result = claimTask(rest[0], rest[1], rest[2], statePath, {

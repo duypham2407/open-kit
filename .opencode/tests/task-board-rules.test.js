@@ -1,13 +1,13 @@
-const test = require("node:test")
-const assert = require("node:assert/strict")
+import test from "node:test"
+import assert from "node:assert/strict"
 
-const {
+import {
   TASK_STATUS_VALUES,
   validateTaskBoard,
   validateTaskShape,
   validateTaskStatus,
   validateTaskTransition,
-} = require("../lib/task-board-rules")
+} from "../lib/task-board-rules.js"
 
 function makeTask(overrides = {}) {
   return {

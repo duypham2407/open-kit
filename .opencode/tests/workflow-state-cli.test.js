@@ -1,9 +1,12 @@
-const test = require("node:test")
-const assert = require("node:assert/strict")
-const fs = require("fs")
-const os = require("os")
-const path = require("path")
-const { spawnSync } = require("child_process")
+import test from "node:test"
+import assert from "node:assert/strict"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+import { spawnSync } from "node:child_process"
+import { fileURLToPath } from "node:url"
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 function makeTempProject() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "openkit-workflow-cli-"))
@@ -191,6 +194,14 @@ function writeTaskBoard(projectRoot, workItemId, board) {
   const boardPath = path.join(projectRoot, ".opencode", "work-items", workItemId, "tasks.json")
   fs.mkdirSync(path.dirname(boardPath), { recursive: true })
   fs.writeFileSync(boardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
+}
+
+function writeInvocationLog(projectRoot, workItemId, entries) {
+  const logPath = workItemId
+    ? path.join(projectRoot, ".opencode", "work-items", workItemId, "tool-invocations.json")
+    : path.join(projectRoot, ".opencode", "tool-invocations.json")
+  fs.mkdirSync(path.dirname(logPath), { recursive: true })
+  fs.writeFileSync(logPath, `${JSON.stringify({ entries }, null, 2)}\n`, "utf8")
 }
 
 function writeMigrationSliceBoard(projectRoot, workItemId, board) {
@@ -1059,6 +1070,15 @@ test("status reports missing migration evidence kinds until all required kinds a
   result = runCli(projectRoot, ["set-approval", "upgrade_to_code_review", "approved", "CodeReviewer"])
   assert.equal(result.status, 0)
 
+  // Seed invocation log entries required by Mức 3 policy for migration_code_review
+  writeInvocationLog(projectRoot, "migrate-951", [
+    { tool_id: "tool.rule-scan", status: "success", recorded_at: "2026-03-21T00:00:00Z" },
+  ])
+
+  // Record Mức 2 tool evidence required for migration_code_review
+  result = runCli(projectRoot, ["record-verification-evidence", "rule-scan-evidence", "automated", "migration_upgrade", "Rule scan complete", "tool.rule-scan"])
+  assert.equal(result.status, 0)
+
   result = runCli(projectRoot, ["advance-stage", "migration_code_review"])
   assert.equal(result.status, 0)
 
@@ -1076,7 +1096,7 @@ test("status reports missing migration evidence kinds until all required kinds a
 
   result = runCli(projectRoot, ["status"])
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /verification: missing-evidence \(runtime, automated\)/)
+  assert.match(result.stdout, /verification: missing-evidence \(runtime\)/)
 })
 
 test("status command shows task-aware runtime summary for active full-delivery work", () => {

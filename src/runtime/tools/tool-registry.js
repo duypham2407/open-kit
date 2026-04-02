@@ -34,7 +34,7 @@ import { createRuntimeSummaryTool } from './workflow/runtime-summary.js';
 import { createWorkflowStateTool } from './workflow/workflow-state.js';
 import { wrapToolExecution } from './wrap-tool-execution.js';
 
-export function createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, env = process.env }) {
+export function createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, invocationLogger = null, env = process.env }) {
   const disabledTools = new Set(config?.disabled?.tools ?? []);
   const definitions = [
     createWorkflowStateTool({ projectRoot, workflowKernel: managers.workflowKernel }),
@@ -86,7 +86,7 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
 
   const enabledTools = definitions
     .filter((tool) => !disabledTools.has(tool.id))
-    .map((tool) => wrapToolExecution(tool, { actionModelStateManager: managers.actionModelStateManager }));
+    .map((tool) => wrapToolExecution(tool, { actionModelStateManager: managers.actionModelStateManager, invocationLogger }));
 
   return {
     toolList: enabledTools,

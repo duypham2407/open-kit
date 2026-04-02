@@ -1,4 +1,4 @@
-const crypto = require("crypto")
+import crypto from "node:crypto"
 
 function fail(message, details = {}) {
   const error = new Error(message)
@@ -24,11 +24,11 @@ function sortJsonValue(value) {
   return value
 }
 
-function captureRevision(state) {
+export function captureRevision(state) {
   return crypto.createHash("sha256").update(JSON.stringify(sortJsonValue(state))).digest("hex")
 }
 
-function guardWrite({ currentState, expectedRevision, nextState }) {
+export function guardWrite({ currentState, expectedRevision, nextState }) {
   const currentRevision = captureRevision(currentState)
 
   if (expectedRevision && currentRevision !== expectedRevision) {
@@ -46,7 +46,7 @@ function guardWrite({ currentState, expectedRevision, nextState }) {
   }
 }
 
-function planGuardedMirrorRefresh({ activeWorkItemId, targetWorkItemId, nextState }) {
+export function planGuardedMirrorRefresh({ activeWorkItemId, targetWorkItemId, nextState }) {
   const shouldRefreshMirror = activeWorkItemId === targetWorkItemId
 
   return {
@@ -57,7 +57,7 @@ function planGuardedMirrorRefresh({ activeWorkItemId, targetWorkItemId, nextStat
   }
 }
 
-function detectMirrorDivergence({ activeWorkItemId, activeState, mirrorState }) {
+export function detectMirrorDivergence({ activeWorkItemId, activeState, mirrorState }) {
   const activeRevision = captureRevision(activeState)
 
   if (!mirrorState) {
@@ -89,11 +89,4 @@ function detectMirrorDivergence({ activeWorkItemId, activeState, mirrorState }) 
     isDiverged: false,
     reason: null,
   }
-}
-
-module.exports = {
-  captureRevision,
-  detectMirrorDivergence,
-  guardWrite,
-  planGuardedMirrorRefresh,
 }

@@ -1,9 +1,9 @@
-const crypto = require("crypto")
-const fs = require("fs")
-const os = require("os")
-const path = require("path")
+import crypto from "node:crypto"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 
-function getOpenCodeHome(env = process.env) {
+export function getOpenCodeHome(env = process.env) {
   if (env.OPENCODE_HOME) {
     return path.resolve(env.OPENCODE_HOME)
   }
@@ -17,7 +17,7 @@ function getOpenCodeHome(env = process.env) {
   return path.join(base, "opencode")
 }
 
-function detectProjectRoot(startDir) {
+export function detectProjectRoot(startDir) {
   let current = path.resolve(startDir || process.cwd())
 
   for (;;) {
@@ -33,12 +33,12 @@ function detectProjectRoot(startDir) {
   }
 }
 
-function createWorkspaceId(projectRoot) {
+export function createWorkspaceId(projectRoot) {
   const seed = process.platform === "win32" ? projectRoot.toLowerCase() : projectRoot
   return crypto.createHash("sha256").update(seed).digest("hex").slice(0, 16)
 }
 
-function resolveProjectRoot(customStatePath, env = process.env) {
+export function resolveProjectRoot(customStatePath, env = process.env) {
   if (env.OPENKIT_PROJECT_ROOT) {
     return path.resolve(env.OPENKIT_PROJECT_ROOT)
   }
@@ -54,7 +54,7 @@ function resolveProjectRoot(customStatePath, env = process.env) {
   return detectProjectRoot(process.cwd())
 }
 
-function resolveKitRoot(projectRoot, env = process.env) {
+export function resolveKitRoot(projectRoot, env = process.env) {
   if (env.OPENKIT_KIT_ROOT) {
     return path.resolve(env.OPENKIT_KIT_ROOT)
   }
@@ -62,7 +62,7 @@ function resolveKitRoot(projectRoot, env = process.env) {
   return projectRoot
 }
 
-function resolveStatePath(customStatePath, env = process.env) {
+export function resolveStatePath(customStatePath, env = process.env) {
   if (customStatePath) {
     return path.resolve(customStatePath)
   }
@@ -80,16 +80,6 @@ function resolveStatePath(customStatePath, env = process.env) {
   return path.resolve(process.cwd(), ".opencode", "workflow-state.json")
 }
 
-function resolveRuntimeRoot(customStatePath, env = process.env) {
+export function resolveRuntimeRoot(customStatePath, env = process.env) {
   return path.dirname(path.dirname(resolveStatePath(customStatePath, env)))
-}
-
-module.exports = {
-  createWorkspaceId,
-  detectProjectRoot,
-  getOpenCodeHome,
-  resolveKitRoot,
-  resolveProjectRoot,
-  resolveRuntimeRoot,
-  resolveStatePath,
 }

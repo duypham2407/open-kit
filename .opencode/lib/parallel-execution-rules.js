@@ -4,7 +4,7 @@ const VALID_QA_REWORK_STAGES = new Set(["full_qa", "full_implementation"])
 const VALID_QA_REWORK_DECIDERS = new Set(["MasterOrchestrator", "SolutionLead"])
 const VALID_QA_REWORK_OWNERS = new Set(["QAAgent", "FullstackAgent"])
 
-const VALID_ASSIGNMENT_AUTHORITIES = {
+export const VALID_ASSIGNMENT_AUTHORITIES = {
   primary_owner: ["MasterOrchestrator", "SolutionLead"],
   qa_owner: ["MasterOrchestrator", "SolutionLead"],
 }
@@ -50,13 +50,13 @@ function validatePerTaskOwnerField(tasks, ownerField) {
   }
 }
 
-function validateParallelAssignments(tasks) {
+export function validateParallelAssignments(tasks) {
   validatePerTaskOwnerField(tasks, "primary_owner")
   validatePerTaskOwnerField(tasks, "qa_owner")
   return tasks
 }
 
-function validateReassignmentAuthority({ task, ownerField, requestedBy, nextOwner }) {
+export function validateReassignmentAuthority({ task, ownerField, requestedBy, nextOwner }) {
   validateTaskReference(task, "Reassignment validation")
 
   if (!Object.prototype.hasOwnProperty.call(VALID_ASSIGNMENT_AUTHORITIES, ownerField)) {
@@ -109,7 +109,7 @@ function validateReassignmentAuthority({ task, ownerField, requestedBy, nextOwne
   }
 }
 
-function validateTaskScopedFinding(finding, task) {
+export function validateTaskScopedFinding(finding, task) {
   if (!finding || typeof finding !== "object" || Array.isArray(finding)) {
     fail("A task-scoped finding must be an object")
   }
@@ -149,7 +149,7 @@ function validateTaskScopedFinding(finding, task) {
   return finding
 }
 
-function validateFailureIsolation(finding, task) {
+export function validateFailureIsolation(finding, task) {
   validateTaskScopedFinding(finding, task)
 
   if (finding.blocks_parallel_work === true) {
@@ -191,7 +191,7 @@ function validateQaFailRerouteDecision(rerouteDecision) {
   return rerouteDecision
 }
 
-function decideQaFailLocalRework({ mode, task, finding, rerouteDecision }) {
+export function decideQaFailLocalRework({ mode, task, finding, rerouteDecision }) {
   if (mode !== "full") {
     fail("QA fail local rework routing is only allowed in full mode")
   }
@@ -216,7 +216,7 @@ function decideQaFailLocalRework({ mode, task, finding, rerouteDecision }) {
   }
 }
 
-function validateWorktreeMetadata(metadata) {
+export function validateWorktreeMetadata(metadata) {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
     fail("Worktree metadata must be an object")
   }
@@ -248,14 +248,4 @@ function validateWorktreeMetadata(metadata) {
   }
 
   return metadata
-}
-
-module.exports = {
-  VALID_ASSIGNMENT_AUTHORITIES,
-  decideQaFailLocalRework,
-  validateFailureIsolation,
-  validateParallelAssignments,
-  validateReassignmentAuthority,
-  validateTaskScopedFinding,
-  validateWorktreeMetadata,
 }
