@@ -129,6 +129,30 @@ If guidance conflicts with repository state, trust the repository state and upda
 
 Because the repository is still minimal, agents should explain assumptions plainly and avoid acting as if hidden infrastructure exists.
 
+## Tool Usage Rules
+
+Agents MUST follow `context/core/tool-substitution-rules.md` at all times. The key principles:
+
+1. **OS commands are blocked.** Do NOT use `grep`, `find`, `cat`, `head`, `tail`, `sed`, `awk`, `wc`, or `echo > file` on source code files. Use the built-in tools (Grep, Glob, Read, Edit, Write) instead. In quick and full modes this is enforced at runtime — blocked commands will be rejected.
+
+2. **Prefer kit intelligence tools over basic built-in tools** when the task benefits from structural or semantic understanding:
+
+   | Instead of | Consider | When |
+   |---|---|---|
+   | Grep tool (regex) | `tool.semantic-search` | Exploring unfamiliar code by meaning, not exact pattern |
+   | Grep tool (regex) | `tool.ast-grep-search` | Searching for structural code patterns (function calls, class shapes) |
+   | Glob tool | `tool.find-symbol` | Looking up where a specific symbol is defined |
+   | Glob tool | `tool.import-graph` | Tracing which files import/export from a target |
+   | Read tool (full file) | `tool.syntax-outline` | Understanding file structure before reading the whole file |
+   | Read tool (position) | `tool.syntax-context` | Getting surrounding code context at a specific location |
+   | Edit tool | `tool.codemod-preview` / `tool.codemod-apply` | Applying the same transformation across multiple files safely |
+   | Manual tracing | `tool.find-dependencies` / `tool.find-dependents` | Mapping module dependency graphs |
+   | Manual tracing | `tool.goto-definition` / `tool.find-references` | Navigating code like an IDE |
+   | Manual tracing | `tool.call-hierarchy` | Understanding call chains |
+   | Manual renaming | `tool.rename-preview` | Previewing multi-file rename impact |
+
+3. **Fallback is always allowed.** If a kit tool is unavailable, degraded, or not indexed yet, fall back to the basic built-in tool. But try the smarter tool first.
+
 ## Build, Lint, And Test Commands
 
 Current state:

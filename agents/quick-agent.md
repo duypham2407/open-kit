@@ -118,7 +118,7 @@ This stage is a bookkeeping step. Do not linger here.
 
 This is the most important part of brainstorm. You must understand the codebase before proposing solutions.
 
-- Search for all files related to the user's request using grep, glob, and semantic search
+- Search for all files related to the user's request using the **Grep tool** (built-in), **Glob tool**, **`tool.semantic-search`**, and **`tool.find-symbol`**
 - Read the relevant source files completely — do not skim or read only function signatures
 - Trace the call chain: who calls this code, what does this code call, what data flows through it
 - Identify the test files that cover this area. Read them to understand expected behavior
