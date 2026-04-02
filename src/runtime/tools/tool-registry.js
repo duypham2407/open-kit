@@ -40,6 +40,10 @@ import { createSessionSearchTool } from './session/session-search.js';
 import { createSyntaxContextTool } from './syntax/syntax-context.js';
 import { createSyntaxLocateTool } from './syntax/syntax-locate.js';
 import { createSyntaxOutlineTool } from './syntax/syntax-outline.js';
+import { createTypecheckTool } from './external/typecheck.js';
+import { createLintTool } from './external/lint.js';
+import { createTestRunTool } from './external/test-run.js';
+import { createExternalToolRunner } from './external/tool-runner.js';
 import { createEvidenceCaptureTool } from './workflow/evidence-capture.js';
 import { createRuntimeSummaryTool } from './workflow/runtime-summary.js';
 import { createWorkflowStateTool } from './workflow/workflow-state.js';
@@ -104,6 +108,8 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     createCallHierarchyTool({ projectGraphManager: managers.projectGraphManager }),
     createRenamePreviewTool({ projectGraphManager: managers.projectGraphManager }),
     createSemanticSearchTool({ projectGraphManager: managers.projectGraphManager, sessionMemoryManager: managers.sessionMemoryManager }),
+    // External tooling — gated by project-local config detection
+    ...createExternalTools({ projectRoot, env }),
   ];
 
   const enabledTools = definitions
@@ -114,4 +120,20 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     toolList: enabledTools,
     tools: Object.fromEntries(enabledTools.map((tool) => [tool.id, tool])),
   };
+}
+
+// ---------------------------------------------------------------------------
+// External tool factory — lazily creates the tool runner and external tools.
+// Each tool self-gates based on project config presence so unused tools
+// return status: 'unavailable' without side effects.
+// ---------------------------------------------------------------------------
+
+function createExternalTools({ projectRoot, env }) {
+  const toolRunner = createExternalToolRunner({ projectRoot, env });
+
+  return [
+    createTypecheckTool({ projectRoot, toolRunner }),
+    createLintTool({ projectRoot, toolRunner }),
+    createTestRunTool({ projectRoot, toolRunner }),
+  ];
 }

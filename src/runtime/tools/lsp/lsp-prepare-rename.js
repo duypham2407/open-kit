@@ -23,6 +23,8 @@ export function createLspPrepareRenameTool({ projectRoot = process.cwd(), projec
             referenceCount: result.totalCount,
             isReady: result.definitions.length > 0,
             conflicts: [],
+            scopeFiltered: result.scopeFiltered === true,
+            importScoped: result.importScoped === true,
           };
         }
       }

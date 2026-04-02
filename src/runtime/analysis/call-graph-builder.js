@@ -2,14 +2,13 @@
 // Call Graph Builder
 //
 // Walks a tree-sitter CST for a single file and extracts function call
-// relationships.  For each function/method symbol declared in the file,
-// it finds all call expressions within that symbol's body and records
-// the callee name + line number.
+// relationships.  For each callable symbol declared in the file (functions,
+// methods, arrow-function variables, constructors), it finds all call
+// expressions within that symbol's body and records the callee name + line.
 //
 // Callee resolution is name-based: we record the callee identifier and
-// optionally resolve it to a node_id if the callee name matches an
-// imported symbol's source file.  Full type-based resolution is out of
-// scope for Phase 3.
+// resolve it to a node_id (file) and optionally a symbol_id if the callee
+// name matches an exported symbol in the imported file.
 // ---------------------------------------------------------------------------
 
 /**
@@ -19,15 +18,16 @@
  *   tree: object,
  *   source: string,
  *   filePath: string,
- *   symbols: Array<{ name: string, kind: string, line: number, startLine?: number, endLine?: number }>,
+ *   symbols: Array<{ name: string, kind: string, line: number, startLine?: number, endLine?: number, signature?: string }>,
  *   imports: Array<{ resolvedPath: string|null, importedNames: string[] }>,
  *   db: {
  *     findSymbolByName: (name: string) => Array<{ id: number, node_id: number, path: string, is_export: number }>,
  *     getNode: (path: string) => { id: number } | null,
+ *     getSymbolsByNode?: (nodeId: number) => Array<{ id: number, name: string, is_export: number }>,
  *   },
  *   symbolIds: Map<string, number>,
  * }} opts
- * @returns {Array<{ callerSymbolId: number, calleeName: string, calleeNodeId: number|null, line: number }>}
+ * @returns {Array<{ callerSymbolId: number, calleeName: string, calleeNodeId: number|null, calleeSymbolId: number|null, line: number }>}
  */
 export function buildCallGraph({ tree, source, filePath, symbols, imports, db, symbolIds }) {
   const calls = [];
@@ -35,12 +35,11 @@ export function buildCallGraph({ tree, source, filePath, symbols, imports, db, s
   // Build a map from imported name → resolved file node ID for callee resolution
   const importResolveMap = buildImportResolveMap(imports, db);
 
-  // For each callable symbol (function, method), find its AST node and
-  // extract call expressions from its body
   const root = tree.rootNode;
 
   for (const sym of symbols) {
-    if (sym.kind !== 'function' && sym.kind !== 'method') continue;
+    // G09: expand caller kinds beyond function/method
+    if (!isCallableSymbol(sym)) continue;
 
     const symbolId = symbolIds.get(symbolKey(sym));
     if (symbolId == null) continue;
@@ -50,11 +49,42 @@ export function buildCallGraph({ tree, source, filePath, symbols, imports, db, s
     if (!astNode) continue;
 
     // Walk the body and collect call expressions
-    const bodyNode = astNode.childForFieldName?.('body') ?? astNode;
-    extractCallExpressions(bodyNode, source, symbolId, importResolveMap, calls);
+    let bodyNode = astNode.childForFieldName?.('body') ?? astNode;
+    if (sym.kind === 'class') {
+      // For classes, track constructor calls under the class symbol.
+      const constructor = findConstructorMethod(astNode, source);
+      if (!constructor) {
+        continue;
+      }
+      bodyNode = constructor.childForFieldName?.('body') ?? constructor;
+    }
+    extractCallExpressions(bodyNode, source, symbolId, importResolveMap, db, calls);
   }
 
   return calls;
+}
+
+// ---------------------------------------------------------------------------
+// Internal: determine if a symbol should be tracked as a caller
+// ---------------------------------------------------------------------------
+
+/**
+ * A symbol is callable (and thus a potential caller) if it is:
+ * - a function or method declaration
+ * - a variable whose signature indicates an arrow/function expression
+ *   (the import-graph-builder records signatures like "=> ..." or "(params) => ...")
+ * - a class (we track the constructor's calls under the class symbol)
+ */
+function isCallableSymbol(sym) {
+  if (sym.kind === 'function' || sym.kind === 'method') return true;
+  if (sym.kind === 'variable' && sym.signature && (
+    sym.signature.includes('=>') || sym.signature.includes('function')
+  )) {
+    return true;
+  }
+  // For classes, we want to track constructor calls
+  if (sym.kind === 'class') return true;
+  return false;
 }
 
 // ---------------------------------------------------------------------------
@@ -127,11 +157,26 @@ function findNodeByNameAndLine(root, source, name, row) {
   return null;
 }
 
+function findConstructorMethod(classNode, source) {
+  const body = classNode.childForFieldName?.('body') ?? classNode;
+  const children = body.namedChildren ?? [];
+  for (const child of children) {
+    if (child.type !== 'method_definition') continue;
+    const nameField = child.childForFieldName?.('name');
+    if (!nameField) continue;
+    const name = source.slice(nameField.startIndex, nameField.endIndex);
+    if (name === 'constructor') {
+      return child;
+    }
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------------------
 // Internal: extract call expressions from a function body
 // ---------------------------------------------------------------------------
 
-function extractCallExpressions(node, source, callerSymbolId, importResolveMap, calls) {
+function extractCallExpressions(node, source, callerSymbolId, importResolveMap, db, calls) {
   const queue = [node];
 
   while (queue.length > 0) {
@@ -142,11 +187,13 @@ function extractCallExpressions(node, source, callerSymbolId, importResolveMap, 
       if (calleeName) {
         // Try to resolve the callee to a known imported file node
         const calleeNodeId = importResolveMap.get(calleeName) ?? null;
+        const calleeSymbolId = resolveCalleeSymbolId(db, calleeName, calleeNodeId);
 
         calls.push({
           callerSymbolId,
           calleeName,
           calleeNodeId,
+          calleeSymbolId,
           line: current.startPosition.row + 1,
         });
       }
@@ -164,6 +211,13 @@ function extractCallExpressions(node, source, callerSymbolId, importResolveMap, 
       queue.push(child);
     }
   }
+}
+
+function resolveCalleeSymbolId(db, calleeName, calleeNodeId) {
+  if (!calleeNodeId || !db?.getSymbolsByNode) return null;
+  const symbols = db.getSymbolsByNode(calleeNodeId) ?? [];
+  const exported = symbols.find((s) => s.name === calleeName && Number(s.is_export) === 1);
+  return exported?.id ?? null;
 }
 
 /**

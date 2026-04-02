@@ -41,7 +41,10 @@ export function createSemanticSearchTool({ projectGraphManager, sessionMemoryMan
           const vectorResults = sessionMemoryManager?.hasEmbeddingProvider
             ? await sessionMemoryManager.semanticSearchQuery(query, { topK, minScore })
             : [];
-          const keywordResult = executeKeywordSearch(projectGraphManager, query, { topK });
+          const keywordResult = executeKeywordSearch(projectGraphManager, query, {
+            topK,
+            sessionMemoryManager,
+          });
           const keywordResults = keywordResult.results ?? [];
 
           if (vectorResults.length > 0 && keywordResults.length > 0) {
@@ -124,6 +127,36 @@ export function createSemanticSearchTool({ projectGraphManager, sessionMemoryMan
 // ---------------------------------------------------------------------------
 
 function executeKeywordSearch(manager, query, { topK = 20, sessionMemoryManager = null } = {}) {
+  if (sessionMemoryManager?.semanticKeywordSearch) {
+    const embeddingKeyword = sessionMemoryManager.semanticKeywordSearch(query, { topK });
+    if (embeddingKeyword.length > 0) {
+      const enriched = embeddingKeyword.map((result) => ({
+        ...result,
+        absolutePath: result.path,
+        score: clampMergedScore(result.score ?? 0),
+        keywordScore: clampMergedScore(result.score ?? 0),
+        scoreBreakdown: {
+          vector: 0,
+          keyword: clampMergedScore(result.score ?? 0),
+          rerank: 0,
+        },
+        symbolName: result.metadata?.symbolName ?? null,
+        kind: result.metadata?.kind ?? null,
+        startLine: result.metadata?.startLine ?? null,
+        endLine: result.metadata?.endLine ?? null,
+      }));
+
+      return {
+        status: 'ok',
+        query,
+        keywords: query.split(/\s+/).filter(Boolean),
+        searchMode: 'keyword-fts',
+        results: enriched,
+        totalMatches: enriched.length,
+      };
+    }
+  }
+
   // Split query into keywords, preserving original casing for exact lookups
   const keywords = query.split(/\s+/).filter(Boolean);
   if (keywords.length === 0) {

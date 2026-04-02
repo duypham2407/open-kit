@@ -127,6 +127,13 @@ Built-in MCPs:
 - `mcp.docs-search`
 - `mcp.code-search`
 
+Phase-4 behavior updates:
+
+- MCP platform now receives `sessionMemoryManager` during bootstrap
+- builtin MCPs are created with executable handlers (not metadata-only)
+- external MCP server definitions are normalized from loaded MCP config
+- dispatch is asynchronous and supports builtin + external transports with timeout/error boundaries
+
 ### Step 10: Hooks
 
 Created by:

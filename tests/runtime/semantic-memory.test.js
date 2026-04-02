@@ -210,6 +210,31 @@ test('getEmbeddingByChunk retrieves by chunk ID', () => {
   db.close();
 });
 
+test('searchEmbeddingsKeyword uses fallback text search and returns matches', () => {
+  const db = new ProjectGraphDb(':memory:');
+
+  db.indexFile({ filePath: '/project/src/a.js', mtime: 1, edges: [], symbols: [] });
+  const node = db.getNode('/project/src/a.js');
+  const vec = new Float32Array([1, 2, 3]);
+
+  db.replaceEmbeddingsForNode(node.id, [
+    {
+      chunkId: 'chunk-a',
+      chunkHash: 'hash-a',
+      metadataJson: '{"kind":"function","symbolName":"searchable"}',
+      chunkText: 'export function searchable() { return 1; }',
+      embedding: Buffer.from(vec.buffer),
+      model: 'm1',
+    },
+  ]);
+
+  const rows = db.searchEmbeddingsKeyword('searchable', 5);
+  assert.equal(rows.length >= 1, true);
+  assert.equal(rows[0].chunk_id, 'chunk-a');
+
+  db.close();
+});
+
 // ---------------------------------------------------------------------------
 // Session Touch Tests (DB layer)
 // ---------------------------------------------------------------------------
@@ -615,6 +640,44 @@ test('SessionMemoryManager.semanticSearchQuery returns empty when no provider', 
 
   const results = await mem.semanticSearchQuery('anything');
   assert.deepEqual(results, []);
+
+  manager.dispose();
+  fs.rmSync(dir, { recursive: true });
+});
+
+test('SessionMemoryManager.semanticKeywordSearch returns keyword-ranked chunks', async () => {
+  const dir = makeTempDir();
+  writeFile(dir, 'src/a.js', 'export function lookupTarget() { return 1; }\n');
+
+  const sim = new SyntaxIndexManager({ projectRoot: dir });
+  const manager = new ProjectGraphManager({
+    projectRoot: dir,
+    syntaxIndexManager: sim,
+    dbPath: ':memory:',
+  });
+
+  await manager.indexProject({ maxFiles: 100 });
+
+  const db = manager._db;
+  const node = db.getNode(path.join(dir, 'src/a.js'));
+  const vec = new Float32Array([0.1, 0.2, 0.3]);
+  db.replaceEmbeddingsForNode(node.id, [
+    {
+      chunkId: 'src/a.js:lookupTarget:1',
+      chunkHash: 'h1',
+      metadataJson: JSON.stringify({ symbolName: 'lookupTarget', kind: 'function' }),
+      chunkText: 'export function lookupTarget() { return 1; }',
+      embedding: Buffer.from(vec.buffer),
+      model: 'mock',
+    },
+  ]);
+
+  const mem = new SessionMemoryManager({ projectGraphManager: manager, embeddingProvider: null });
+  const results = mem.semanticKeywordSearch('lookupTarget', { topK: 10 });
+
+  assert.equal(results.length >= 1, true);
+  assert.equal(results[0].chunkId, 'src/a.js:lookupTarget:1');
+  assert.equal(results[0].keyword, true);
 
   manager.dispose();
   fs.rmSync(dir, { recursive: true });

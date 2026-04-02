@@ -26,6 +26,23 @@ Purpose:
 - outline and context extraction
 - foundational CST access for later analysis
 
+Current extension coverage:
+- `.js`, `.jsx`, `.cjs`, `.mjs`, `.ts`, `.tsx`, `.cts`, `.mts`
+
+Lightweight extraction coverage (non-tree-sitter, regex/heuristic handlers):
+- Python: `.py`
+- Go: `.go`
+- CSS: `.css`
+- HTML: `.html`
+- Markdown: `.md`, `.markdown`
+- Config: `.yaml`, `.yml`, `.toml`
+
+Lightweight handlers are in:
+- `src/runtime/analysis/language-support/`
+
+Shared source-extension constants are centralized in:
+- `src/runtime/analysis/source-extensions.js`
+
 ### Project graph
 
 Primary runtime surfaces:
@@ -35,6 +52,10 @@ Primary runtime surfaces:
 Purpose:
 - persist file nodes, edges, symbols, references, calls, embeddings, and session touches
 - serve graph queries to graph tools and semantic search
+
+Phase-2 indexing behavior:
+- `indexFile()` reuses the parsed tree returned by `buildFileGraph()`
+- reference/call indexing errors are surfaced through `phase3Errors` diagnostics
 
 ### Chunk extraction
 
@@ -82,6 +103,16 @@ Current behavior:
 - embedding search when provider and vectors are available
 - keyword search when embeddings are unavailable
 - hybrid merge when both vector and keyword results are available
+
+Phase-5 retrieval updates:
+- embeddings now persist `chunk_text` to support DB-local keyword retrieval
+- SQLite FTS5 virtual table (`embeddings_fts`) is created when available, with triggers
+  that keep keyword index synchronized with `embeddings`
+- keyword retrieval in `tool.semantic-search` now prefers embedding-backed keyword
+  search via `SessionMemoryManager.semanticKeywordSearch()` and degrades to symbol
+  keyword matching when no embedding keyword rows exist
+- vector retrieval path was updated from row-by-row cosine calls to a batched
+  typed-array matrix pass for better throughput on larger embedding sets
 
 ## 3. Current Storage Model
 
@@ -204,5 +235,27 @@ tree-sitter parsing
   -> vector / keyword / hybrid retrieval
   -> graph-expanded result context
 ```
+
+### Phase-2 call/reference accuracy updates
+
+- call graph now tracks callers for:
+  - functions
+  - methods
+  - function-assigned variables (arrow/function expressions)
+  - class constructors (calls attributed to class symbol)
+- call records include optional `callee_symbol_id` (when a callee symbol can be
+  resolved from imported target file exports)
+- reference tracking includes lightweight lexical scope tracking to reduce
+  false positives from local shadowing
+
+### Phase-5 rename/reference precision updates
+
+- graph reference responses now include:
+  - `scope` metadata for definitions/references
+  - `scopeFiltered: true`
+  - `importScoped: true`
+- references are filtered to import-reachable files (definition files + dependent graph)
+  to reduce same-name false positives across unrelated files
+- rename preview now applies the same import-scoped filtering and returns the same flags
 
 That stack is now one of the most important long-term foundations in OpenKit.

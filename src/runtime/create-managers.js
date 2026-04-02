@@ -17,6 +17,7 @@ import { TmuxSessionManager } from './managers/tmux-session-manager.js';
 import { ToolMetadataStore } from './managers/tool-metadata-store.js';
 import { EmbeddingIndexer } from './analysis/embedding-indexer.js';
 import { createEmbeddingProvider, NoOpEmbeddingProvider } from './analysis/embedding-provider.js';
+import { FileWatcher } from './analysis/file-watcher.js';
 import { resolveRuntimeRoot } from './runtime-root.js';
 import { createWorkflowKernelAdapter } from './workflow-kernel.js';
 
@@ -32,6 +33,7 @@ function createManagerList({
   tmuxSessionManager,
   delegationSupervisor,
   continuationStateManager,
+  fileWatcher,
 }) {
   return [
     {
@@ -128,6 +130,16 @@ function createManagerList({
         tmuxSessionManager.cleanup();
       },
     },
+    {
+      id: 'manager.file-watcher',
+      name: 'File Watcher',
+      description: 'Watches project source files for changes and triggers incremental re-indexing.',
+      enabled: fileWatcher !== null,
+      lifecycle: 'foundation',
+      dispose() {
+        fileWatcher?.stop();
+      },
+    },
   ];
 }
 
@@ -179,6 +191,15 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     });
   }
 
+  // File watcher — incremental re-indexing on source file changes.
+  // Only active when the graph manager is available and mode is read-write.
+  let fileWatcher = null;
+  if (projectGraphManager.available && mode !== 'read-only') {
+    fileWatcher = new FileWatcher({ projectRoot, projectGraphManager });
+    // Start is deferred — the watcher begins watching after bootstrap completes.
+    // Callers can invoke fileWatcher.start() when ready.
+  }
+
   const sessionStateManager = new SessionStateManager({ projectRoot, runtimeRoot, mode });
   const continuationStateManager = new ContinuationStateManager({ projectRoot, runtimeRoot, mode });
   const actionModelStateManager = new ActionModelStateManager({ projectRoot, runtimeRoot, mode });
@@ -210,6 +231,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     continuationStateManager,
     notificationManager,
     tmuxSessionManager,
+    fileWatcher,
   }).map((entry) => ({
     ...entry,
     capabilityStatus: capabilityIndex['capability.manager-layer']?.status ?? 'missing',
@@ -229,6 +251,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     continuationStateManager,
     notificationManager,
     tmuxSessionManager,
+    fileWatcher,
     sessionStateManager,
     actionModelStateManager,
     agentProfileSwitchManager,

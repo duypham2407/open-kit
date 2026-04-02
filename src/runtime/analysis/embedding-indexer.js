@@ -110,6 +110,7 @@ export class EmbeddingIndexer {
           chunkId: chunk.chunkId,
           chunkHash,
           metadataJson: JSON.stringify(chunk.metadata),
+          chunkText: embeddingText,
           embedding: existing.embedding,
           model: existing.model,
         });
@@ -144,6 +145,7 @@ export class EmbeddingIndexer {
               chunkId: batch[j].chunk.chunkId,
               chunkHash: batch[j].chunkHash,
               metadataJson: JSON.stringify(batch[j].chunk.metadata),
+              chunkText: batch[j].embeddingText,
               embedding: Buffer.from(vectors[j].buffer),
               model: this._provider.model,
             });

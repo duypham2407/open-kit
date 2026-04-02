@@ -198,6 +198,113 @@ test('buildCallGraph extracts call expressions from functions', async () => {
   // doWork should have a resolved calleeNodeId
   const doWorkCall = calls.find((c) => c.calleeName === 'doWork');
   assert.ok(doWorkCall, 'doWork call should exist');
+  assert.equal(typeof doWorkCall.calleeSymbolId, 'number', 'Expected resolved calleeSymbolId for imported call');
+
+  db.close();
+  fs.rmSync(dir, { recursive: true });
+});
+
+test('buildCallGraph tracks constructor and function-assigned-variable callers', async () => {
+  const sim = await getSyntaxIndexManager();
+  if (!sim) return;
+
+  const dir = makeTempDir();
+  writeFile(dir, 'src/dep.js', 'export function dep() { return 1; }\n');
+  writeFile(dir, 'src/main.js',
+    'import { dep } from \'./dep.js\';\n' +
+    'export class Service {\n' +
+    '  constructor() { dep(); }\n' +
+    '}\n' +
+    'export const runner = () => dep();\n'
+  );
+
+  const db = new ProjectGraphDb(':memory:');
+  const depGraph = await buildFileGraph({ syntaxIndexManager: sim, filePath: path.join(dir, 'src/dep.js'), projectRoot: dir });
+  db.indexFile({ filePath: path.join(dir, 'src/dep.js'), mtime: depGraph.mtime, edges: [], symbols: depGraph.symbols });
+
+  const mainGraph = await buildFileGraph({ syntaxIndexManager: sim, filePath: path.join(dir, 'src/main.js'), projectRoot: dir });
+  db.indexFile({
+    filePath: path.join(dir, 'src/main.js'),
+    mtime: mainGraph.mtime,
+    edges: mainGraph.imports.filter((i) => i.resolvedPath).map((i) => ({ toPath: i.resolvedPath })),
+    symbols: mainGraph.symbols,
+  });
+
+  const nodeMain = db.getNode(path.join(dir, 'src/main.js'));
+  const dbSymbols = db.getSymbolsByNode(nodeMain.id);
+  const symbolIds = new Map();
+  for (const s of dbSymbols) {
+    symbolIds.set(symbolKey(s), s.id);
+  }
+
+  const parsed = await sim.readFile(path.join(dir, 'src/main.js'));
+  const calls = buildCallGraph({
+    tree: parsed.tree,
+    source: parsed.source,
+    filePath: path.join(dir, 'src/main.js'),
+    symbols: mainGraph.symbols,
+    imports: mainGraph.imports,
+    db,
+    symbolIds,
+  });
+
+  const serviceSym = dbSymbols.find((s) => s.name === 'Service' && s.kind === 'class');
+  const runnerSym = dbSymbols.find((s) => s.name === 'runner');
+  assert.ok(serviceSym, 'Expected class symbol Service');
+  assert.ok(runnerSym, 'Expected symbol runner');
+
+  const serviceCalls = calls.filter((c) => c.callerSymbolId === serviceSym.id);
+  const runnerCalls = calls.filter((c) => c.callerSymbolId === runnerSym.id);
+  assert.ok(serviceCalls.some((c) => c.calleeName === 'dep'), 'constructor should call dep');
+  assert.ok(runnerCalls.some((c) => c.calleeName === 'dep'), 'runner arrow function should call dep');
+
+  db.close();
+  fs.rmSync(dir, { recursive: true });
+});
+
+test('trackReferences ignores imported-name usage when shadowed by local declaration', async () => {
+  const sim = await getSyntaxIndexManager();
+  if (!sim) return;
+
+  const dir = makeTempDir();
+  writeFile(dir, 'src/lib.js', 'export function helper() { return 42; }\n');
+  writeFile(dir, 'src/main.js',
+    'import { helper } from \'./lib.js\';\n' +
+    'function run(helper) {\n' +
+    '  return helper + 1;\n' +
+    '}\n' +
+    'run(1);\n'
+  );
+
+  const db = new ProjectGraphDb(':memory:');
+  const libGraph = await buildFileGraph({ syntaxIndexManager: sim, filePath: path.join(dir, 'src/lib.js'), projectRoot: dir });
+  db.indexFile({ filePath: path.join(dir, 'src/lib.js'), mtime: libGraph.mtime, edges: [], symbols: libGraph.symbols });
+
+  const mainGraph = await buildFileGraph({ syntaxIndexManager: sim, filePath: path.join(dir, 'src/main.js'), projectRoot: dir });
+  db.indexFile({
+    filePath: path.join(dir, 'src/main.js'),
+    mtime: mainGraph.mtime,
+    edges: mainGraph.imports.filter((i) => i.resolvedPath).map((i) => ({ toPath: i.resolvedPath })),
+    symbols: mainGraph.symbols,
+  });
+
+  const parsed = await sim.readFile(path.join(dir, 'src/main.js'));
+  const refs = trackReferences({
+    tree: parsed.tree,
+    source: parsed.source,
+    filePath: path.join(dir, 'src/main.js'),
+    imports: mainGraph.imports,
+    symbols: mainGraph.symbols,
+    db,
+  });
+
+  const libNode = db.getNode(path.join(dir, 'src/lib.js'));
+  const libSymbols = db.getSymbolsByNode(libNode.id);
+  const helperSymbol = libSymbols.find((s) => s.name === 'helper');
+  assert.ok(helperSymbol, 'Expected helper symbol in lib.js');
+
+  const helperRefs = refs.filter((r) => r.symbolId === helperSymbol.id);
+  assert.equal(helperRefs.length, 0, 'Shadowed helper parameter should not be linked to imported helper');
 
   db.close();
   fs.rmSync(dir, { recursive: true });

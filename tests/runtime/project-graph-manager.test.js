@@ -57,6 +57,25 @@ export function main() {}
   mgr.dispose();
 });
 
+test('indexFile reuses parsed tree from buildFileGraph (no second readFile)', async () => {
+  const dir = makeTempDir();
+  const filePath = writeFile(dir, 'src/index.js', `export function one() { return 1; }`);
+  const mgr = makeManager(dir);
+
+  let readFileCount = 0;
+  const originalReadFile = mgr.syntaxIndexManager.readFile.bind(mgr.syntaxIndexManager);
+  mgr.syntaxIndexManager.readFile = async (...args) => {
+    readFileCount++;
+    return originalReadFile(...args);
+  };
+
+  const result = await mgr.indexFile(filePath);
+  assert.equal(result.status, 'indexed');
+  assert.equal(readFileCount, 1, 'Expected readFile to be called exactly once');
+
+  mgr.dispose();
+});
+
 test('indexFile returns unchanged when mtime has not changed', async () => {
   const dir = makeTempDir();
   const filePath = writeFile(dir, 'src/index.js', `export function x() {}`);

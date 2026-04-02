@@ -176,6 +176,8 @@ test('lsp-find-references uses graph-backed when available', async () => {
   assert.equal(result.status, 'graph-backed');
   assert.ok(result.definitions);
   assert.ok(typeof result.totalCount === 'number');
+  assert.equal(result.scopeFiltered, true);
+  assert.equal(result.importScoped, true);
 
   manager.dispose();
   fs.rmSync(dir, { recursive: true });
@@ -210,6 +212,8 @@ test('lsp-prepare-rename uses graph-backed when available', async () => {
   const result = tool.execute({ symbol: 'formatValue', newName: 'formatVal' });
   assert.equal(result.status, 'graph-backed');
   assert.ok(result.definitions);
+  assert.equal(result.scopeFiltered, true);
+  assert.equal(result.importScoped, true);
 
   manager.dispose();
   fs.rmSync(dir, { recursive: true });
@@ -224,6 +228,8 @@ test('lsp-rename uses graph-backed when available', async () => {
   assert.equal(result.provider, 'project-graph');
   assert.ok(result.definitions);
   assert.ok(typeof result.filesAffected === 'number');
+  assert.equal(result.scopeFiltered, true);
+  assert.equal(result.importScoped, true);
 
   manager.dispose();
   fs.rmSync(dir, { recursive: true });

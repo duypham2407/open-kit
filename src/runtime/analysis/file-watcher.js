@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { JS_TS_SOURCE_EXTENSIONS } from './source-extensions.js';
+
 // ---------------------------------------------------------------------------
 // File Watcher — Incremental Index Updates
 //
@@ -9,8 +11,8 @@ import path from 'node:path';
 // debounce to avoid spamming the indexer during rapid-fire saves.
 // ---------------------------------------------------------------------------
 
-const SOURCE_EXTENSIONS = new Set(['.js', '.jsx', '.cjs', '.mjs', '.ts', '.tsx']);
 const DEFAULT_DEBOUNCE_MS = 300;
+const WATCHED_SOURCE_EXTENSION_SET = new Set(JS_TS_SOURCE_EXTENSIONS);
 
 export class FileWatcher {
   /**
@@ -90,7 +92,7 @@ export class FileWatcher {
 
     // Only index source files
     const ext = path.extname(filePath);
-    if (!SOURCE_EXTENSIONS.has(ext)) return;
+    if (!WATCHED_SOURCE_EXTENSION_SET.has(ext)) return;
 
     // Skip node_modules, .git, etc.
     const rel = path.relative(this.projectRoot, filePath);

@@ -6,6 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { Language, Parser } from 'web-tree-sitter';
 
 import { isInsideProjectRoot, resolveProjectPath, listProjectFiles } from '../tools/shared/project-file-utils.js';
+import { EXTENSION_TO_LANGUAGE, SOURCE_EXTENSIONS } from '../analysis/source-extensions.js';
 
 const require = createRequire(import.meta.url);
 const parserWasmPath = require.resolve('web-tree-sitter/web-tree-sitter.wasm');
@@ -13,16 +14,8 @@ const javascriptWasmPath = require.resolve('tree-sitter-javascript/tree-sitter-j
 const typescriptWasmPath = require.resolve('tree-sitter-typescript/tree-sitter-typescript.wasm');
 const tsxWasmPath = require.resolve('tree-sitter-typescript/tree-sitter-tsx.wasm');
 
-const SUPPORTED_EXTENSIONS = new Map([
-  ['.js', 'javascript'],
-  ['.jsx', 'javascript'],
-  ['.cjs', 'javascript'],
-  ['.mjs', 'javascript'],
-  ['.ts', 'typescript'],
-  ['.tsx', 'tsx'],
-]);
-
-const SOURCE_EXTENSIONS = [...SUPPORTED_EXTENSIONS.keys()];
+// Use shared EXTENSION_TO_LANGUAGE as the single source of truth
+const SUPPORTED_EXTENSIONS = EXTENSION_TO_LANGUAGE;
 
 let parserRuntimeReady = false;
 let parserRuntimePromise = null;

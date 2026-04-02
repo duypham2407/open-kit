@@ -35,6 +35,8 @@ export function createLspRenameTool({ projectRoot = process.cwd(), projectGraphM
             totalReferences: refResult.totalCount,
             filesAffected: Object.keys(fileChanges).length,
             changesByFile: fileChanges,
+            scopeFiltered: refResult.scopeFiltered === true,
+            importScoped: refResult.importScoped === true,
           };
         }
       }

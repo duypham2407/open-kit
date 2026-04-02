@@ -123,9 +123,57 @@ import { x } from './utils.js';
   assert.equal(imp.resolvedPath, path.join(dir, 'src', 'utils.js'));
 });
 
-test('buildFileGraph returns null for unsupported file types', async () => {
+test('buildFileGraph handles markdown via lightweight extractor', async () => {
   const dir = makeTempDir();
-  const filePath = writeFile(dir, 'README.md', '# Hello');
+  const filePath = writeFile(dir, 'README.md', '# Hello\n\nSee [docs](./docs/guide.md).');
+
+  const mgr = new SyntaxIndexManager({ projectRoot: dir });
+  const result = await buildFileGraph({ syntaxIndexManager: mgr, filePath, projectRoot: dir });
+  assert.ok(result);
+  assert.ok(result.symbols.some((s) => s.kind.startsWith('heading-h')));
+  assert.ok(result.imports.some((i) => i.specifier === './docs/guide.md'));
+});
+
+test('buildFileGraph handles Python via lightweight extractor', async () => {
+  const dir = makeTempDir();
+  const filePath = writeFile(dir, 'src/main.py',
+    'from utils import helper\n' +
+    'import os\n\n' +
+    'def run():\n' +
+    '    return helper()\n\n' +
+    'class Service:\n' +
+    '    pass\n'
+  );
+
+  const mgr = new SyntaxIndexManager({ projectRoot: dir });
+  const result = await buildFileGraph({ syntaxIndexManager: mgr, filePath, projectRoot: dir });
+  assert.ok(result);
+  const symbolNames = result.symbols.map((s) => s.name);
+  assert.ok(symbolNames.includes('run'));
+  assert.ok(symbolNames.includes('Service'));
+  assert.ok(result.imports.some((i) => i.specifier === 'utils'));
+});
+
+test('buildFileGraph handles Go via lightweight extractor', async () => {
+  const dir = makeTempDir();
+  const filePath = writeFile(dir, 'src/main.go',
+    'package main\n\n' +
+    'import "fmt"\n\n' +
+    'func Run() {\n' +
+    '    fmt.Println("ok")\n' +
+    '}\n'
+  );
+
+  const mgr = new SyntaxIndexManager({ projectRoot: dir });
+  const result = await buildFileGraph({ syntaxIndexManager: mgr, filePath, projectRoot: dir });
+  assert.ok(result);
+  assert.ok(result.symbols.some((s) => s.name === 'Run' && s.kind === 'function'));
+  assert.ok(result.imports.some((i) => i.specifier === 'fmt'));
+});
+
+test('buildFileGraph returns null for truly unsupported file types', async () => {
+  const dir = makeTempDir();
+  const filePath = writeFile(dir, 'assets/logo.svg', '<svg></svg>');
 
   const mgr = new SyntaxIndexManager({ projectRoot: dir });
   const result = await buildFileGraph({ syntaxIndexManager: mgr, filePath, projectRoot: dir });

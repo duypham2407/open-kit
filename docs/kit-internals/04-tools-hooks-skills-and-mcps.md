@@ -37,6 +37,7 @@ Current notable tool families include:
 - lsp
 - ast
 - graph
+- external
 
 ## 3. Important Tool Groups
 
@@ -75,6 +76,33 @@ Examples:
 Examples:
 - `tool.semantic-search`
 - `tool.embedding-index`
+
+### External tooling tools
+
+These tools run project-local toolchains through a safe child-process runner
+with timeout, structured output parsing, and graceful degradation.
+
+Each tool self-gates based on project config detection:
+
+- `tool.typecheck` — runs `tsc --noEmit` when `tsconfig.json` exists; returns
+  structured diagnostics (file, line, column, severity, code, message)
+- `tool.lint` — runs ESLint or Biome when config detected; returns structured
+  findings with fixable counts
+- `tool.test-run` — auto-detects vitest/jest/node:test/pytest/go test; returns
+  structured pass/fail/failure details
+
+Source files:
+
+- `src/runtime/tools/external/tool-runner.js` — spawn wrapper with timeout,
+  PATH augmentation, and structured result
+- `src/runtime/tools/external/typecheck.js` — tsc config detection and output parsing
+- `src/runtime/tools/external/lint.js` — eslint/biome config detection and output parsing
+- `src/runtime/tools/external/test-run.js` — framework detection and output parsing
+
+All external tools return `status: 'unavailable'` when the relevant config is
+missing, and `status: 'timeout'` when the child process exceeds its deadline.
+They are registered in `createToolRegistry()` and wrapped by `wrapToolExecution()`
+like all other tools.
 
 ## 4. Hook Layer
 
@@ -166,6 +194,26 @@ Built-in MCPs are currently:
 
 The platform also loads configured external MCP servers via runtime config.
 
+### MCP dispatch behavior
+
+Dispatch entry:
+- `src/runtime/mcp/dispatch.js`
+
+Current behavior:
+- builtin dispatch is now executable (`dispatchMcpCall` invokes builtin `execute()`)
+- builtin enable/disable flags from runtime config are honored
+- unknown builtin requests attempt external-server dispatch
+- external servers are normalized from `.mcp.json` / `.opencode/mcp.json`
+- external transports currently supported:
+  - `http` (JSON POST)
+  - `stdio` (single-request process invoke)
+- dispatch is timeout-bounded and returns structured timeout/error payloads
+
+Builtin MCP runtime semantics:
+- `mcp.code-search` delegates to `SessionMemoryManager.semanticSearchQuery()`
+- `mcp.docs-search` delegates to external provider capability `docs-search` when configured, otherwise returns `no-provider`
+- `mcp.websearch` delegates to external provider capability `websearch` when configured, otherwise returns `no-provider`
+
 ## 8. Specialists
 
 Specialists are created in:
@@ -183,6 +231,22 @@ Default specialist set:
 
 These are support surfaces layered under workflow ownership, not replacements
 for the lane/role contract.
+
+### Specialist enrichments
+
+Specialists now include:
+
+- `systemPromptPath` (checked-in prompt file)
+- `systemPrompt` (hydrated content loaded by registry)
+- `tools` (explicit tool allowance list)
+
+Prompt source directory:
+
+- `src/runtime/specialists/prompts/`
+
+Registry hydration path:
+
+- `src/runtime/specialists/specialist-registry.js`
 
 ## 9. Context Injection
 

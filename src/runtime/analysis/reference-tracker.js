@@ -6,10 +6,10 @@
 // `symbol_references` table in the project graph database.
 //
 // Approach: for each identifier node in the AST, check if it matches a known
-// imported name or a declared export from another file.  We do NOT attempt
-// full scope analysis — instead we rely on import-level resolution and
-// exported symbol names, which gives good recall for cross-file references
-// with minimal false-positives.
+// imported name or a declared export from another file.
+//
+// Phase 2 update: include lightweight lexical scope tracking so local shadowed
+// names do not produce false-positive cross-file references.
 // ---------------------------------------------------------------------------
 
 /**
@@ -32,17 +32,18 @@ export function trackReferences({ tree, source, filePath, imports, symbols, db }
   // This lets us track which imported identifiers are actually used in the file.
   const importedNameMap = buildImportedNameMap(imports, db);
 
-  // Build a set of locally declared symbol names for this file so we skip
-  // self-references (the declaration itself is not a "usage" reference).
-  const localDeclarations = new Map();
-  for (const sym of symbols) {
-    localDeclarations.set(sym.name, sym.line);
-  }
-
   // Walk the entire AST and collect identifier usages
-  walkIdentifiers(tree.rootNode, source, (name, line, col, context) => {
+  walkIdentifiers(tree.rootNode, source, (entry) => {
+    const { name, line, col, context, nearestDeclarationKind } = entry;
+
     // Skip declaration sites — we only want usages
     if (context === 'declaration') return;
+
+    // Local shadowing: if the nearest declaration is a local symbol
+    // (non-import), do not treat this usage as imported/cross-file.
+    if (nearestDeclarationKind === 'local') {
+      return;
+    }
 
     // Check if this identifier matches an imported name
     const symbolId = importedNameMap.get(name);
@@ -56,23 +57,26 @@ export function trackReferences({ tree, source, filePath, imports, symbols, db }
       return;
     }
 
+    // If nearest declaration is import but import map has no resolved symbol,
+    // skip cross-file fallback to avoid noisy results.
+    if (nearestDeclarationKind === 'import') {
+      return;
+    }
+
     // Check if this identifier matches a known exported symbol in the DB
     // (cross-file reference not directly imported — e.g. via namespace or
-    // re-export chains).  We only do this for identifiers that are NOT
-    // locally declared to avoid noise.
-    if (!localDeclarations.has(name)) {
-      const dbSymbols = db.findSymbolByName(name);
-      // Only link if there's exactly one exported symbol with this name
-      // to avoid ambiguous references
-      const exportedMatches = dbSymbols.filter((s) => s.is_export === 1);
-      if (exportedMatches.length === 1) {
-        refs.push({
-          symbolId: exportedMatches[0].id,
-          line,
-          col,
-          kind: context === 'type-reference' ? 'type-reference' : 'usage',
-        });
-      }
+    // re-export chains).
+    const dbSymbols = db.findSymbolByName(name);
+    // Only link if there's exactly one exported symbol with this name
+    // to avoid ambiguous references
+    const exportedMatches = dbSymbols.filter((s) => s.is_export === 1);
+    if (exportedMatches.length === 1) {
+      refs.push({
+        symbolId: exportedMatches[0].id,
+        line,
+        col,
+        kind: context === 'type-reference' ? 'type-reference' : 'usage',
+      });
     }
   });
 
@@ -115,28 +119,85 @@ function buildImportedNameMap(imports, db) {
  *
  * @param {object} rootNode
  * @param {string} source
- * @param {(name: string, line: number, col: number, context: string) => void} callback
+ * @param {(entry: {name: string, line: number, col: number, context: string, nearestDeclarationKind: 'local'|'import'|null}) => void} callback
  */
 function walkIdentifiers(rootNode, source, callback) {
-  const queue = [rootNode];
+  /** @type {Array<Map<string, 'local'|'import'>>} */
+  const scopeStack = [new Map()];
 
-  while (queue.length > 0) {
-    const node = queue.shift();
+  function enterScope() {
+    scopeStack.push(new Map());
+  }
+
+  function exitScope() {
+    scopeStack.pop();
+  }
+
+  function currentScope() {
+    return scopeStack[scopeStack.length - 1];
+  }
+
+  function nearestDeclarationKind(name) {
+    for (let i = scopeStack.length - 1; i >= 0; i--) {
+      const kind = scopeStack[i].get(name);
+      if (kind) return kind;
+    }
+    return null;
+  }
+
+  function visit(node) {
+    const createsScope = createsLexicalScope(node);
+    if (createsScope) enterScope();
 
     if (node.type === 'identifier' || node.type === 'type_identifier') {
       const name = source.slice(node.startIndex, node.endIndex);
       const line = node.startPosition.row + 1;
       const col = node.startPosition.column;
       const context = classifyIdentifierContext(node);
-      callback(name, line, col, context);
+
+      if (context === 'declaration') {
+        const declKind = isImportDeclarationNode(node) ? 'import' : 'local';
+        currentScope().set(name, declKind);
+      }
+
+      callback({
+        name,
+        line,
+        col,
+        context,
+        nearestDeclarationKind: nearestDeclarationKind(name),
+      });
     }
 
-    // Recurse into children
     const children = node.children ?? [];
     for (const child of children) {
-      queue.push(child);
+      visit(child);
     }
+
+    if (createsScope) exitScope();
   }
+
+  visit(rootNode);
+}
+
+function createsLexicalScope(node) {
+  if (!node) return false;
+  return (
+    node.type === 'program' ||
+    node.type === 'function_declaration' ||
+    node.type === 'function_expression' ||
+    node.type === 'arrow_function' ||
+    node.type === 'method_definition' ||
+    node.type === 'class_declaration' ||
+    node.type === 'class_body' ||
+    node.type === 'statement_block'
+  );
+}
+
+function isImportDeclarationNode(node) {
+  const parent = node?.parent;
+  if (!parent) return false;
+  return parent.type === 'import_specifier' || parent.type === 'import_clause' || parent.type === 'namespace_import';
 }
 
 /**

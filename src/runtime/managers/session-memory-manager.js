@@ -6,11 +6,70 @@
 // Also exposes the semantic search entry point (when embeddings are available).
 // ---------------------------------------------------------------------------
 
-import { extractCodeChunks, cosineSimilarity } from '../analysis/code-chunk-extractor.js';
 
 function clampScore(score) {
   if (!Number.isFinite(score)) return 0;
   return Math.max(0, Math.min(1, score));
+}
+
+function dotProduct(a, b) {
+  const length = Math.min(a.length, b.length);
+  let sum = 0;
+  for (let i = 0; i < length; i++) {
+    sum += a[i] * b[i];
+  }
+  return sum;
+}
+
+function l2Norm(vec) {
+  let sumSquares = 0;
+  for (let i = 0; i < vec.length; i++) {
+    sumSquares += vec[i] * vec[i];
+  }
+  return Math.sqrt(sumSquares);
+}
+
+function buildEmbeddingMatrix(rows = []) {
+  if (rows.length === 0) {
+    return { dimension: 0, buffer: new Float32Array(0), norms: new Float32Array(0) };
+  }
+
+  const first = rows[0]?.embedding;
+  const dimension = first ? Math.floor(first.byteLength / 4) : 0;
+  const buffer = new Float32Array(rows.length * dimension);
+  const norms = new Float32Array(rows.length);
+
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+    const row = rows[rowIndex];
+    const stored = new Float32Array(row.embedding.buffer, row.embedding.byteOffset, row.embedding.byteLength / 4);
+    const start = rowIndex * dimension;
+    buffer.set(stored.subarray(0, dimension), start);
+    norms[rowIndex] = l2Norm(buffer.subarray(start, start + dimension));
+  }
+
+  return { dimension, buffer, norms };
+}
+
+function computeCosineFromMatrix({ queryVec, queryNorm, matrixBuffer, matrixNorms, dimension, rowIndex }) {
+  if (dimension === 0 || queryNorm === 0) {
+    return 0;
+  }
+  const start = rowIndex * dimension;
+  const stored = matrixBuffer.subarray(start, start + dimension);
+  const denom = queryNorm * matrixNorms[rowIndex];
+  if (!denom) {
+    return 0;
+  }
+  return dotProduct(queryVec, stored) / denom;
+}
+
+function pickTopK(results, topK) {
+  if (results.length <= topK) {
+    return results.sort((a, b) => b.score - a.score);
+  }
+
+  const sorted = results.sort((a, b) => b.score - a.score);
+  return sorted.slice(0, topK);
 }
 
 export class SessionMemoryManager {
@@ -145,11 +204,21 @@ export class SessionMemoryManager {
     const allEmbed = db.allEmbeddings();
     if (allEmbed.length === 0) return [];
 
-    // Brute-force cosine similarity
+    const matrix = buildEmbeddingMatrix(allEmbed);
+    const queryVec = queryEmbedding instanceof Float32Array ? queryEmbedding : Float32Array.from(queryEmbedding ?? []);
+    const queryNorm = l2Norm(queryVec);
+
     const results = [];
-    for (const row of allEmbed) {
-      const stored = new Float32Array(row.embedding.buffer, row.embedding.byteOffset, row.embedding.byteLength / 4);
-      const score = cosineSimilarity(queryEmbedding, stored);
+    for (let index = 0; index < allEmbed.length; index++) {
+      const row = allEmbed[index];
+      const score = computeCosineFromMatrix({
+        queryVec,
+        queryNorm,
+        matrixBuffer: matrix.buffer,
+        matrixNorms: matrix.norms,
+        dimension: matrix.dimension,
+        rowIndex: index,
+      });
       if (score >= minScore) {
         results.push({
           chunkId: row.chunk_id,
@@ -162,9 +231,29 @@ export class SessionMemoryManager {
       }
     }
 
-    // Sort by score descending, take topK
-    results.sort((a, b) => b.score - a.score);
-    return results.slice(0, topK);
+    return pickTopK(results, topK);
+  }
+
+  semanticKeywordSearch(queryText, { topK = 20 } = {}) {
+    if (!this.available || !queryText) {
+      return [];
+    }
+
+    const db = this._graphManager._db;
+    if (!db || typeof db.searchEmbeddingsKeyword !== 'function') {
+      return [];
+    }
+
+    const rows = db.searchEmbeddingsKeyword(queryText, topK);
+    return rows.map((row, index) => ({
+      chunkId: row.chunk_id,
+      path: row.path,
+      score: clampScore(1 - Math.min(index / Math.max(rows.length, 1), 1)),
+      vectorScore: 0,
+      model: row.model,
+      metadata: row.metadata_json ? JSON.parse(row.metadata_json) : null,
+      keyword: true,
+    }));
   }
 
   /**

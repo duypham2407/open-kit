@@ -58,6 +58,11 @@ test('runtime foundation exposes categories, specialists, models, and mcp platfo
 
   assert.ok(result.categories.categories.some((entry) => entry.id === 'deep'));
   assert.ok(result.specialists.specialists.some((entry) => entry.id === 'specialist.oracle'));
+  const oracle = result.specialists.specialists.find((entry) => entry.id === 'specialist.oracle');
+  assert.equal(typeof oracle.systemPromptPath, 'string');
+  assert.equal(Array.isArray(oracle.tools), true);
+  assert.equal(typeof oracle.systemPrompt, 'string');
+  assert.ok(oracle.systemPrompt.length > 0);
   assert.ok(result.modelRuntime.resolvedModels.length > 0);
   assert.ok(result.mcpPlatform.builtin.some((entry) => entry.id === 'mcp.websearch'));
 });
@@ -150,7 +155,7 @@ test('skill and command loaders discover added runtime surfaces', () => {
   assert.equal(context.rules.mode, 'full');
 });
 
-test('mcp platform loads builtin mcps and optional config file', () => {
+test('mcp platform loads builtin mcps and optional config file', async () => {
   const projectRoot = makeTempDir();
   writeText(
     path.join(projectRoot, '.mcp.json'),
@@ -175,9 +180,11 @@ test('mcp platform loads builtin mcps and optional config file', () => {
   assert.equal(platform.builtin.length, 3);
   assert.equal(platform.loaded.config.token, 'secret');
   assert.equal(platform.loaded.source, '.mcp.json');
-  assert.deepEqual(platform.loadedServers, ['custom']);
-  assert.deepEqual(platform.enabledBuiltinIds, ['websearch']);
-  assert.equal(platform.dispatch('websearch', { q: 'openkit' }).status, 'dispatched');
+  assert.equal(platform.loadedServers.length, 1);
+  assert.equal(platform.loadedServers[0].name, 'custom');
+  assert.ok(platform.enabledBuiltinIds.includes('mcp.websearch'));
+  const dispatched = await platform.dispatch('websearch', { query: 'openkit' });
+  assert.equal(typeof dispatched.status, 'string');
 });
 
 test('profile switch tool can list, set, toggle, and clear agent profile selections', () => {

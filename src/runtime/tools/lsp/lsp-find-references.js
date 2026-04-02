@@ -26,6 +26,8 @@ export function createLspFindReferencesTool({ projectRoot = process.cwd(), proje
             definitions: result.definitions,
             references: result.references,
             totalCount: result.totalCount,
+            scopeFiltered: result.scopeFiltered === true,
+            importScoped: result.importScoped === true,
           };
         }
       }

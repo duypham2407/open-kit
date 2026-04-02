@@ -80,9 +80,11 @@ const SCHEMA_SQL = `
     caller_symbol_id  INTEGER NOT NULL,
     callee_name       TEXT    NOT NULL,
     callee_node_id    INTEGER DEFAULT NULL,
+    callee_symbol_id  INTEGER DEFAULT NULL,
     line              INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (caller_symbol_id) REFERENCES symbols(id) ON DELETE CASCADE,
-    FOREIGN KEY (callee_node_id)   REFERENCES nodes(id)   ON DELETE CASCADE
+    FOREIGN KEY (callee_node_id)   REFERENCES nodes(id)   ON DELETE CASCADE,
+    FOREIGN KEY (callee_symbol_id) REFERENCES symbols(id) ON DELETE CASCADE
   );
 
   CREATE INDEX IF NOT EXISTS idx_nodes_path       ON nodes(path);
@@ -101,11 +103,31 @@ const SCHEMA_SQL = `
     chunk_id  TEXT    NOT NULL,
     chunk_hash TEXT   DEFAULT NULL,
     metadata_json TEXT DEFAULT NULL,
+    chunk_text TEXT   DEFAULT NULL,
     embedding BLOB    NOT NULL,
     model     TEXT    NOT NULL,
     created   REAL    NOT NULL,
     FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
   );
+
+  CREATE VIRTUAL TABLE IF NOT EXISTS embeddings_fts USING fts5(
+    chunk_text,
+    content='embeddings',
+    content_rowid='id'
+  );
+
+  CREATE TRIGGER IF NOT EXISTS embeddings_ai AFTER INSERT ON embeddings BEGIN
+    INSERT INTO embeddings_fts(rowid, chunk_text) VALUES (new.id, COALESCE(new.chunk_text, ''));
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS embeddings_ad AFTER DELETE ON embeddings BEGIN
+    INSERT INTO embeddings_fts(embeddings_fts, rowid, chunk_text) VALUES('delete', old.id, COALESCE(old.chunk_text, ''));
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS embeddings_au AFTER UPDATE ON embeddings BEGIN
+    INSERT INTO embeddings_fts(embeddings_fts, rowid, chunk_text) VALUES('delete', old.id, COALESCE(old.chunk_text, ''));
+    INSERT INTO embeddings_fts(rowid, chunk_text) VALUES (new.id, COALESCE(new.chunk_text, ''));
+  END;
 
   CREATE TABLE IF NOT EXISTS session_touches (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,6 +159,8 @@ function migrateSchema(db) {
     'ALTER TABLE symbols ADD COLUMN end_line    INTEGER DEFAULT NULL',
     'ALTER TABLE embeddings ADD COLUMN chunk_hash TEXT DEFAULT NULL',
     'ALTER TABLE embeddings ADD COLUMN metadata_json TEXT DEFAULT NULL',
+    'ALTER TABLE embeddings ADD COLUMN chunk_text TEXT DEFAULT NULL',
+    'ALTER TABLE call_graph ADD COLUMN callee_symbol_id INTEGER DEFAULT NULL',
   ];
   for (const sql of migrations) {
     try {
@@ -144,6 +168,31 @@ function migrateSchema(db) {
     } catch {
       // Column already exists — safe to ignore
     }
+  }
+
+  try {
+    db.exec(`
+      CREATE VIRTUAL TABLE IF NOT EXISTS embeddings_fts USING fts5(
+        chunk_text,
+        content='embeddings',
+        content_rowid='id'
+      );
+
+      CREATE TRIGGER IF NOT EXISTS embeddings_ai AFTER INSERT ON embeddings BEGIN
+        INSERT INTO embeddings_fts(rowid, chunk_text) VALUES (new.id, COALESCE(new.chunk_text, ''));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS embeddings_ad AFTER DELETE ON embeddings BEGIN
+        INSERT INTO embeddings_fts(embeddings_fts, rowid, chunk_text) VALUES('delete', old.id, COALESCE(old.chunk_text, ''));
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS embeddings_au AFTER UPDATE ON embeddings BEGIN
+        INSERT INTO embeddings_fts(embeddings_fts, rowid, chunk_text) VALUES('delete', old.id, COALESCE(old.chunk_text, ''));
+        INSERT INTO embeddings_fts(rowid, chunk_text) VALUES (new.id, COALESCE(new.chunk_text, ''));
+      END;
+    `);
+  } catch {
+    // best-effort: SQLite build may not expose FTS5
   }
 }
 
@@ -247,22 +296,24 @@ export class ProjectGraphDb {
          (SELECT id FROM symbols WHERE node_id = @nodeId)`
       ),
       insertCall: this._db.prepare(
-        `INSERT INTO call_graph (caller_symbol_id, callee_name, callee_node_id, line)
-         VALUES (@callerSymbolId, @calleeName, @calleeNodeId, @line)`
+        `INSERT INTO call_graph (caller_symbol_id, callee_name, callee_node_id, callee_symbol_id, line)
+         VALUES (@callerSymbolId, @calleeName, @calleeNodeId, @calleeSymbolId, @line)`
       ),
       getCallsFrom: this._db.prepare(
-        `SELECT cg.*, s.name AS caller_name, n.path AS callee_path
+        `SELECT cg.*, s.name AS caller_name, n.path AS callee_path, cs.name AS callee_symbol_name
          FROM call_graph cg
          JOIN symbols s ON s.id = cg.caller_symbol_id
          LEFT JOIN nodes n ON n.id = cg.callee_node_id
+         LEFT JOIN symbols cs ON cs.id = cg.callee_symbol_id
          WHERE cg.caller_symbol_id = @symbolId
          ORDER BY cg.line`
       ),
       getCallsTo: this._db.prepare(
-        `SELECT cg.*, s.name AS caller_name, sn.path AS caller_path
+        `SELECT cg.*, s.name AS caller_name, sn.path AS caller_path, cs.name AS callee_symbol_name
          FROM call_graph cg
          JOIN symbols s ON s.id = cg.caller_symbol_id
          JOIN nodes sn ON sn.id = s.node_id
+         LEFT JOIN symbols cs ON cs.id = cg.callee_symbol_id
          WHERE cg.callee_name = @calleeName
          ORDER BY sn.path, cg.line`
       ),
@@ -271,8 +322,8 @@ export class ProjectGraphDb {
       // -- embeddings --
       deleteEmbeddingsForNode: this._db.prepare('DELETE FROM embeddings WHERE node_id = @nodeId'),
       insertEmbedding: this._db.prepare(
-        `INSERT INTO embeddings (node_id, chunk_id, chunk_hash, metadata_json, embedding, model, created)
-         VALUES (@nodeId, @chunkId, @chunkHash, @metadataJson, @embedding, @model, @created)`
+        `INSERT INTO embeddings (node_id, chunk_id, chunk_hash, metadata_json, chunk_text, embedding, model, created)
+         VALUES (@nodeId, @chunkId, @chunkHash, @metadataJson, @chunkText, @embedding, @model, @created)`
       ),
       getEmbeddingsByNode: this._db.prepare(
         'SELECT * FROM embeddings WHERE node_id = @nodeId ORDER BY chunk_id'
@@ -285,6 +336,14 @@ export class ProjectGraphDb {
          FROM embeddings e
          JOIN nodes n ON n.id = e.node_id
          ORDER BY n.path, e.chunk_id`
+      ),
+      searchEmbeddingsFallback: this._db.prepare(
+        `SELECT e.*, n.path
+         FROM embeddings e
+         JOIN nodes n ON n.id = e.node_id
+         WHERE LOWER(e.chunk_text) LIKE LOWER(@pattern)
+         ORDER BY e.created DESC
+         LIMIT @limit`
       ),
       embeddingCount: this._db.prepare('SELECT COUNT(*) as count FROM embeddings'),
 
@@ -316,6 +375,20 @@ export class ProjectGraphDb {
       ),
       sessionTouchCount: this._db.prepare('SELECT COUNT(*) as count FROM session_touches'),
     };
+
+    try {
+      this._stmts.searchEmbeddingsFts = this._db.prepare(
+        `SELECT e.*, n.path, bm25(embeddings_fts) AS rank
+         FROM embeddings_fts
+         JOIN embeddings e ON e.id = embeddings_fts.rowid
+         JOIN nodes n ON n.id = e.node_id
+         WHERE embeddings_fts MATCH @query
+         ORDER BY rank
+         LIMIT @limit`
+      );
+    } catch {
+      this._stmts.searchEmbeddingsFts = null;
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -459,7 +532,7 @@ export class ProjectGraphDb {
   /**
    * Replace all outgoing calls for symbols declared in the given file node.
    * @param {number} nodeId
-   * @param {Array<{ callerSymbolId: number, calleeName: string, calleeNodeId?: number, line: number }>} calls
+   * @param {Array<{ callerSymbolId: number, calleeName: string, calleeNodeId?: number, calleeSymbolId?: number, line: number }>} calls
    */
   replaceCallsForNode(nodeId, calls) {
     const tx = this._db.transaction(() => {
@@ -469,6 +542,7 @@ export class ProjectGraphDb {
           callerSymbolId: call.callerSymbolId,
           calleeName: call.calleeName,
           calleeNodeId: call.calleeNodeId ?? null,
+          calleeSymbolId: call.calleeSymbolId ?? null,
           line: call.line,
         });
       }
@@ -491,7 +565,7 @@ export class ProjectGraphDb {
   /**
    * Replace all embeddings for a given file node.
    * @param {number} nodeId
-   * @param {Array<{ chunkId: string, chunkHash?: string|null, metadataJson?: string|null, embedding: Buffer, model: string }>} chunks
+   * @param {Array<{ chunkId: string, chunkHash?: string|null, metadataJson?: string|null, chunkText?: string|null, embedding: Buffer, model: string }>} chunks
    */
   replaceEmbeddingsForNode(nodeId, chunks) {
     const tx = this._db.transaction(() => {
@@ -503,6 +577,7 @@ export class ProjectGraphDb {
           chunkId: chunk.chunkId,
           chunkHash: chunk.chunkHash ?? null,
           metadataJson: chunk.metadataJson ?? null,
+          chunkText: chunk.chunkText ?? null,
           embedding: chunk.embedding,
           model: chunk.model,
           created: now,
@@ -522,6 +597,27 @@ export class ProjectGraphDb {
 
   allEmbeddings() {
     return this._stmts.allEmbeddings.all();
+  }
+
+  searchEmbeddingsKeyword(query, limit = 20) {
+    if (!query || typeof query !== 'string') {
+      return [];
+    }
+
+    const normalizedLimit = Number.isInteger(limit) ? Math.max(1, Math.min(200, limit)) : 20;
+
+    if (this._stmts.searchEmbeddingsFts) {
+      try {
+        return this._stmts.searchEmbeddingsFts.all({ query, limit: normalizedLimit });
+      } catch {
+        // fall through to LIKE fallback for malformed FTS syntax
+      }
+    }
+
+    return this._stmts.searchEmbeddingsFallback.all({
+      pattern: `%${query}%`,
+      limit: normalizedLimit,
+    });
   }
 
   // -----------------------------------------------------------------------

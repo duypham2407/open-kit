@@ -160,6 +160,8 @@ test('graph-find-references finds definitions and references', async () => {
   assert.ok(result.definitions.length >= 1, 'Should have at least one definition');
   // References may or may not be populated depending on indexing depth
   assert.ok(typeof result.totalCount === 'number');
+  assert.equal(result.scopeFiltered, true);
+  assert.equal(result.importScoped, true);
 
   manager.dispose();
   fs.rmSync(dir, { recursive: true });
@@ -266,6 +268,8 @@ test('graph-rename-preview returns preview changes', async () => {
   assert.equal(result.newName, 'formatVal');
   assert.ok(result.totalFiles >= 1, 'Should affect at least the definition file');
   assert.ok(result.totalEdits >= 1, 'Should have at least the definition edit');
+  assert.equal(result.scopeFiltered, true);
+  assert.equal(result.importScoped, true);
 
   // Check changes structure
   for (const change of result.changes) {

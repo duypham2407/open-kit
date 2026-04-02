@@ -5,13 +5,13 @@ import { ProjectGraphDb, isBetterSqliteAvailable } from '../analysis/project-gra
 import { buildFileGraph } from '../analysis/import-graph-builder.js';
 import { trackReferences } from '../analysis/reference-tracker.js';
 import { buildCallGraph, symbolKey } from '../analysis/call-graph-builder.js';
+import { SOURCE_EXTENSIONS } from '../analysis/source-extensions.js';
 import { listProjectFiles } from '../tools/shared/project-file-utils.js';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const SOURCE_EXTENSIONS = ['.js', '.jsx', '.cjs', '.mjs', '.ts', '.tsx'];
 const DEFAULT_MAX_FILES = 2000;
 
 // ---------------------------------------------------------------------------
@@ -34,6 +34,7 @@ export class ProjectGraphManager {
     this._indexingInProgress = false;
     this._lastIndexTime = 0;
     this._indexedFileCount = 0;
+    this._phase3Errors = 0;
     /** @type {((filePath: string) => void) | null} */
     this._onFileIndexed = null;
 
@@ -81,6 +82,7 @@ export class ProjectGraphManager {
       indexingInProgress: this._indexingInProgress,
       lastIndexTime: this._lastIndexTime,
       indexedFileCount: this._indexedFileCount,
+      phase3Errors: this._phase3Errors,
       stats: this._db.stats(),
     };
   }
@@ -141,11 +143,12 @@ export class ProjectGraphManager {
       symbols: graphData.symbols,
     });
 
-    // Phase 3: track references and call graph if we have a parsed tree
+    // Phase 3: track references and call graph using the tree already parsed
+    // by buildFileGraph (avoids a redundant re-parse).
     // These require the symbols to be in the DB first, so they run after indexFile.
     try {
       const node = this._db.getNode(absPath);
-      if (node) {
+      if (node && graphData.tree) {
         // Build a map of symbol name+line → DB symbol ID for this file
         const dbSymbols = this._db.getSymbolsByNode(node.id);
         const symbolIds = new Map();
@@ -153,35 +156,36 @@ export class ProjectGraphManager {
           symbolIds.set(`${s.name}:${s.line}:${s.scope ?? ''}`, s.id);
         }
 
-        // Re-read the parsed tree to walk for references and calls
-        const parsed = await this.syntaxIndexManager.readFile(absPath);
-        if (parsed.status === 'parsed') {
-          // Reference tracking
-          const refs = trackReferences({
-            tree: parsed.tree,
-            source: parsed.source,
-            filePath: absPath,
-            imports: graphData.imports,
-            symbols: graphData.symbols,
-            db: this._db,
-          });
-          this._db.replaceRefsForNode(node.id, refs);
+        // Reference tracking
+        const refs = trackReferences({
+          tree: graphData.tree,
+          source: graphData.source,
+          filePath: absPath,
+          imports: graphData.imports,
+          symbols: graphData.symbols,
+          db: this._db,
+        });
+        this._db.replaceRefsForNode(node.id, refs);
 
-          // Call graph building
-          const calls = buildCallGraph({
-            tree: parsed.tree,
-            source: parsed.source,
-            filePath: absPath,
-            symbols: graphData.symbols,
-            imports: graphData.imports,
-            db: this._db,
-            symbolIds,
-          });
-          this._db.replaceCallsForNode(node.id, calls);
-        }
+        // Call graph building
+        const calls = buildCallGraph({
+          tree: graphData.tree,
+          source: graphData.source,
+          filePath: absPath,
+          symbols: graphData.symbols,
+          imports: graphData.imports,
+          db: this._db,
+          symbolIds,
+        });
+        this._db.replaceCallsForNode(node.id, calls);
       }
-    } catch {
-      // Reference/call tracking is best-effort — do not fail indexing
+    } catch (err) {
+      // Reference/call tracking is best-effort — do not fail indexing,
+      // but log the first few errors so maintainers can diagnose issues.
+      this._phase3Errors++;
+      if (this._phase3Errors <= 5) {
+        console.warn(`[ProjectGraphManager] reference/call tracking failed for ${absPath}: ${err?.message ?? err}`);
+      }
     }
 
     this._firePostIndex(absPath);
@@ -449,23 +453,48 @@ export class ProjectGraphManager {
       return { status: 'not-found', name: symbolName, references: [] };
     }
 
+    const defsByPath = new Set(symbolRows.map((sym) => sym.path));
+    const importReachablePaths = new Set(defsByPath);
+    for (const defPath of defsByPath) {
+      const dependents = this.getDependents(defPath, { depth: 8 });
+      if (dependents?.status !== 'ok') {
+        continue;
+      }
+      for (const dependent of dependents.dependents ?? []) {
+        if (dependent.absolutePath) {
+          importReachablePaths.add(dependent.absolutePath);
+        }
+      }
+    }
+
     // Collect references for all matching symbols
     const allRefs = [];
     for (const sym of symbolRows) {
       const refs = this._db.getRefsBySymbol(sym.id);
       for (const ref of refs) {
+        const sameFile = ref.path === sym.path;
+        const importScoped = sameFile || importReachablePaths.has(ref.path);
+        if (!importScoped) {
+          continue;
+        }
         allRefs.push({
           symbolName: sym.name,
           symbolPath: this._relativePath(sym.path),
           symbolKind: sym.kind,
+          symbolScope: sym.scope ?? null,
+          symbolIsExport: sym.is_export === 1,
           referencePath: this._relativePath(ref.path),
           absoluteReferencePath: ref.path,
           line: ref.line,
           col: ref.col,
           kind: ref.kind,
+          scope: sym.scope ?? null,
+          importScoped,
         });
       }
     }
+
+    const scopeFiltered = true;
 
     return {
       status: 'ok',
@@ -476,9 +505,12 @@ export class ProjectGraphManager {
         kind: s.kind,
         line: s.line,
         isExport: s.is_export === 1,
+        scope: s.scope ?? null,
       })),
       references: allRefs,
       totalCount: allRefs.length,
+      scopeFiltered,
+      importScoped: true,
     };
   }
 
@@ -543,6 +575,7 @@ export class ProjectGraphManager {
       dbPath: this._dbPath,
       indexingInProgress: this._indexingInProgress,
       lastIndexTime: this._lastIndexTime,
+      phase3Errors: this._phase3Errors,
     };
   }
 

@@ -1,6 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { SOURCE_EXTENSIONS } from './source-extensions.js';
+import { isJsTsExtension, isLightweightExtension, extractLightweightGraph } from './language-support/index.js';
+
 // ---------------------------------------------------------------------------
 // Import Graph Builder
 //
@@ -11,7 +14,7 @@ import path from 'node:path';
 //   - exported symbol names
 // ---------------------------------------------------------------------------
 
-const JS_EXTENSIONS = ['.js', '.jsx', '.cjs', '.mjs', '.ts', '.tsx'];
+const JS_EXTENSIONS = SOURCE_EXTENSIONS;
 
 /**
  * Attempt to resolve a module specifier to an absolute file path.
@@ -592,6 +595,27 @@ function findDescendants(node, type) {
  * @returns {Promise<{ filePath: string, mtime: number, imports: Array, exports: Array, symbols: Array } | null>}
  */
 export async function buildFileGraph({ syntaxIndexManager, filePath, projectRoot }) {
+  if (isLightweightExtension(filePath) && !isJsTsExtension(filePath)) {
+    let source = '';
+    let mtime = 0;
+    try {
+      source = fs.readFileSync(filePath, 'utf8');
+      mtime = fs.statSync(filePath).mtimeMs;
+    } catch {
+      return null;
+    }
+    const { imports, exports, symbols } = extractLightweightGraph({ source, filePath });
+    return {
+      filePath,
+      mtime,
+      imports,
+      exports,
+      symbols,
+      tree: null,
+      source,
+    };
+  }
+
   const parsed = await syntaxIndexManager.readFile(filePath);
   if (parsed.status !== 'parsed') {
     return null;
@@ -625,5 +649,7 @@ export async function buildFileGraph({ syntaxIndexManager, filePath, projectRoot
     imports,
     exports,
     symbols,
+    tree: parsed.tree,
+    source: parsed.source,
   };
 }

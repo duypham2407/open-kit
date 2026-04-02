@@ -47,6 +47,19 @@ export function createRenamePreviewTool({ projectGraphManager }) {
         return refResult;
       }
 
+      const reachablePaths = new Set(refResult.definitions.map((def) => def.absolutePath));
+      for (const def of refResult.definitions) {
+        const dependents = projectGraphManager.getDependents(def.absolutePath, { depth: 8 });
+        if (dependents?.status !== 'ok') {
+          continue;
+        }
+        for (const dependent of dependents.dependents ?? []) {
+          if (dependent.absolutePath) {
+            reachablePaths.add(dependent.absolutePath);
+          }
+        }
+      }
+
       // Group changes by file
       const changesByPath = new Map();
 
@@ -66,6 +79,9 @@ export function createRenamePreviewTool({ projectGraphManager }) {
 
       // Add reference sites
       for (const ref of refResult.references) {
+        if (!reachablePaths.has(ref.absoluteReferencePath)) {
+          continue;
+        }
         const key = ref.referencePath;
         if (!changesByPath.has(key)) {
           changesByPath.set(key, { path: key, absolutePath: ref.absoluteReferencePath, edits: [] });
@@ -93,6 +109,8 @@ export function createRenamePreviewTool({ projectGraphManager }) {
         changes,
         totalFiles: changes.length,
         totalEdits: changes.reduce((sum, c) => sum + c.edits.length, 0),
+        scopeFiltered: true,
+        importScoped: true,
       };
     },
   };

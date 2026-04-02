@@ -65,6 +65,7 @@ Current major managers include:
 - continuation state manager
 - notification manager
 - tmux session manager
+- file watcher
 - session state manager
 - action model state manager
 - agent profile switch manager
@@ -82,12 +83,24 @@ Used by:
 - AST search flows
 - project graph building
 
+Current parser coverage:
+- `.js`, `.jsx`, `.cjs`, `.mjs`, `.ts`, `.tsx`, `.cts`, `.mts`
+
+Non-parser language support is handled via lightweight extractors in
+`src/runtime/analysis/language-support/` and consumed by
+`import-graph-builder.js`.
+
 ### Project Graph Manager
 
 Purpose:
 - maintain the SQLite-backed project graph
 - index imports, symbols, references, and calls
+- index `.js/.jsx/.cjs/.mjs/.ts/.tsx/.cts/.mts`
 - serve graph queries to tools
+
+Phase-2 reliability notes:
+- reference/call tracking errors are counted and surfaced as `phase3Errors`
+- indexing reuses the parsed tree from `buildFileGraph()` (no redundant second parse)
 
 Related runtime surfaces:
 - import graph
@@ -102,6 +115,10 @@ Purpose:
 - track file touches during sessions
 - expose semantic search over indexed embeddings
 - build result and workflow context around code locations
+- provide embedding-backed keyword retrieval path used by semantic-search fallback
+
+Phase-4 MCP integration note:
+- this manager now backs builtin `mcp.code-search` execution through MCP dispatch
 
 ### Embedding Indexer
 
@@ -132,6 +149,16 @@ Purpose:
 Purpose:
 - persist and apply manual profile/model switching
 
+### File Watcher
+
+Purpose:
+- watch source files for changes
+- debounce and trigger `ProjectGraphManager.indexFile()` incrementally
+
+Notes:
+- created in `create-managers.js` when graph manager is available
+- managed lifecycle via `disposeManagers()`
+
 ## 5. Manager Relationships
 
 ```text
@@ -139,6 +166,7 @@ SyntaxIndexManager
     -> ProjectGraphManager
           -> SessionMemoryManager
           -> EmbeddingIndexer
+          -> FileWatcher
 
 ActionModelStateManager + AgentProfileSwitchManager
     -> Model runtime
