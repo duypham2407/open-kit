@@ -16,9 +16,9 @@ When performing deep research, you MUST use the kit's intelligence tools to gath
 
 - Use **`tool.import-graph`** to trace module boundaries and data flow paths.
 - Use **`tool.find-dependencies`** / **`tool.find-dependents`** to map which modules are affected by a component or API.
-- Use **`tool.find-references`** to find every usage of a symbol across the codebase.
-- Use **`tool.call-hierarchy`** to trace execution paths through the codebase.
-- Use **`tool.goto-definition`** to navigate to the authoritative definition of a symbol.
+- Use **`tool.graph-find-references`** to find every usage of a symbol across the codebase.
+- Use **`tool.graph-call-hierarchy`** to trace execution paths through the codebase.
+- Use **`tool.graph-goto-definition`** to navigate to the authoritative definition of a symbol.
 
 ### Understanding code structure
 

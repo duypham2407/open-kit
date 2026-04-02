@@ -147,9 +147,9 @@ Agents MUST follow `context/core/tool-substitution-rules.md` at all times. The k
    | Read tool (position) | `tool.syntax-context` | Getting surrounding code context at a specific location |
    | Edit tool | `tool.codemod-preview` / `tool.codemod-apply` | Applying the same transformation across multiple files safely |
    | Manual tracing | `tool.find-dependencies` / `tool.find-dependents` | Mapping module dependency graphs |
-   | Manual tracing | `tool.goto-definition` / `tool.find-references` | Navigating code like an IDE |
-   | Manual tracing | `tool.call-hierarchy` | Understanding call chains |
-   | Manual renaming | `tool.rename-preview` | Previewing multi-file rename impact |
+| Manual tracing | `tool.graph-goto-definition` / `tool.graph-find-references` | Navigating code like an IDE |
+| Manual tracing | `tool.graph-call-hierarchy` | Understanding call chains |
+| Manual renaming | `tool.graph-rename-preview` | Previewing multi-file rename impact |
 
 3. **Fallback is always allowed.** If a kit tool is unavailable, degraded, or not indexed yet, fall back to the basic built-in tool. But try the smarter tool first.
 

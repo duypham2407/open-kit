@@ -72,6 +72,12 @@ test('plugin blocks awk in strict mode', async () => {
   assert.equal(result.blocked, true);
 });
 
+test('plugin blocks head with flags on source files in strict mode', async () => {
+  const result = await runBeforeHook('head -20 src/runtime/tools/tool-registry.js', { OPENKIT_ENFORCEMENT_LEVEL: 'strict' });
+  assert.equal(result.blocked, true);
+  assert.ok(result.message.includes('file-read-partial'));
+});
+
 // ---------------------------------------------------------------------------
 // Allowed commands are never blocked
 // ---------------------------------------------------------------------------
@@ -165,9 +171,7 @@ test('plugin does not block cat on non-code files', async () => {
   assert.equal(result.blocked, false);
 });
 
-test('plugin does not block ls in strict mode', async () => {
-  // ls is in substitution rules but low-severity; let's verify
+test('plugin blocks ls in strict mode', async () => {
   const result = await runBeforeHook('ls src/', { OPENKIT_ENFORCEMENT_LEVEL: 'strict' });
-  // ls IS in the substitution rules, so it should be blocked
   assert.equal(result.blocked, true);
 });

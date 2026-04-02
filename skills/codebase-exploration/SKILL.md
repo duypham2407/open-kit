@@ -31,9 +31,9 @@ You MUST use the kit's intelligence tools instead of OS commands or basic built-
 ### Navigating code relationships
 
 - Use **`tool.find-dependencies`** / **`tool.find-dependents`** for module dependency graphs.
-- Use **`tool.goto-definition`** for IDE-style navigation to a symbol's definition.
-- Use **`tool.find-references`** to locate every usage of a symbol across the codebase.
-- Use **`tool.call-hierarchy`** to understand who calls a function and what it calls.
+- Use **`tool.graph-goto-definition`** for IDE-style navigation to a symbol's definition.
+- Use **`tool.graph-find-references`** to locate every usage of a symbol across the codebase.
+- Use **`tool.graph-call-hierarchy`** to understand who calls a function and what it calls.
 
 ### Fallback
 

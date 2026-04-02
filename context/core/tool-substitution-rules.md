@@ -37,10 +37,10 @@ that regex and glob cannot match.
 | Understand file structure | Read tool (full file) | `tool.syntax-outline` | Want the shape of a file before reading it all |
 | Get context at position | Read tool (offset) | `tool.syntax-context` | Need surrounding code around a specific location |
 | Locate a construct | Read tool + search | `tool.syntax-locate` | Find the line/position of a named construct in a file |
-| Navigate to definition | Read + Grep | `tool.goto-definition` | IDE-style "go to definition" |
-| Find all references | Grep tool | `tool.find-references` | Find every usage of a symbol across the codebase |
-| Understand call chains | Manual tracing | `tool.call-hierarchy` | Need to see callers/callees of a function |
-| Preview multi-file rename | Grep + Edit | `tool.rename-preview` | Want to see all locations that would change before renaming |
+| Navigate to definition | Read + Grep | `tool.graph-goto-definition` | IDE-style "go to definition" |
+| Find all references | Grep tool | `tool.graph-find-references` | Find every usage of a symbol across the codebase |
+| Understand call chains | Manual tracing | `tool.graph-call-hierarchy` | Need to see callers/callees of a function |
+| Preview multi-file rename | Grep + Edit | `tool.graph-rename-preview` | Want to see all locations that would change before renaming |
 | Multi-file code transform | Edit tool (repeated) | `tool.codemod-preview` / `tool.codemod-apply` | Same transformation applied across many files |
 | Quality/security scan | Manual review | `tool.rule-scan` / `tool.security-scan` | Before handoff or completion claims |
 
@@ -65,7 +65,7 @@ Use Bash freely for these operations — they are **not blocked**:
 2. **Need to search file contents?** → Grep tool (or `tool.semantic-search` for meaning-based search, or `tool.ast-grep-search` for structural patterns)
 3. **Need to read a file?** → Read tool (or `tool.syntax-outline` first to understand structure)
 4. **Need to understand dependencies?** → `tool.import-graph` / `tool.find-dependencies` / `tool.find-dependents`
-5. **Need to navigate code?** → `tool.goto-definition` / `tool.find-references` / `tool.call-hierarchy`
+5. **Need to navigate code?** → `tool.graph-goto-definition` / `tool.graph-find-references` / `tool.graph-call-hierarchy`
 6. **Need to modify a file?** → Edit tool (or `tool.codemod-preview` → `tool.codemod-apply` for multi-file transforms)
 7. **Need to create a file?** → Write tool
 8. **Need to run a program?** → Bash tool (allowed)
