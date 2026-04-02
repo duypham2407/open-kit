@@ -35,7 +35,7 @@ function summarizeToolFamilies(toolList = []) {
   return [...families.values()].sort((left, right) => left.family.localeCompare(right.family));
 }
 
-export function createTools({ config, capabilityIndex, projectRoot, managers, mcpPlatform, modelRuntime, env = process.env }) {
+export function createTools({ config, capabilityIndex, projectRoot, managers, mcpPlatform, modelRuntime, hooks = null, env = process.env }) {
   let invocationLogger = null;
   try {
     // Use a dynamic getter so the invocation logger writes to the
@@ -59,7 +59,10 @@ export function createTools({ config, capabilityIndex, projectRoot, managers, mc
     // Invocation logger creation is best-effort; runtime should still function without it
   }
 
-  const registry = createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, invocationLogger, env });
+  // Extract guard hooks for tool-execution gating
+  const guardHooks = hooks?.hookList?.filter((hook) => hook.id === 'hook.bash-guard') ?? null;
+
+  const registry = createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, invocationLogger, guardHooks, env });
   const toolList = registry.toolList.map((tool) => ({
     id: tool.id,
     name: tool.name ?? tool.id,

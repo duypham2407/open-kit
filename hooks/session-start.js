@@ -155,6 +155,7 @@ const workspaceRoot = path.dirname(path.dirname(statePath));
 const compatibilityShimRoot = path.join(projectRoot, '.opencode');
 const workspaceShimRoot = path.join(projectRoot, '.opencode', 'openkit');
 const metaSkillPath = path.join(kitRoot, 'skills', 'using-skills', 'SKILL.md');
+const toolSubstitutionRulesPath = path.join(kitRoot, 'context', 'core', 'tool-substitution-rules.md');
 const manifestPath = path.join(kitRoot, '.opencode', 'opencode.json');
 const runtimeSummaryModulePath = path.join(kitRoot, '.opencode', 'lib', 'runtime-summary.js');
 
@@ -213,6 +214,19 @@ if (!process.env.OPENKIT_SESSION_START_NO_SKILL && fs.existsSync(metaSkillPath))
     print();
   }
   print('</skill_system_instruction>');
+}
+
+if (!process.env.OPENKIT_SESSION_START_NO_TOOL_RULES && fs.existsSync(toolSubstitutionRulesPath)) {
+  const toolRules = fs.readFileSync(toolSubstitutionRulesPath, 'utf8');
+  print('<openkit_tool_substitution_rules>');
+  print('IMPORTANT: The following tool substitution rules are enforced by the OpenKit runtime.');
+  print('Bash calls for blocked OS commands will be rejected.  Use the suggested tools instead.');
+  print();
+  process.stdout.write(toolRules);
+  if (!toolRules.endsWith('\n')) {
+    print();
+  }
+  print('</openkit_tool_substitution_rules>');
 }
 
 if (jsonHelperStatus === 'ok' && !stateResult.malformed && stateResult.value) {

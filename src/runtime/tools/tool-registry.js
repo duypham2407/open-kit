@@ -1,5 +1,6 @@
 import { createRuleScanTool } from './audit/rule-scan.js';
 import { createSecurityScanTool } from './audit/security-scan.js';
+import { createAstGrepSearchTool } from './ast/ast-grep-search.js';
 import { createAstReplaceTool } from './ast/ast-replace.js';
 import { createAstSearchTool } from './ast/ast-search.js';
 import { createCodemodApplyTool } from './codemod/codemod-apply.js';
@@ -34,7 +35,7 @@ import { createRuntimeSummaryTool } from './workflow/runtime-summary.js';
 import { createWorkflowStateTool } from './workflow/workflow-state.js';
 import { wrapToolExecution } from './wrap-tool-execution.js';
 
-export function createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, invocationLogger = null, env = process.env }) {
+export function createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, invocationLogger = null, guardHooks = null, env = process.env }) {
   const disabledTools = new Set(config?.disabled?.tools ?? []);
   const definitions = [
     createWorkflowStateTool({ projectRoot, workflowKernel: managers.workflowKernel }),
@@ -80,13 +81,14 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     createLspFindReferencesTool({ projectRoot }),
     createLspPrepareRenameTool({ projectRoot }),
     createLspRenameTool({ projectRoot }),
-    createAstSearchTool({ projectRoot }),
+    createAstSearchTool({ projectRoot, syntaxIndexManager: managers.syntaxIndexManager }),
+    createAstGrepSearchTool({ projectRoot }),
     createAstReplaceTool({ projectRoot }),
   ];
 
   const enabledTools = definitions
     .filter((tool) => !disabledTools.has(tool.id))
-    .map((tool) => wrapToolExecution(tool, { actionModelStateManager: managers.actionModelStateManager, invocationLogger }));
+    .map((tool) => wrapToolExecution(tool, { actionModelStateManager: managers.actionModelStateManager, invocationLogger, guardHooks }));
 
   return {
     toolList: enabledTools,

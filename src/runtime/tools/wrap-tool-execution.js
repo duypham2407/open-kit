@@ -33,7 +33,42 @@ function shouldRecordSuccess(result) {
   return !/failed|error|missing|invalid|unsupported|degraded/i.test(result.status);
 }
 
-export function wrapToolExecution(tool, { actionModelStateManager, invocationLogger } = {}) {
+/**
+ * Dispatch pre-execution guard hooks.
+ *
+ * Each guard receives { toolId, args } and returns an advisory object.
+ * If any guard sets `allowed: false` or `blocked: true`, the tool call
+ * is blocked and a structured result is returned instead.
+ */
+function dispatchGuardHooks(guardHooks, toolId, args) {
+  if (!guardHooks || guardHooks.length === 0) {
+    return null;
+  }
+
+  for (const hook of guardHooks) {
+    if (!hook || typeof hook.run !== 'function') {
+      continue;
+    }
+
+    try {
+      const result = hook.run({ toolId, args });
+      if (result && (result.allowed === false || result.blocked === true)) {
+        return {
+          status: 'blocked',
+          hookId: hook.id ?? 'unknown',
+          blockedBy: result.blockedBy ?? [hook.id ?? 'guard-hook'],
+          reason: result.reason ?? 'Tool call blocked by guard hook.',
+        };
+      }
+    } catch {
+      // Guard hooks are best-effort; do not block execution on hook errors
+    }
+  }
+
+  return null;
+}
+
+export function wrapToolExecution(tool, { actionModelStateManager, invocationLogger, guardHooks } = {}) {
   if (!tool || typeof tool.execute !== 'function' || !actionModelStateManager) {
     return tool;
   }
@@ -63,6 +98,19 @@ export function wrapToolExecution(tool, { actionModelStateManager, invocationLog
     execute(...args) {
       const tracking = resolveActionTracking(args[0], tool);
       const sanitizedArgs = args.map((entry, index) => (index === 0 ? sanitizeInput(entry) : entry));
+
+      // --- Guard hook dispatch ---
+      const guardResult = dispatchGuardHooks(guardHooks, tool.id, sanitizedArgs[0]);
+      if (guardResult) {
+        // Record the block as a failure
+        actionModelStateManager.recordFailure({
+          subjectId: tracking.subjectId,
+          actionKey: tracking.actionKey,
+          detail: `blocked:${guardResult.hookId}`,
+        });
+        return guardResult;
+      }
+
       const startTime = Date.now();
 
       try {

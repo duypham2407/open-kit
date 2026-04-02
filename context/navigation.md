@@ -37,6 +37,7 @@ context/
 │   ├── qa-output-schema.json ← QA output contract
 │   ├── runtime-surfaces.md ← Product vs compatibility runtime surfaces
 │   ├── session-resume.md  ← New-session resume protocol
+│   ├── tool-substitution-rules.md ← Tool enforcement substitution map
 │   ├── workflow-state-schema.md ← Canonical workflow-state fields and enums
 │   └── workflow.md        ← Hard-split Quick Task and Full Delivery contract
 ```
@@ -75,6 +76,7 @@ Use `context/core/workflow.md` when you need the current live workflow semantics
 | Resuming a session | `core/session-resume.md` |
 | Updating workflow state | `core/workflow-state-schema.md` |
 | Applying governance policy | `../docs/governance/` |
+| Understanding tool enforcement | `core/tool-substitution-rules.md` |
 | Recording operational history | `../docs/operations/` |
 | Daily operator wayfinding | `../docs/operator/README.md` |
 | Maintainer wayfinding | `../docs/maintainer/README.md` |

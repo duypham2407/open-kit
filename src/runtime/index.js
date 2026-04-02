@@ -46,15 +46,6 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
     env,
     config: configResult.config,
   });
-  const tools = createTools({
-    config: configResult.config,
-    capabilityIndex,
-    projectRoot,
-    managers,
-    mcpPlatform,
-    modelRuntime,
-    env,
-  });
   const hooks = createHooks({
     config: {
       ...configResult.config,
@@ -69,8 +60,18 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
     capabilities,
     skills,
   });
+  const tools = createTools({
+    config: configResult.config,
+    capabilityIndex,
+    projectRoot,
+    managers,
+    mcpPlatform,
+    modelRuntime,
+    hooks,
+    env,
+  });
   const commands = loadRuntimeCommands({ projectRoot });
-  const contextInjection = createContextInjection({ projectRoot });
+  const contextInjection = createContextInjection({ projectRoot, hooks: hooks.hooks });
   const runtimeInterface = createRuntimeInterface({
     projectRoot,
     configResult,

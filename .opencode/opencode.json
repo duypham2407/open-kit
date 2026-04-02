@@ -30,6 +30,25 @@
   },
   "instructions": [
     "AGENTS.md",
-    "context/navigation.md"
-  ]
+    "context/navigation.md",
+    "context/core/tool-substitution-rules.md"
+  ],
+  "hooks": {
+    "rulesInjector": {
+      "always": [
+        "Use OpenKit kit tools and OpenCode built-in tools (Read, Edit, Write, Glob, Grep) instead of OS-level commands (grep, cat, find, sed, awk) when operating on source code files. Bash calls for blocked commands will be rejected by the tool enforcement plugin."
+      ],
+      "byMode": {
+        "quick": [
+          "STRICT enforcement: All OS-level search/read/transform commands on code files are blocked. Use built-in tools exclusively."
+        ],
+        "full": [
+          "STRICT enforcement: All OS-level search/read/transform commands on code files are blocked. Use built-in tools exclusively."
+        ],
+        "migration": [
+          "MODERATE enforcement: OS-level commands generate warnings but are not blocked. Prefer built-in tools when possible."
+        ]
+      }
+    }
+  }
 }
