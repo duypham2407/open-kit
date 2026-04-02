@@ -829,7 +829,7 @@ function printPolicyStatus(result) {
   console.log(`enforcement mode: ${result.enforcementMode}`)
   console.log(`manual override: ${result.hasManualOverride ? "yes" : "no"}`)
   if (result.toolEvidenceGate) {
-    console.log(`tool evidence gate (Mức 2): ${result.toolEvidenceGate.passed ? "passed" : "blocked"}`)
+    console.log(`tool evidence gate (Tier 2): ${result.toolEvidenceGate.passed ? "passed" : "blocked"}`)
     if (result.toolEvidenceGate.blockers.length > 0) {
       for (const blocker of result.toolEvidenceGate.blockers) {
         console.log(`  ${blocker}`)
@@ -837,7 +837,7 @@ function printPolicyStatus(result) {
     }
   }
   if (result.policy) {
-    console.log(`runtime policy (Mức 3): ${result.policy.passed ? "passed" : "blocked"}`)
+    console.log(`runtime policy (Tier 3): ${result.policy.passed ? "passed" : "blocked"}`)
     if (result.policy.summary) {
       console.log(`  policy: ${result.policy.summary}`)
     }
@@ -847,7 +847,7 @@ function printPolicyStatus(result) {
       }
     }
   } else {
-    console.log("runtime policy (Mức 3): no policy defined for next stage")
+    console.log("runtime policy (Tier 3): no policy defined for next stage")
   }
 }
 

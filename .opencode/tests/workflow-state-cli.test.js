@@ -1070,12 +1070,12 @@ test("status reports missing migration evidence kinds until all required kinds a
   result = runCli(projectRoot, ["set-approval", "upgrade_to_code_review", "approved", "CodeReviewer"])
   assert.equal(result.status, 0)
 
-  // Seed invocation log entries required by Mức 3 policy for migration_code_review
+  // Seed invocation log entries required by Tier 3 policy for migration_code_review
   writeInvocationLog(projectRoot, "migrate-951", [
     { tool_id: "tool.rule-scan", status: "success", recorded_at: "2026-03-21T00:00:00Z" },
   ])
 
-  // Record Mức 2 tool evidence required for migration_code_review
+  // Record Tier 2 tool evidence required for migration_code_review
   result = runCli(projectRoot, ["record-verification-evidence", "rule-scan-evidence", "automated", "migration_upgrade", "Rule scan complete", "tool.rule-scan"])
   assert.equal(result.status, 0)
 

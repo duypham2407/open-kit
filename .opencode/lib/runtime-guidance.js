@@ -110,7 +110,7 @@ const ARTIFACT_RULES = {
 }
 
 // ---------------------------------------------------------------------------
-// Tool evidence gates (Mức 2)
+// Tool evidence gates (Tier 2)
 //
 // Each entry maps a target stage to the tool-sourced evidence that MUST exist
 // in state.verification_evidence before advanceStage allows the transition.

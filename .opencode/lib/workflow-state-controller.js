@@ -2160,7 +2160,7 @@ function getDefinitionOfDone(customStatePath) {
     }
   }
 
-  // Mức 3: Runtime Policy Engine — check invocation log for required tool runs
+  // Tier 3: Runtime Policy Engine — check invocation log for required tool runs
   // Only check policies for stages that have NOT yet been passed.  When a
   // work item is already at or beyond a gated stage, the policy was enforced
   // at transition time and should not retroactively block DoD.
@@ -3597,7 +3597,7 @@ function advanceStage(targetStage, customStatePath) {
       )
     }
 
-    // Mức 3: Runtime Policy Engine — check invocation log for required tool runs
+    // Tier 3: Runtime Policy Engine — check invocation log for required tool runs
     const policyEnforcementMode = state.policy_enforcement ?? "enforce"
     const hasManualPolicyOverride = Array.isArray(state.verification_evidence) && state.verification_evidence.some(
       (entry) => entry.source === "manual" && entry.scope === `tool-evidence-override:${targetStage}`,
@@ -3914,7 +3914,7 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 }
 
 // ---------------------------------------------------------------------------
-// Invocation log inspection (Mức 3 diagnostics)
+// Invocation log inspection (Tier 3 diagnostics)
 // ---------------------------------------------------------------------------
 
 function getInvocationLog(workItemId, customStatePath) {
@@ -3975,7 +3975,7 @@ function getPolicyStatus(customStatePath) {
     })
   }
 
-  // Also show the tool evidence gate status (Mức 2)
+  // Also show the tool evidence gate status (Tier 2)
   const toolEvidenceGate = nextStage ? checkToolEvidenceGate(state, nextStage) : null
 
   return {

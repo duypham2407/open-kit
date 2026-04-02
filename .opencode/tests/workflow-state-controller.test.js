@@ -1865,7 +1865,7 @@ test("controller restores primary and mirror state when index write fails late",
 })
 
 // ---------------------------------------------------------------------------
-// Tool evidence gate tests (Mức 2)
+// Tool evidence gate tests (Tier 2)
 // ---------------------------------------------------------------------------
 
 test("full_code_review is blocked without rule-scan tool evidence", () => {
@@ -2163,7 +2163,7 @@ test("definition of done includes tool evidence gate status", () => {
 })
 
 // ---------------------------------------------------------------------------
-// Mức 3: Runtime Policy Engine tests
+// Tier 3: Runtime Policy Engine tests
 // ---------------------------------------------------------------------------
 
 test("invocation logger records entries to disk", () => {
@@ -2241,7 +2241,7 @@ test("enforcePolicy skips check in off mode", () => {
   assert.equal(result.warnings.length, 0)
 })
 
-test("Mức 3 policy blocks advanceStage to full_code_review without tool invocations", () => {
+test("Tier 3 policy blocks advanceStage to full_code_review without tool invocations", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-900", "policy-block-code-review", statePath)
@@ -2255,7 +2255,7 @@ test("Mức 3 policy blocks advanceStage to full_code_review without tool invoca
   setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
   advanceStage("full_implementation", statePath)
 
-  // Record Mức 2 tool evidence so Mức 2 gate passes
+  // Record Tier 2 tool evidence so Tier 2 gate passes
   recordVerificationEvidence(
     {
       id: "rule-scan-900",
@@ -2269,14 +2269,14 @@ test("Mức 3 policy blocks advanceStage to full_code_review without tool invoca
   )
   setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
 
-  // Mức 2 passes but Mức 3 should fail because no runtime invocation was recorded
+  // Tier 2 passes but Tier 3 should fail because no runtime invocation was recorded
   assert.throws(
     () => advanceStage("full_code_review", statePath),
     /Runtime policy blocked advance to 'full_code_review'/,
   )
 })
 
-test("Mức 3 policy allows advanceStage to full_code_review with tool invocation log entries", () => {
+test("Tier 3 policy allows advanceStage to full_code_review with tool invocation log entries", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-901", "policy-pass-code-review", statePath)
@@ -2290,7 +2290,7 @@ test("Mức 3 policy allows advanceStage to full_code_review with tool invocatio
   setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
   advanceStage("full_implementation", statePath)
 
-  // Record Mức 2 tool evidence
+  // Record Tier 2 tool evidence
   recordVerificationEvidence(
     {
       id: "rule-scan-901",
@@ -2304,7 +2304,7 @@ test("Mức 3 policy allows advanceStage to full_code_review with tool invocatio
   )
   setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
 
-  // Write invocation log entries so Mức 3 passes
+  // Write invocation log entries so Tier 3 passes
   writeInvocationLogEntries(statePath, "feature-901", [
     { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
   ])
@@ -2313,7 +2313,7 @@ test("Mức 3 policy allows advanceStage to full_code_review with tool invocatio
   assert.equal(result.state.current_stage, "full_code_review")
 })
 
-test("Mức 3 policy manual override bypasses policy check", () => {
+test("Tier 3 policy manual override bypasses policy check", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-902", "policy-manual-override", statePath)
@@ -2327,7 +2327,7 @@ test("Mức 3 policy manual override bypasses policy check", () => {
   setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
   advanceStage("full_implementation", statePath)
 
-  // Record Mức 2 tool evidence (the manual override below also covers Mức 2 gate)
+  // Record Tier 2 tool evidence (the manual override below also covers Tier 2 gate)
   recordVerificationEvidence(
     {
       id: "manual-override-902",
@@ -2341,12 +2341,12 @@ test("Mức 3 policy manual override bypasses policy check", () => {
   )
   setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
 
-  // No invocation log entries — the manual override should bypass both Mức 2 and Mức 3
+  // No invocation log entries — the manual override should bypass both Tier 2 and Tier 3
   const result = advanceStage("full_code_review", statePath)
   assert.equal(result.state.current_stage, "full_code_review")
 })
 
-test("Mức 3 policy warn mode allows transition and records issue", () => {
+test("Tier 3 policy warn mode allows transition and records issue", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-903", "policy-warn-mode", statePath)
@@ -2360,7 +2360,7 @@ test("Mức 3 policy warn mode allows transition and records issue", () => {
   setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
   advanceStage("full_implementation", statePath)
 
-  // Record Mức 2 tool evidence so Mức 2 gate passes
+  // Record Tier 2 tool evidence so Tier 2 gate passes
   recordVerificationEvidence(
     {
       id: "rule-scan-903",
@@ -2384,7 +2384,7 @@ test("Mức 3 policy warn mode allows transition and records issue", () => {
   assert.ok(policyIssues.length > 0, "should have recorded at least one policy warning issue")
 })
 
-test("Mức 3 policy off mode skips policy check entirely", () => {
+test("Tier 3 policy off mode skips policy check entirely", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-904", "policy-off-mode", statePath)
@@ -2398,7 +2398,7 @@ test("Mức 3 policy off mode skips policy check entirely", () => {
   setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
   advanceStage("full_implementation", statePath)
 
-  // Record Mức 2 tool evidence so Mức 2 gate passes
+  // Record Tier 2 tool evidence so Tier 2 gate passes
   recordVerificationEvidence(
     {
       id: "rule-scan-904",
@@ -2423,7 +2423,7 @@ test("Mức 3 policy off mode skips policy check entirely", () => {
   assert.equal(policyIssues.length, 0, "should not have policy warning issues when policy is off")
 })
 
-test("definition of done includes Mức 3 policy blockers", () => {
+test("definition of done includes Tier 3 policy blockers", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-905", "dod-policy-blockers", statePath)
@@ -2673,7 +2673,7 @@ test("getPolicyStatus returns policy check for the next stage transition", () =>
   assert.equal(result.enforcementMode, "enforce")
   assert.equal(result.hasManualOverride, false)
 
-  // Mức 3 policy should show not passed (no tool.rule-scan invocation)
+  // Tier 3 policy should show not passed (no tool.rule-scan invocation)
   assert.ok(result.policy)
   assert.equal(result.policy.passed, false)
   assert.ok(result.policy.violations.length > 0)

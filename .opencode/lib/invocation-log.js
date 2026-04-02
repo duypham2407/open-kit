@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Tool Invocation Log (Mức 3)
+// Tool Invocation Log (Tier 3)
 //
 // Records every tool execution in the runtime, persisted to disk so the
 // policy engine can check whether required tools were actually invoked

@@ -128,9 +128,9 @@ Do not advance the active work item stage, and do not refresh `.opencode/workflo
 
 Do not mark a gate `approved` when the evidence is missing, not inspectable, or relies on unstated conversation context.
 
-## Tool Evidence Gates (Mức 2)
+## Tool Evidence Gates (Tier 2)
 
-In addition to approval gates, certain stage transitions require **tool-sourced verification evidence** recorded in `state.verification_evidence` before `advanceStage` allows the transition. These gates enforce the agent tool-usage contracts established in Mức 1.
+In addition to approval gates, certain stage transitions require **tool-sourced verification evidence** recorded in `state.verification_evidence` before `advanceStage` allows the transition. These gates enforce the agent tool-usage contracts established in Tier 1.
 
 ### Active Tool Evidence Gates
 
@@ -157,15 +157,15 @@ Quick mode has no tool evidence gates on intermediate transitions. The existing 
 - `node .opencode/workflow-state.js show-dod` includes `toolEvidenceGate` and `toolEvidenceBlockers` in its output
 - When a tool evidence gate blocks `advance-stage`, the error message includes the missing source groups and a manual override hint
 
-## Runtime Policy Engine (Mức 3)
+## Runtime Policy Engine (Tier 3)
 
-Beyond Mức 2 evidence gates (which check agent-written `verification_evidence`), the runtime policy engine (Mức 3) checks the **runtime invocation log** for actual tool executions before allowing stage transitions. Agents cannot forge invocation log entries — they are recorded by the tool execution wrapper in `src/runtime/tools/wrap-tool-execution.js`.
+Beyond Tier 2 evidence gates (which check agent-written `verification_evidence`), the runtime policy engine (Tier 3) checks the **runtime invocation log** for actual tool executions before allowing stage transitions. Agents cannot forge invocation log entries — they are recorded by the tool execution wrapper in `src/runtime/tools/wrap-tool-execution.js`.
 
 ### How It Works
 
 1. Every tool execution in the runtime is recorded to a file-backed invocation log at `.opencode/work-items/<work_item_id>/tool-invocations.json` (or `.opencode/tool-invocations.json` as a fallback).
 2. Before `advanceStage` allows a transition, the policy engine checks whether required tools were actually invoked with a `success` status in the invocation log.
-3. Both Mức 2 and Mức 3 must pass for a transition to proceed.
+3. Both Tier 2 and Tier 3 must pass for a transition to proceed.
 
 ### Active Invocation Policies
 
@@ -187,11 +187,11 @@ Set `state.policy_enforcement` to control behavior:
 
 ### Manual Override
 
-The same manual override pattern from Mức 2 applies. If `state.verification_evidence` contains an entry with:
+The same manual override pattern from Tier 2 applies. If `state.verification_evidence` contains an entry with:
 - `source: "manual"`
 - `scope: "tool-evidence-override:<target_stage>"`
 
-...then both Mức 2 and Mức 3 checks are bypassed for that target stage.
+...then both Tier 2 and Tier 3 checks are bypassed for that target stage.
 
 ### Invocation Log Location
 
@@ -226,8 +226,8 @@ node .opencode/workflow-state.js show-policy-status
 The output includes:
 - Current mode, stage, and enforcement mode
 - Whether a manual override exists for the next stage
-- Mức 2 tool evidence gate status (passed or blocked with blockers)
-- Mức 3 runtime policy status (passed or blocked with violation details)
+- Tier 2 tool evidence gate status (passed or blocked with blockers)
+- Tier 3 runtime policy status (passed or blocked with violation details)
 
 The command exits with code 0 when all policies pass (or a manual override exists) and code 1 when blocked.
 
@@ -248,7 +248,7 @@ node .opencode/workflow-state.js record-verification-evidence \
   "semgrep not available in this environment" manual
 ```
 
-This bypasses both Mức 2 and Mức 3 checks for the specified target stage.
+This bypasses both Tier 2 and Tier 3 checks for the specified target stage.
 
 ### Setting Enforcement Mode
 

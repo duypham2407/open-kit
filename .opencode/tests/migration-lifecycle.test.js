@@ -379,8 +379,8 @@ test("full migration lifecycle: start-task to migration_done", () => {
 
   // 10b. Record tool evidence required by migration_code_review gates.
   //      Two gates must be satisfied:
-  //      1. Tool evidence gate (Mức 2): needs rule-scan or codemod-preview source
-  //      2. Runtime policy engine (Mức 3): needs tool invocation log entries or a manual override
+  //      1. Tool evidence gate (Tier 2): needs rule-scan or codemod-preview source
+  //      2. Runtime policy engine (Tier 3): needs tool invocation log entries or a manual override
   r = run(projectRoot, [
     "record-verification-evidence",
     "tool-rule-scan-001",
