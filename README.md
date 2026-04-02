@@ -153,6 +153,41 @@ Recommended flow:
 2. `openkit configure-agent-models --interactive`
 3. `openkit run`
 
+### Configure semantic embedding search
+
+OpenKit supports semantic code search backed by embedding vectors. When enabled, the `tool.semantic-search` tool uses embeddings instead of keyword matching.
+
+```bash
+openkit configure-embedding --interactive
+```
+
+Useful commands:
+
+```bash
+openkit configure-embedding --list
+openkit configure-embedding --provider openai --model openai/text-embedding-3-small --enable
+openkit configure-embedding --provider ollama --model ollama/nomic-embed-text --dimensions 768 --enable
+openkit configure-embedding --provider custom --model my-model --base-url https://my-api.example.com/v1 --enable
+openkit configure-embedding --disable
+openkit configure-embedding --clear
+```
+
+Supported providers:
+
+| Provider | Notes |
+|---|---|
+| `openai` | Requires `OPENAI_API_KEY` env var or `--api-key`. Default model: `text-embedding-3-small` (1536 dims). |
+| `ollama` | Local server, no API key needed. Default URL: `http://localhost:11434`. Default model: `nomic-embed-text` (768 dims). |
+| `custom` | Any OpenAI-compatible endpoint. Requires `--base-url`. |
+
+Recommended flow:
+
+1. `openkit configure-embedding --interactive`
+2. `openkit run`
+3. Inside the session, run `tool.embedding-index` with `action: index-project` to index the codebase.
+
+Config is written to `.opencode/openkit.runtime.jsonc` in the project root. Restart `openkit run` to pick up changes. When embedding is disabled the semantic search tool falls back to keyword search automatically.
+
 ### Launch OpenCode with OpenKit
 
 ```bash

@@ -8,6 +8,7 @@ import { uninstallCommand } from './commands/uninstall.js';
 import { doctorCommand } from './commands/doctor.js';
 import { detectVietnameseCommand } from './commands/detect-vietnamese.js';
 import { configureAgentModelsCommand } from './commands/configure-agent-models.js';
+import { configureEmbeddingCommand } from './commands/configure-embedding.js';
 import { releaseCommand } from './commands/release.js';
 import { onboardCommand } from './commands/onboard.js';
 
@@ -22,6 +23,7 @@ const commands = {
   doctor: doctorCommand,
   onboard: onboardCommand,
   'configure-agent-models': configureAgentModelsCommand,
+  'configure-embedding': configureEmbeddingCommand,
   release: releaseCommand,
   'internal-audit-vietnamese': detectVietnameseCommand,
 };

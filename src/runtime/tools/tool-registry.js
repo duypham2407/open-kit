@@ -6,6 +6,7 @@ import { createAstSearchTool } from './ast/ast-search.js';
 import { createCodemodApplyTool } from './codemod/codemod-apply.js';
 import { createCodemodPreviewTool } from './codemod/codemod-preview.js';
 import { createLookAtTool } from './analysis/look-at.js';
+import { createEmbeddingIndexTool } from './analysis/embedding-index.js';
 import { createBrowserVerifyTool } from './browser/browser-verify.js';
 import { createContinuationHandoffTool } from './continuation/continuation-handoff.js';
 import { createContinuationStartTool } from './continuation/continuation-start.js';
@@ -19,6 +20,11 @@ import { createFindDependenciesTool } from './graph/find-dependencies.js';
 import { createFindDependentsTool } from './graph/find-dependents.js';
 import { createFindSymbolTool } from './graph/find-symbol.js';
 import { createImportGraphTool } from './graph/import-graph.js';
+import { createGotoDefinitionTool } from './graph/goto-definition.js';
+import { createGraphFindReferencesTool } from './graph/find-references.js';
+import { createCallHierarchyTool } from './graph/call-hierarchy.js';
+import { createRenamePreviewTool } from './graph/rename-preview.js';
+import { createSemanticSearchTool } from './graph/semantic-search.js';
 import { createInteractiveBashTool } from './interactive/interactive-bash.js';
 import { createLspDiagnosticsTool } from './lsp/lsp-diagnostics.js';
 import { createLspFindReferencesTool } from './lsp/lsp-find-references.js';
@@ -71,6 +77,7 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     createInteractiveBashTool(),
     createHashlineEditTool({ projectRoot }),
     createLookAtTool({ projectRoot }),
+    createEmbeddingIndexTool({ embeddingIndexer: managers.embeddingIndexer }),
     createRuleScanTool({ projectRoot }),
     createSecurityScanTool({ projectRoot }),
     createCodemodPreviewTool({ projectRoot }),
@@ -79,12 +86,12 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     createSyntaxContextTool({ syntaxIndexManager: managers.syntaxIndexManager }),
     createSyntaxLocateTool({ syntaxIndexManager: managers.syntaxIndexManager }),
     createBrowserVerifyTool({ config, env }),
-    createLspSymbolsTool({ projectRoot }),
-    createLspDiagnosticsTool({ projectRoot }),
-    createLspGotoDefinitionTool({ projectRoot }),
-    createLspFindReferencesTool({ projectRoot }),
-    createLspPrepareRenameTool({ projectRoot }),
-    createLspRenameTool({ projectRoot }),
+    createLspSymbolsTool({ projectRoot, projectGraphManager: managers.projectGraphManager }),
+    createLspDiagnosticsTool({ projectRoot, projectGraphManager: managers.projectGraphManager }),
+    createLspGotoDefinitionTool({ projectRoot, projectGraphManager: managers.projectGraphManager }),
+    createLspFindReferencesTool({ projectRoot, projectGraphManager: managers.projectGraphManager }),
+    createLspPrepareRenameTool({ projectRoot, projectGraphManager: managers.projectGraphManager }),
+    createLspRenameTool({ projectRoot, projectGraphManager: managers.projectGraphManager }),
     createAstSearchTool({ projectRoot, syntaxIndexManager: managers.syntaxIndexManager }),
     createAstGrepSearchTool({ projectRoot }),
     createAstReplaceTool({ projectRoot }),
@@ -92,6 +99,11 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     createFindDependenciesTool({ projectGraphManager: managers.projectGraphManager }),
     createFindDependentsTool({ projectGraphManager: managers.projectGraphManager }),
     createFindSymbolTool({ projectGraphManager: managers.projectGraphManager }),
+    createGotoDefinitionTool({ projectGraphManager: managers.projectGraphManager }),
+    createGraphFindReferencesTool({ projectGraphManager: managers.projectGraphManager }),
+    createCallHierarchyTool({ projectGraphManager: managers.projectGraphManager }),
+    createRenamePreviewTool({ projectGraphManager: managers.projectGraphManager }),
+    createSemanticSearchTool({ projectGraphManager: managers.projectGraphManager, sessionMemoryManager: managers.sessionMemoryManager }),
   ];
 
   const enabledTools = definitions

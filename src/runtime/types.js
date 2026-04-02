@@ -23,6 +23,8 @@ export const DISABLED_RUNTIME_BUCKETS = [
 
 export const BROWSER_AUTOMATION_PROVIDERS = ['playwright', 'playwright-cli', 'agent-browser'];
 
+export const EMBEDDING_PROVIDERS = ['openai', 'ollama', 'custom'];
+
 export const RUNTIME_FEATURE_FLAGS = ['managers', 'tools', 'hooks', 'capabilityDiagnostics'];
 
 export const DEFAULT_RUNTIME_MANAGER_IDS = [

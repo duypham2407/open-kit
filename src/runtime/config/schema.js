@@ -1,6 +1,7 @@
 import {
   BROWSER_AUTOMATION_PROVIDERS,
   DISABLED_RUNTIME_BUCKETS,
+  EMBEDDING_PROVIDERS,
   RUNTIME_CONFIG_SCHEMA,
   RUNTIME_FEATURE_FLAGS,
 } from '../types.js';
@@ -437,6 +438,31 @@ export function validateRuntimeConfig(config) {
     }
   } else if (config.browserAutomation !== undefined) {
     errors.push('browserAutomation must be an object when provided.');
+  }
+
+  if (isPlainObject(config.embedding)) {
+    validateBooleanIfPresent(config.embedding.enabled, 'embedding.enabled', errors);
+    if (
+      config.embedding.provider !== undefined &&
+      !EMBEDDING_PROVIDERS.includes(config.embedding.provider)
+    ) {
+      errors.push(
+        `embedding.provider must be one of: ${EMBEDDING_PROVIDERS.join(', ')}.`
+      );
+    }
+    if (config.embedding.model !== undefined && (typeof config.embedding.model !== 'string' || config.embedding.model.trim().length === 0)) {
+      errors.push('embedding.model must be a non-empty string when provided.');
+    }
+    validatePositiveIntegerIfPresent(config.embedding.dimensions, 'embedding.dimensions', errors);
+    validatePositiveIntegerIfPresent(config.embedding.batchSize, 'embedding.batchSize', errors);
+    if (config.embedding.apiKey !== undefined && config.embedding.apiKey !== null && typeof config.embedding.apiKey !== 'string') {
+      errors.push('embedding.apiKey must be a string or null when provided.');
+    }
+    if (config.embedding.baseUrl !== undefined && config.embedding.baseUrl !== null && typeof config.embedding.baseUrl !== 'string') {
+      errors.push('embedding.baseUrl must be a string or null when provided.');
+    }
+  } else if (config.embedding !== undefined) {
+    errors.push('embedding must be an object when provided.');
   }
 
   if (isPlainObject(config.experimental)) {

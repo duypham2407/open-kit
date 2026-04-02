@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.18`](release-notes/0.3.18.md) - migrate the checked-in .opencode runtime, CLI, and tests to native ESM
-- npm latest: `@duypham93/openkit@0.3.18`
-- git tag: `v0.3.18`
+- [`0.3.19`](release-notes/0.3.19.md) - add configure-embedding CLI command and end-to-end semantic embedding search
+- npm latest: `@duypham93/openkit@0.3.19`
+- git tag: `v0.3.19`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.19`](release-notes/0.3.19.md) - add configure-embedding CLI command and end-to-end semantic embedding search
 - [`0.3.18`](release-notes/0.3.18.md) - migrate the checked-in .opencode runtime, CLI, and tests to native ESM
 - [`0.3.17`](release-notes/0.3.17.md) - roll forward the published OpenKit package version metadata for the next npm release
 - [`0.3.16`](release-notes/0.3.16.md) - normalize runtime error responses across profile switching, syntax indexing, and launchers

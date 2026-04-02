@@ -286,7 +286,7 @@ function extractRequireExpression(node, source, filePath, projectRoot, imports) 
 // Declaration extractors
 // ---------------------------------------------------------------------------
 
-function extractFunctionDeclaration(node, source, symbols, isExport) {
+function extractFunctionDeclaration(node, source, symbols, isExport, scope = null) {
   const nameNode = node.childForFieldName?.('name');
   if (nameNode) {
     symbols.push({
@@ -294,23 +294,37 @@ function extractFunctionDeclaration(node, source, symbols, isExport) {
       kind: 'function',
       isExport,
       line: node.startPosition.row + 1,
+      startLine: node.startPosition.row + 1,
+      endLine: node.endPosition.row + 1,
+      signature: extractFunctionSignature(node, source),
+      docComment: extractDocComment(node, source),
+      scope,
     });
   }
 }
 
-function extractClassDeclaration(node, source, symbols, isExport) {
+function extractClassDeclaration(node, source, symbols, isExport, scope = null) {
   const nameNode = node.childForFieldName?.('name');
   if (nameNode) {
+    const className = textOf(source, nameNode);
     symbols.push({
-      name: textOf(source, nameNode),
+      name: className,
       kind: 'class',
       isExport,
       line: node.startPosition.row + 1,
+      startLine: node.startPosition.row + 1,
+      endLine: node.endPosition.row + 1,
+      signature: extractClassSignature(node, source),
+      docComment: extractDocComment(node, source),
+      scope,
     });
+
+    // Extract class members
+    extractClassMembers(node, source, symbols, className);
   }
 }
 
-function extractVariableDeclaration(node, source, symbols, isExport) {
+function extractVariableDeclaration(node, source, symbols, isExport, scope = null) {
   const declarators = node.namedChildren.filter((c) => c.type === 'variable_declarator');
   for (const decl of declarators) {
     const nameNode = decl.childForFieldName?.('name');
@@ -318,9 +332,11 @@ function extractVariableDeclaration(node, source, symbols, isExport) {
       // Attempt to determine if the value is a function/class/object
       const valueNode = decl.childForFieldName?.('value');
       let kind = 'variable';
+      let signature = null;
       if (valueNode) {
         if (valueNode.type === 'arrow_function' || valueNode.type === 'function_expression' || valueNode.type === 'function') {
           kind = 'function';
+          signature = extractFunctionSignature(valueNode, source);
         } else if (valueNode.type === 'class') {
           kind = 'class';
         }
@@ -330,12 +346,17 @@ function extractVariableDeclaration(node, source, symbols, isExport) {
         kind,
         isExport,
         line: node.startPosition.row + 1,
+        startLine: node.startPosition.row + 1,
+        endLine: node.endPosition.row + 1,
+        signature,
+        docComment: extractDocComment(node, source),
+        scope,
       });
     }
   }
 }
 
-function extractInterfaceDeclaration(node, source, symbols, isExport) {
+function extractInterfaceDeclaration(node, source, symbols, isExport, scope = null) {
   const nameNode = node.childForFieldName?.('name');
   if (nameNode) {
     symbols.push({
@@ -343,11 +364,16 @@ function extractInterfaceDeclaration(node, source, symbols, isExport) {
       kind: 'interface',
       isExport,
       line: node.startPosition.row + 1,
+      startLine: node.startPosition.row + 1,
+      endLine: node.endPosition.row + 1,
+      signature: null,
+      docComment: extractDocComment(node, source),
+      scope,
     });
   }
 }
 
-function extractTypeAliasDeclaration(node, source, symbols, isExport) {
+function extractTypeAliasDeclaration(node, source, symbols, isExport, scope = null) {
   const nameNode = node.childForFieldName?.('name');
   if (nameNode) {
     symbols.push({
@@ -355,11 +381,16 @@ function extractTypeAliasDeclaration(node, source, symbols, isExport) {
       kind: 'type',
       isExport,
       line: node.startPosition.row + 1,
+      startLine: node.startPosition.row + 1,
+      endLine: node.endPosition.row + 1,
+      signature: null,
+      docComment: extractDocComment(node, source),
+      scope,
     });
   }
 }
 
-function extractEnumDeclaration(node, source, symbols, isExport) {
+function extractEnumDeclaration(node, source, symbols, isExport, scope = null) {
   const nameNode = node.childForFieldName?.('name');
   if (nameNode) {
     symbols.push({
@@ -367,7 +398,125 @@ function extractEnumDeclaration(node, source, symbols, isExport) {
       kind: 'enum',
       isExport,
       line: node.startPosition.row + 1,
+      startLine: node.startPosition.row + 1,
+      endLine: node.endPosition.row + 1,
+      signature: null,
+      docComment: extractDocComment(node, source),
+      scope,
     });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Signature extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract a concise function signature: `(param1, param2): ReturnType`
+ */
+function extractFunctionSignature(node, source) {
+  const params = node.childForFieldName?.('parameters');
+  if (!params) return null;
+
+  const paramsText = textOf(source, params);
+
+  // Check for return type annotation (TypeScript)
+  const returnType = node.childForFieldName?.('return_type');
+  if (returnType) {
+    return `${paramsText}: ${textOf(source, returnType).replace(/^:\s*/, '')}`;
+  }
+
+  return paramsText;
+}
+
+/**
+ * Extract a class signature: `extends Base implements IFoo`
+ */
+function extractClassSignature(node, source) {
+  const parts = [];
+  for (const child of node.namedChildren) {
+    if (child.type === 'class_heritage' || child.type === 'extends_clause') {
+      parts.push(`extends ${textOf(source, child).replace(/^extends\s+/, '')}`);
+    }
+    if (child.type === 'implements_clause') {
+      parts.push(`implements ${textOf(source, child).replace(/^implements\s+/, '')}`);
+    }
+  }
+  return parts.length > 0 ? parts.join(' ') : null;
+}
+
+// ---------------------------------------------------------------------------
+// JSDoc extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Find the JSDoc comment immediately preceding a declaration node.
+ */
+function extractDocComment(node, source) {
+  // Walk backward through siblings to find a comment
+  let prev = node.previousNamedSibling;
+
+  // tree-sitter may place comments as unnamed children; check previous sibling
+  if (!prev) {
+    // Try unnamed previous sibling
+    const parent = node.parent;
+    if (!parent) return null;
+    const children = parent.children ?? [];
+    const idx = children.indexOf(node);
+    if (idx <= 0) return null;
+    prev = children[idx - 1];
+  }
+
+  if (!prev) return null;
+
+  // Check if it's a comment node directly before the declaration
+  if (prev.type === 'comment') {
+    const text = textOf(source, prev).trim();
+    if (text.startsWith('/**') && text.endsWith('*/')) {
+      return text;
+    }
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Class member extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract methods and properties from a class body.
+ */
+function extractClassMembers(classNode, source, symbols, className) {
+  const body = classNode.childForFieldName?.('body');
+  if (!body) return;
+
+  for (const member of body.namedChildren) {
+    switch (member.type) {
+      case 'method_definition':
+      case 'public_field_definition':
+      case 'field_definition': {
+        const nameNode = member.childForFieldName?.('name');
+        if (nameNode) {
+          const memberName = textOf(source, nameNode);
+          const isMethod = member.type === 'method_definition';
+          symbols.push({
+            name: memberName,
+            kind: isMethod ? 'method' : 'property',
+            isExport: false,
+            line: member.startPosition.row + 1,
+            startLine: member.startPosition.row + 1,
+            endLine: member.endPosition.row + 1,
+            signature: isMethod ? extractFunctionSignature(member, source) : null,
+            docComment: extractDocComment(member, source),
+            scope: className,
+          });
+        }
+        break;
+      }
+      default:
+        break;
+    }
   }
 }
 

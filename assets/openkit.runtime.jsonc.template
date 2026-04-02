@@ -51,6 +51,25 @@
   "notifications": {
     "enabled": false
   },
+  // Embedding provider for semantic code search.
+  // Follows the same provider/model pattern as agent model settings.
+  // Providers: "openai" (default), "ollama" (local), "custom" (any OpenAI-compatible endpoint).
+  "embedding": {
+    "enabled": false,
+    "provider": "openai",
+    "model": "openai/text-embedding-3-small",
+    "dimensions": 1536
+    // "apiKey": null,       // falls back to OPENAI_API_KEY env var
+    // "baseUrl": null,      // defaults per provider; required for "custom"
+    // "batchSize": 20       // chunks per API call
+  },
+  // Ollama example (local, no API key needed):
+  // "embedding": {
+  //   "enabled": true,
+  //   "provider": "ollama",
+  //   "model": "ollama/nomic-embed-text",
+  //   "dimensions": 768
+  // },
   "tmux": {
     "enabled": false,
     "layout": "main-vertical"

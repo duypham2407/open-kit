@@ -295,3 +295,117 @@ test('loadRuntimeConfig supports dual quick-switch profiles for an agent', () =>
   assert.equal(result.config.agents['specialist.oracle'].profiles.length, 2);
   assert.equal(result.config.agents['specialist.oracle'].profiles[1].model, 'azure/gpt-5.4');
 });
+
+// ---------------------------------------------------------------------------
+// Embedding config validation
+// ---------------------------------------------------------------------------
+
+test('loadRuntimeConfig returns embedding defaults', () => {
+  const projectRoot = makeTempDir();
+
+  const result = loadRuntimeConfig({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  assert.equal(result.config.embedding.enabled, false);
+  assert.equal(result.config.embedding.provider, 'openai');
+  assert.equal(result.config.embedding.model, 'openai/text-embedding-3-small');
+  assert.equal(result.config.embedding.dimensions, 1536);
+  assert.equal(result.config.embedding.batchSize, 20);
+});
+
+test('loadRuntimeConfig merges embedding config from project', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+
+  writeText(
+    projectConfigPath,
+    `{
+      "embedding": {
+        "enabled": true,
+        "provider": "ollama",
+        "model": "ollama/nomic-embed-text",
+        "dimensions": 768,
+        "batchSize": 50
+      }
+    }`
+  );
+
+  const result = loadRuntimeConfig({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  assert.equal(result.config.embedding.enabled, true);
+  assert.equal(result.config.embedding.provider, 'ollama');
+  assert.equal(result.config.embedding.model, 'ollama/nomic-embed-text');
+  assert.equal(result.config.embedding.dimensions, 768);
+  assert.equal(result.config.embedding.batchSize, 50);
+});
+
+test('loadRuntimeConfig rejects invalid embedding provider', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+
+  writeText(
+    projectConfigPath,
+    `{
+      "embedding": {
+        "provider": "nonexistent"
+      }
+    }`
+  );
+
+  assert.throws(
+    () => loadRuntimeConfig({ projectRoot, env: { HOME: makeTempDir() } }),
+    /embedding\.provider must be one of/i
+  );
+});
+
+test('loadRuntimeConfig rejects invalid embedding dimensions', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+
+  writeText(
+    projectConfigPath,
+    `{
+      "embedding": {
+        "dimensions": -1
+      }
+    }`
+  );
+
+  assert.throws(
+    () => loadRuntimeConfig({ projectRoot, env: { HOME: makeTempDir() } }),
+    /embedding\.dimensions must be a positive integer/i
+  );
+});
+
+test('loadRuntimeConfig accepts valid custom embedding config', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+
+  writeText(
+    projectConfigPath,
+    `{
+      "embedding": {
+        "enabled": true,
+        "provider": "custom",
+        "model": "myco/my-embed",
+        "dimensions": 512,
+        "baseUrl": "https://my-api.example.com/v1",
+        "apiKey": "sk-test-123"
+      }
+    }`
+  );
+
+  const result = loadRuntimeConfig({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  assert.equal(result.config.embedding.enabled, true);
+  assert.equal(result.config.embedding.provider, 'custom');
+  assert.equal(result.config.embedding.baseUrl, 'https://my-api.example.com/v1');
+});
