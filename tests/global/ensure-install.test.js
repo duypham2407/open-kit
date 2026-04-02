@@ -269,6 +269,22 @@ test('materializeGlobalInstall copies the entire src/global directory into the m
   assert.equal(fs.existsSync(path.join(globalDir, 'config-merge.js')), true);
 });
 
+test('materializeGlobalInstall provisions node_modules for the managed kit runtime', () => {
+  const tempHome = makeTempDir();
+
+  const result = materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+    ensureAstGrep: noopTooling,
+    ensureSemgrep: noopTooling,
+  });
+
+  assert.equal(result.runtimeDependencies?.provisioned, true);
+  assert.equal(fs.existsSync(path.join(tempHome, 'kits', 'openkit', 'node_modules')), true);
+});
+
 test('materializeGlobalInstall returns failed ast-grep tooling status instead of throwing on spawn error', () => {
   const tempHome = makeTempDir();
 

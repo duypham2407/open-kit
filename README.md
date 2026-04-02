@@ -113,6 +113,41 @@ For a framework upgrade, it may route to `Migration`.
 npm install -g @duypham93/openkit
 ```
 
+Then provision and verify the managed runtime kit:
+
+```bash
+openkit install --verify
+```
+
+`openkit install` does all of the following:
+
+- materializes the managed OpenKit kit under `OPENCODE_HOME`
+- installs or links `ast-grep`
+- installs or links `semgrep`
+- provisions bundled npm runtime dependencies into the managed kit so runtime tooling can resolve correctly:
+  - `better-sqlite3`
+  - `jscodeshift`
+  - `web-tree-sitter`
+  - `tree-sitter-javascript`
+  - `tree-sitter-typescript`
+
+If `semgrep` installation fails, install Python and pip first, then rerun:
+
+```bash
+# macOS
+brew install python3
+
+# Ubuntu / Debian
+sudo apt install python3 python3-pip
+```
+
+If bundled native/runtime packages are missing or broken, reinstall the npm package and rerun install:
+
+```bash
+npm install -g @duypham93/openkit
+openkit install --verify
+```
+
 ### Verify setup
 
 ```bash
