@@ -8,6 +8,11 @@
 
 import { extractCodeChunks, cosineSimilarity } from '../analysis/code-chunk-extractor.js';
 
+function clampScore(score) {
+  if (!Number.isFinite(score)) return 0;
+  return Math.max(0, Math.min(1, score));
+}
+
 export class SessionMemoryManager {
   /**
    * @param {{
@@ -150,7 +155,9 @@ export class SessionMemoryManager {
           chunkId: row.chunk_id,
           path: row.path,
           score,
+          vectorScore: clampScore((score + 1) / 2),
           model: row.model,
+          metadata: row.metadata_json ? JSON.parse(row.metadata_json) : null,
         });
       }
     }
@@ -218,6 +225,50 @@ export class SessionMemoryManager {
     }
 
     return context;
+  }
+
+  buildResultContext(result, { dependencyDepth = 1, dependentDepth = 1, includeCallHierarchy = true } = {}) {
+    if (!this.available || !result?.path) {
+      return {
+        dependencies: [],
+        dependents: [],
+        sameFileSymbols: [],
+        callHierarchy: null,
+      };
+    }
+
+    const absolutePath = result.absolutePath ?? result.path;
+    const dependencies = this._graphManager.getDependencies(absolutePath, { depth: dependencyDepth });
+    const dependents = this._graphManager.getDependents(absolutePath, { depth: dependentDepth });
+    const node = this._graphManager._db?.getNode(absolutePath);
+    const sameFileSymbols = node
+      ? this._graphManager._db.getSymbolsByNode(node.id)
+        .slice(0, 8)
+        .map((symbol) => ({
+          name: symbol.name,
+          kind: symbol.kind,
+          line: symbol.line,
+          scope: symbol.scope ?? null,
+        }))
+      : [];
+
+    let callHierarchy = null;
+    const symbolName = result.symbolName ?? result.metadata?.symbolName ?? null;
+    if (includeCallHierarchy && symbolName) {
+      const outgoing = this._graphManager.getCallHierarchy(symbolName, { direction: 'outgoing' });
+      const incoming = this._graphManager.getCallHierarchy(symbolName, { direction: 'incoming' });
+      callHierarchy = {
+        outgoing: outgoing.status === 'ok' ? outgoing.calls.slice(0, 6) : [],
+        incoming: incoming.status === 'ok' ? incoming.calls.slice(0, 6) : [],
+      };
+    }
+
+    return {
+      dependencies: dependencies.status === 'ok' ? dependencies.dependencies.slice(0, 8) : [],
+      dependents: dependents.status === 'ok' ? dependents.dependents.slice(0, 8) : [],
+      sameFileSymbols,
+      callHierarchy,
+    };
   }
 
   // -----------------------------------------------------------------------

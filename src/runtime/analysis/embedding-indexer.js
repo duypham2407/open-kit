@@ -10,6 +10,7 @@
 // ---------------------------------------------------------------------------
 
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { extractCodeChunks } from './code-chunk-extractor.js';
 
 export class EmbeddingIndexer {
@@ -94,18 +95,55 @@ export class EmbeddingIndexer {
       return { status: 'no-chunks', filePath };
     }
 
+    const existingEmbeddings = new Map(
+      db.getEmbeddingsByNode(node.id).map((row) => [row.chunk_id, row])
+    );
+    const chunksToEmbed = [];
+    const reusedEmbeddingRecords = [];
+
+    for (const chunk of chunks) {
+      const embeddingText = this._buildEmbeddingText(chunk);
+      const chunkHash = this._buildChunkHash(embeddingText);
+      const existing = existingEmbeddings.get(chunk.chunkId);
+      if (existing && existing.chunk_hash === chunkHash) {
+        reusedEmbeddingRecords.push({
+          chunkId: chunk.chunkId,
+          chunkHash,
+          metadataJson: JSON.stringify(chunk.metadata),
+          embedding: existing.embedding,
+          model: existing.model,
+        });
+        continue;
+      }
+
+      chunksToEmbed.push({ chunk, embeddingText, chunkHash });
+    }
+
+    if (chunksToEmbed.length === 0 && reusedEmbeddingRecords.length > 0) {
+      db.replaceEmbeddingsForNode(node.id, reusedEmbeddingRecords);
+      return {
+        status: 'ok',
+        filePath,
+        chunks: reusedEmbeddingRecords.length,
+        newChunks: 0,
+        reusedChunks: reusedEmbeddingRecords.length,
+      };
+    }
+
     // Generate embeddings in batches
-    const embeddingRecords = [];
-    for (let i = 0; i < chunks.length; i += this._batchSize) {
-      const batch = chunks.slice(i, i + this._batchSize);
-      const texts = batch.map((c) => this._buildEmbeddingText(c));
+    const embeddingRecords = [...reusedEmbeddingRecords];
+    for (let i = 0; i < chunksToEmbed.length; i += this._batchSize) {
+      const batch = chunksToEmbed.slice(i, i + this._batchSize);
+      const texts = batch.map((entry) => entry.embeddingText);
 
       try {
         const vectors = await this._provider.embed(texts);
         for (let j = 0; j < batch.length; j++) {
           if (vectors[j]) {
             embeddingRecords.push({
-              chunkId: batch[j].chunkId,
+              chunkId: batch[j].chunk.chunkId,
+              chunkHash: batch[j].chunkHash,
+              metadataJson: JSON.stringify(batch[j].chunk.metadata),
               embedding: Buffer.from(vectors[j].buffer),
               model: this._provider.model,
             });
@@ -121,7 +159,9 @@ export class EmbeddingIndexer {
       db.replaceEmbeddingsForNode(node.id, embeddingRecords);
     }
 
-    return { status: 'ok', filePath, chunks: embeddingRecords.length };
+    const reusedChunks = reusedEmbeddingRecords.length;
+    const newChunks = embeddingRecords.length - reusedChunks;
+    return { status: 'ok', filePath, chunks: embeddingRecords.length, newChunks, reusedChunks };
   }
 
   // -----------------------------------------------------------------------
@@ -206,6 +246,24 @@ export class EmbeddingIndexer {
     if (chunk.metadata.symbolName) {
       parts.push(`Symbol: ${chunk.metadata.symbolName} (${chunk.metadata.kind})`);
     }
+    if (chunk.metadata.parentSymbol) {
+      parts.push(`Parent: ${chunk.metadata.parentSymbol}`);
+    }
+    if (chunk.metadata.scope) {
+      parts.push(`Scope: ${chunk.metadata.scope}`);
+    }
+    if (chunk.metadata.isExport) {
+      parts.push('Exported: true');
+    }
+    if (chunk.metadata.startLine != null && chunk.metadata.endLine != null) {
+      parts.push(`Lines: ${chunk.metadata.startLine}-${chunk.metadata.endLine}`);
+    }
+    if (chunk.metadata.totalSplits > 1) {
+      parts.push(`Chunk Part: ${chunk.metadata.splitIndex + 1}/${chunk.metadata.totalSplits}`);
+    }
+    if (chunk.metadata.estimatedTokens) {
+      parts.push(`Estimated Tokens: ${chunk.metadata.estimatedTokens}`);
+    }
     if (chunk.metadata.docComment) {
       parts.push(`Doc: ${chunk.metadata.docComment}`);
     }
@@ -215,6 +273,10 @@ export class EmbeddingIndexer {
 
     parts.push(chunk.content);
     return parts.join('\n');
+  }
+
+  _buildChunkHash(embeddingText) {
+    return crypto.createHash('sha1').update(embeddingText).digest('hex');
   }
 
   describe() {

@@ -194,6 +194,8 @@ test('EmbeddingIndexer indexes a single file with embeddings', async () => {
   const embeddings = manager._db.getEmbeddingsByNode(node.id);
   assert.ok(embeddings.length >= 1);
   assert.equal(embeddings[0].model, 'mock-deterministic');
+  assert.ok(typeof embeddings[0].chunk_hash === 'string');
+  assert.ok(typeof embeddings[0].metadata_json === 'string');
 
   manager.dispose();
   fs.rmSync(dir, { recursive: true });
@@ -250,6 +252,30 @@ test('EmbeddingIndexer skips already-embedded files (unless force)', async () =>
   // Force re-index
   const run3 = await indexer.indexProject({ force: true });
   assert.ok(run3.filesProcessed >= 1);
+
+  manager.dispose();
+  fs.rmSync(dir, { recursive: true });
+});
+
+test('EmbeddingIndexer reuses unchanged chunk embeddings by chunk hash', async () => {
+  const dir = makeTempDir();
+  const filePath = writeFile(dir, 'src/a.js', 'export function fn() {\n  return 1;\n}\n');
+
+  const sim = new SyntaxIndexManager({ projectRoot: dir });
+  const manager = new ProjectGraphManager({ projectRoot: dir, syntaxIndexManager: sim, dbPath: ':memory:' });
+  await manager.indexProject({ maxFiles: 100 });
+
+  const provider = new MockEmbeddingProvider({ dimensions: 32 });
+  const indexer = new EmbeddingIndexer({ projectGraphManager: manager, embeddingProvider: provider });
+
+  const first = await indexer.indexFileEmbeddings(filePath);
+  assert.equal(first.status, 'ok');
+  assert.ok(first.newChunks >= 1);
+
+  const second = await indexer.indexFileEmbeddings(filePath);
+  assert.equal(second.status, 'ok');
+  assert.ok(second.reusedChunks >= 1);
+  assert.equal(second.newChunks, 0);
 
   manager.dispose();
   fs.rmSync(dir, { recursive: true });

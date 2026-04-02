@@ -32,6 +32,7 @@ The kit is structured into several core directories:
 - `docs/tasks/`: Lightweight task cards for quick-mode traceability when needed
 - `docs/operator/`: Operator-facing index layer for daily routing
 - `docs/maintainer/`: Maintainer-facing index layer for repository upkeep routing
+- `docs/kit-internals/`: Consolidated maintainer map from system overview down to runtime, tools, hooks, skills, MCPs, and code intelligence internals
 - `docs/governance/`: Naming, severity, ADR, and definition-of-done policy
 - `docs/operations/`: Runbook and operations guidance
 
@@ -114,10 +115,12 @@ If guidance conflicts with repository state, trust the repository state and upda
 
 - Start with `AGENTS.md` for repository-wide rules, then use `context/navigation.md` to locate the specific workflow or standards docs you need
 - Use `docs/operator/README.md` for operator wayfinding and `docs/maintainer/README.md` for maintainer wayfinding when audience-specific routing helps
+- Use `docs/kit-internals/README.md` when you need the consolidated deep map of how the current kit works from architecture down to runtime/tooling internals
 - Use `docs/maintainer/2026-03-26-role-operating-policy.md` when you need the short-form contract for role boundaries, pass/fail handoffs, and anti-patterns
 - Use `context/core/active-contract.json` as the machine-readable source of truth for active roles, stages, gates, and primary artifacts
 - Use `docs/maintainer/2026-03-26-ai-surface-map.md` when you need the strict AI-facing map of what to read, what to ignore, and which vocabulary is still active
 - Treat `docs/` as the current center of gravity for repository knowledge
+- Treat `docs/kit-internals/` as the synthesis layer for understanding the assembled runtime; it does not replace canonical workflow or governance docs
 - Treat `docs/archive/` as historical only; do not use it as active workflow guidance unless the task explicitly asks for history or migration rationale
 - Verify file existence before referencing paths in plans or instructions
 - Prefer small, targeted edits over broad speculative restructuring

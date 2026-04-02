@@ -36,6 +36,7 @@ export function createEmbeddingIndexTool({ embeddingIndexer }) {
           return {
             status: 'ok',
             ...embeddingIndexer.describe(),
+            indexingStrategy: 'chunk-level incremental reuse',
           };
         }
 

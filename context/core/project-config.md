@@ -40,6 +40,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - The repository does not contain a root `opencode.json` entrypoint.
 - The project graph database lives at `<runtimeRoot>/.opencode/project-graph.db` (SQLite via better-sqlite3). It stores the import graph, symbol index, and file nodes for cross-file dependency analysis. It is created automatically by `ProjectGraphManager` on first use and is not created in read-only mode. The database uses WAL journal mode. The schema includes `nodes`, `edges`, and `symbols` tables. Run `openkit doctor` to check whether better-sqlite3 is available.
 - The project graph database also stores embeddings (as BLOBs) in an `embeddings` table when semantic indexing is active. The `session_touches` table records per-session file activity.
+- Embedding records now also carry chunk-level metadata and a chunk content hash so unchanged chunks can be reused without re-embedding on later index passes.
 - Semantic embedding indexing is **off by default**. Enable it in `.opencode/openkit.runtime.jsonc` under the `embedding` key:
   - `embedding.enabled = true` — activates the pipeline; without this the rest of the config is ignored.
   - `embedding.provider` — `"openai"` (default), `"ollama"` (local), or `"custom"` (any OpenAI-compatible endpoint).
@@ -50,7 +51,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
   - `embedding.batchSize` — chunks per API call (default 20).
 - When enabled, `ProjectGraphManager` fires an `onFileIndexed` callback after each file is indexed; `EmbeddingIndexer` is wired as that callback in `create-managers.js` so embeddings are generated automatically on each index cycle.
 - Use the `tool.embedding-index` in-session tool to trigger indexing manually or inspect indexer status: actions are `"status"`, `"index-file"` (requires `filePath`), and `"index-project"` (accepts `maxFiles` and `force`).
-- `tool.semantic-search` automatically uses embedding-based vector search when an embedding provider is configured and the DB contains indexed embeddings. When no embeddings are available it falls back to keyword search. The response includes a `searchMode` field (`"embedding"` or `"keyword"`) so callers can distinguish the code path.
+- `tool.semantic-search` automatically uses embedding-based vector search when an embedding provider is configured and the DB contains indexed embeddings. When both embeddings and keyword matches are available it can return hybrid results; when no embeddings are available it falls back to keyword search. The response includes a `searchMode` field (`"embedding"`, `"keyword"`, or `"hybrid"`).
 
 ## Permission Policy
 

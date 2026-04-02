@@ -90,6 +90,32 @@ test('extractCodeChunks skips class members (included in class chunk)', () => {
   assert.ok(chunks[0].content.includes('myMethod'));
 });
 
+test('extractCodeChunks splits oversized symbols into deterministic subchunks', () => {
+  const repeatedBody = Array.from({ length: 220 }, (_, index) => `  const value${index} = ${index};`).join('\n');
+  const source = [
+    'export function giantHandler() {',
+    repeatedBody,
+    '  return value0;',
+    '}',
+  ].join('\n');
+
+  const chunks = extractCodeChunks({
+    source,
+    filePath: '/project/src/giant.js',
+    symbols: [
+      { name: 'giantHandler', kind: 'function', startLine: 1, endLine: 223, isExport: true },
+    ],
+    imports: [],
+    projectRoot: '/project',
+  });
+
+  assert.ok(chunks.length > 1, `Expected oversized symbol to split, got ${chunks.length} chunk(s)`);
+  assert.equal(chunks[0].chunkId, 'src/giant.js:giantHandler:1:part-1');
+  assert.equal(chunks[0].metadata.totalSplits, chunks.length);
+  assert.equal(chunks[0].metadata.isExport, true);
+  assert.ok(chunks[0].metadata.estimatedTokens > 0);
+});
+
 test('extractCodeChunks falls back to module chunk when no symbols have ranges', () => {
   const source = 'console.log("hello");\n';
 
@@ -169,12 +195,14 @@ test('getEmbeddingByChunk retrieves by chunk ID', () => {
   const vec = new Float32Array([1, 2, 3]);
 
   db.replaceEmbeddingsForNode(node.id, [
-    { chunkId: 'chunk-abc', embedding: Buffer.from(vec.buffer), model: 'm1' },
+    { chunkId: 'chunk-abc', chunkHash: 'hash-abc', metadataJson: '{"kind":"function"}', embedding: Buffer.from(vec.buffer), model: 'm1' },
   ]);
 
   const row = db.getEmbeddingByChunk('chunk-abc');
   assert.ok(row);
   assert.equal(row.chunk_id, 'chunk-abc');
+  assert.equal(row.chunk_hash, 'hash-abc');
+  assert.equal(row.metadata_json, '{"kind":"function"}');
 
   const missing = db.getEmbeddingByChunk('nonexistent');
   assert.equal(missing, null);
@@ -344,6 +372,8 @@ test('semantic-search tool performs keyword search', async () => {
   assert.equal(result.status, 'ok');
   assert.ok(result.results.length >= 1);
   assert.ok(result.results[0].path.includes('utils.js'));
+  assert.equal(result.searchMode, 'keyword');
+  assert.ok(result.results[0].scoreBreakdown);
 
   manager.dispose();
   fs.rmSync(dir, { recursive: true });
@@ -449,7 +479,7 @@ test('semantic-search tool uses embedding search when provider is available', as
   const result = await tool.execute({ action: 'search', query: 'authenticate user login' });
 
   assert.equal(result.status, 'ok');
-  assert.equal(result.searchMode, 'embedding');
+  assert.ok(['embedding', 'hybrid'].includes(result.searchMode));
   assert.ok(Array.isArray(result.results));
   assert.ok(result.results.length >= 1);
   // Each result should have the expected shape
@@ -457,6 +487,7 @@ test('semantic-search tool uses embedding search when provider is available', as
     assert.ok(typeof r.chunkId === 'string');
     assert.ok(typeof r.path === 'string');
     assert.ok(typeof r.score === 'number');
+    assert.ok(r.scoreBreakdown);
   }
 
   manager.dispose();
@@ -481,6 +512,67 @@ test('semantic-search tool falls back to keyword when no embeddings exist', asyn
   assert.equal(result.status, 'ok');
   // minScore fallback triggered because no DB embeddings; keyword search runs
   assert.ok(['keyword', 'embedding'].includes(result.searchMode));
+
+  manager.dispose();
+  fs.rmSync(dir, { recursive: true });
+});
+
+test('semantic-search tool merges vector and keyword results into hybrid mode', async () => {
+  const dir = makeTempDir();
+  writeFile(dir, 'src/auth.js', [
+    'export function authenticateUser(email, password) {',
+    '  return { token: "abc123", user: email };',
+    '}',
+  ].join('\n'));
+  writeFile(dir, 'src/session.js', [
+    'export function createSession(user) {',
+    '  return { id: user.id };',
+    '}',
+  ].join('\n'));
+
+  const sim = new SyntaxIndexManager({ projectRoot: dir });
+  const manager = new ProjectGraphManager({ projectRoot: dir, syntaxIndexManager: sim, dbPath: ':memory:' });
+  await manager.indexProject({ maxFiles: 100 });
+
+  const provider = new MockEmbeddingProvider({ dimensions: 64 });
+  const indexer = new EmbeddingIndexer({ projectGraphManager: manager, embeddingProvider: provider });
+  await indexer.indexProject();
+
+  const mem = new SessionMemoryManager({ projectGraphManager: manager, embeddingProvider: provider });
+  const tool = createSemanticSearchTool({ projectGraphManager: manager, sessionMemoryManager: mem });
+  const result = await tool.execute({ action: 'search', query: 'authenticateUser login token', topK: 10, minScore: 0.0 });
+
+  assert.equal(result.status, 'ok');
+  assert.equal(result.searchMode, 'hybrid');
+  assert.ok(result.results.length >= 1);
+  assert.ok(result.results[0].scoreBreakdown);
+  assert.ok(typeof result.results[0].scoreBreakdown.vector === 'number');
+  assert.ok(typeof result.results[0].scoreBreakdown.keyword === 'number');
+
+  manager.dispose();
+  fs.rmSync(dir, { recursive: true });
+});
+
+test('SessionMemoryManager.buildResultContext expands graph relationships', async () => {
+  const dir = makeTempDir();
+  writeFile(dir, 'src/helper.js', 'export function helper() { return 1; }\n');
+  writeFile(dir, 'src/main.js', 'import { helper } from "./helper.js";\nexport function run() { return helper(); }\n');
+
+  const sim = new SyntaxIndexManager({ projectRoot: dir });
+  const manager = new ProjectGraphManager({ projectRoot: dir, syntaxIndexManager: sim, dbPath: ':memory:' });
+  await manager.indexProject({ maxFiles: 100 });
+
+  const mem = new SessionMemoryManager({ projectGraphManager: manager });
+  const context = mem.buildResultContext({
+    path: path.join(dir, 'src/main.js'),
+    absolutePath: path.join(dir, 'src/main.js'),
+    symbolName: 'run',
+  });
+
+  assert.ok(Array.isArray(context.dependencies));
+  assert.ok(Array.isArray(context.dependents));
+  assert.ok(Array.isArray(context.sameFileSymbols));
+  assert.ok(context.callHierarchy);
 
   manager.dispose();
   fs.rmSync(dir, { recursive: true });

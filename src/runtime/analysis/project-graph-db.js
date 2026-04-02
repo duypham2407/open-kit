@@ -99,6 +99,8 @@ const SCHEMA_SQL = `
     id        INTEGER PRIMARY KEY AUTOINCREMENT,
     node_id   INTEGER NOT NULL,
     chunk_id  TEXT    NOT NULL,
+    chunk_hash TEXT   DEFAULT NULL,
+    metadata_json TEXT DEFAULT NULL,
     embedding BLOB    NOT NULL,
     model     TEXT    NOT NULL,
     created   REAL    NOT NULL,
@@ -133,6 +135,8 @@ function migrateSchema(db) {
     'ALTER TABLE symbols ADD COLUMN scope       TEXT DEFAULT NULL',
     'ALTER TABLE symbols ADD COLUMN start_line  INTEGER DEFAULT NULL',
     'ALTER TABLE symbols ADD COLUMN end_line    INTEGER DEFAULT NULL',
+    'ALTER TABLE embeddings ADD COLUMN chunk_hash TEXT DEFAULT NULL',
+    'ALTER TABLE embeddings ADD COLUMN metadata_json TEXT DEFAULT NULL',
   ];
   for (const sql of migrations) {
     try {
@@ -267,8 +271,8 @@ export class ProjectGraphDb {
       // -- embeddings --
       deleteEmbeddingsForNode: this._db.prepare('DELETE FROM embeddings WHERE node_id = @nodeId'),
       insertEmbedding: this._db.prepare(
-        `INSERT INTO embeddings (node_id, chunk_id, embedding, model, created)
-         VALUES (@nodeId, @chunkId, @embedding, @model, @created)`
+        `INSERT INTO embeddings (node_id, chunk_id, chunk_hash, metadata_json, embedding, model, created)
+         VALUES (@nodeId, @chunkId, @chunkHash, @metadataJson, @embedding, @model, @created)`
       ),
       getEmbeddingsByNode: this._db.prepare(
         'SELECT * FROM embeddings WHERE node_id = @nodeId ORDER BY chunk_id'
@@ -487,7 +491,7 @@ export class ProjectGraphDb {
   /**
    * Replace all embeddings for a given file node.
    * @param {number} nodeId
-   * @param {Array<{ chunkId: string, embedding: Buffer, model: string }>} chunks
+   * @param {Array<{ chunkId: string, chunkHash?: string|null, metadataJson?: string|null, embedding: Buffer, model: string }>} chunks
    */
   replaceEmbeddingsForNode(nodeId, chunks) {
     const tx = this._db.transaction(() => {
@@ -497,6 +501,8 @@ export class ProjectGraphDb {
         this._stmts.insertEmbedding.run({
           nodeId,
           chunkId: chunk.chunkId,
+          chunkHash: chunk.chunkHash ?? null,
+          metadataJson: chunk.metadataJson ?? null,
           embedding: chunk.embedding,
           model: chunk.model,
           created: now,
