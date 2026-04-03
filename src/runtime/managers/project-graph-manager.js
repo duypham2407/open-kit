@@ -28,7 +28,8 @@ export class ProjectGraphManager {
   constructor({ projectRoot, runtimeRoot, syntaxIndexManager, dbPath, mode = 'read-write' }) {
     this.projectRoot = projectRoot;
     this.syntaxIndexManager = syntaxIndexManager;
-    this._available = mode !== 'read-only' && isBetterSqliteAvailable();
+    this._readOnly = mode === 'read-only';
+    this._available = isBetterSqliteAvailable();
     this._db = null;
     this._dbPath = dbPath ?? null;
     this._indexingInProgress = false;
@@ -46,7 +47,7 @@ export class ProjectGraphManager {
           'project-graph.db',
         );
         this._dbPath = resolvedDbPath;
-        this._db = new ProjectGraphDb(resolvedDbPath);
+        this._db = new ProjectGraphDb(resolvedDbPath, { readonly: this._readOnly });
       } catch {
         this._available = false;
       }
@@ -77,7 +78,8 @@ export class ProjectGraphManager {
     }
 
     return {
-      status: 'active',
+      status: this._readOnly ? 'read-only' : 'ok',
+      readOnly: this._readOnly,
       dbPath: this._dbPath,
       indexingInProgress: this._indexingInProgress,
       lastIndexTime: this._lastIndexTime,
@@ -98,6 +100,10 @@ export class ProjectGraphManager {
   async indexFile(filePath) {
     if (!this.available) {
       return { status: 'unavailable' };
+    }
+
+    if (this._readOnly) {
+      return { status: 'read-only', reason: 'Graph database is open in read-only mode.' };
     }
 
     const absPath = path.isAbsolute(filePath) ? filePath : path.resolve(this.projectRoot, filePath);
@@ -214,6 +220,10 @@ export class ProjectGraphManager {
   async indexProject({ maxFiles = DEFAULT_MAX_FILES } = {}) {
     if (!this.available) {
       return { status: 'unavailable' };
+    }
+
+    if (this._readOnly) {
+      return { status: 'read-only', reason: 'Graph database is open in read-only mode.' };
     }
 
     if (this._indexingInProgress) {

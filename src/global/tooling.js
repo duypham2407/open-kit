@@ -74,31 +74,28 @@ function linkLocalAstGrepPackage(globalPaths) {
     return false;
   }
 
-  const resolvedNode = process.execPath && fs.existsSync(process.execPath) ? process.execPath : null;
-  if (!resolvedNode) {
-    return false;
-  }
   writeExecutable(path.join(globalPaths.toolingBinRoot, 'ast-grep'), `#!/bin/sh
-exec ${JSON.stringify(resolvedNode)} ${JSON.stringify(path.join(localPackageRoot, 'ast-grep'))} "$@"
+exec ${JSON.stringify(path.join(localPackageRoot, 'ast-grep'))} "$@"
 `);
   writeExecutable(path.join(globalPaths.toolingBinRoot, 'sg'), `#!/bin/sh
-exec ${JSON.stringify(resolvedNode)} ${JSON.stringify(path.join(localPackageRoot, 'sg'))} "$@"
+exec ${JSON.stringify(path.join(localPackageRoot, 'sg'))} "$@"
 `);
   return true;
 }
 
 function ensureAstGrepShims(globalPaths, env = process.env) {
   fs.mkdirSync(globalPaths.toolingBinRoot, { recursive: true });
-  const commandPath = resolveCommandPath('ast-grep', { env }) ?? resolveCommandPath('sg', { env });
-  if (!commandPath) {
+  const astGrepPath = resolveCommandPath('ast-grep', { env }) ?? resolveCommandPath('sg', { env });
+  const sgPath = resolveCommandPath('sg', { env }) ?? astGrepPath;
+  if (!astGrepPath || !sgPath) {
     return false;
   }
 
   writeExecutable(path.join(globalPaths.toolingBinRoot, 'ast-grep'), `#!/bin/sh
-exec ${JSON.stringify(commandPath)} "$@"
+exec ${JSON.stringify(astGrepPath)} "$@"
 `);
   writeExecutable(path.join(globalPaths.toolingBinRoot, 'sg'), `#!/bin/sh
-exec ${JSON.stringify(commandPath)} "$@"
+exec ${JSON.stringify(sgPath)} "$@"
 `);
   return true;
 }

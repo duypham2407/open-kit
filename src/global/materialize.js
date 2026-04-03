@@ -13,6 +13,7 @@ const PACKAGE_ROOT = path.resolve(MODULE_DIR, '../..');
 
 const GLOBAL_KIT_ASSETS = [
   '.opencode',
+  'bin',
   'agents',
   'assets',
   'bin',
@@ -25,6 +26,7 @@ const GLOBAL_KIT_ASSETS = [
   'AGENTS.md',
   'README.md',
   'src/runtime',
+  'src/mcp-server',
   'src/global',
   'src/install',
   'src/mcp-server',

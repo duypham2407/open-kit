@@ -162,17 +162,21 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
   const syntaxIndexManager = new SyntaxIndexManager({ projectRoot });
   const projectGraphManager = new ProjectGraphManager({ projectRoot, runtimeRoot, syntaxIndexManager, mode });
 
-  // Embedding indexer — only active when explicitly enabled in config
+  // Embedding provider — needed for both writing and reading embeddings.
+  // Embedding indexer — write-side only; skipped in read-only mode.
   let embeddingProvider = null;
   let embeddingIndexer = null;
   if (config?.embedding?.enabled === true && projectGraphManager.available) {
     try {
       embeddingProvider = createEmbeddingProvider(config.embedding, { env });
-      embeddingIndexer = new EmbeddingIndexer({
-        projectGraphManager,
-        embeddingProvider,
-        batchSize: config.embedding.batchSize ?? 20,
-      });
+      // Only create the write-side indexer when not in read-only mode
+      if (mode !== 'read-only') {
+        embeddingIndexer = new EmbeddingIndexer({
+          projectGraphManager,
+          embeddingProvider,
+          batchSize: config.embedding.batchSize ?? 20,
+        });
+      }
     } catch {
       // Provider creation failed (e.g. missing baseUrl for custom) — degrade gracefully
       embeddingProvider = null;

@@ -22,10 +22,6 @@ import {
 import { bootstrapRuntimeFoundation } from '../runtime/index.js';
 import { TOOL_SCHEMAS, getMcpExposedToolIds } from './tool-schemas.js';
 
-// ---------------------------------------------------------------------------
-// Parse args
-// ---------------------------------------------------------------------------
-
 function parseServerArgs(argv = process.argv.slice(2)) {
   let projectRoot = process.env.OPENKIT_PROJECT_ROOT ?? process.cwd();
   for (let i = 0; i < argv.length; i++) {
@@ -37,20 +33,12 @@ function parseServerArgs(argv = process.argv.slice(2)) {
   return { projectRoot };
 }
 
-// ---------------------------------------------------------------------------
-// Bootstrap
-// ---------------------------------------------------------------------------
-
 async function main() {
   const { projectRoot } = parseServerArgs();
 
-  // Suppress console output — MCP stdio transport owns stdout/stderr.
-  // We redirect logs to stderr so they don't corrupt the JSON-RPC stream.
   const originalConsoleLog = console.log;
   console.log = (...args) => console.error('[openkit-mcp]', ...args);
 
-  // Bootstrap the full runtime (read-only mode — MCP server should not
-  // materialize background state files that compete with the main session).
   let runtime;
   try {
     runtime = bootstrapRuntimeFoundation({
@@ -64,9 +52,8 @@ async function main() {
   }
 
   const exposedIds = getMcpExposedToolIds();
-  const toolMap = runtime.tools.tools; // id → wrapped tool object
+  const toolMap = runtime.tools.tools;
 
-  // Build the list of MCP-visible tools with their schemas.
   const mcpTools = [];
   for (const [id, tool] of Object.entries(toolMap)) {
     if (!exposedIds.has(id)) continue;
@@ -77,13 +64,9 @@ async function main() {
       name: id,
       description: schema.description,
       inputSchema: schema.inputSchema,
-      _execute: tool.execute, // keep reference for dispatch
+      _execute: tool.execute,
     });
   }
-
-  // ---------------------------------------------------------------------------
-  // Create MCP server
-  // ---------------------------------------------------------------------------
 
   const server = new Server(
     {
@@ -97,18 +80,14 @@ async function main() {
     },
   );
 
-  // Handle tools/list
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-      tools: mcpTools.map((t) => ({
-        name: t.name,
-        description: t.description,
-        inputSchema: t.inputSchema,
-      })),
-    };
-  });
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: mcpTools.map((t) => ({
+      name: t.name,
+      description: t.description,
+      inputSchema: t.inputSchema,
+    })),
+  }));
 
-  // Handle tools/call
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
     const tool = mcpTools.find((t) => t.name === name);
@@ -120,7 +99,6 @@ async function main() {
     }
 
     try {
-      // Adapt input: tool.look-at expects a bare string, not an object.
       let input = args ?? {};
       if (name === 'tool.look-at' && typeof input === 'object' && input.filePath) {
         input = input.filePath;
@@ -142,14 +120,9 @@ async function main() {
     }
   });
 
-  // ---------------------------------------------------------------------------
-  // Connect transport
-  // ---------------------------------------------------------------------------
-
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  // Restore console.log for any post-connect diagnostics
   console.log = originalConsoleLog;
   console.error(`[openkit-mcp] Server started — ${mcpTools.length} tools exposed for project: ${projectRoot}`);
 }

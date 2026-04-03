@@ -205,16 +205,27 @@ export class ProjectGraphDb {
    * @param {string} dbPath  Absolute path to the SQLite database file.
    *                         Use ':memory:' for testing.
    */
-  constructor(dbPath) {
+  constructor(dbPath, { readonly = false } = {}) {
     const Db = loadDatabase();
-    if (dbPath !== ':memory:') {
-      fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+    this._readonly = readonly;
+
+    if (readonly && dbPath !== ':memory:' && fs.existsSync(dbPath)) {
+      // Read-only mode with existing DB: open without schema writes.
+      this._db = new Db(dbPath, { readonly: true, fileMustExist: true });
+    } else {
+      // Read-write mode, or read-only mode where DB does not exist yet.
+      // In the latter case we create the schema so the DB is queryable
+      // (returning empty results) and mark it readonly afterwards.
+      if (dbPath !== ':memory:') {
+        fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+      }
+      this._db = new Db(dbPath);
+      this._db.pragma('journal_mode = WAL');
+      this._db.exec(SCHEMA_SQL);
+      migrateSchema(this._db);
     }
-    this._db = new Db(dbPath);
-    this._db.pragma('journal_mode = WAL');
+
     this._db.pragma('foreign_keys = ON');
-    this._db.exec(SCHEMA_SQL);
-    migrateSchema(this._db);
     this._prepareStatements();
   }
 
