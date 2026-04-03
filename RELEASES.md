@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.21`](release-notes/0.3.21.md) - harden tooling-first prompt enforcement and runtime guardrails
-- npm latest: `@duypham93/openkit@0.3.21`
-- git tag: `v0.3.21`
+- [`0.3.22`](release-notes/0.3.22.md) - add MCP server bridge to expose kit tools to OpenCode agents
+- npm latest: `@duypham93/openkit@0.3.22`
+- git tag: `v0.3.22`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.22`](release-notes/0.3.22.md) - add MCP server bridge to expose kit tools to OpenCode agents
 - [`0.3.21`](release-notes/0.3.21.md) - harden tooling-first prompt enforcement and runtime guardrails
 - [`0.3.20`](release-notes/0.3.20.md) - complete code-intelligence gap remediation phases 1-6
 - [`0.3.19`](release-notes/0.3.19.md) - add configure-embedding CLI command and end-to-end semantic embedding search
