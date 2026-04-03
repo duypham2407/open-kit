@@ -1,4 +1,6 @@
 .worktrees/
 .opencode/background-runs/
+.opencode/work-items/**/tool-invocations.json
 node_modules/
 *.tgz
+.DS_Store
