@@ -2,14 +2,16 @@
 
 ## Latest
 
-- [`0.3.19`](release-notes/0.3.19.md) - add configure-embedding CLI command and end-to-end semantic embedding search
-- npm latest: `@duypham93/openkit@0.3.19`
-- git tag: `v0.3.19`
+- [`0.3.21`](release-notes/0.3.21.md) - harden tooling-first prompt enforcement and runtime guardrails
+- npm latest: `@duypham93/openkit@0.3.21`
+- git tag: `v0.3.21`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.21`](release-notes/0.3.21.md) - harden tooling-first prompt enforcement and runtime guardrails
+- [`0.3.20`](release-notes/0.3.20.md) - complete code-intelligence gap remediation phases 1-6
 - [`0.3.19`](release-notes/0.3.19.md) - add configure-embedding CLI command and end-to-end semantic embedding search
 - [`0.3.18`](release-notes/0.3.18.md) - migrate the checked-in .opencode runtime, CLI, and tests to native ESM
 - [`0.3.17`](release-notes/0.3.17.md) - roll forward the published OpenKit package version metadata for the next npm release
