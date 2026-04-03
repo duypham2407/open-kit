@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.22`](release-notes/0.3.22.md) - add MCP server bridge to expose kit tools to OpenCode agents
-- npm latest: `@duypham93/openkit@0.3.22`
-- git tag: `v0.3.22`
+- [`0.3.23`](release-notes/0.3.23.md) - enforce hard runtime blocking for default tools and OS command shortcuts; require kit tools
+- npm latest: `@duypham93/openkit@0.3.23`
+- git tag: `v0.3.23`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.23`](release-notes/0.3.23.md) - enforce hard runtime blocking for default tools and OS command shortcuts; require kit tools
 - [`0.3.22`](release-notes/0.3.22.md) - add MCP server bridge to expose kit tools to OpenCode agents
 - [`0.3.21`](release-notes/0.3.21.md) - harden tooling-first prompt enforcement and runtime guardrails
 - [`0.3.20`](release-notes/0.3.20.md) - complete code-intelligence gap remediation phases 1-6
