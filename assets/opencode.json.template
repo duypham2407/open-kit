@@ -26,6 +26,17 @@
     "git log": "allow",
     "git diff": "allow"
   },
+  "mcp": {
+    "chrome-devtools": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "chrome-devtools-mcp@0.21.0"
+      ],
+      "enabled": true
+    }
+  },
   "productSurface": {
     "current": "global-openkit-install",
     "installReadiness": "managed",

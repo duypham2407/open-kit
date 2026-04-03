@@ -56,7 +56,32 @@ function resolveTemplatePath(kind, mode) {
   return SUPPORTED_SCAFFOLDS[kind]?.templatePath ?? null
 }
 
-export function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, featureSlug, sourceScopePackage, sourceSolutionPackage }) {
+function resolveTemplateCandidatePaths({ projectRoot, templateRelativePath, kitRoot }) {
+  const candidates = []
+
+  if (projectRoot) {
+    candidates.push(path.join(projectRoot, templateRelativePath))
+    candidates.push(path.join(projectRoot, ".opencode", "openkit", templateRelativePath))
+  }
+
+  if (kitRoot) {
+    candidates.push(path.join(kitRoot, templateRelativePath))
+  }
+
+  return candidates
+}
+
+function findExistingTemplatePath(candidatePaths) {
+  for (const candidate of candidatePaths) {
+    if (fs.existsSync(candidate)) {
+      return candidate
+    }
+  }
+
+  return null
+}
+
+export function scaffoldArtifact({ projectRoot, kitRoot, kind, mode, slug, featureId, featureSlug, sourceScopePackage, sourceSolutionPackage }) {
   const config = SUPPORTED_SCAFFOLDS[kind]
   if (!config) {
     throw new Error(`Unsupported scaffold kind '${kind}'`)
@@ -67,15 +92,20 @@ export function scaffoldArtifact({ projectRoot, kind, mode, slug, featureId, fea
   }
 
   const resolvedTemplatePath = resolveTemplatePath(kind, mode)
-  const templatePath = path.join(projectRoot, resolvedTemplatePath)
+  const templateCandidates = resolveTemplateCandidatePaths({
+    projectRoot,
+    templateRelativePath: resolvedTemplatePath,
+    kitRoot,
+  })
+  const templatePath = findExistingTemplatePath(templateCandidates)
   const outputDir = path.join(projectRoot, config.outputDir)
 
-  if (!fs.existsSync(templatePath)) {
+  if (!templatePath) {
     throw new Error(`Template not found for scaffold kind '${kind}': '${resolvedTemplatePath}'`)
   }
 
   if (!fs.existsSync(outputDir)) {
-    throw new Error(`Output directory does not exist for scaffold kind '${kind}': '${config.outputDir}'`)
+    fs.mkdirSync(outputDir, { recursive: true })
   }
 
   const date = formatDate()

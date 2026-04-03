@@ -109,6 +109,13 @@ test("applyOpenKitMergePolicy additively inserts allowed managed-install top-lev
         path: ".openkit/openkit-install.json",
         schema: "openkit/install-state@1",
       },
+      mcp: {
+        "chrome-devtools": {
+          type: "local",
+          command: ["npx", "-y", "chrome-devtools-mcp@0.21.0"],
+          enabled: true,
+        },
+      },
       permission: {
         read: "allow",
         write: "allow",
@@ -130,6 +137,13 @@ test("applyOpenKitMergePolicy additively inserts allowed managed-install top-lev
       path: ".openkit/openkit-install.json",
       schema: "openkit/install-state@1",
     },
+    mcp: {
+      "chrome-devtools": {
+        type: "local",
+        command: ["npx", "-y", "chrome-devtools-mcp@0.21.0"],
+        enabled: true,
+      },
+    },
     permission: {
       read: "allow",
       write: "allow",
@@ -142,7 +156,7 @@ test("applyOpenKitMergePolicy additively inserts allowed managed-install top-lev
     },
   })
   assert.deepEqual(result.conflicts, [])
-  assert.deepEqual(result.appliedFields, ["installState", "permission", "productSurface"])
+  assert.deepEqual(result.appliedFields, ["installState", "mcp", "permission", "productSurface"])
 })
 
 test("applyOpenKitMergePolicy treats allowlisted object fields as equal regardless of key order", () => {

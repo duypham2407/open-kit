@@ -124,6 +124,7 @@ openkit install --verify
 `openkit install --verify` will:
 
 - materialize the managed OpenKit kit under `OPENCODE_HOME`
+- enable default MCP servers for OpenKit runtime tools and Chrome DevTools debugging
 - install or link `ast-grep`
 - install or link `semgrep`
 - provision runtime dependencies used by OpenKit tooling:
@@ -227,6 +228,30 @@ If doctor reports install drift or missing global-kit files:
 openkit upgrade
 openkit doctor
 ```
+
+#### 6.4 Default browser testing/debugging MCP
+
+OpenKit now enables Chrome DevTools MCP by default so browser testing and debugging are available out of the box.
+
+Configured server:
+
+- MCP id: `chrome-devtools`
+- command: `npx -y chrome-devtools-mcp@0.21.0`
+- enabled: `true`
+
+This is written to both:
+
+- repository authoring config: `.opencode/opencode.json`
+- managed global profile: `OPENCODE_HOME/profiles/openkit/opencode.json`
+
+Quick validation:
+
+```bash
+openkit doctor
+openkit run
+```
+
+Then in-session, browser tools should be available for page navigation, console/network inspection, screenshots, and UI debugging flows.
 
 ### Verify setup
 

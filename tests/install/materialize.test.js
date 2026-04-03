@@ -47,6 +47,13 @@ test("materializeInstall creates managed install files without mutating the chec
       path: ".openkit/openkit-install.json",
       schema: "openkit/install-state@1",
     },
+    mcp: {
+      "chrome-devtools": {
+        type: "local",
+        command: ["npx", "-y", "chrome-devtools-mcp@0.21.0"],
+        enabled: true,
+      },
+    },
     permission: {
       npm: "allow",
       task: "allow",
@@ -120,6 +127,13 @@ test("materializeInstall additively inserts allowed managed-install keys into an
     installState: {
       path: ".openkit/openkit-install.json",
       schema: "openkit/install-state@1",
+    },
+    mcp: {
+      "chrome-devtools": {
+        type: "local",
+        command: ["npx", "-y", "chrome-devtools-mcp@0.21.0"],
+        enabled: true,
+      },
     },
     permission: {
       npm: "allow",

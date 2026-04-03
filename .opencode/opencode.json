@@ -13,6 +13,11 @@
       "environment": {
         "OPENKIT_PROJECT_ROOT": "{cwd}"
       }
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "chrome-devtools-mcp@0.21.0"],
+      "enabled": true
     }
   },
   "permission": {

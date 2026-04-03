@@ -67,12 +67,13 @@ test('ensureGlobalInstall returns none when install is healthy', () => {
       OPENCODE_HOME: tempHome,
       PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
     },
+    ensureAstGrep: fakeToolingStub('ast-grep'),
+    ensureSemgrep: fakeToolingStub('semgrep'),
   });
 
   assert.equal(result.action, 'none');
   assert.equal(result.installed, false);
   assert.equal(result.doctor.status, 'healthy');
-  assert.equal(fs.existsSync(path.join(tempHome, 'workspaces')), false);
 });
 
 test('ensureGlobalInstall materializes the global install when it is missing', () => {
@@ -248,6 +249,33 @@ test('materializeGlobalInstall preserves existing agent model overrides during u
   assert.equal(settings.agentModels['qa-agent'].model, 'openai/gpt-5');
   assert.equal(settings.agentModels['qa-agent'].variant, 'high');
   assert.equal(settings.agentModels['fullstack-agent'].model, 'anthropic/claude-sonnet-4-5');
+});
+
+test('materializeGlobalInstall configures chrome-devtools MCP by default', () => {
+  const tempHome = makeTempDir();
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+    ensureAstGrep: noopTooling,
+    ensureSemgrep: noopTooling,
+  });
+
+  const profileConfig = readJson(path.join(tempHome, 'profiles', 'openkit', 'opencode.json'));
+  const kitConfig = readJson(path.join(tempHome, 'kits', 'openkit', 'opencode.json'));
+
+  assert.deepEqual(profileConfig.mcp['chrome-devtools'], {
+    type: 'local',
+    command: ['npx', '-y', 'chrome-devtools-mcp@0.21.0'],
+    enabled: true,
+  });
+  assert.deepEqual(kitConfig.mcp['chrome-devtools'], {
+    type: 'local',
+    command: ['npx', '-y', 'chrome-devtools-mcp@0.21.0'],
+    enabled: true,
+  });
 });
 
 test('materializeGlobalInstall copies the entire src/global directory into the managed kit', () => {

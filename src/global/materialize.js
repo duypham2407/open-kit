@@ -127,6 +127,11 @@ function createOpenCodeConfig(kitRoot) {
         command: mcpCommand,
         enabled: true,
       },
+      'chrome-devtools': {
+        type: 'local',
+        command: ['npx', '-y', 'chrome-devtools-mcp@0.21.0'],
+        enabled: true,
+      },
     },
     permission: {
       npm: 'allow',

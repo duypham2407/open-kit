@@ -1675,6 +1675,7 @@ function requireLinkedArtifacts(state, artifactKinds, message) {
 
 function autoScaffoldPrimaryArtifactIfNeeded(state, projectRoot, targetStage) {
   let kind = null
+  const kitRoot = process.env.OPENKIT_KIT_ROOT ? path.resolve(process.env.OPENKIT_KIT_ROOT) : null
 
   if (targetStage === "full_product") {
     kind = "scope_package"
@@ -1688,6 +1689,7 @@ function autoScaffoldPrimaryArtifactIfNeeded(state, projectRoot, targetStage) {
 
   const scaffoldResult = scaffoldArtifact({
     projectRoot,
+    kitRoot,
     kind,
     mode: state.mode,
     slug: state.feature_slug,
@@ -3785,6 +3787,7 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
   }
 
   const projectRoot = resolveProjectRoot(customStatePath)
+  const kitRoot = process.env.OPENKIT_KIT_ROOT ? path.resolve(process.env.OPENKIT_KIT_ROOT) : null
   const featureId = state.feature_id
   const featureSlug = state.feature_slug
 
@@ -3798,6 +3801,7 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
 
   const scaffoldResult = scaffoldArtifact({
     projectRoot,
+    kitRoot,
     kind,
     mode: state.mode,
     slug,
