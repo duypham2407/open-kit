@@ -19,6 +19,10 @@ import { createFindDependenciesTool } from './graph/find-dependencies.js';
 import { createFindDependentsTool } from './graph/find-dependents.js';
 import { createFindSymbolTool } from './graph/find-symbol.js';
 import { createImportGraphTool } from './graph/import-graph.js';
+import { createGraphGotoDefinitionTool } from './graph/goto-definition.js';
+import { createGraphFindReferencesTool } from './graph/find-references.js';
+import { createGraphCallHierarchyTool } from './graph/call-hierarchy.js';
+import { createGraphRenamePreviewTool } from './graph/rename-preview.js';
 import { createInteractiveBashTool } from './interactive/interactive-bash.js';
 import { createLspDiagnosticsTool } from './lsp/lsp-diagnostics.js';
 import { createLspFindReferencesTool } from './lsp/lsp-find-references.js';
@@ -92,6 +96,10 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     createFindDependenciesTool({ projectGraphManager: managers.projectGraphManager }),
     createFindDependentsTool({ projectGraphManager: managers.projectGraphManager }),
     createFindSymbolTool({ projectGraphManager: managers.projectGraphManager }),
+    createGraphGotoDefinitionTool({ projectGraphManager: managers.projectGraphManager }),
+    createGraphFindReferencesTool({ projectGraphManager: managers.projectGraphManager }),
+    createGraphCallHierarchyTool({ projectGraphManager: managers.projectGraphManager }),
+    createGraphRenamePreviewTool({ projectGraphManager: managers.projectGraphManager }),
   ];
 
   const enabledTools = definitions

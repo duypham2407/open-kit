@@ -125,6 +125,8 @@ export class ProjectGraphManager {
       mtime: graphData.mtime,
       edges,
       symbols: graphData.symbols,
+      refs: graphData.refs,
+      callEdges: graphData.callEdges,
     });
 
     return { status: 'indexed', filePath: absPath };
@@ -325,6 +327,77 @@ export class ProjectGraphManager {
         kind: row.kind,
         isExport: row.is_export === 1,
         line: row.line,
+        signature: row.signature ?? null,
+        docComment: row.doc_comment ?? null,
+        scope: row.scope ?? 'module',
+        startLine: row.start_line ?? row.line,
+        endLine: row.end_line ?? row.line,
+      })),
+    };
+  }
+
+  // -----------------------------------------------------------------------
+  // Query: find references by symbol name
+  // -----------------------------------------------------------------------
+
+  findReferences(name) {
+    if (!this.available) {
+      return { status: 'unavailable', references: [] };
+    }
+
+    const rows = this._db.getRefsByName(name);
+    return {
+      status: 'ok',
+      name,
+      references: rows.map((row) => ({
+        path: this._relativePath(row.path),
+        absolutePath: row.path,
+        line: row.line,
+        col: row.col,
+        refKind: row.ref_kind,
+      })),
+    };
+  }
+
+  // -----------------------------------------------------------------------
+  // Query: call hierarchy (incoming / outgoing)
+  // -----------------------------------------------------------------------
+
+  getCallHierarchy(symbolName, { direction = 'incoming' } = {}) {
+    if (!this.available) {
+      return { status: 'unavailable', calls: [] };
+    }
+
+    if (direction === 'outgoing') {
+      // Find which functions this symbol calls
+      // We need to find the node(s) containing this symbol first
+      const symbolRows = this._db.findSymbolByName(symbolName);
+      const calls = [];
+      for (const sym of symbolRows) {
+        const callEdges = this._db.getCallEdgesByCaller(sym.node_id);
+        for (const ce of callEdges) {
+          if (ce.caller_symbol_name === symbolName) {
+            calls.push({
+              calleeName: ce.callee_name,
+              callerPath: this._relativePath(ce.caller_path),
+              line: ce.line,
+            });
+          }
+        }
+      }
+      return { status: 'ok', symbol: symbolName, direction, calls };
+    }
+
+    // incoming — who calls this symbol
+    const callEdges = this._db.getCallEdgesByCallee(symbolName);
+    return {
+      status: 'ok',
+      symbol: symbolName,
+      direction,
+      calls: callEdges.map((ce) => ({
+        callerSymbol: ce.caller_symbol_name,
+        callerPath: this._relativePath(ce.caller_path),
+        line: ce.line,
       })),
     };
   }

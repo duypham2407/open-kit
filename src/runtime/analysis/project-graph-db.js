@@ -32,6 +32,12 @@ export function isBetterSqliteAvailable() {
 // Schema
 // ---------------------------------------------------------------------------
 
+/**
+ * Current schema version.  Bump this whenever we ALTER / CREATE new tables
+ * and add a corresponding migration block in _runMigrations().
+ */
+const SCHEMA_VERSION = 1;
+
 const SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS nodes (
     id    INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,13 +56,41 @@ const SCHEMA_SQL = `
   );
 
   CREATE TABLE IF NOT EXISTS symbols (
-    id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    node_id   INTEGER NOT NULL,
-    name      TEXT    NOT NULL,
-    kind      TEXT    NOT NULL DEFAULT 'unknown',
-    is_export INTEGER NOT NULL DEFAULT 0,
-    line      INTEGER NOT NULL DEFAULT 0,
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    node_id     INTEGER NOT NULL,
+    name        TEXT    NOT NULL,
+    kind        TEXT    NOT NULL DEFAULT 'unknown',
+    is_export   INTEGER NOT NULL DEFAULT 0,
+    line        INTEGER NOT NULL DEFAULT 0,
+    signature   TEXT    DEFAULT NULL,
+    doc_comment TEXT    DEFAULT NULL,
+    scope       TEXT    NOT NULL DEFAULT 'module',
+    start_line  INTEGER NOT NULL DEFAULT 0,
+    end_line    INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS symbol_refs (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    node_id             INTEGER NOT NULL,
+    name                TEXT    NOT NULL,
+    line                INTEGER NOT NULL,
+    col                 INTEGER NOT NULL DEFAULT 0,
+    ref_kind            TEXT    NOT NULL DEFAULT 'usage',
+    resolved_symbol_id  INTEGER,
+    FOREIGN KEY (node_id)            REFERENCES nodes(id)   ON DELETE CASCADE,
+    FOREIGN KEY (resolved_symbol_id) REFERENCES symbols(id) ON DELETE SET NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS call_edges (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    caller_node_id          INTEGER NOT NULL,
+    caller_symbol_name      TEXT    NOT NULL,
+    callee_name             TEXT    NOT NULL,
+    line                    INTEGER NOT NULL,
+    resolved_callee_node_id INTEGER,
+    FOREIGN KEY (caller_node_id)          REFERENCES nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (resolved_callee_node_id) REFERENCES nodes(id) ON DELETE SET NULL
   );
 
   CREATE INDEX IF NOT EXISTS idx_nodes_path      ON nodes(path);
@@ -64,6 +98,11 @@ const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_edges_to        ON edges(to_node);
   CREATE INDEX IF NOT EXISTS idx_symbols_node    ON symbols(node_id);
   CREATE INDEX IF NOT EXISTS idx_symbols_name    ON symbols(name);
+  CREATE INDEX IF NOT EXISTS idx_refs_node       ON symbol_refs(node_id);
+  CREATE INDEX IF NOT EXISTS idx_refs_name       ON symbol_refs(name);
+  CREATE INDEX IF NOT EXISTS idx_refs_resolved   ON symbol_refs(resolved_symbol_id);
+  CREATE INDEX IF NOT EXISTS idx_call_caller     ON call_edges(caller_node_id);
+  CREATE INDEX IF NOT EXISTS idx_call_callee     ON call_edges(callee_name);
 `;
 
 // ---------------------------------------------------------------------------
@@ -83,8 +122,30 @@ export class ProjectGraphDb {
     this._db = new Db(dbPath);
     this._db.pragma('journal_mode = WAL');
     this._db.pragma('foreign_keys = ON');
-    this._db.exec(SCHEMA_SQL);
+    this._runMigrations();
     this._prepareStatements();
+  }
+
+  // -----------------------------------------------------------------------
+  // Schema migration — idempotent, version-tracked via PRAGMA user_version
+  // -----------------------------------------------------------------------
+
+  _runMigrations() {
+    const currentVersion = this._db.pragma('user_version', { simple: true });
+
+    if (currentVersion === 0) {
+      // Fresh database — apply full schema and set version.
+      this._db.exec(SCHEMA_SQL);
+      this._db.pragma(`user_version = ${SCHEMA_VERSION}`);
+      return;
+    }
+
+    // Future migration blocks go here, guarded by `if (currentVersion < N)`.
+    // Example for version 2:
+    //   if (currentVersion < 2) {
+    //     this._db.exec('ALTER TABLE ...');
+    //     this._db.pragma('user_version = 2');
+    //   }
   }
 
   // -----------------------------------------------------------------------
@@ -93,19 +154,21 @@ export class ProjectGraphDb {
 
   _prepareStatements() {
     this._stmts = {
+      // -- nodes --
       upsertNode: this._db.prepare(
         `INSERT INTO nodes (path, kind, mtime) VALUES (@path, @kind, @mtime)
          ON CONFLICT(path) DO UPDATE SET kind = @kind, mtime = @mtime`
       ),
       getNode: this._db.prepare('SELECT * FROM nodes WHERE path = @path'),
       getNodeById: this._db.prepare('SELECT * FROM nodes WHERE id = @id'),
+      deleteNode: this._db.prepare('DELETE FROM nodes WHERE id = @id'),
+      allNodes: this._db.prepare('SELECT * FROM nodes ORDER BY path'),
+      nodeCount: this._db.prepare('SELECT COUNT(*) as count FROM nodes'),
+
+      // -- edges --
       deleteEdgesFrom: this._db.prepare('DELETE FROM edges WHERE from_node = @nodeId'),
-      deleteSymbolsFor: this._db.prepare('DELETE FROM symbols WHERE node_id = @nodeId'),
       insertEdge: this._db.prepare(
         'INSERT INTO edges (from_node, to_node, edge_type, line) VALUES (@fromNode, @toNode, @edgeType, @line)'
-      ),
-      insertSymbol: this._db.prepare(
-        'INSERT INTO symbols (node_id, name, kind, is_export, line) VALUES (@nodeId, @name, @kind, @isExport, @line)'
       ),
       getDependencies: this._db.prepare(
         `SELECT n.path, e.edge_type, e.line
@@ -119,6 +182,14 @@ export class ProjectGraphDb {
          JOIN nodes n ON n.id = e.from_node
          WHERE e.to_node = @nodeId`
       ),
+      edgeCount: this._db.prepare('SELECT COUNT(*) as count FROM edges'),
+
+      // -- symbols (enriched: signature, doc_comment, scope, start/end line) --
+      deleteSymbolsFor: this._db.prepare('DELETE FROM symbols WHERE node_id = @nodeId'),
+      insertSymbol: this._db.prepare(
+        `INSERT INTO symbols (node_id, name, kind, is_export, line, signature, doc_comment, scope, start_line, end_line)
+         VALUES (@nodeId, @name, @kind, @isExport, @line, @signature, @docComment, @scope, @startLine, @endLine)`
+      ),
       getSymbolsByNode: this._db.prepare(
         'SELECT * FROM symbols WHERE node_id = @nodeId ORDER BY line'
       ),
@@ -128,11 +199,44 @@ export class ProjectGraphDb {
          JOIN nodes n ON n.id = s.node_id
          WHERE s.name = @name`
       ),
-      allNodes: this._db.prepare('SELECT * FROM nodes ORDER BY path'),
-      nodeCount: this._db.prepare('SELECT COUNT(*) as count FROM nodes'),
-      edgeCount: this._db.prepare('SELECT COUNT(*) as count FROM edges'),
       symbolCount: this._db.prepare('SELECT COUNT(*) as count FROM symbols'),
-      deleteNode: this._db.prepare('DELETE FROM nodes WHERE id = @id'),
+
+      // -- symbol_refs --
+      deleteRefsFor: this._db.prepare('DELETE FROM symbol_refs WHERE node_id = @nodeId'),
+      insertRef: this._db.prepare(
+        `INSERT INTO symbol_refs (node_id, name, line, col, ref_kind, resolved_symbol_id)
+         VALUES (@nodeId, @name, @line, @col, @refKind, @resolvedSymbolId)`
+      ),
+      getRefsByNode: this._db.prepare(
+        'SELECT * FROM symbol_refs WHERE node_id = @nodeId ORDER BY line, col'
+      ),
+      getRefsByName: this._db.prepare(
+        `SELECT r.*, n.path
+         FROM symbol_refs r
+         JOIN nodes n ON n.id = r.node_id
+         WHERE r.name = @name`
+      ),
+      refCount: this._db.prepare('SELECT COUNT(*) as count FROM symbol_refs'),
+
+      // -- call_edges --
+      deleteCallEdgesFor: this._db.prepare('DELETE FROM call_edges WHERE caller_node_id = @nodeId'),
+      insertCallEdge: this._db.prepare(
+        `INSERT INTO call_edges (caller_node_id, caller_symbol_name, callee_name, line, resolved_callee_node_id)
+         VALUES (@callerNodeId, @callerSymbolName, @calleeName, @line, @resolvedCalleeNodeId)`
+      ),
+      getCallEdgesByCaller: this._db.prepare(
+        `SELECT ce.*, n.path as caller_path
+         FROM call_edges ce
+         JOIN nodes n ON n.id = ce.caller_node_id
+         WHERE ce.caller_node_id = @nodeId`
+      ),
+      getCallEdgesByCallee: this._db.prepare(
+        `SELECT ce.*, n.path as caller_path
+         FROM call_edges ce
+         JOIN nodes n ON n.id = ce.caller_node_id
+         WHERE ce.callee_name = @calleeName`
+      ),
+      callEdgeCount: this._db.prepare('SELECT COUNT(*) as count FROM call_edges'),
     };
   }
 
@@ -209,6 +313,11 @@ export class ProjectGraphDb {
           kind: sym.kind ?? 'unknown',
           isExport: sym.isExport ? 1 : 0,
           line: sym.line ?? 0,
+          signature: sym.signature ?? null,
+          docComment: sym.docComment ?? null,
+          scope: sym.scope ?? 'module',
+          startLine: sym.startLine ?? sym.line ?? 0,
+          endLine: sym.endLine ?? sym.line ?? 0,
         });
       }
     });
@@ -224,15 +333,77 @@ export class ProjectGraphDb {
   }
 
   // -----------------------------------------------------------------------
+  // Symbol references
+  // -----------------------------------------------------------------------
+
+  replaceRefsFor(nodeId, refs) {
+    const tx = this._db.transaction(() => {
+      this._stmts.deleteRefsFor.run({ nodeId });
+      for (const ref of refs) {
+        this._stmts.insertRef.run({
+          nodeId,
+          name: ref.name,
+          line: ref.line ?? 0,
+          col: ref.col ?? 0,
+          refKind: ref.refKind ?? 'usage',
+          resolvedSymbolId: ref.resolvedSymbolId ?? null,
+        });
+      }
+    });
+    tx();
+  }
+
+  getRefsByNode(nodeId) {
+    return this._stmts.getRefsByNode.all({ nodeId });
+  }
+
+  getRefsByName(name) {
+    return this._stmts.getRefsByName.all({ name });
+  }
+
+  // -----------------------------------------------------------------------
+  // Call edges
+  // -----------------------------------------------------------------------
+
+  replaceCallEdgesFor(nodeId, callEdges) {
+    const tx = this._db.transaction(() => {
+      this._stmts.deleteCallEdgesFor.run({ nodeId });
+      for (const ce of callEdges) {
+        this._stmts.insertCallEdge.run({
+          callerNodeId: nodeId,
+          callerSymbolName: ce.callerSymbolName ?? '<module>',
+          calleeName: ce.calleeName,
+          line: ce.line ?? 0,
+          resolvedCalleeNodeId: ce.resolvedCalleeNodeId ?? null,
+        });
+      }
+    });
+    tx();
+  }
+
+  getCallEdgesByCaller(nodeId) {
+    return this._stmts.getCallEdgesByCaller.all({ nodeId });
+  }
+
+  getCallEdgesByCallee(calleeName) {
+    return this._stmts.getCallEdgesByCallee.all({ calleeName });
+  }
+
+  // -----------------------------------------------------------------------
   // Transactional bulk update
   // -----------------------------------------------------------------------
 
   /**
-   * Index a single file atomically: upsert node, replace edges, replace symbols.
+   * Index a single file atomically: upsert node, replace edges, replace symbols,
+   * replace references, replace call edges.
    *
    * @param {{ filePath: string, kind?: string, mtime: number,
    *           edges: Array<{ toPath: string, edgeType?: string, line?: number }>,
-   *           symbols: Array<{ name: string, kind?: string, isExport?: boolean, line?: number }> }} data
+   *           symbols: Array<{ name: string, kind?: string, isExport?: boolean, line?: number,
+   *                            signature?: string, docComment?: string, scope?: string,
+   *                            startLine?: number, endLine?: number }>,
+   *           refs?: Array<{ name: string, line?: number, col?: number, refKind?: string }>,
+   *           callEdges?: Array<{ callerSymbolName?: string, calleeName: string, line?: number }> }} data
    */
   indexFile(data) {
     const tx = this._db.transaction(() => {
@@ -260,6 +431,16 @@ export class ProjectGraphDb {
       // Symbols
       this.replaceSymbolsFor(node.id, data.symbols ?? []);
 
+      // References
+      if (data.refs) {
+        this.replaceRefsFor(node.id, data.refs);
+      }
+
+      // Call edges
+      if (data.callEdges) {
+        this.replaceCallEdgesFor(node.id, data.callEdges);
+      }
+
       return node;
     });
     return tx();
@@ -274,6 +455,8 @@ export class ProjectGraphDb {
       nodes: this._stmts.nodeCount.get().count,
       edges: this._stmts.edgeCount.get().count,
       symbols: this._stmts.symbolCount.get().count,
+      refs: this._stmts.refCount.get().count,
+      callEdges: this._stmts.callEdgeCount.get().count,
     };
   }
 
