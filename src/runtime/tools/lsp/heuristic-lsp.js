@@ -2,8 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { listProjectFiles, readTextFile, resolveProjectPath } from '../shared/project-file-utils.js';
+import { JS_TS_SOURCE_EXTENSIONS } from '../../analysis/source-extensions.js';
 
-const SUPPORTED_EXTENSIONS = ['.cjs', '.cts', '.js', '.jsx', '.mjs', '.mts', '.ts', '.tsx'];
+const SUPPORTED_EXTENSIONS = JS_TS_SOURCE_EXTENSIONS;
 const SYMBOL_PATTERNS = [
   { kind: 'function', regex: /(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g },
   { kind: 'class', regex: /(?:export\s+)?class\s+([A-Za-z_$][\w$]*)\b/g },

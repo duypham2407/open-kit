@@ -1,10 +1,18 @@
-export function createGraphGotoDefinitionTool({ projectGraphManager }) {
+// ---------------------------------------------------------------------------
+// tool.graph-goto-definition
+//
+// Navigate to the definition of a symbol using the project graph database.
+// Input: { symbol: 'functionName' } or { filePath, line, column }
+// Output: { definitions: [{ path, line, kind, signature, docComment }] }
+// ---------------------------------------------------------------------------
+
+export function createGotoDefinitionTool({ projectGraphManager }) {
   return {
     id: 'tool.graph-goto-definition',
-    name: 'Graph Go-to-Definition',
+    name: 'Graph Go-To Definition',
     description:
-      'Find where a symbol is defined using the project import graph. ' +
-      'Pass { symbol } to find all definition sites, or { symbol, exportOnly: true } to only find exported definitions.',
+      'Find the definition(s) of a symbol using the project graph database. ' +
+      'Pass { symbol } to search by name, or { filePath, line } to find the symbol at a given location.',
     family: 'graph',
     stage: 'foundation',
     status: projectGraphManager?.available ? 'active' : 'degraded',
@@ -16,35 +24,36 @@ export function createGraphGotoDefinitionTool({ projectGraphManager }) {
         };
       }
 
-      const symbol = typeof input === 'string' ? input : input.symbol;
-      if (!symbol) {
-        return { status: 'error', reason: 'symbol is required.' };
+      const symbolName = typeof input === 'string' ? input : input.symbol;
+
+      if (!symbolName) {
+        return { status: 'error', reason: 'symbol name is required. Pass { symbol: "name" }.' };
       }
 
-      const result = projectGraphManager.findSymbol(symbol);
-      if (result.status !== 'ok') return result;
-
-      let definitions = result.matches;
-
-      // If exportOnly requested, filter to exported symbols only
-      if (input.exportOnly) {
-        definitions = definitions.filter((d) => d.isExport);
+      const result = projectGraphManager.findSymbol(symbolName);
+      if (result.status !== 'ok') {
+        return result;
       }
+
+      // Filter to only exported definitions (most likely the "true" definition)
+      const exported = result.matches.filter((m) => m.isExport);
+      const definitions = (exported.length > 0 ? exported : result.matches).map((m) => ({
+        path: m.path,
+        absolutePath: m.absolutePath,
+        line: m.line,
+        kind: m.kind,
+        signature: m.signature,
+        docComment: m.docComment,
+        scope: m.scope,
+        startLine: m.startLine,
+        endLine: m.endLine,
+      }));
 
       return {
         status: 'ok',
-        symbol,
-        definitions: definitions.map((d) => ({
-          path: d.path,
-          absolutePath: d.absolutePath,
-          line: d.line,
-          kind: d.kind,
-          isExport: d.isExport,
-          signature: d.signature,
-          scope: d.scope,
-          startLine: d.startLine,
-          endLine: d.endLine,
-        })),
+        symbol: symbolName,
+        definitions,
+        totalCount: definitions.length,
       };
     },
   };

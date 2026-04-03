@@ -1,12 +1,22 @@
-import fs from 'node:fs';
+// ---------------------------------------------------------------------------
+// tool.graph-rename-preview
+//
+// Preview a rename operation: find all occurrences of a symbol
+// (definitions + references + imports) and show what would change.
+// Does NOT apply changes — output is read-only.
+//
+// Input: { symbol: 'oldName', newName: 'newName' }
+// Output: { changes: [{ path, edits: [{ line, oldText, newText }] }] }
+// ---------------------------------------------------------------------------
 
-export function createGraphRenamePreviewTool({ projectGraphManager }) {
+export function createRenamePreviewTool({ projectGraphManager }) {
   return {
     id: 'tool.graph-rename-preview',
     name: 'Graph Rename Preview',
     description:
-      'Preview a rename across all files: definitions, references, and import specifiers. ' +
-      'Pass { symbol, newName } to see all changes without applying them.',
+      'Preview a rename: find all definitions, references, and import sites ' +
+      'of a symbol and show what would change. Does not apply changes. ' +
+      'Pass { symbol: "oldName", newName: "newName" }.',
     family: 'graph',
     stage: 'foundation',
     status: projectGraphManager?.available ? 'active' : 'degraded',
@@ -18,77 +28,89 @@ export function createGraphRenamePreviewTool({ projectGraphManager }) {
         };
       }
 
-      const symbol = input.symbol;
+      const symbolName = typeof input === 'string' ? input : input.symbol;
       const newName = input.newName;
-      if (!symbol) {
-        return { status: 'error', reason: 'symbol is required.' };
+
+      if (!symbolName) {
+        return { status: 'error', reason: 'symbol name is required. Pass { symbol: "oldName", newName: "newName" }.' };
       }
       if (!newName) {
-        return { status: 'error', reason: 'newName is required.' };
+        return { status: 'error', reason: 'newName is required. Pass { symbol: "oldName", newName: "newName" }.' };
       }
-      if (symbol === newName) {
-        return { status: 'error', reason: 'newName must be different from symbol.' };
+      if (symbolName === newName) {
+        return { status: 'error', reason: 'symbol and newName must be different.' };
       }
 
-      // Check for naming conflict
-      const conflictResult = projectGraphManager.findSymbol(newName);
-      const conflicts = conflictResult.status === 'ok' ? conflictResult.matches : [];
+      // Get definitions + references
+      const refResult = projectGraphManager.findReferences(symbolName);
+      if (refResult.status !== 'ok') {
+        return refResult;
+      }
 
-      // Find all definitions
-      const symResult = projectGraphManager.findSymbol(symbol);
-      const definitions = symResult.status === 'ok' ? symResult.matches : [];
-
-      // Find all references
-      const refResult = projectGraphManager.findReferences(symbol);
-      const references = refResult.status === 'ok' ? refResult.references : [];
-
-      // Build per-file edit previews
-      const fileEditsMap = new Map();
-      const addEdit = (absPath, relPath, line, col) => {
-        if (!fileEditsMap.has(absPath)) {
-          fileEditsMap.set(absPath, { path: relPath, absolutePath: absPath, edits: [] });
+      const reachablePaths = new Set(refResult.definitions.map((def) => def.absolutePath));
+      for (const def of refResult.definitions) {
+        const dependents = projectGraphManager.getDependents(def.absolutePath, { depth: 8 });
+        if (dependents?.status !== 'ok') {
+          continue;
         }
-        fileEditsMap.get(absPath).edits.push({ line, column: col ?? 0, oldText: symbol, newText: newName });
-      };
-
-      for (const def of definitions) {
-        addEdit(def.absolutePath, def.path, def.line, 0);
-      }
-      for (const ref of references) {
-        addEdit(ref.absolutePath, ref.path, ref.line, ref.col);
-      }
-
-      // Enrich edits with line content from source files
-      for (const [absPath, fileEntry] of fileEditsMap) {
-        try {
-          const content = fs.readFileSync(absPath, 'utf8');
-          const lines = content.split('\n');
-          for (const edit of fileEntry.edits) {
-            const lineIdx = edit.line - 1;
-            edit.lineContent = lineIdx >= 0 && lineIdx < lines.length ? lines[lineIdx] : null;
+        for (const dependent of dependents.dependents ?? []) {
+          if (dependent.absolutePath) {
+            reachablePaths.add(dependent.absolutePath);
           }
-        } catch {
-          // File may not exist on disk — leave lineContent as undefined
         }
-        // Sort edits by line
-        fileEntry.edits.sort((a, b) => a.line - b.line || a.column - b.column);
       }
 
-      const changes = [...fileEditsMap.values()];
-      const totalOccurrences = changes.reduce((sum, f) => sum + f.edits.length, 0);
+      // Group changes by file
+      const changesByPath = new Map();
+
+      // Add definition sites
+      for (const def of refResult.definitions) {
+        const key = def.path;
+        if (!changesByPath.has(key)) {
+          changesByPath.set(key, { path: key, absolutePath: def.absolutePath, edits: [] });
+        }
+        changesByPath.get(key).edits.push({
+          line: def.line,
+          type: 'definition',
+          oldText: symbolName,
+          newText: newName,
+        });
+      }
+
+      // Add reference sites
+      for (const ref of refResult.references) {
+        if (!reachablePaths.has(ref.absoluteReferencePath)) {
+          continue;
+        }
+        const key = ref.referencePath;
+        if (!changesByPath.has(key)) {
+          changesByPath.set(key, { path: key, absolutePath: ref.absoluteReferencePath, edits: [] });
+        }
+        changesByPath.get(key).edits.push({
+          line: ref.line,
+          col: ref.col,
+          type: ref.kind,
+          oldText: symbolName,
+          newText: newName,
+        });
+      }
+
+      // Sort edits within each file by line
+      for (const change of changesByPath.values()) {
+        change.edits.sort((a, b) => a.line - b.line);
+      }
+
+      const changes = Array.from(changesByPath.values()).sort((a, b) => a.path.localeCompare(b.path));
 
       return {
-        status: conflicts.length > 0 ? 'conflict' : 'preview-ready',
-        symbol,
+        status: 'preview-only',
+        symbol: symbolName,
         newName,
-        totalOccurrences,
-        conflicts: conflicts.map((c) => ({
-          path: c.path,
-          absolutePath: c.absolutePath,
-          kind: c.kind,
-          line: c.line,
-        })),
         changes,
+        totalFiles: changes.length,
+        totalEdits: changes.reduce((sum, c) => sum + c.edits.length, 0),
+        scopeFiltered: true,
+        importScoped: true,
       };
     },
   };

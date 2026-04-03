@@ -1,1124 +1,564 @@
-# Codebase Intelligence Pipeline — Kế Hoạch Chi Tiết Đầy Đủ
+# Codebase Intelligence Pipeline — Detailed Plan
 
-> Tài liệu này ghi lại toàn bộ phân tích, công việc đã làm, và kế hoạch các phase tiếp theo.
-> Mục đích: cho phép tiếp tục công việc trên thiết bị khác mà không mất context.
+> This document records the full analysis, completed work, and plans for subsequent phases of the Codebase Intelligence system in OpenKit.
+> Purpose: allow continuing work on another device without losing context.
 
-**Repo:** `open-kit` (tại `/home/duypham/Projects/open-kit`)  
-**Nhánh:** `main`  
-**Commit gốc Phase 0-1:** `72f2ac6 feat: add tool enforcement and AST foundation for codebase intelligence`  
-**Ngày cập nhật:** 2026-04-02
-
----
-
-## MỤC LỤC
-
-1. [Tổng Quan Kiến Trúc](#1-tổng-quan-kiến-trúc)
-2. [Công Việc Đã Hoàn Thành (Phase 0-2)](#2-công-việc-đã-hoàn-thành)
-3. [Phase 3 — Symbol Index Nâng Cao](#3-phase-3--symbol-index-nâng-cao)
-4. [Phase 4 — Navigation Tools](#4-phase-4--navigation-tools)
-5. [Phase 5 — LSP Graph Integration](#5-phase-5--lsp-graph-integration)
-6. [Phase 6 — Semantic Memory / Search](#6-phase-6--semantic-memory--search)
-7. [Dependency Graph](#7-dependency-graph)
-8. [Kiến Trúc Hiện Tại Chi Tiết](#8-kiến-trúc-hiện-tại-chi-tiết)
-9. [Patterns & Conventions](#9-patterns--conventions)
-10. [Lưu Ý Quan Trọng](#10-lưu-ý-quan-trọng)
-11. [Quick Start Cho Session Tiếp Theo](#11-quick-start)
+**Repo:** `open-kit` (at `/home/duypham/Projects/open-kit`)
+**Branch:** `main`
+**Base commit:** `72f2ac6 feat: add tool enforcement and AST foundation for codebase intelligence`
+**Last updated:** 2026-04-02
 
 ---
 
-## 1. Tổng Quan Kiến Trúc
+## 1. Architecture Overview
 
-### 1.1 Mục tiêu cuối cùng
+### 1.1 Objective
 
-Xây dựng persistent codebase intelligence cho OpenKit runtime:
+Build a persistent import/symbol graph (SQLite-backed) for the OpenKit runtime, enabling:
 
-- Import graph (ai import ai, cross-file dependency)
-- Symbol index (function/class/variable trên toàn project)
-- Navigation (go-to-definition, find-references, rename-preview qua graph DB)
-- LSP tools nâng cấp từ regex-heuristic lên graph-backed
-- Semantic memory (embedding search, session recall)
+- Cross-file dependency analysis (import graph)
+- Symbol lookup (function, class, variable) across the entire project
+- Background indexing that does not block session startup
+- LSP-like navigation tools integration
+- Semantic memory / search for agent context
 
-### 1.2 Bảng tổng quan Phase
+### 1.2 Phase Overview
 
-| Phase | Tên | Sub-phases | Trạng thái | Sessions ước lượng |
-|-------|-----|-----------|------------|-------------------|
-| 0 | AST Foundation | — | **DONE** | — |
-| 1 | Tool Enforcement | — | **DONE** | — |
-| 2 | Import Graph + DB | 2A-2F | **DONE** | — |
-| 3 | Symbol Index Nâng Cao | 3A-3E | **DONE** | — |
-| 4 | Navigation Tools | 4A-4E | **DONE** | — |
-| 5 | LSP Graph Integration | 5A-5D | TODO | 2-3 |
-| 6 | Semantic Memory/Search | 6A-6E | TODO | 3-4 |
+| Phase | Name                      | Status            | Description                                                        |
+|-------|---------------------------|-------------------|--------------------------------------------------------------------|
+| 0     | AST Foundation            | **COMPLETED**     | Tree-sitter parsing, SyntaxIndexManager, tool enforcement          |
+| 1     | Tool Enforcement          | **COMPLETED**     | OpenCode plugin & kit-internal tool guards                         |
+| 2     | Import Graph + DB         | **COMPLETED**     | SQLite DB, import-graph builder, manager, tools, background index  |
+| 3     | Advanced Symbol Index     | NOT STARTED       | Rich symbol metadata, cross-file type inference, call graph        |
+| 4     | Navigation Tools          | NOT STARTED       | Go-to-definition, find-references via graph DB                     |
+| 5     | LSP Integration           | NOT STARTED       | Bridge graph DB with LSP protocol for editor integration           |
+| 6     | Semantic Memory/Search    | NOT STARTED       | Embedding-based code search, context-aware agent memory            |
 
 ---
 
-## 2. Công Việc Đã Hoàn Thành
+## 2. Completed Work
 
-### Phase 0 — AST Foundation (committed `72f2ac6`)
+### 2.1 Phase 0 & 1 — AST Foundation + Tool Enforcement (before this session)
 
-- `SyntaxIndexManager` (`src/runtime/managers/syntax-index-manager.js`, 441 dòng)
-  - Web-tree-sitter (WASM) parser
-  - Grammars: `tree-sitter-javascript`, `tree-sitter-typescript`, `tree-sitter-tsx`
-  - LRU ParseCache (100 entries, mtime-based validation)
-  - API: `readFile()`, `getOutline()`, `getProjectOutline()`, `getContext()`, `locateType()`
+Committed in `72f2ac6`. Includes:
 
-### Phase 1 — Tool Enforcement (committed `72f2ac6`)
+- `SyntaxIndexManager` (`src/runtime/managers/syntax-index-manager.js`) — tree-sitter parse cache
+- Tool enforcement surfaces (OpenCode plugin & kit-internal guards)
+- AST-based JSON/JSONC search (`src/runtime/tools/ast/ast-search.js`)
+- AST tooling status checker (`src/runtime/tools/ast/ast-tooling-status.js`)
 
-- OpenCode plugin & kit-internal tool guards
-- AST-based JSON/JSONC search (`ast-search.js`)
-- AST-grep binary wrapper (`ast-grep-search.js`)
-- AST tooling status checker (`ast-tooling-status.js`)
+### 2.2 Phase 2 — Import Graph + Persistent DB (2 most recent sessions)
 
-### Phase 2 — Import Graph + Persistent DB (uncommitted, 2 sessions)
+#### 2.2.1 Newly created files (untracked)
 
-#### 2A. ProjectGraphDb (`src/runtime/analysis/project-graph-db.js`, 287 dòng)
-
-Schema SQLite (better-sqlite3, WAL mode):
-
-```sql
-nodes   (id PK, path TEXT UNIQUE, kind TEXT DEFAULT 'module', mtime REAL)
-edges   (from_node FK, to_node FK, edge_type TEXT DEFAULT 'import', line INTEGER)
-symbols (id PK, node_id FK, name TEXT, kind TEXT DEFAULT 'unknown', is_export INTEGER, line INTEGER)
--- Indexes: idx_nodes_path, idx_edges_from, idx_edges_to, idx_symbols_node, idx_symbols_name
+```
+src/runtime/analysis/project-graph-db.js       — SQLite wrapper, schema, prepared statements
+src/runtime/analysis/import-graph-builder.js    — AST-based import/export/symbol extractor
+src/runtime/managers/project-graph-manager.js   — High-level coordinator (index + query)
+src/runtime/tools/graph/import-graph.js         — tool.import-graph
+src/runtime/tools/graph/find-dependencies.js    — tool.find-dependencies
+src/runtime/tools/graph/find-dependents.js      — tool.find-dependents
+src/runtime/tools/graph/find-symbol.js          — tool.find-symbol
+hooks/graph-indexer.js                          — Background indexer (detached process)
+tests/runtime/graph-db.test.js                  — ProjectGraphDb unit tests
+tests/runtime/graph-tools.test.js               — Graph tool-level tests (22 tests)
+tests/runtime/import-graph-builder.test.js      — Import graph builder tests
+tests/runtime/project-graph-manager.test.js     — ProjectGraphManager tests
 ```
 
-Methods: `upsertNode`, `getNode`, `deleteNode`, `replaceEdgesFrom`, `replaceSymbolsFor`, `getDependencies`, `getDependents`, `findSymbolByName`, `indexFile` (transactional), `stats`, `close`
+#### 2.2.2 Modified files
 
-#### 2B. Import Graph Builder (`src/runtime/analysis/import-graph-builder.js`, 480 dòng)
+```
+AGENTS.md                                — Added runtime analysis layer description
+context/core/project-config.md           — Added project graph DB notes
+hooks/session-start.js                   — Spawn detached graph-indexer
+package.json                             — Added better-sqlite3 dependency
+package-lock.json                        — Lock file update
+src/global/doctor.js                     — Added isBetterSqliteAvailable check
+src/global/tooling.js                    — Added isBetterSqliteAvailable() helper
+src/runtime/create-managers.js           — Create ProjectGraphManager, pass mode
+src/runtime/create-runtime-interface.js  — Expose graph summary in runtimeState
+src/runtime/tools/tool-registry.js       — Register 4 graph tools
+src/runtime/tools/ast/ast-grep-search.js — FIX: import isAstGrepAvailable from correct module
+src/runtime/tools/ast/ast-search.js      — FIX: revert execute to sync for JSON path
+tests/runtime/module-boundary.test.js    — FIX: expect "module" instead of "commonjs"
+```
 
-Dùng `SyntaxIndexManager.readFile()` (tree-sitter) extract:
+#### 2.2.3 Technical details per component
 
-| Node type (tree-sitter) | Extract ra |
-|--------------------------|-----------|
-| `import_statement` | imports (specifier, resolvedPath, importedNames, line, kind=static) |
-| `export_statement` | exports + re-export imports + symbols |
-| `function_declaration` | symbols (kind=function) |
-| `class_declaration` | symbols (kind=class) |
-| `lexical_declaration` / `variable_declaration` | symbols (kind=variable) + require() imports |
-| `expression_statement` | require() imports |
-| `interface_declaration` | symbols (kind=interface) |
-| `type_alias_declaration` | symbols (kind=type) |
-| `enum_declaration` | symbols (kind=enum) |
+**A. ProjectGraphDb** (`src/runtime/analysis/project-graph-db.js`)
 
-Module resolution: relative paths only (`.` / `..`), tries exact -> +extensions -> /index+extensions
+- SQLite via `better-sqlite3` (native module, WAL journal mode)
+- Schema with 3 tables:
+  - `nodes(id, path UNIQUE, kind, mtime)` — file nodes
+  - `edges(from_node, to_node, edge_type, line)` — import relationships
+  - `symbols(id, node_id, name, kind, is_export, line)` — symbol declarations
+- 5 indexes: `idx_nodes_path`, `idx_edges_from`, `idx_edges_to`, `idx_symbols_node`, `idx_symbols_name`
+- Prepared statements for all operations
+- `indexFile()` — transactional upsert (node + replace edges + replace symbols)
+- `stats()` returns `{ nodes, edges, symbols }` counts
+- DB path: `<runtimeRoot>/.opencode/project-graph.db` (or `:memory:` for tests)
 
-API: `buildFileGraph({ syntaxIndexManager, filePath, projectRoot })` -> `{ filePath, mtime, imports[], exports[], symbols[] }` | `null`
+**B. Import Graph Builder** (`src/runtime/analysis/import-graph-builder.js`)
 
-#### 2C. ProjectGraphManager (`src/runtime/managers/project-graph-manager.js`, 373 dòng)
+- Uses `SyntaxIndexManager.readFile()` (tree-sitter) to parse
+- Extracts:
+  - Static imports (`import x from '...'`)
+  - `require()` calls
+  - Re-exports (`export { x } from '...'`)
+  - Dynamic imports (`import('...')`)
+  - Export declarations (function, class, variable, default)
+- Resolves relative specifiers to absolute paths (tries exact, then adds extensions, then index.js)
+- Returns `{ filePath, mtime, imports[], symbols[] }`
 
-- Constructor: `{ projectRoot, runtimeRoot, syntaxIndexManager, dbPath?, mode? }`
-- `mode='read-only'` -> không tạo DB (cho doctor/bootstrap)
-- `indexFile(filePath)` -> skip nếu mtime unchanged
-- `indexProject({ maxFiles=2000 })` -> sequential index all project files
-- `getDependencies(filePath, { depth })` -> BFS forward deps
-- `getDependents(filePath, { depth })` -> BFS reverse deps
-- `findSymbol(name)` -> search symbol by name
-- `getGraphSummary()` -> `{ status, nodes, edges, symbols, dbPath, ... }`
-- `dispose()` -> close DB
+**C. ProjectGraphManager** (`src/runtime/managers/project-graph-manager.js`)
 
-#### 2D. Graph Tools (`src/runtime/tools/graph/`, 4 files)
+- Constructor accepts `{ projectRoot, runtimeRoot, syntaxIndexManager, dbPath?, mode? }`
+- `mode = 'read-only'` — does not create DB (important for doctor/bootstrap read-only)
+- Methods:
+  - `indexFile(filePath)` — index 1 file (skip if mtime unchanged)
+  - `indexProject({ maxFiles })` — index entire project (listProjectFiles)
+  - `getDependencies(filePath, { depth })` — BFS forward dependencies
+  - `getDependents(filePath, { depth })` — BFS reverse dependencies
+  - `findSymbol(name)` — search symbol by name
+  - `getGraphSummary()` — node/edge/symbol counts
+  - `describe()` — status + DB path + indexing state
+  - `dispose()` — close DB connection
 
-| Tool ID | File | Input | Output key fields |
-|---------|------|-------|-------------------|
-| `tool.import-graph` | `import-graph.js` (47 dòng) | `{ action: 'status'\|'index'\|'index-file'\|'summary', filePath?, maxFiles? }` | Tùy action |
-| `tool.find-dependencies` | `find-dependencies.js` (30 dòng) | `{ filePath, depth? }` hoặc string | `{ status, dependencies[] }` |
-| `tool.find-dependents` | `find-dependents.js` (30 dòng) | `{ filePath, depth? }` hoặc string | `{ status, dependents[] }` |
-| `tool.find-symbol` | `find-symbol.js` (27 dòng) | `{ name }` hoặc string | `{ status, name, matches[] }` |
+**D. Graph Tools** (`src/runtime/tools/graph/`)
 
-Đăng ký trong `tool-registry.js`, family = `'graph'`
+| Tool ID                  | File                    | Description                                     |
+|--------------------------|-------------------------|-------------------------------------------------|
+| `tool.import-graph`      | `import-graph.js`       | Index/status/summary/index-file actions         |
+| `tool.find-dependencies` | `find-dependencies.js`  | Forward deps of 1 file (depth supported)        |
+| `tool.find-dependents`   | `find-dependents.js`    | Reverse deps (who imports this file)            |
+| `tool.find-symbol`       | `find-symbol.js`        | Find symbol by name across the entire project   |
 
-#### 2E. Background Indexing
+All tools:
+- Return `{ status: 'unavailable' }` when manager is not available
+- Validate input (filePath/name required)
+- Support string input shorthand
+- Registered in `tool-registry.js`, family = `'graph'`
 
-- `hooks/session-start.js` spawn detached `hooks/graph-indexer.js`
-- `graph-indexer.js` (66 dòng): dynamically import managers từ kit root, chạy `indexProject({ maxFiles: 2000 })`, fire-and-forget
+**E. Background Indexing**
 
-#### 2F. Wiring & Doctor
+- `hooks/session-start.js` spawns detached process `hooks/graph-indexer.js`
+- `graph-indexer.js` dynamically imports managers from the kit root
+- Fire-and-forget: does not block session startup, silently exits on error
+- Indexes up to 2000 files per run
 
-- `src/runtime/create-managers.js`: tạo `ProjectGraphManager`, truyền `mode`, thêm vào `managerList`
-- `src/runtime/create-runtime-interface.js`: expose `projectGraph` vào `runtimeState`
-- `src/global/tooling.js`: thêm `isBetterSqliteAvailable()`
-- `src/global/doctor.js`: warn khi better-sqlite3 không có
+**F. Doctor Integration**
 
-#### 2G. Bug Fixes (session hiện tại)
+- `src/global/doctor.js` imports `isBetterSqliteAvailable` from tooling
+- Warning message: `"better-sqlite3 native module is not available; project graph / import-graph tools will be degraded."`
+- Remediation: `"Run npm install -g @duypham93/openkit to rebuild native addons."`
 
-| File | Bug | Fix |
-|------|-----|-----|
-| `ast-grep-search.js:5` | Import `isAstGrepAvailable` từ sai module | Đổi sang `../../../global/tooling.js`, fix signature `{ env: process.env }` |
-| `ast-search.js:163` | `async execute` khiến JSON path trả Promise | Revert về sync; tree-sitter dùng `.then()` |
-| `project-graph-manager.js:26` | Tạo DB trong read-only mode | Thêm `mode` param, skip DB khi `'read-only'` |
-| `create-managers.js:130` | Không truyền `mode` cho ProjectGraphManager | Thêm `mode` |
-| `module-boundary.test.js:15` | Expect `"commonjs"` sau ESM migration | Đổi sang `"module"` |
+#### 2.2.4 Bugs fixed in this session
 
-#### 2H. Tests (256 pass, 0 fail)
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| `ast-grep-search.js` SyntaxError | Imported `isAstGrepAvailable` from `./ast-tooling-status.js` (not exported) | Changed import to `../../../global/tooling.js`; fixed call signature `{ env: process.env }` |
+| `ast-search.js` tests fail | `execute` became `async` when adding tree-sitter, tests called without `await` | Reverted `execute` to sync; tree-sitter branch uses `.then()` instead of `await` |
+| `runtime-bootstrap` read-only creates `.opencode/` | `ProjectGraphManager` always created DB file | Added `mode` param; skip DB when `mode === 'read-only'` |
+| `ensure-install` workspaces dir created | Doctor → bootstrap read-only → ProjectGraphManager created DB | Same `mode` fix as above |
+| `module-boundary.test.js` expects commonjs | Old test not updated after ESM migration | Changed expected value from `"commonjs"` to `"module"` |
 
-| Test file | Tests | Nội dung |
-|-----------|-------|---------|
-| `graph-db.test.js` | 11 | ProjectGraphDb: schema, upsert, edges, symbols, cascade delete, stats |
-| `import-graph-builder.test.js` | 8 | Extract imports, exports, re-exports, resolve paths, TS support |
-| `project-graph-manager.test.js` | 11 | Manager lifecycle, indexFile, indexProject, deps, dependents, findSymbol, BFS |
-| `graph-tools.test.js` | 22 | Tool metadata, execute actions, input validation, unavailable fallback |
+#### 2.2.5 Test results
 
----
+- **256 tests passing, 0 failures** (runtime + install + global + cli + release)
+- 2 test files timeout due to pre-existing Node v24 process-isolation issue (not a regression):
+  - `tests/global/doctor.test.js` — passes with `--experimental-test-isolation=none` (~122s)
+  - `tests/cli/openkit-cli.test.js` — pre-existing hang, unrelated to Phase 2
 
-## 3. Phase 3 — Symbol Index Nâng Cao
+#### 2.2.6 How to run tests
 
-### 3A. Mở rộng schema symbols table
+```bash
+# All runtime tests (including graph tests)
+node --test tests/runtime/*.test.js
 
-**Mục tiêu:** Enriched symbol metadata cho navigation chính xác.
+# Graph tests only
+node --test tests/runtime/graph-db.test.js
+node --test tests/runtime/import-graph-builder.test.js
+node --test tests/runtime/project-graph-manager.test.js
+node --test tests/runtime/graph-tools.test.js
 
-**Công việc:**
+# Full suite (minus 2 timeout files)
+node --test tests/runtime/*.test.js tests/install/*.test.js \
+  tests/global/ensure-install.test.js tests/global/agent-models.test.js \
+  tests/global/config-validation.test.js tests/cli/install.test.js \
+  tests/cli/onboard.test.js tests/cli/release-cli.test.js \
+  tests/cli/configure-agent-models.test.js tests/release/*.test.js
 
-1. Thêm cột vào `symbols` table:
-   ```sql
-   ALTER TABLE symbols ADD COLUMN signature TEXT DEFAULT NULL;
-   ALTER TABLE symbols ADD COLUMN doc_comment TEXT DEFAULT NULL;
-   ALTER TABLE symbols ADD COLUMN scope TEXT DEFAULT 'module';
-   ALTER TABLE symbols ADD COLUMN start_line INTEGER DEFAULT 0;
-   ALTER TABLE symbols ADD COLUMN end_line INTEGER DEFAULT 0;
-   ```
-
-2. Schema migration strategy: vì `better-sqlite3` không hỗ trợ `IF NOT EXISTS` cho `ALTER TABLE`, dùng `PRAGMA user_version` để track schema version:
-   ```javascript
-   const SCHEMA_VERSION = 2; // bump từ 1
-   const currentVersion = db.pragma('user_version', { simple: true });
-   if (currentVersion < 2) {
-     db.exec('ALTER TABLE symbols ADD COLUMN signature TEXT DEFAULT NULL;');
-     // ... các ALTER khác
-     db.pragma(`user_version = ${SCHEMA_VERSION}`);
-   }
-   ```
-
-3. Update prepared statements: `upsertSymbol`, `replaceSymbolsFor` phải include các cột mới
-
-**Files modify:** `src/runtime/analysis/project-graph-db.js`  
-**Tests:** Thêm vào `tests/runtime/graph-db.test.js`  
-**Verify:** `node --test tests/runtime/graph-db.test.js`
-
-### 3B. Extract rich symbol metadata từ tree-sitter
-
-**Mục tiêu:** Builder extract thêm signature, doc comment, scope, line range.
-
-**Công việc:**
-
-1. **Function signature extraction:**
-   ```javascript
-   // Tree-sitter node: function_declaration
-   // childForFieldName('parameters') → formal_parameters node
-   // childForFieldName('return_type') → type_annotation node (TS only)
-   // Concat: "functionName(param1: Type, param2): ReturnType"
-   ```
-
-2. **JSDoc/TSDoc extraction:**
-   ```javascript
-   // Look at node.previousNamedSibling or scan source backwards from node.startIndex
-   // Pattern: multi-line /** ... */ comment immediately before declaration
-   // Extract: full comment text, trim leading * per line
-   ```
-
-3. **Scope detection:**
-   ```javascript
-   // Walk node.parent chain:
-   // - If parent.type === 'class_body' → scope = parentClass.name
-   // - If parent.type === 'function_declaration' → scope = parentFunction.name
-   // - Otherwise → scope = 'module'
-   ```
-
-4. **Line range:**
-   ```javascript
-   // start_line = node.startPosition.row + 1 (1-indexed)
-   // end_line = node.endPosition.row + 1
-   ```
-
-5. **Class member extraction:**
-   ```javascript
-   // class_declaration → node.childForFieldName('body') → class_body
-   // class_body.namedChildren → method_definition, public_field_definition, etc.
-   // Extract each as symbol with scope = className
-   ```
-
-**Files modify:** `src/runtime/analysis/import-graph-builder.js`  
-**Key tree-sitter nodes cần handle:**
-- `method_definition` (class methods)
-- `public_field_definition` / `field_definition` (class properties)
-- `formal_parameters` (function params)
-- `type_annotation` (TS types)
-- `comment` (JSDoc)
-
-**Tests:** Thêm vào `tests/runtime/import-graph-builder.test.js`  
-**Verify:** `node --test tests/runtime/import-graph-builder.test.js`
-
-### 3C. Tạo references table + reference tracker
-
-**Mục tiêu:** Track nơi symbols được sử dụng (không chỉ khai báo).
-
-**Công việc:**
-
-1. **Thêm bảng `symbol_refs` vào schema:**
-   ```sql
-   CREATE TABLE IF NOT EXISTS symbol_refs (
-     id          INTEGER PRIMARY KEY AUTOINCREMENT,
-     node_id     INTEGER NOT NULL,
-     name        TEXT    NOT NULL,
-     line        INTEGER NOT NULL,
-     col         INTEGER NOT NULL DEFAULT 0,
-     ref_kind    TEXT    NOT NULL DEFAULT 'usage',
-     resolved_symbol_id INTEGER,
-     FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE,
-     FOREIGN KEY (resolved_symbol_id) REFERENCES symbols(id) ON DELETE SET NULL
-   );
-   CREATE INDEX IF NOT EXISTS idx_refs_node ON symbol_refs(node_id);
-   CREATE INDEX IF NOT EXISTS idx_refs_name ON symbol_refs(name);
-   CREATE INDEX IF NOT EXISTS idx_refs_resolved ON symbol_refs(resolved_symbol_id);
-   ```
-   `ref_kind`: `'usage'` | `'assignment'` | `'type-ref'` | `'import'`
-
-2. **Tạo `src/runtime/analysis/reference-tracker.js`:**
-   ```javascript
-   export function extractReferences({ tree, source, filePath }) {
-     // BFS qua toàn bộ tree
-     // Tìm tất cả 'identifier' nodes
-     // Phân loại:
-     //   - parent.type === 'import_specifier' → kind = 'import'
-     //   - parent.type === 'assignment_expression' (left side) → kind = 'assignment'
-     //   - parent.type === 'type_annotation' → kind = 'type-ref'
-     //   - otherwise → kind = 'usage'
-     // Loại trừ: declarations (childForFieldName('name') nodes)
-     // Return: [{ name, line, col, refKind }]
-   }
-   ```
-
-3. **Reference resolution:**
-   - Sau khi index toàn bộ project, chạy pass thứ 2:
-   - Với mỗi reference `name` trong file X, tìm symbol trong DB matching:
-     - Cùng file (local scope)
-     - Import specifiers → resolve tới target file's exports
-   - Update `resolved_symbol_id` trong `symbol_refs`
-
-4. **Tích hợp vào `ProjectGraphManager.indexFile()`:**
-   ```javascript
-   // Sau buildFileGraph, thêm:
-   const refs = extractReferences({ tree: parsed.tree, source: parsed.source, filePath });
-   this._db.replaceRefsFor(nodeId, refs);
-   ```
-
-**Files tạo mới:** `src/runtime/analysis/reference-tracker.js`  
-**Files modify:** `project-graph-db.js`, `project-graph-manager.js`, `import-graph-builder.js`  
-**Files test:** `tests/runtime/reference-tracker.test.js`  
-**Verify:** `node --test tests/runtime/reference-tracker.test.js tests/runtime/graph-db.test.js`
-
-### 3D. Tạo call graph table
-
-**Mục tiêu:** Track function calls cho call hierarchy navigation.
-
-**Công việc:**
-
-1. **Thêm bảng `call_edges` vào schema:**
-   ```sql
-   CREATE TABLE IF NOT EXISTS call_edges (
-     id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-     caller_node_id     INTEGER NOT NULL,
-     caller_symbol_name TEXT    NOT NULL,
-     callee_name        TEXT    NOT NULL,
-     line               INTEGER NOT NULL,
-     resolved_callee_node_id INTEGER,
-     FOREIGN KEY (caller_node_id) REFERENCES nodes(id) ON DELETE CASCADE
-   );
-   CREATE INDEX IF NOT EXISTS idx_call_caller ON call_edges(caller_node_id);
-   CREATE INDEX IF NOT EXISTS idx_call_callee ON call_edges(callee_name);
-   ```
-
-2. **Extract call sites từ tree-sitter:**
-   ```javascript
-   // Trong mỗi function body, tìm:
-   // - call_expression → node.childForFieldName('function') → identifier hoặc member_expression
-   // - member_expression: object.property()
-   // Record: { callerSymbolName, calleeName, line }
-   ```
-
-3. **Tạo `src/runtime/analysis/call-graph-builder.js`:**
-   - Input: parsed tree + symbol list (biết symbol nào đang ở scope nào)
-   - Walk function bodies, extract call expressions
-   - Return: `[{ callerSymbolName, calleeName, line }]`
-
-**Files tạo mới:** `src/runtime/analysis/call-graph-builder.js`  
-**Files modify:** `project-graph-db.js`, `project-graph-manager.js`  
-**Files test:** `tests/runtime/call-graph.test.js`
-
-### 3E. Tests & Integration cho Phase 3
-
-**Công việc:**
-
-1. Chạy full graph test suite: `node --test tests/runtime/graph-*.test.js tests/runtime/import-graph-builder.test.js tests/runtime/project-graph-manager.test.js tests/runtime/reference-tracker.test.js tests/runtime/call-graph.test.js`
-2. Chạy full runtime suite: `node --test tests/runtime/*.test.js`
-3. Verify `ProjectGraphManager.describe()` trả về enriched stats
-4. Verify graph tools vẫn hoạt động bình thường (backward compatible)
-5. Update `registry.json` nếu cần
-
-**Acceptance criteria:**
-- Schema migration transparent (old DB tự upgrade)
-- Symbols có signature + doc_comment + scope + line range
-- References tracked cho tất cả identifiers
-- Call edges tracked cho function calls
-- Tất cả tests pass (256+ tests)
+# Doctor + CLI tests (need isolation=none due to slowness)
+node --experimental-test-isolation=none --test tests/global/doctor.test.js
+```
 
 ---
 
-## 4. Phase 4 — Navigation Tools
+## 3. Plan for Subsequent Phases
 
-### 4A. tool.graph-goto-definition
+### 3.1 Phase 3 — Advanced Symbol Index
 
-**Mục tiêu:** Tìm nơi khai báo symbol, cross-file, chính xác hơn regex.
+**Objective:** Enriched symbol metadata to support navigation and type-aware search.
 
-**Công việc:**
+**Specific work:**
 
-1. **Tạo `src/runtime/tools/graph/goto-definition.js`:**
-   ```javascript
-   export function createGraphGotoDefinitionTool({ projectGraphManager }) {
-     return {
-       id: 'tool.graph-goto-definition',
-       name: 'Graph Go-to-Definition',
-       description: 'Find symbol definitions using the project import graph.',
-       family: 'graph',
-       stage: 'foundation',
-       status: projectGraphManager?.available ? 'active' : 'degraded',
-       async execute(input = {}) {
-         // Input: { symbol: 'functionName' } hoặc { filePath, line, column }
-         // Strategy:
-         // 1. Nếu có symbol name → db.findSymbolByName(symbol) → filter isExport
-         // 2. Nếu có filePath+line+column → đọc file qua syntaxIndexManager
-         //    → tìm identifier node tại vị trí → lấy name → query DB
-         // 3. Cross-file: nếu symbol được import, trace qua edges tới source file
-         // Output: { status, symbol, definitions: [{ path, line, column, kind, signature? }] }
-       },
-     };
-   }
-   ```
+1. **Expand `symbols` table schema:**
+   - Add column `signature TEXT` — function signature / type annotation
+   - Add column `doc_comment TEXT` — nearest JSDoc / TSDoc comment
+   - Add column `scope TEXT` — module / class / function scope
+   - Add column `start_line INTEGER`, `end_line INTEGER` — full range
 
-2. **Graph-aware resolution logic:**
-   - Symbol in current file → check local symbols first
-   - Symbol imported → follow import edge → find export in target file
-   - Re-exports → follow chain until original declaration
-
-**File:** `src/runtime/tools/graph/goto-definition.js`  
-**Test:** `tests/runtime/graph-navigation-tools.test.js`  
-**Dependency:** Phase 3A (enriched symbols)
-
-### 4B. tool.graph-find-references
-
-**Mục tiêu:** Tìm tất cả nơi sử dụng symbol (nhanh hơn regex, chính xác hơn).
-
-**Công việc:**
-
-1. **Tạo `src/runtime/tools/graph/find-references.js`:**
-   ```javascript
-   // Input: { symbol: 'functionName', scope?: 'module'|'project' }
-   // Strategy:
-   // 1. Query symbol_refs table by name
-   // 2. Group by file, sort by line
-   // 3. Include definition location + all usage locations
-   // 4. Include import statements that import this symbol
-   // Output: { status, symbol, totalCount, references: [{ path, line, col, refKind }] }
-   ```
-
-2. **Nhóm kết quả:**
-   - `definitions` — nơi khai báo
-   - `imports` — nơi import
-   - `usages` — nơi sử dụng
-   - `assignments` — nơi gán lại
-
-**File:** `src/runtime/tools/graph/find-references.js`  
-**Dependency:** Phase 3C (symbol_refs table)
-
-### 4C. tool.graph-call-hierarchy
-
-**Mục tiêu:** Ai gọi function X? Function X gọi gì?
-
-**Công việc:**
-
-1. **Tạo `src/runtime/tools/graph/call-hierarchy.js`:**
-   ```javascript
-   // Input: { symbol: 'functionName', direction: 'incoming'|'outgoing', depth?: 1 }
-   // incoming: SELECT * FROM call_edges WHERE callee_name = ?
-   // outgoing: SELECT * FROM call_edges WHERE caller_symbol_name = ? AND caller_node_id = ?
-   // BFS for depth > 1
-   // Output: { status, symbol, direction, hierarchy: [{ callerOrCallee, path, line }] }
-   ```
-
-**File:** `src/runtime/tools/graph/call-hierarchy.js`  
-**Dependency:** Phase 3D (call_edges table)
-
-### 4D. tool.graph-rename-preview
-
-**Mục tiêu:** Preview rename across all files (definition + references + imports).
-
-**Công việc:**
-
-1. **Tạo `src/runtime/tools/graph/rename-preview.js`:**
-   ```javascript
-   // Input: { symbol: 'oldName', newName: 'newName' }
-   // Strategy:
-   // 1. Find all definitions (symbols table)
-   // 2. Find all references (symbol_refs table)
-   // 3. Find all import specifiers that import this name
-   // 4. For each occurrence, read the source line and build edit preview
-   // 5. Check for conflicts (newName already exists?)
-   // Output: {
-   //   status: 'preview-ready' | 'conflict',
-   //   symbol, newName,
-   //   totalOccurrences,
-   //   conflicts: [],
-   //   changes: [{
-   //     path, relativePath,
-   //     edits: [{ line, column, oldText, newText, lineContent }]
-   //   }]
-   // }
-   ```
-
-2. **Quan trọng:** Preview only, KHÔNG mutate files. Consistent với existing `tool.lsp-rename` contract.
-
-**File:** `src/runtime/tools/graph/rename-preview.js`  
-**Dependency:** Phase 3C (symbol_refs table)
-
-### 4E. Wiring & Testing cho Phase 4
-
-**Công việc:**
-
-1. Đăng ký 4 tools mới trong `src/runtime/tools/tool-registry.js`:
-   ```javascript
-   import { createGraphGotoDefinitionTool } from './graph/goto-definition.js';
-   import { createGraphFindReferencesTool } from './graph/find-references.js';
-   import { createGraphCallHierarchyTool } from './graph/call-hierarchy.js';
-   import { createGraphRenamePreviewTool } from './graph/rename-preview.js';
-   // ... push vào tools array với { projectGraphManager }
-   ```
-
-2. Update `registry.json` metadata (thêm 4 tool entries)
-
-3. Test file: `tests/runtime/graph-navigation-tools.test.js`
-   - Setup: tạo multi-file project với imports, function calls, class usage
-   - Test goto-definition: local symbol, imported symbol, re-exported symbol
-   - Test find-references: within file, across files, import references
-   - Test call-hierarchy: incoming + outgoing + depth > 1
-   - Test rename-preview: simple rename, conflict detection, cross-file edits
-
-4. Verify: `node --test tests/runtime/*.test.js` (toàn bộ phải pass)
-
----
-
-## 5. Phase 5 — LSP Graph Integration
-
-### 5A. Nâng cấp LSP tools từ heuristic lên graph-backed
-
-**Context hiện tại:** 7 LSP tools trong `src/runtime/tools/lsp/` đều dùng regex (`heuristic-lsp.js`). Tất cả có `status: 'degraded'`. Chúng dùng regex patterns:
-- `extractSymbolsFromText()` — regex cho function/class/variable/interface/type/enum
-- `collectSymbolReferences()` — regex `\bsymbol\b` match
-- Không hỗ trợ cross-file tracing, chỉ scan text
-
-**Công việc:**
-
-1. **Tạo `src/runtime/tools/lsp/graph-lsp-provider.js`:**
-   ```javascript
-   // Wrapper that checks if projectGraphManager is available
-   // If yes → query graph DB (fast, accurate)
-   // If no → fallback to heuristic-lsp.js (existing behavior)
-   
-   export function createGraphLspProvider({ projectGraphManager, projectRoot }) {
-     const available = projectGraphManager?.available === true;
-     return {
-       available,
-       provider: available ? 'graph-index' : 'heuristic-index',
-       providerStatus: available ? 'available' : 'fallback-active',
-       
-       collectProjectSymbols(options) { /* graph or heuristic */ },
-       collectHeuristicDiagnostics() { /* graph or heuristic */ },
-       collectSymbolReferences(symbol) { /* graph or heuristic */ },
-       prepareRename(options) { /* graph or heuristic */ },
-       previewRename(options) { /* graph or heuristic */ },
-     };
-   }
-   ```
-
-2. **Modify mỗi LSP tool factory** để nhận `projectGraphManager`:
-   ```javascript
-   // TRƯỚC (hiện tại):
-   export function createLspSymbolsTool({ projectRoot }) { ... }
-   // SAU:
-   export function createLspSymbolsTool({ projectRoot, projectGraphManager }) {
-     const lspProvider = createGraphLspProvider({ projectGraphManager, projectRoot });
-     return {
-       status: lspProvider.available ? 'active' : 'degraded',
-       execute(input) {
-         const symbols = lspProvider.collectProjectSymbols(input);
-         return { status: lspProvider.available ? 'ok' : 'heuristic', provider: lspProvider.provider, symbols };
-       },
-     };
-   }
-   ```
-
-3. **Update `tool-registry.js`**: truyền `projectGraphManager` cho LSP tool factories
-
-4. **Status upgrade:**
-   - Khi graph available: `status: 'active'`, result `status: 'ok'`
-   - Khi graph unavailable: `status: 'degraded'`, result `status: 'heuristic'` (hiện tại)
-
-**Files modify:** Tất cả 7 files trong `src/runtime/tools/lsp/`  
-**File tạo mới:** `src/runtime/tools/lsp/graph-lsp-provider.js`
-
-### 5B. Enhanced diagnostics qua graph
-
-**Công việc:**
-
-1. **Graph-backed missing import detection:**
-   ```javascript
-   // Query edges WHERE to_node.kind = 'external' hoặc to_node not found
-   // → chính xác hơn regex pattern matching
-   ```
-
-2. **Unused export detection (mới):**
-   ```javascript
-   // Query symbols WHERE is_export = 1 AND no incoming edges reference this file
-   // → "exported but never imported"
-   ```
-
-3. **Circular dependency detection (mới):**
-   ```javascript
-   // DFS trên edges, detect back edges
-   // Report: [{ cycle: [fileA, fileB, fileC, fileA] }]
-   ```
-
-**File modify:** `src/runtime/tools/lsp/graph-lsp-provider.js`
-
-### 5C. Incremental index updates (file watcher)
-
-**Mục tiêu:** Re-index file khi nó thay đổi, không cần manual trigger.
-
-**Công việc:**
-
-1. **Tạo `src/runtime/analysis/incremental-indexer.js`:**
-   ```javascript
-   export class IncrementalIndexer {
-     constructor({ projectGraphManager, debounceMs = 500 }) { ... }
-     
-     // Called when a file changes
-     onFileChange(filePath) {
-       // Debounce: clear existing timer, set new one
-       // After debounce: call projectGraphManager.indexFile(filePath)
-     }
-     
-     // Check all indexed files for stale mtime
-     async checkStale() {
-       // Query all nodes from DB
-       // For each, compare DB mtime vs fs.statSync().mtimeMs
-       // Re-index stale files
-     }
-     
-     dispose() { /* clear timers */ }
-   }
-   ```
-
-2. **Hook into session-start:** kiểm tra stale files trước khi bắt đầu session
-3. **Hook into tool execution:** sau khi `tool.hashline-edit` hoặc write tools modify files, trigger re-index
-
-**File tạo mới:** `src/runtime/analysis/incremental-indexer.js`  
-**Files modify:** `hooks/graph-indexer.js` (thêm stale check), `project-graph-manager.js` (thêm `checkStale()`)
-
-### 5D. Tests cho Phase 5
-
-**Công việc:**
-
-1. **Test file:** `tests/runtime/lsp-graph-integration.test.js`
-   - Test graph-backed symbol lookup vs heuristic (same results, better accuracy)
-   - Test fallback khi graph unavailable
-   - Test diagnostic: missing imports, unused exports, circular deps
-   - Test status upgrade: degraded → active khi graph available
-
-2. **Test file:** `tests/runtime/incremental-indexer.test.js`
-   - Test debounce logic
-   - Test stale detection
-   - Test re-index after file change
-
-3. **Integration test:** Modify existing `tests/runtime/runtime-platform.test.js`
-   - Verify LSP tools return `status: 'ok'` (not `'heuristic'`) khi graph available
-
-**Verify:** `node --test tests/runtime/*.test.js`
-
----
-
-## 6. Phase 6 — Semantic Memory / Search
-
-### 6A. Code chunking engine
-
-**Mục tiêu:** Split code thành semantic chunks cho embedding.
-
-**Công việc:**
-
-1. **Tạo `src/runtime/analysis/code-chunker.js`:**
-   ```javascript
-   export function chunkFile({ parsed, filePath, symbols }) {
-     // Strategy:
-     // 1. Mỗi top-level function/class → 1 chunk
-     // 2. Module-level code (imports, top-level statements) → 1 chunk
-     // 3. Class methods → nested chunks within class chunk
-     // 4. Chunk size limit: ~500 tokens (ước lượng ~2000 chars)
-     //    - Nếu function quá dài → split tại blank lines hoặc nested functions
-     
-     // Mỗi chunk:
-     return [{
-       chunkId: `${filePath}#${symbolName}` hoặc `${filePath}#L${startLine}-L${endLine}`,
-       filePath,
-       startLine, endLine,
-       symbolName,  // null cho module-level chunk
-       symbolKind,
-       content: sourceSlice,
-       imports: relevantImports,  // imports mà chunk này sử dụng
-       exports: relevantExports,  // exports từ chunk này
-       metadata: { language, dependencies: [...] },
-     }];
-   }
-   ```
-
-2. **Chunk context enrichment:**
-   - Mỗi chunk kèm theo: file path, symbol name, import list, dependent files
-   - Giúp embedding model hiểu context tốt hơn
-
-**File tạo mới:** `src/runtime/analysis/code-chunker.js`  
-**Test:** `tests/runtime/code-chunker.test.js`
-
-### 6B. Embedding storage
-
-**Công việc:**
-
-1. **Thêm bảng `embeddings` vào schema:**
+2. **Create `references` table:**
    ```sql
-   CREATE TABLE IF NOT EXISTS embeddings (
+   CREATE TABLE IF NOT EXISTS references (
      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-     node_id   INTEGER NOT NULL,
-     chunk_id  TEXT    NOT NULL UNIQUE,
-     embedding BLOB    NOT NULL,
-     model     TEXT    NOT NULL,
-     dimensions INTEGER NOT NULL,
-     created   REAL    NOT NULL,
+     symbol_id INTEGER NOT NULL,
+     node_id   INTEGER NOT NULL,  -- file containing the reference
+     line      INTEGER NOT NULL,
+     column    INTEGER NOT NULL DEFAULT 0,
+     kind      TEXT    NOT NULL DEFAULT 'usage',  -- usage | assignment | type-reference
+     FOREIGN KEY (symbol_id) REFERENCES symbols(id) ON DELETE CASCADE,
      FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
    );
-   CREATE INDEX IF NOT EXISTS idx_embeddings_node ON embeddings(node_id);
-   CREATE INDEX IF NOT EXISTS idx_embeddings_chunk ON embeddings(chunk_id);
    ```
 
-2. **Vector similarity function:**
-   ```javascript
-   // Option A: Pure JS cosine similarity (brute force, works with SQLite BLOB)
-   function cosineSimilarity(a, b) {
-     // a, b are Float32Array
-     let dot = 0, normA = 0, normB = 0;
-     for (let i = 0; i < a.length; i++) {
-       dot += a[i] * b[i]; normA += a[i] * a[i]; normB += b[i] * b[i];
-     }
-     return dot / (Math.sqrt(normA) * Math.sqrt(normB));
-   }
-   
-   // Option B: better-sqlite3 custom function
-   db.function('cosine_sim', { deterministic: true }, (blobA, blobB) => {
-     const a = new Float32Array(blobA.buffer);
-     const b = new Float32Array(blobB.buffer);
-     return cosineSimilarity(a, b);
-   });
-   // → SELECT *, cosine_sim(embedding, ?) as score FROM embeddings ORDER BY score DESC LIMIT 10
-   ```
+3. **Expand `import-graph-builder.js`:**
+   - Extract JSDoc comments near declarations
+   - Extract function parameter types / return types (if TS annotations exist)
+   - Track identifier usages (references) — this is the most complex part
+   - Extract class members (methods, properties)
 
-3. **Embedding provider abstraction:**
-   ```javascript
-   // src/runtime/analysis/embedding-provider.js
-   export class EmbeddingProvider {
-     constructor({ model = 'local', apiKey?, endpoint? }) { ... }
-     
-     // Option 1: OpenAI-compatible API
-     async embed(texts) { /* POST /embeddings */ }
-     
-     // Option 2: Local model (transformers.js hoặc ONNX runtime)
-     async embedLocal(texts) { /* load local model, inference */ }
-     
-     get dimensions() { /* depends on model */ }
-   }
-   ```
-
-**Files tạo mới:** `src/runtime/analysis/embedding-provider.js`  
-**Files modify:** `project-graph-db.js` (schema migration)
-
-### 6C. Semantic search tool
-
-**Công việc:**
-
-1. **Tạo `src/runtime/tools/graph/semantic-search.js`:**
-   ```javascript
-   export function createSemanticSearchTool({ projectGraphManager, embeddingProvider }) {
-     return {
-       id: 'tool.semantic-search',
-       family: 'graph',
-       async execute(input = {}) {
-         // Input: { query: 'natural language question', topK?: 10 }
-         // 1. Embed query text
-         // 2. Query embeddings table, compute cosine similarity
-         // 3. Return top-K chunks with:
-         //    - code snippet
-         //    - file path + line range
-         //    - symbol info (from symbols table)
-         //    - dependency context (from edges table)
-         //    - similarity score
-         return { status: 'ok', query, results: [...], totalIndexed };
-       },
-     };
-   }
-   ```
-
-2. **Tạo `tool.index-embeddings`:**
-   ```javascript
-   // Input: { action: 'index' | 'status' | 'clear', maxFiles? }
-   // index: chunk all files → embed → store
-   // status: count of indexed chunks, model info
-   // clear: delete all embeddings (force re-index)
-   ```
-
-**Files tạo mới:**
-- `src/runtime/tools/graph/semantic-search.js`
-- `src/runtime/tools/graph/index-embeddings.js`
-
-### 6D. Agent context builder
-
-**Mục tiêu:** Khi agent cần context, tự động build relevant context window.
-
-**Công việc:**
-
-1. **Tạo `src/runtime/analysis/context-builder.js`:**
-   ```javascript
-   export class ContextBuilder {
-     constructor({ projectGraphManager, embeddingProvider, tokenBudget = 8000 }) { ... }
-     
-     async buildContext({ query, currentFile?, relevantSymbols? }) {
-       // 1. Semantic search: top chunks matching query
-       // 2. Graph walk: dependencies + dependents of current file
-       // 3. Symbol lookup: definitions of relevant symbols
-       // 4. Rank by relevance (semantic score + graph distance)
-       // 5. Trim to token budget
-       return {
-         chunks: [...],         // ranked code chunks
-         fileGraph: {...},      // relevant dependency subgraph
-         symbolIndex: [...],    // relevant symbol definitions
-         totalTokens: number,
-       };
-     }
-   }
-   ```
-
-2. **Tạo `tool.build-context`:**
-   ```javascript
-   // Input: { query: 'implement feature X', currentFile?, budget?: 8000 }
-   // Output: curated context window cho agent
-   ```
-
-**File tạo mới:** `src/runtime/analysis/context-builder.js`, `src/runtime/tools/graph/build-context.js`
-
-### 6E. Session memory & cross-session recall
-
-**Công việc:**
-
-1. **Thêm bảng `session_touches` vào schema:**
+4. **Add `call_graph` table:**
    ```sql
-   CREATE TABLE IF NOT EXISTS session_touches (
-     id         INTEGER PRIMARY KEY AUTOINCREMENT,
-     session_id TEXT    NOT NULL,
-     node_id    INTEGER NOT NULL,
-     action     TEXT    NOT NULL,  -- 'read' | 'edit' | 'create' | 'delete'
-     timestamp  REAL    NOT NULL,
-     context    TEXT,              -- optional JSON metadata
-     FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+   CREATE TABLE IF NOT EXISTS call_graph (
+     caller_symbol_id INTEGER NOT NULL,
+     callee_name      TEXT    NOT NULL,
+     callee_node_id   INTEGER,  -- NULL if not yet resolved
+     line             INTEGER NOT NULL,
+     FOREIGN KEY (caller_symbol_id) REFERENCES symbols(id) ON DELETE CASCADE
    );
-   CREATE INDEX IF NOT EXISTS idx_touches_session ON session_touches(session_id);
-   CREATE INDEX IF NOT EXISTS idx_touches_node ON session_touches(node_id);
    ```
 
-2. **Hook into tool execution:**
-   - Khi `tool.hashline-edit`, `tool.look-at`, etc. execute → record touch
-   - `action = 'read'` cho read tools, `'edit'` cho edit tools
+5. **Tests:**
+   - Unit tests for extended schema
+   - Tests for JSDoc extraction
+   - Tests for reference tracking
+   - Tests for call graph
 
-3. **Tạo `tool.session-recall`:**
-   ```javascript
-   // Input: { query?: 'what files did I edit last session?', sessionId? }
-   // Output: list of touched files + actions + timestamps
-   // Cross-session: "file X was edited 3 sessions ago, lines 10-20 changed"
-   ```
+**Files to modify:**
+- `src/runtime/analysis/project-graph-db.js` — schema migration + new prepared statements
+- `src/runtime/analysis/import-graph-builder.js` — extract richer metadata
 
-**Files modify:** `project-graph-db.js`, `project-graph-manager.js`  
-**Files tạo mới:** `src/runtime/tools/graph/session-recall.js`
+**Files to create:**
+- `src/runtime/analysis/reference-tracker.js` — identifier usage tracker
+- `src/runtime/analysis/call-graph-builder.js` — call graph extractor
+- `tests/runtime/reference-tracker.test.js`
+- `tests/runtime/call-graph.test.js`
 
----
-
-## 7. Dependency Graph
-
-```
-Phase 0 (AST Foundation)     ━━━┓
-Phase 1 (Tool Enforcement)   ━━━╋━━━━ DONE
-                                 ┃
-Phase 2 (Import Graph + DB)  ━━━┛ ◄━━ DONE
-         │
-         ├── 3A (Schema extend)
-         ├── 3B (Rich extraction)
-         ├── 3C (References table) ──────┐
-         ├── 3D (Call graph) ────────────┤
-         └── 3E (Integration tests)      │
-                                         │
-         ┌───────────────────────────────┘
-         │
-         ├── 4A (goto-definition) ◄── 3A
-         ├── 4B (find-references) ◄── 3C
-         ├── 4C (call-hierarchy)  ◄── 3D
-         ├── 4D (rename-preview)  ◄── 3C
-         └── 4E (wiring + tests)
-                │
-         ┌──────┘
-         │
-         ├── 5A (LSP upgrade) ◄── 4A, 4B
-         ├── 5B (Enhanced diagnostics)
-         ├── 5C (Incremental indexer)
-         └── 5D (Tests)
-                │
-         ┌──────┘ (optional)
-         │
-         ├── 6A (Code chunker) ◄── 3A, 3B
-         ├── 6B (Embedding storage)
-         ├── 6C (Semantic search) ◄── 6A, 6B
-         ├── 6D (Context builder) ◄── 6C, 4B
-         └── 6E (Session memory)
-```
-
-**Minimum viable path:** Phase 3 → Phase 4 (navigation tools hoàn chỉnh)  
-**Full path:** Phase 3 → Phase 4 → Phase 5 → Phase 6
+**Estimate:** 2-3 sessions
 
 ---
 
-## 8. Kiến Trúc Hiện Tại Chi Tiết
+### 3.2 Phase 4 — Navigation Tools
 
-### 8.1 File map (Phase 2 hoàn thành)
+**Objective:** Go-to-definition, find-references, prepare-rename via graph DB (no LSP server required).
 
-```
-src/runtime/
-├── analysis/
-│   ├── project-graph-db.js       (287 dòng)  — SQLite wrapper
-│   └── import-graph-builder.js   (480 dòng)  — AST extractor
-├── managers/
-│   ├── syntax-index-manager.js   (441 dòng)  — Tree-sitter parser (Phase 0)
-│   └── project-graph-manager.js  (373 dòng)  — Graph coordinator
-├── tools/
-│   ├── ast/
-│   │   ├── ast-search.js         (237 dòng)  — JSON/JSONC + JS/TS AST search
-│   │   ├── ast-grep-search.js    (127 dòng)  — ast-grep CLI wrapper
-│   │   ├── ast-replace.js        (76 dòng)   — JSON replace preview
-│   │   └── ast-tooling-status.js (19 dòng)   — Status checker
-│   ├── graph/
-│   │   ├── import-graph.js       (47 dòng)   — tool.import-graph
-│   │   ├── find-dependencies.js  (30 dòng)   — tool.find-dependencies
-│   │   ├── find-dependents.js    (30 dòng)   — tool.find-dependents
-│   │   └── find-symbol.js        (27 dòng)   — tool.find-symbol
-│   ├── lsp/                      — 7 tools, regex-based (sẽ upgrade Phase 5)
-│   ├── shared/
-│   │   └── project-file-utils.js (77 dòng)   — File listing, path utils
-│   └── tool-registry.js          (105 dòng)  — 39 tools registered
-├── create-managers.js            (190 dòng)  — Manager instantiation
-├── create-runtime-interface.js   (71 dòng)   — runtimeState builder
-└── index.js                                   — bootstrapRuntimeFoundation
+**Specific work:**
 
-hooks/
-├── session-start.js              (259 dòng)  — Session hook + graph indexer spawn
-└── graph-indexer.js              (66 dòng)   — Background indexer (detached)
+1. **Create `tool.graph-goto-definition`:**
+   - Input: `{ filePath, line, column }` or `{ symbol: 'functionName' }`
+   - Look up symbol at position, find definition in DB
+   - Fallback: if symbol is not in DB, suggest indexing
+   - Output: `{ definitions: [{ path, line, column, kind }] }`
 
-tests/runtime/
-├── graph-db.test.js              (11 tests)
-├── graph-tools.test.js           (22 tests)
-├── import-graph-builder.test.js  (8 tests)
-├── project-graph-manager.test.js (11 tests)
-└── ... (14 other test files, 189 total runtime tests)
-```
+2. **Create `tool.graph-find-references`:**
+   - Input: `{ symbol, scope? }`
+   - Look up all references from the `references` table
+   - Group by file, sort by line
+   - Output: `{ references: [{ path, line, column, kind }], totalCount }`
 
-### 8.2 Tree-sitter node types đã handle
+3. **Create `tool.graph-call-hierarchy`:**
+   - Input: `{ symbol }` + `{ direction: 'incoming' | 'outgoing' }`
+   - Incoming: who calls this symbol
+   - Outgoing: what this symbol calls
+   - BFS depth support
 
-| Category | Node types |
-|----------|-----------|
-| Imports | `import_statement`, `call_expression` (require) |
-| Exports | `export_statement` |
-| Declarations | `function_declaration`, `class_declaration`, `lexical_declaration`, `variable_declaration` |
-| TS-specific | `interface_declaration`, `type_alias_declaration`, `enum_declaration` |
-| Sub-nodes | `identifier`, `import_specifier`, `export_specifier`, `namespace_import`, `variable_declarator`, `arrow_function`, `function_expression` |
+4. **Create `tool.graph-rename-preview`:**
+   - Input: `{ symbol, newName }`
+   - Find all occurrences (definition + references + imports)
+   - Return preview changes per file (do not apply)
+   - Output: `{ changes: [{ path, edits: [{ line, oldText, newText }] }] }`
 
-### 8.3 Tree-sitter node types CẦN thêm (Phase 3+)
+5. **Wiring:**
+   - Register tools in `tool-registry.js`
+   - Add to `registry.json` metadata
 
-| Category | Node types | Phase |
-|----------|-----------|-------|
-| Class members | `method_definition`, `public_field_definition`, `field_definition` | 3B |
-| Parameters | `formal_parameters`, `required_parameter`, `optional_parameter` | 3B |
-| Types | `type_annotation`, `return_type` | 3B |
-| Comments | `comment` (JSDoc) | 3B |
-| References | `identifier` (usage context), `member_expression` | 3C |
-| Calls | `call_expression`, `new_expression` | 3D |
+**Files to create:**
+- `src/runtime/tools/graph/goto-definition.js`
+- `src/runtime/tools/graph/find-references.js`
+- `src/runtime/tools/graph/call-hierarchy.js`
+- `src/runtime/tools/graph/rename-preview.js`
+- `tests/runtime/graph-navigation-tools.test.js`
 
-### 8.4 Hiện trạng LSP tools (sẽ upgrade Phase 5)
+**Dependencies:** Phase 3 (requires `references` table + call graph)
 
-| Tool ID | File | Hiện tại | Sau Phase 5 |
-|---------|------|---------|-------------|
-| `tool.lsp-symbols` | `lsp-symbols.js` (19 dòng) | regex | graph → regex fallback |
-| `tool.lsp-diagnostics` | `lsp-diagnostics.js` (20 dòng) | regex | graph → regex fallback |
-| `tool.lsp-goto-definition` | `lsp-goto-definition.js` (20 dòng) | regex | graph → regex fallback |
-| `tool.lsp-find-references` | `lsp-find-references.js` (20 dòng) | regex | graph → regex fallback |
-| `tool.lsp-prepare-rename` | `lsp-prepare-rename.js` (18 dòng) | regex | graph → regex fallback |
-| `tool.lsp-rename` | `lsp-rename.js` (18 dòng) | regex | graph → regex fallback |
-
-Shared logic: `heuristic-lsp.js` (189 dòng) — regex patterns cho function/class/variable/interface/type/enum extraction + `\bsymbol\b` reference search.
+**Estimate:** 2 sessions
 
 ---
 
-## 9. Patterns & Conventions
+### 3.3 Phase 5 — LSP Integration
 
-### 9.1 Code conventions
+**Objective:** Bridge graph DB output to LSP protocol format so editor integration can consume it.
 
-- ESM modules, explicit `.js` extensions, `node:` prefix cho built-ins
-- DI seams cho testing (constructor injection)
-- `mode` param cho read-only vs read-write
+**Specific work:**
 
-### 9.2 Manager pattern (xem `create-managers.js`)
+1. **Create LSP response formatters:**
+   - `lsp/formatters.js` — convert graph DB results to LSP protocol JSON
+   - `Location`, `LocationLink`, `SymbolInformation`, `WorkspaceEdit` formats
+
+2. **Enhance existing LSP tools:**
+   - Currently `tool.lsp-symbols`, `tool.lsp-goto-definition`, etc. in `src/runtime/tools/lsp/` already exist but use regex/tree-sitter directly
+   - Add graph DB fallback: if graph data available, use it (faster, cross-file); otherwise fall back to the old method
+   - Config flag: `graphBackedLsp: true/false` in runtime config
+
+3. **Incremental index update:**
+   - File watcher hook: on file save, re-index single file
+   - Debounce logic: avoid re-index spam
+   - Stale detection: mark nodes stale when mtime changes
+
+4. **Tests:**
+   - LSP format output tests
+   - Integration tests: graph-backed vs regex-backed LSP tool output comparison
+   - File watcher debounce tests
+
+**Files to create/modify:**
+- `src/runtime/analysis/lsp-formatters.js` (new)
+- `src/runtime/tools/lsp/*.js` (modify — add graph fallback)
+- `src/runtime/analysis/file-watcher.js` (new — incremental updates)
+- `tests/runtime/lsp-graph-integration.test.js` (new)
+
+**Dependencies:** Phase 4
+
+**Estimate:** 2-3 sessions
+
+---
+
+### 3.4 Phase 6 — Semantic Memory / Search
+
+**Objective:** Embedding-based code search and context-aware agent memory.
+
+**Specific work:**
+
+1. **Code chunk extraction:**
+   - Split files into semantic chunks (function-level, class-level)
+   - Each chunk: source code + metadata (file, line range, symbol name, imports)
+
+2. **Embedding storage:**
+   - Add `embeddings` table to SQLite:
+     ```sql
+     CREATE TABLE IF NOT EXISTS embeddings (
+       id        INTEGER PRIMARY KEY AUTOINCREMENT,
+       node_id   INTEGER NOT NULL,
+       chunk_id  TEXT    NOT NULL,
+       embedding BLOB    NOT NULL,
+       model     TEXT    NOT NULL,
+       created   REAL    NOT NULL,
+       FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+     );
+     ```
+   - Vector similarity via brute-force cosine (SQLite custom function) or external vector store
+
+3. **Semantic search tool:**
+   - `tool.semantic-search` — input natural language query, embed, find similar chunks
+   - Return ranked results with code snippets + graph context (imports, dependents)
+
+4. **Agent context builder:**
+   - When agent needs context for a task, query graph + embeddings
+   - Return: relevant files + symbols + dependency chain + similar code patterns
+   - Budget-aware: respect token limit, prioritize by relevance
+
+5. **Session memory:**
+   - Track files the agent has read/modified during the session
+   - Persist to graph DB: `session_touches(session_id, node_id, action, timestamp)`
+   - Cross-session recall: "this file was modified in a previous session"
+
+**Dependencies:** Phase 3 + embedding model access (can use local model or API)
+
+**Estimate:** 3-4 sessions
+
+---
+
+## 4. Phase Dependency Graph
+
+```
+Phase 0 (AST Foundation) ─────────────────────────────┐
+Phase 1 (Tool Enforcement) ────────────────────────────┤
+                                                       ▼
+Phase 2 (Import Graph + DB) ◄━━━━━━━━━ COMPLETED ━━━━━┤
+                                                       │
+                        ┌──────────────────────────────┘
+                        ▼
+Phase 3 (Advanced Symbol Index) ◄── Required before Phase 4, 6
+                        │
+              ┌─────────┴─────────┐
+              ▼                   ▼
+Phase 4 (Navigation Tools)   Phase 6 (Semantic Memory)
+              │                   │
+              ▼                   │
+Phase 5 (LSP Integration) ◄──────┘ (optional dependency)
+```
+
+---
+
+## 5. Patterns & Conventions to Follow
+
+### 5.1 Code Conventions
+
+- ESM modules (not CommonJS)
+- Explicit `.js` extensions in imports
+- `node:` prefix for Node.js built-ins
+- DI seams for testing (constructor injection)
+
+### 5.2 Manager Pattern
 
 ```javascript
-const myManager = new MyManager({ projectRoot, runtimeRoot, syntaxIndexManager, mode });
-// Thêm vào managerList + managers object + direct export
+// Create in src/runtime/create-managers.js
+const myManager = new MyManager({ projectRoot, runtimeRoot, mode });
+
+// Return in managers object
+return {
+  managerList,
+  managers: Object.fromEntries(managerList.map(...)),
+  myManager,  // direct access
+  // ...
+};
 ```
 
-### 9.3 Tool pattern (xem `graph/find-symbol.js` cho ví dụ ngắn nhất)
+### 5.3 Tool Pattern
 
 ```javascript
-export function createMyTool({ projectGraphManager }) {
+// Tool factory receives manager
+export function createMyTool({ myManager }) {
   return {
-    id: 'tool.my-tool', name: '...', description: '...',
-    family: 'graph', stage: 'foundation',
-    status: projectGraphManager?.available ? 'active' : 'degraded',
+    id: 'tool.my-tool',
+    name: 'My Tool',
+    description: '...',
+    family: 'graph',        // group tools by family
+    stage: 'foundation',
+    status: myManager?.available ? 'active' : 'degraded',
     async execute(input = {}) {
-      if (!projectGraphManager?.available) return { status: 'unavailable', reason: '...' };
-      // validate input → delegate to manager → return structured result
+      if (!myManager?.available) {
+        return { status: 'unavailable', reason: '...' };
+      }
+      // validate input
+      // delegate to manager
+      return myManager.doSomething(input);
     },
   };
 }
 ```
 
-### 9.4 Tool registration (xem `tool-registry.js`)
+### 5.4 Tool Registration
+
+- Register in `src/runtime/tools/tool-registry.js`
+- Import factory function, call with managers, push to tools array
+
+### 5.5 Test Pattern
 
 ```javascript
-import { createMyTool } from './graph/my-tool.js';
-// trong createToolRegistry():
-tools.push(createMyTool({ projectGraphManager: managers.projectGraphManager }));
-```
+import test from 'node:test';
+import assert from 'node:assert/strict';
+// ... imports
 
-### 9.5 Test pattern (xem `graph-tools.test.js`)
+function makeTempDir() { /* fs.mkdtempSync */ }
+function writeFile(dir, relPath, content) { /* fs.mkdirSync + writeFileSync */ }
 
-```javascript
-function makeTempDir() { return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-test-')); }
-function writeFile(dir, rel, content) { /* mkdirSync + writeFileSync */ }
-function makeManager(dir) {
-  return new ProjectGraphManager({ projectRoot: dir, syntaxIndexManager: new SyntaxIndexManager({ projectRoot: dir }), dbPath: ':memory:' });
-}
-
-test('descriptive name', async () => {
+test('descriptive test name', async () => {
   const dir = makeTempDir();
   writeFile(dir, 'src/a.js', 'export const a = 1;\n');
-  const mgr = makeManager(dir);
-  await mgr.indexFile(path.join(dir, 'src', 'a.js'));
-  // ... assert
-  mgr.dispose();
+  // setup → execute → assert
+  manager.dispose();
 });
 ```
 
-### 9.6 Sync vs Async rules
+### 5.6 DB for tests
 
-| Tool type | execute | Lý do |
-|-----------|---------|-------|
-| JSON/JSONC tools (`ast-search`) | **sync** | Tests gọi không await |
-| Tree-sitter tools (`syntax-*`) | **async** | `readFile()` async |
-| Graph tools | **async** | Manager methods có thể async |
-| LSP tools | **sync** | Hiện tại regex, tương lai có thể async |
-
-### 9.7 Schema migration pattern
-
-```javascript
-const SCHEMA_VERSION = 2;
-const current = this._db.pragma('user_version', { simple: true });
-if (current < 2) {
-  this._db.exec('ALTER TABLE symbols ADD COLUMN signature TEXT DEFAULT NULL;');
-  this._db.pragma(`user_version = ${SCHEMA_VERSION}`);
-}
-```
+- Always use `:memory:` for unit tests (fast, no file creation)
+- Call `manager.dispose()` after each test
 
 ---
 
-## 10. Lưu Ý Quan Trọng
+## 6. Important Notes
 
-### 10.1 Trạng thái git hiện tại
+### 6.1 Not yet committed
 
-Tất cả thay đổi Phase 2 + bug fixes **chưa commit**. Files:
+All Phase 2 changes have NOT been committed. When continuing on another device:
 
-**Modified (12):**
-```
-AGENTS.md, context/core/project-config.md, hooks/session-start.js,
-package.json, package-lock.json, src/global/doctor.js, src/global/tooling.js,
-src/runtime/create-managers.js, src/runtime/create-runtime-interface.js,
-src/runtime/tools/ast/ast-grep-search.js, src/runtime/tools/ast/ast-search.js,
-src/runtime/tools/tool-registry.js, tests/runtime/module-boundary.test.js
-```
+1. Check `git status` to confirm the working tree
+2. Run `node --test tests/runtime/*.test.js` to verify tests pass
+3. Commit if you want to save state:
+   ```bash
+   git add -A
+   git commit -m "feat(graph): add persistent project graph DB, import-graph builder, graph tools, and background indexing"
+   ```
 
-**Untracked (12):**
-```
-hooks/graph-indexer.js, src/runtime/analysis/project-graph-db.js,
-src/runtime/analysis/import-graph-builder.js, src/runtime/managers/project-graph-manager.js,
-src/runtime/tools/graph/import-graph.js, src/runtime/tools/graph/find-dependencies.js,
-src/runtime/tools/graph/find-dependents.js, src/runtime/tools/graph/find-symbol.js,
-tests/runtime/graph-db.test.js, tests/runtime/graph-tools.test.js,
-tests/runtime/import-graph-builder.test.js, tests/runtime/project-graph-manager.test.js
-```
+### 6.2 Pre-existing issues (not regressions)
 
-### 10.2 Pre-existing test issues (KHÔNG phải regression)
+- `tests/global/doctor.test.js` — timeout with Node v24 process isolation mode. Passes with `--experimental-test-isolation=none`. Root cause: 12 tests each calling `bootstrapRuntimeFoundation` take ~13s, totaling ~122s which exceeds the 120s timeout.
+- `tests/cli/openkit-cli.test.js` — hangs when run with `--experimental-test-isolation=none`, fails quickly with process isolation. Pre-existing issue.
 
-- `tests/global/doctor.test.js` — timeout Node v24 process isolation. Pass: `node --experimental-test-isolation=none --test tests/global/doctor.test.js`
-- `tests/cli/openkit-cli.test.js` — pre-existing hang
+### 6.3 Native Dependencies
 
-### 10.3 Native dependency
+- `better-sqlite3` is a native module requiring a C++ compiler to build
+- Already declared in `package.json`
+- `openkit doctor` will warn if not available
+- If install fails: `npm rebuild better-sqlite3` or reinstall `npm install -g @duypham93/openkit`
 
-- `better-sqlite3` cần C++ compiler. Nếu lỗi: `npm rebuild better-sqlite3`
-- `openkit doctor` warn nếu không available
+### 6.4 Sync vs Async in Tools
 
-### 10.4 Read-only mode guard
+- `ast-search.js` execute MUST be sync for the JSON path (tests call without `await`)
+- Tree-sitter path returns Promise via `.then()` (does not use `async` keyword)
+- Graph tools use `async execute` because manager methods can be async
+- Syntax tools (`tool.syntax-*`) use `async execute`
 
-- `ProjectGraphManager(mode='read-only')` KHÔNG tạo DB
-- Doctor bootstrap luôn dùng `mode: 'read-only'`
-- Bất kỳ manager mới nào cũng phải respect `mode`
+### 6.5 Read-Only Mode
+
+- `ProjectGraphManager` does NOT create DB when `mode === 'read-only'`
+- Doctor bootstrap always uses `mode: 'read-only'`
+- Important for `ensure-install` and `runtime-bootstrap` tests to pass
 
 ---
 
-## 11. Quick Start
+## 7. Quick Start for Next Session
 
 ```bash
-# Verify state
+# 1. CD into project
 cd /home/duypham/Projects/open-kit
+
+# 2. Verify current state
 git status
-node --test tests/runtime/*.test.js   # expect 189 pass
+node --test tests/runtime/*.test.js
 
-# Commit Phase 2
+# 3. If you want to commit Phase 2 before starting Phase 3
 git add -A
-git commit -m "feat(graph): add persistent project graph DB, import-graph builder, graph tools, and background indexing
+git commit -m "feat(graph): add persistent project graph DB, import-graph builder, graph tools, and background indexing"
 
-- SQLite-backed project graph (nodes/edges/symbols tables) via better-sqlite3
-- Import graph builder extracts imports, exports, symbols from JS/TS via tree-sitter
-- ProjectGraphManager coordinates indexing and graph queries (deps, dependents, symbols)
-- Four graph tools: import-graph, find-dependencies, find-dependents, find-symbol
-- Background indexer spawned from session-start hook (detached, non-blocking)
-- Doctor integration warns when better-sqlite3 is unavailable
-- Fix: ast-grep-search import path, ast-search sync/async contract, read-only mode guard
-- 52 new tests (graph-db, import-graph-builder, project-graph-manager, graph-tools)"
-
-# Bắt đầu Phase 3A
-# Đọc: src/runtime/analysis/project-graph-db.js (schema hiện tại)
-# Bắt đầu: thêm PRAGMA user_version + ALTER TABLE symbols
+# 4. Start Phase 3: Advanced Symbol Index
+# Read file: src/runtime/analysis/project-graph-db.js (current schema)
+# Read file: src/runtime/analysis/import-graph-builder.js (current extractor)
+# Begin expanding schema + builder
 ```
+
+---
+
+## 8. Priority Order If Time Is Limited
+
+If you cannot complete all phases, prioritize in this order:
+
+1. **Phase 3** — Advanced Symbol Index (foundation for everything after)
+2. **Phase 4** — Navigation Tools (highest usage value for agents)
+3. **Phase 5** — LSP Integration (polish, not required)
+4. **Phase 6** — Semantic Memory (advanced, depends on embedding model)
+
+Phase 3 + 4 is enough for a complete and useful codebase intelligence system.

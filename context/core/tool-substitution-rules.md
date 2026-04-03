@@ -6,7 +6,7 @@ tools for code understanding.  **Use these tools instead of OS-level commands.**
 The runtime enforces these substitutions.  Bash calls for the listed OS
 commands on source code files will be blocked in strict mode.
 
-## Required Substitutions
+## Required Substitutions (Level 1 — OS commands → built-in tools)
 
 | Instead of              | Use                                                |
 |-------------------------|----------------------------------------------------|
@@ -19,6 +19,34 @@ commands on source code files will be blocked in strict mode.
 | `sed` / `awk`          | **Edit tool** (built-in) for precise replacements  |
 | `echo > file`          | **Write tool** (built-in) for creating files       |
 | `wc -l <file>`         | **Read tool** — line numbers are included          |
+
+## Preferred Escalations (Level 2 — built-in tools → kit intelligence tools)
+
+When the kit's intelligence tools are available, **prefer them over the basic
+built-in tools** for the corresponding task.  These are not runtime-blocked but
+are strongly recommended — they provide structural and semantic understanding
+that regex and glob cannot match.
+
+| Task | Basic tool | Preferred kit tool | When to escalate |
+|---|---|---|---|
+| Search code by meaning | Grep tool | `tool.semantic-search` | Exploring unfamiliar code, vague queries, conceptual search |
+| Search code structure | Grep tool | `tool.ast-grep-search` | Looking for structural patterns (function shapes, class members) |
+| Find a symbol definition | Glob tool | `tool.find-symbol` | Know the symbol name, want its definition location |
+| Trace imports/exports | Glob + Grep | `tool.import-graph` | Need to know what a file imports or who imports it |
+| Map module dependencies | Glob + Grep | `tool.find-dependencies` / `tool.find-dependents` | Dependency graph traversal |
+| Understand file structure | Read tool (full file) | `tool.syntax-outline` | Want the shape of a file before reading it all |
+| Get context at position | Read tool (offset) | `tool.syntax-context` | Need surrounding code around a specific location |
+| Locate a construct | Read tool + search | `tool.syntax-locate` | Find the line/position of a named construct in a file |
+| Navigate to definition | Read + Grep | `tool.graph-goto-definition` | IDE-style "go to definition" |
+| Find all references | Grep tool | `tool.graph-find-references` | Find every usage of a symbol across the codebase |
+| Understand call chains | Manual tracing | `tool.graph-call-hierarchy` | Need to see callers/callees of a function |
+| Preview multi-file rename | Grep + Edit | `tool.graph-rename-preview` | Want to see all locations that would change before renaming |
+| Multi-file code transform | Edit tool (repeated) | `tool.codemod-preview` / `tool.codemod-apply` | Same transformation applied across many files |
+| Quality/security scan | Manual review | `tool.rule-scan` / `tool.security-scan` | Before handoff or completion claims |
+
+**Fallback rule:** if a kit tool is unavailable, not indexed, or degraded, fall
+back to the corresponding basic built-in tool.  But always try the smarter tool
+first.
 
 ## When Bash IS appropriate
 
@@ -33,10 +61,12 @@ Use Bash freely for these operations — they are **not blocked**:
 
 ## Decision Guide
 
-1. **Need to find files?** → Glob tool
-2. **Need to search file contents?** → Grep tool
-3. **Need to read a file?** → Read tool
-4. **Need to modify a file?** → Edit tool
-5. **Need to create a file?** → Write tool
-6. **Need to run a program?** → Bash tool (allowed)
-7. **Need to run git?** → Bash tool (allowed)
+1. **Need to find files?** → Glob tool (or `tool.find-symbol` if you know the symbol name)
+2. **Need to search file contents?** → Grep tool (or `tool.semantic-search` for meaning-based search, or `tool.ast-grep-search` for structural patterns)
+3. **Need to read a file?** → Read tool (or `tool.syntax-outline` first to understand structure)
+4. **Need to understand dependencies?** → `tool.import-graph` / `tool.find-dependencies` / `tool.find-dependents`
+5. **Need to navigate code?** → `tool.graph-goto-definition` / `tool.graph-find-references` / `tool.graph-call-hierarchy`
+6. **Need to modify a file?** → Edit tool (or `tool.codemod-preview` → `tool.codemod-apply` for multi-file transforms)
+7. **Need to create a file?** → Write tool
+8. **Need to run a program?** → Bash tool (allowed)
+9. **Need to run git?** → Bash tool (allowed)

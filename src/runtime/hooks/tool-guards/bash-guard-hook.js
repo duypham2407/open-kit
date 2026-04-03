@@ -16,32 +16,47 @@ const SUBSTITUTION_RULES = [
   {
     pattern: /\bgrep\b|\begrep\b|\bfgrep\b|\brg\b/,
     category: 'search',
-    suggestion: 'Use Grep tool (built-in) or ast-grep for structural patterns.',
+    suggestion: 'Use Grep tool (built-in), tool.semantic-search for meaning-based search, or tool.ast-grep-search for structural patterns.',
   },
   {
     pattern: new RegExp(`\\bfind\\b.*(?:-name|-type|-iname|-regex)`),
     category: 'file-discovery',
-    suggestion: 'Use Glob tool (built-in) for file patterns.',
+    suggestion: 'Use Glob tool (built-in) for file patterns, or tool.find-symbol to locate a symbol definition.',
   },
   {
     pattern: new RegExp(`\\bcat\\b\\s+\\S+\\.(?:${CODE_EXTENSIONS_PATTERN})\\b`),
     category: 'file-read',
-    suggestion: 'Use Read tool (built-in) for file contents with line numbers.',
+    suggestion: 'Use Read tool (built-in) for file contents, or tool.syntax-outline to understand file structure first.',
   },
   {
     pattern: new RegExp(`\\b(?:head|tail)\\b.*\\.(?:${CODE_EXTENSIONS_PATTERN})\\b`),
     category: 'file-read-partial',
-    suggestion: 'Use Read tool (built-in) with offset/limit parameters.',
+    suggestion: 'Use Read tool (built-in) with offset/limit, or tool.syntax-context for position-aware context.',
   },
   {
     pattern: /\bsed\b/,
     category: 'text-transform',
-    suggestion: 'Use Edit tool (built-in) or ast-grep for AST-aware rewrites.',
+    suggestion: 'Use Edit tool (built-in), or tool.codemod-preview / tool.codemod-apply for multi-file AST-aware rewrites.',
   },
   {
     pattern: /\bawk\b/,
     category: 'text-transform',
     suggestion: 'Use Edit tool (built-in) for edits, or Read tool + agent logic.',
+  },
+  {
+    pattern: new RegExp(`\\becho\\b\\s+.*>\\s*\\S+\\.(?:${CODE_EXTENSIONS_PATTERN})\\b`),
+    category: 'file-write',
+    suggestion: 'Use Write tool (built-in) for creating files.',
+  },
+  {
+    pattern: new RegExp(`\\bwc\\s+-l\\b.*\\.(?:${CODE_EXTENSIONS_PATTERN})\\b`),
+    category: 'line-count',
+    suggestion: 'Use Read tool (built-in) — line numbers are included in output.',
+  },
+  {
+    pattern: new RegExp(`\\bls\\b\\s+(?!-)`),
+    category: 'directory-list',
+    suggestion: 'Use Read tool (built-in) on the directory path, or Glob tool for pattern matching.',
   },
 ];
 

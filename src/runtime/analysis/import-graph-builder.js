@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { extractReferences } from './reference-tracker.js';
-import { extractCallEdges } from './call-graph-builder.js';
+import { SOURCE_EXTENSIONS } from './source-extensions.js';
+import { isJsTsExtension, isLightweightExtension, extractLightweightGraph } from './language-support/index.js';
 
 // ---------------------------------------------------------------------------
 // Import Graph Builder
@@ -14,7 +14,7 @@ import { extractCallEdges } from './call-graph-builder.js';
 //   - exported symbol names
 // ---------------------------------------------------------------------------
 
-const JS_EXTENSIONS = ['.js', '.jsx', '.cjs', '.mjs', '.ts', '.tsx'];
+const JS_EXTENSIONS = SOURCE_EXTENSIONS;
 
 /**
  * Attempt to resolve a module specifier to an absolute file path.
@@ -289,152 +289,45 @@ function extractRequireExpression(node, source, filePath, projectRoot, imports) 
 // Declaration extractors
 // ---------------------------------------------------------------------------
 
-/**
- * Extract the JSDoc comment (/** ... *​/) immediately preceding a node.
- * Looks at previousSibling (comment nodes are typically unnamed siblings).
- */
-function extractDocComment(node, source) {
-  // tree-sitter may place the comment as a previousSibling (unnamed or named).
-  let prev = node.previousSibling;
-  // Skip past any whitespace-only text nodes (unlikely in tree-sitter but safe).
-  while (prev && prev.type !== 'comment') {
-    // Only skip export_statement wrappers — if we hit anything else, bail
-    if (prev.type === 'export_statement') {
-      prev = prev.previousSibling;
-    } else {
-      break;
-    }
-  }
-
-  if (!prev || prev.type !== 'comment') return null;
-
-  const text = textOf(source, prev);
-  // Only treat block comments starting with /** as JSDoc
-  if (!text.startsWith('/**')) return null;
-
-  return text;
-}
-
-/**
- * Walk node.parent chain to detect scope (class or function).
- */
-function detectScope(node) {
-  let current = node.parent;
-  while (current) {
-    if (current.type === 'class_body') {
-      const classNode = current.parent;
-      const nameNode = classNode?.childForFieldName?.('name');
-      if (nameNode) {
-        return nameNode.text ?? 'unknown';
-      }
-      return 'class';
-    }
-    if (current.type === 'function_declaration' || current.type === 'method_definition') {
-      const nameNode = current.childForFieldName?.('name');
-      if (nameNode) {
-        return nameNode.text ?? 'function';
-      }
-      return 'function';
-    }
-    current = current.parent;
-  }
-  return 'module';
-}
-
-/**
- * Build a signature string for a function declaration or method.
- */
-function buildFunctionSignature(node, source, name) {
-  const paramsNode = node.childForFieldName?.('parameters');
-  const paramsText = paramsNode ? textOf(source, paramsNode) : '()';
-
-  // TypeScript return type
-  const returnTypeNode = node.childForFieldName?.('return_type');
-  const returnType = returnTypeNode ? textOf(source, returnTypeNode) : '';
-
-  return `${name}${paramsText}${returnType}`;
-}
-
-function extractFunctionDeclaration(node, source, symbols, isExport) {
+function extractFunctionDeclaration(node, source, symbols, isExport, scope = null) {
   const nameNode = node.childForFieldName?.('name');
   if (nameNode) {
-    const name = textOf(source, nameNode);
     symbols.push({
-      name,
+      name: textOf(source, nameNode),
       kind: 'function',
       isExport,
       line: node.startPosition.row + 1,
-      signature: buildFunctionSignature(node, source, name),
-      docComment: extractDocComment(node, source),
-      scope: detectScope(node),
       startLine: node.startPosition.row + 1,
       endLine: node.endPosition.row + 1,
+      signature: extractFunctionSignature(node, source),
+      docComment: extractDocComment(node, source),
+      scope,
     });
   }
 }
 
-function extractClassDeclaration(node, source, symbols, isExport) {
+function extractClassDeclaration(node, source, symbols, isExport, scope = null) {
   const nameNode = node.childForFieldName?.('name');
-  if (!nameNode) return;
+  if (nameNode) {
+    const className = textOf(source, nameNode);
+    symbols.push({
+      name: className,
+      kind: 'class',
+      isExport,
+      line: node.startPosition.row + 1,
+      startLine: node.startPosition.row + 1,
+      endLine: node.endPosition.row + 1,
+      signature: extractClassSignature(node, source),
+      docComment: extractDocComment(node, source),
+      scope,
+    });
 
-  const className = textOf(source, nameNode);
-  symbols.push({
-    name: className,
-    kind: 'class',
-    isExport,
-    line: node.startPosition.row + 1,
-    signature: className,
-    docComment: extractDocComment(node, source),
-    scope: detectScope(node),
-    startLine: node.startPosition.row + 1,
-    endLine: node.endPosition.row + 1,
-  });
-
-  // Extract class members (methods and fields)
-  const body = node.childForFieldName?.('body');
-  if (!body) return;
-
-  for (const member of body.namedChildren ?? []) {
-    if (member.type === 'method_definition') {
-      const methodNameNode = member.childForFieldName?.('name');
-      if (methodNameNode) {
-        const methodName = textOf(source, methodNameNode);
-        symbols.push({
-          name: methodName,
-          kind: 'method',
-          isExport: false,
-          line: member.startPosition.row + 1,
-          signature: buildFunctionSignature(member, source, methodName),
-          docComment: extractDocComment(member, source),
-          scope: className,
-          startLine: member.startPosition.row + 1,
-          endLine: member.endPosition.row + 1,
-        });
-      }
-    } else if (
-      member.type === 'public_field_definition' ||
-      member.type === 'field_definition' ||
-      member.type === 'property_definition'
-    ) {
-      const propNameNode = member.childForFieldName?.('name') ?? member.namedChildren?.[0];
-      if (propNameNode) {
-        symbols.push({
-          name: textOf(source, propNameNode),
-          kind: 'property',
-          isExport: false,
-          line: member.startPosition.row + 1,
-          signature: null,
-          docComment: extractDocComment(member, source),
-          scope: className,
-          startLine: member.startPosition.row + 1,
-          endLine: member.endPosition.row + 1,
-        });
-      }
-    }
+    // Extract class members
+    extractClassMembers(node, source, symbols, className);
   }
 }
 
-function extractVariableDeclaration(node, source, symbols, isExport) {
+function extractVariableDeclaration(node, source, symbols, isExport, scope = null) {
   const declarators = node.namedChildren.filter((c) => c.type === 'variable_declarator');
   for (const decl of declarators) {
     const nameNode = decl.childForFieldName?.('name');
@@ -446,8 +339,7 @@ function extractVariableDeclaration(node, source, symbols, isExport) {
       if (valueNode) {
         if (valueNode.type === 'arrow_function' || valueNode.type === 'function_expression' || valueNode.type === 'function') {
           kind = 'function';
-          const name = textOf(source, nameNode);
-          signature = buildFunctionSignature(valueNode, source, name);
+          signature = extractFunctionSignature(valueNode, source);
         } else if (valueNode.type === 'class') {
           kind = 'class';
         }
@@ -457,17 +349,17 @@ function extractVariableDeclaration(node, source, symbols, isExport) {
         kind,
         isExport,
         line: node.startPosition.row + 1,
-        signature,
-        docComment: extractDocComment(node, source),
-        scope: detectScope(node),
         startLine: node.startPosition.row + 1,
         endLine: node.endPosition.row + 1,
+        signature,
+        docComment: extractDocComment(node, source),
+        scope,
       });
     }
   }
 }
 
-function extractInterfaceDeclaration(node, source, symbols, isExport) {
+function extractInterfaceDeclaration(node, source, symbols, isExport, scope = null) {
   const nameNode = node.childForFieldName?.('name');
   if (nameNode) {
     symbols.push({
@@ -475,16 +367,16 @@ function extractInterfaceDeclaration(node, source, symbols, isExport) {
       kind: 'interface',
       isExport,
       line: node.startPosition.row + 1,
-      signature: null,
-      docComment: extractDocComment(node, source),
-      scope: detectScope(node),
       startLine: node.startPosition.row + 1,
       endLine: node.endPosition.row + 1,
+      signature: null,
+      docComment: extractDocComment(node, source),
+      scope,
     });
   }
 }
 
-function extractTypeAliasDeclaration(node, source, symbols, isExport) {
+function extractTypeAliasDeclaration(node, source, symbols, isExport, scope = null) {
   const nameNode = node.childForFieldName?.('name');
   if (nameNode) {
     symbols.push({
@@ -492,16 +384,16 @@ function extractTypeAliasDeclaration(node, source, symbols, isExport) {
       kind: 'type',
       isExport,
       line: node.startPosition.row + 1,
-      signature: null,
-      docComment: extractDocComment(node, source),
-      scope: detectScope(node),
       startLine: node.startPosition.row + 1,
       endLine: node.endPosition.row + 1,
+      signature: null,
+      docComment: extractDocComment(node, source),
+      scope,
     });
   }
 }
 
-function extractEnumDeclaration(node, source, symbols, isExport) {
+function extractEnumDeclaration(node, source, symbols, isExport, scope = null) {
   const nameNode = node.childForFieldName?.('name');
   if (nameNode) {
     symbols.push({
@@ -509,12 +401,125 @@ function extractEnumDeclaration(node, source, symbols, isExport) {
       kind: 'enum',
       isExport,
       line: node.startPosition.row + 1,
-      signature: null,
-      docComment: extractDocComment(node, source),
-      scope: detectScope(node),
       startLine: node.startPosition.row + 1,
       endLine: node.endPosition.row + 1,
+      signature: null,
+      docComment: extractDocComment(node, source),
+      scope,
     });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Signature extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract a concise function signature: `(param1, param2): ReturnType`
+ */
+function extractFunctionSignature(node, source) {
+  const params = node.childForFieldName?.('parameters');
+  if (!params) return null;
+
+  const paramsText = textOf(source, params);
+
+  // Check for return type annotation (TypeScript)
+  const returnType = node.childForFieldName?.('return_type');
+  if (returnType) {
+    return `${paramsText}: ${textOf(source, returnType).replace(/^:\s*/, '')}`;
+  }
+
+  return paramsText;
+}
+
+/**
+ * Extract a class signature: `extends Base implements IFoo`
+ */
+function extractClassSignature(node, source) {
+  const parts = [];
+  for (const child of node.namedChildren) {
+    if (child.type === 'class_heritage' || child.type === 'extends_clause') {
+      parts.push(`extends ${textOf(source, child).replace(/^extends\s+/, '')}`);
+    }
+    if (child.type === 'implements_clause') {
+      parts.push(`implements ${textOf(source, child).replace(/^implements\s+/, '')}`);
+    }
+  }
+  return parts.length > 0 ? parts.join(' ') : null;
+}
+
+// ---------------------------------------------------------------------------
+// JSDoc extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Find the JSDoc comment immediately preceding a declaration node.
+ */
+function extractDocComment(node, source) {
+  // Walk backward through siblings to find a comment
+  let prev = node.previousNamedSibling;
+
+  // tree-sitter may place comments as unnamed children; check previous sibling
+  if (!prev) {
+    // Try unnamed previous sibling
+    const parent = node.parent;
+    if (!parent) return null;
+    const children = parent.children ?? [];
+    const idx = children.indexOf(node);
+    if (idx <= 0) return null;
+    prev = children[idx - 1];
+  }
+
+  if (!prev) return null;
+
+  // Check if it's a comment node directly before the declaration
+  if (prev.type === 'comment') {
+    const text = textOf(source, prev).trim();
+    if (text.startsWith('/**') && text.endsWith('*/')) {
+      return text;
+    }
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------------------------
+// Class member extraction
+// ---------------------------------------------------------------------------
+
+/**
+ * Extract methods and properties from a class body.
+ */
+function extractClassMembers(classNode, source, symbols, className) {
+  const body = classNode.childForFieldName?.('body');
+  if (!body) return;
+
+  for (const member of body.namedChildren) {
+    switch (member.type) {
+      case 'method_definition':
+      case 'public_field_definition':
+      case 'field_definition': {
+        const nameNode = member.childForFieldName?.('name');
+        if (nameNode) {
+          const memberName = textOf(source, nameNode);
+          const isMethod = member.type === 'method_definition';
+          symbols.push({
+            name: memberName,
+            kind: isMethod ? 'method' : 'property',
+            isExport: false,
+            line: member.startPosition.row + 1,
+            startLine: member.startPosition.row + 1,
+            endLine: member.endPosition.row + 1,
+            signature: isMethod ? extractFunctionSignature(member, source) : null,
+            docComment: extractDocComment(member, source),
+            scope: className,
+          });
+        }
+        break;
+      }
+      default:
+        break;
+    }
   }
 }
 
@@ -587,10 +592,30 @@ function findDescendants(node, type) {
  * Build the import/export graph data for a single file.
  *
  * @param {{ syntaxIndexManager: SyntaxIndexManager, filePath: string, projectRoot: string }} opts
- * @returns {Promise<{ filePath: string, mtime: number, imports: Array, exports: Array,
- *                      symbols: Array, refs: Array, callEdges: Array } | null>}
+ * @returns {Promise<{ filePath: string, mtime: number, imports: Array, exports: Array, symbols: Array } | null>}
  */
 export async function buildFileGraph({ syntaxIndexManager, filePath, projectRoot }) {
+  if (isLightweightExtension(filePath) && !isJsTsExtension(filePath)) {
+    let source = '';
+    let mtime = 0;
+    try {
+      source = fs.readFileSync(filePath, 'utf8');
+      mtime = fs.statSync(filePath).mtimeMs;
+    } catch {
+      return null;
+    }
+    const { imports, exports, symbols } = extractLightweightGraph({ source, filePath });
+    return {
+      filePath,
+      mtime,
+      imports,
+      exports,
+      symbols,
+      tree: null,
+      source,
+    };
+  }
+
   const parsed = await syntaxIndexManager.readFile(filePath);
   if (parsed.status !== 'parsed') {
     return null;
@@ -618,19 +643,13 @@ export async function buildFileGraph({ syntaxIndexManager, filePath, projectRoot
     }
   }
 
-  // Extract identifier references
-  const refs = extractReferences({ tree: parsed.tree, source: parsed.source });
-
-  // Extract call edges
-  const callEdges = extractCallEdges({ tree: parsed.tree, source: parsed.source });
-
   return {
     filePath: parsed.filePath,
     mtime,
     imports,
     exports,
     symbols,
-    refs,
-    callEdges,
+    tree: parsed.tree,
+    source: parsed.source,
   };
 }

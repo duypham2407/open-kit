@@ -3,13 +3,15 @@ import path from 'node:path';
 
 import { ProjectGraphDb, isBetterSqliteAvailable } from '../analysis/project-graph-db.js';
 import { buildFileGraph } from '../analysis/import-graph-builder.js';
+import { trackReferences } from '../analysis/reference-tracker.js';
+import { buildCallGraph, symbolKey } from '../analysis/call-graph-builder.js';
+import { SOURCE_EXTENSIONS } from '../analysis/source-extensions.js';
 import { listProjectFiles } from '../tools/shared/project-file-utils.js';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const SOURCE_EXTENSIONS = ['.js', '.jsx', '.cjs', '.mjs', '.ts', '.tsx'];
 const DEFAULT_MAX_FILES = 2000;
 
 // ---------------------------------------------------------------------------
@@ -32,6 +34,9 @@ export class ProjectGraphManager {
     this._indexingInProgress = false;
     this._lastIndexTime = 0;
     this._indexedFileCount = 0;
+    this._phase3Errors = 0;
+    /** @type {((filePath: string) => void) | null} */
+    this._onFileIndexed = null;
 
     if (this._available) {
       try {
@@ -46,6 +51,16 @@ export class ProjectGraphManager {
         this._available = false;
       }
     }
+  }
+
+  /**
+   * Register a callback that is invoked (best-effort, non-blocking) after a
+   * file is successfully indexed.  Replaces any previously registered callback.
+   *
+   * @param {(filePath: string) => void} callback
+   */
+  onFileIndexed(callback) {
+    this._onFileIndexed = typeof callback === 'function' ? callback : null;
   }
 
   // -----------------------------------------------------------------------
@@ -67,6 +82,7 @@ export class ProjectGraphManager {
       indexingInProgress: this._indexingInProgress,
       lastIndexTime: this._lastIndexTime,
       indexedFileCount: this._indexedFileCount,
+      phase3Errors: this._phase3Errors,
       stats: this._db.stats(),
     };
   }
@@ -125,11 +141,70 @@ export class ProjectGraphManager {
       mtime: graphData.mtime,
       edges,
       symbols: graphData.symbols,
-      refs: graphData.refs,
-      callEdges: graphData.callEdges,
     });
 
+    // Phase 3: track references and call graph using the tree already parsed
+    // by buildFileGraph (avoids a redundant re-parse).
+    // These require the symbols to be in the DB first, so they run after indexFile.
+    try {
+      const node = this._db.getNode(absPath);
+      if (node && graphData.tree) {
+        // Build a map of symbol name+line → DB symbol ID for this file
+        const dbSymbols = this._db.getSymbolsByNode(node.id);
+        const symbolIds = new Map();
+        for (const s of dbSymbols) {
+          symbolIds.set(`${s.name}:${s.line}:${s.scope ?? ''}`, s.id);
+        }
+
+        // Reference tracking
+        const refs = trackReferences({
+          tree: graphData.tree,
+          source: graphData.source,
+          filePath: absPath,
+          imports: graphData.imports,
+          symbols: graphData.symbols,
+          db: this._db,
+        });
+        this._db.replaceRefsForNode(node.id, refs);
+
+        // Call graph building
+        const calls = buildCallGraph({
+          tree: graphData.tree,
+          source: graphData.source,
+          filePath: absPath,
+          symbols: graphData.symbols,
+          imports: graphData.imports,
+          db: this._db,
+          symbolIds,
+        });
+        this._db.replaceCallsForNode(node.id, calls);
+      }
+    } catch (err) {
+      // Reference/call tracking is best-effort — do not fail indexing,
+      // but log the first few errors so maintainers can diagnose issues.
+      this._phase3Errors++;
+      if (this._phase3Errors <= 5) {
+        console.warn(`[ProjectGraphManager] reference/call tracking failed for ${absPath}: ${err?.message ?? err}`);
+      }
+    }
+
+    this._firePostIndex(absPath);
     return { status: 'indexed', filePath: absPath };
+  }
+
+  // Fire post-index callback best-effort (non-blocking, swallows errors)
+  _firePostIndex(filePath) {
+    if (!this._onFileIndexed) return;
+    try {
+      // Intentionally not awaited — the callback may be async but we do not
+      // want to delay the indexFile return path or propagate errors.
+      const result = this._onFileIndexed(filePath);
+      if (result && typeof result.catch === 'function') {
+        result.catch(() => {}); // swallow async errors
+      }
+    } catch {
+      // swallow synchronous errors
+    }
   }
 
   // -----------------------------------------------------------------------
@@ -329,33 +404,113 @@ export class ProjectGraphManager {
         line: row.line,
         signature: row.signature ?? null,
         docComment: row.doc_comment ?? null,
-        scope: row.scope ?? 'module',
-        startLine: row.start_line ?? row.line,
-        endLine: row.end_line ?? row.line,
+        scope: row.scope ?? null,
+        startLine: row.start_line ?? null,
+        endLine: row.end_line ?? null,
+      })),
+    };
+  }
+
+  /**
+   * Case-insensitive symbol lookup (fallback for search).
+   */
+  findSymbolLike(name) {
+    if (!this.available) {
+      return { status: 'unavailable', matches: [] };
+    }
+
+    const rows = this._db.findSymbolByNameLike(name);
+    return {
+      status: 'ok',
+      name,
+      matches: rows.map((row) => ({
+        path: this._relativePath(row.path),
+        absolutePath: row.path,
+        kind: row.kind,
+        isExport: row.is_export === 1,
+        line: row.line,
+        signature: row.signature ?? null,
+        docComment: row.doc_comment ?? null,
+        scope: row.scope ?? null,
+        startLine: row.start_line ?? null,
+        endLine: row.end_line ?? null,
       })),
     };
   }
 
   // -----------------------------------------------------------------------
-  // Query: find references by symbol name
+  // Query: references to a symbol
   // -----------------------------------------------------------------------
 
-  findReferences(name) {
+  findReferences(symbolName) {
     if (!this.available) {
       return { status: 'unavailable', references: [] };
     }
 
-    const rows = this._db.getRefsByName(name);
+    // First find the symbol(s) by name
+    const symbolRows = this._db.findSymbolByName(symbolName);
+    if (symbolRows.length === 0) {
+      return { status: 'not-found', name: symbolName, references: [] };
+    }
+
+    const defsByPath = new Set(symbolRows.map((sym) => sym.path));
+    const importReachablePaths = new Set(defsByPath);
+    for (const defPath of defsByPath) {
+      const dependents = this.getDependents(defPath, { depth: 8 });
+      if (dependents?.status !== 'ok') {
+        continue;
+      }
+      for (const dependent of dependents.dependents ?? []) {
+        if (dependent.absolutePath) {
+          importReachablePaths.add(dependent.absolutePath);
+        }
+      }
+    }
+
+    // Collect references for all matching symbols
+    const allRefs = [];
+    for (const sym of symbolRows) {
+      const refs = this._db.getRefsBySymbol(sym.id);
+      for (const ref of refs) {
+        const sameFile = ref.path === sym.path;
+        const importScoped = sameFile || importReachablePaths.has(ref.path);
+        if (!importScoped) {
+          continue;
+        }
+        allRefs.push({
+          symbolName: sym.name,
+          symbolPath: this._relativePath(sym.path),
+          symbolKind: sym.kind,
+          symbolScope: sym.scope ?? null,
+          symbolIsExport: sym.is_export === 1,
+          referencePath: this._relativePath(ref.path),
+          absoluteReferencePath: ref.path,
+          line: ref.line,
+          col: ref.col,
+          kind: ref.kind,
+          scope: sym.scope ?? null,
+          importScoped,
+        });
+      }
+    }
+
+    const scopeFiltered = true;
+
     return {
       status: 'ok',
-      name,
-      references: rows.map((row) => ({
-        path: this._relativePath(row.path),
-        absolutePath: row.path,
-        line: row.line,
-        col: row.col,
-        refKind: row.ref_kind,
+      name: symbolName,
+      definitions: symbolRows.map((s) => ({
+        path: this._relativePath(s.path),
+        absolutePath: s.path,
+        kind: s.kind,
+        line: s.line,
+        isExport: s.is_export === 1,
+        scope: s.scope ?? null,
       })),
+      references: allRefs,
+      totalCount: allRefs.length,
+      scopeFiltered,
+      importScoped: true,
     };
   }
 
@@ -363,43 +518,45 @@ export class ProjectGraphManager {
   // Query: call hierarchy (incoming / outgoing)
   // -----------------------------------------------------------------------
 
-  getCallHierarchy(symbolName, { direction = 'incoming' } = {}) {
+  getCallHierarchy(symbolName, { direction = 'outgoing' } = {}) {
     if (!this.available) {
       return { status: 'unavailable', calls: [] };
     }
 
     if (direction === 'outgoing') {
-      // Find which functions this symbol calls
-      // We need to find the node(s) containing this symbol first
+      // Find symbol, then get all calls from it
       const symbolRows = this._db.findSymbolByName(symbolName);
-      const calls = [];
+      const allCalls = [];
       for (const sym of symbolRows) {
-        const callEdges = this._db.getCallEdgesByCaller(sym.node_id);
-        for (const ce of callEdges) {
-          if (ce.caller_symbol_name === symbolName) {
-            calls.push({
-              calleeName: ce.callee_name,
-              callerPath: this._relativePath(ce.caller_path),
-              line: ce.line,
-            });
-          }
+        const calls = this._db.getCallsFrom(sym.id);
+        for (const call of calls) {
+          allCalls.push({
+            callerName: symbolName,
+            calleeName: call.callee_name,
+            calleePath: call.callee_path ? this._relativePath(call.callee_path) : null,
+            line: call.line,
+          });
         }
       }
-      return { status: 'ok', symbol: symbolName, direction, calls };
+      return { status: 'ok', direction, symbolName, calls: allCalls };
     }
 
-    // incoming — who calls this symbol
-    const callEdges = this._db.getCallEdgesByCallee(symbolName);
-    return {
-      status: 'ok',
-      symbol: symbolName,
-      direction,
-      calls: callEdges.map((ce) => ({
-        callerSymbol: ce.caller_symbol_name,
-        callerPath: this._relativePath(ce.caller_path),
-        line: ce.line,
-      })),
-    };
+    if (direction === 'incoming') {
+      // Find all calls TO this symbol name
+      const calls = this._db.getCallsTo(symbolName);
+      return {
+        status: 'ok',
+        direction,
+        symbolName,
+        calls: calls.map((call) => ({
+          callerName: call.caller_name,
+          callerPath: this._relativePath(call.caller_path),
+          line: call.line,
+        })),
+      };
+    }
+
+    return { status: 'error', reason: `Invalid direction: ${direction}` };
   }
 
   // -----------------------------------------------------------------------
@@ -418,6 +575,7 @@ export class ProjectGraphManager {
       dbPath: this._dbPath,
       indexingInProgress: this._indexingInProgress,
       lastIndexTime: this._lastIndexTime,
+      phase3Errors: this._phase3Errors,
     };
   }
 

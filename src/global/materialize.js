@@ -49,6 +49,49 @@ function copyAsset(sourcePath, targetPath) {
   fs.copyFileSync(sourcePath, targetPath);
 }
 
+function provisionManagedNodeModules(kitRoot) {
+  const sourceNodeModules = path.join(PACKAGE_ROOT, 'node_modules');
+  const targetNodeModules = path.join(kitRoot, 'node_modules');
+
+  if (!fs.existsSync(sourceNodeModules)) {
+    return {
+      provisioned: false,
+      source: sourceNodeModules,
+      target: targetNodeModules,
+      reason: 'Bundled node_modules directory is missing from the installed openkit package.',
+    };
+  }
+
+  removePathIfPresent(targetNodeModules);
+
+  try {
+    fs.symlinkSync(sourceNodeModules, targetNodeModules, process.platform === 'win32' ? 'junction' : 'dir');
+    return {
+      provisioned: true,
+      mode: 'symlink',
+      source: sourceNodeModules,
+      target: targetNodeModules,
+    };
+  } catch (symlinkError) {
+    try {
+      fs.cpSync(sourceNodeModules, targetNodeModules, { recursive: true });
+      return {
+        provisioned: true,
+        mode: 'copy',
+        source: sourceNodeModules,
+        target: targetNodeModules,
+      };
+    } catch (copyError) {
+      return {
+        provisioned: false,
+        source: sourceNodeModules,
+        target: targetNodeModules,
+        reason: copyError.message ?? symlinkError.message ?? 'Failed to provision node_modules for the managed kit.',
+      };
+    }
+  }
+}
+
 function listManagedFiles(kitRoot) {
   const files = [];
 
@@ -118,6 +161,8 @@ export function materializeGlobalInstall({
     copyAsset(path.join(PACKAGE_ROOT, relativeAsset), path.join(paths.kitRoot, relativeAsset));
   }
 
+  const runtimeDependencies = provisionManagedNodeModules(paths.kitRoot);
+
   const installState = createGlobalInstallState({ kitVersion, profile: 'openkit' });
   const openCodeConfig = createOpenCodeConfig();
 
@@ -157,6 +202,7 @@ export function materializeGlobalInstall({
   return {
     ...paths,
     installState,
+    runtimeDependencies,
     tooling,
     semgrepTooling,
   };

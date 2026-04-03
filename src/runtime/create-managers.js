@@ -12,8 +12,12 @@ import { SessionStateManager } from './managers/session-state-manager.js';
 import { SkillMcpManager } from './managers/skill-mcp-manager.js';
 import { SyntaxIndexManager } from './managers/syntax-index-manager.js';
 import { ProjectGraphManager } from './managers/project-graph-manager.js';
+import { SessionMemoryManager } from './managers/session-memory-manager.js';
 import { TmuxSessionManager } from './managers/tmux-session-manager.js';
 import { ToolMetadataStore } from './managers/tool-metadata-store.js';
+import { EmbeddingIndexer } from './analysis/embedding-indexer.js';
+import { createEmbeddingProvider, NoOpEmbeddingProvider } from './analysis/embedding-provider.js';
+import { FileWatcher } from './analysis/file-watcher.js';
 import { resolveRuntimeRoot } from './runtime-root.js';
 import { createWorkflowKernelAdapter } from './workflow-kernel.js';
 
@@ -23,10 +27,13 @@ function createManagerList({
   skillMcpManager,
   syntaxIndexManager,
   projectGraphManager,
+  sessionMemoryManager,
+  embeddingIndexer,
   notificationManager,
   tmuxSessionManager,
   delegationSupervisor,
   continuationStateManager,
+  fileWatcher,
 }) {
   return [
     {
@@ -74,6 +81,22 @@ function createManagerList({
       },
     },
     {
+      id: 'manager.session-memory',
+      name: 'Session Memory Manager',
+      description: 'Tracks file touches during sessions and provides semantic search over the project graph.',
+      enabled: sessionMemoryManager?.available === true,
+      lifecycle: 'foundation',
+      dispose() {},
+    },
+    {
+      id: 'manager.embedding-indexer',
+      name: 'Embedding Indexer',
+      description: 'Config-driven embedding generation pipeline for semantic code search.',
+      enabled: embeddingIndexer?.available === true,
+      lifecycle: 'foundation',
+      dispose() {},
+    },
+    {
       id: 'manager.delegation-supervisor',
       name: 'Delegation Supervisor',
       description: 'Task-board-aware delegated execution planner for full-delivery work.',
@@ -107,6 +130,16 @@ function createManagerList({
         tmuxSessionManager.cleanup();
       },
     },
+    {
+      id: 'manager.file-watcher',
+      name: 'File Watcher',
+      description: 'Watches project source files for changes and triggers incremental re-indexing.',
+      enabled: fileWatcher !== null,
+      lifecycle: 'foundation',
+      dispose() {
+        fileWatcher?.stop();
+      },
+    },
   ];
 }
 
@@ -128,6 +161,45 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
   const skillMcpManager = new SkillMcpManager();
   const syntaxIndexManager = new SyntaxIndexManager({ projectRoot });
   const projectGraphManager = new ProjectGraphManager({ projectRoot, runtimeRoot, syntaxIndexManager, mode });
+
+  // Embedding indexer — only active when explicitly enabled in config
+  let embeddingProvider = null;
+  let embeddingIndexer = null;
+  if (config?.embedding?.enabled === true && projectGraphManager.available) {
+    try {
+      embeddingProvider = createEmbeddingProvider(config.embedding, { env });
+      embeddingIndexer = new EmbeddingIndexer({
+        projectGraphManager,
+        embeddingProvider,
+        batchSize: config.embedding.batchSize ?? 20,
+      });
+    } catch {
+      // Provider creation failed (e.g. missing baseUrl for custom) — degrade gracefully
+      embeddingProvider = null;
+      embeddingIndexer = null;
+    }
+  }
+
+  // Re-create sessionMemoryManager with the embedding provider when available
+  const sessionMemoryManager = new SessionMemoryManager({ projectGraphManager, embeddingProvider });
+
+  // Wire automatic per-file embedding generation: when a file is indexed,
+  // immediately queue embedding extraction for that file (best-effort).
+  if (embeddingIndexer) {
+    projectGraphManager.onFileIndexed((filePath) => {
+      return embeddingIndexer.indexFileEmbeddings(filePath);
+    });
+  }
+
+  // File watcher — incremental re-indexing on source file changes.
+  // Only active when the graph manager is available and mode is read-write.
+  let fileWatcher = null;
+  if (projectGraphManager.available && mode !== 'read-only') {
+    fileWatcher = new FileWatcher({ projectRoot, projectGraphManager });
+    // Start is deferred — the watcher begins watching after bootstrap completes.
+    // Callers can invoke fileWatcher.start() when ready.
+  }
+
   const sessionStateManager = new SessionStateManager({ projectRoot, runtimeRoot, mode });
   const continuationStateManager = new ContinuationStateManager({ projectRoot, runtimeRoot, mode });
   const actionModelStateManager = new ActionModelStateManager({ projectRoot, runtimeRoot, mode });
@@ -153,10 +225,13 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     skillMcpManager,
     syntaxIndexManager,
     projectGraphManager,
+    sessionMemoryManager,
+    embeddingIndexer,
     delegationSupervisor,
     continuationStateManager,
     notificationManager,
     tmuxSessionManager,
+    fileWatcher,
   }).map((entry) => ({
     ...entry,
     capabilityStatus: capabilityIndex['capability.manager-layer']?.status ?? 'missing',
@@ -170,10 +245,13 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     skillMcpManager,
     syntaxIndexManager,
     projectGraphManager,
+    sessionMemoryManager,
+    embeddingIndexer,
     delegationSupervisor,
     continuationStateManager,
     notificationManager,
     tmuxSessionManager,
+    fileWatcher,
     sessionStateManager,
     actionModelStateManager,
     agentProfileSwitchManager,

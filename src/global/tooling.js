@@ -21,6 +21,21 @@ export function isBetterSqliteAvailable() {
   }
 }
 
+export function isSyntaxParsingAvailable() {
+  try {
+    _require.resolve('web-tree-sitter');
+    _require.resolve('web-tree-sitter/web-tree-sitter.wasm');
+    _require.resolve('tree-sitter-javascript');
+    _require.resolve('tree-sitter-javascript/tree-sitter-javascript.wasm');
+    _require.resolve('tree-sitter-typescript');
+    _require.resolve('tree-sitter-typescript/tree-sitter-typescript.wasm');
+    _require.resolve('tree-sitter-typescript/tree-sitter-tsx.wasm');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function listWindowsExecutableExtensions(env) {
   const raw = env.PATHEXT ?? '.COM;.EXE;.BAT;.CMD';
   return raw

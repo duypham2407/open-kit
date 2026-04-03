@@ -45,6 +45,7 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
     projectRoot,
     env,
     config: configResult.config,
+    sessionMemoryManager: managers.sessionMemoryManager,
   });
   const hooks = createHooks({
     config: {

@@ -73,6 +73,15 @@ export function createDefaultRuntimeConfig() {
     browserAutomation: {
       provider: 'playwright',
     },
+    embedding: {
+      enabled: false,
+      provider: 'openai',
+      model: 'openai/text-embedding-3-small',
+      dimensions: 1536,
+      batchSize: 20,
+      apiKey: null,
+      baseUrl: null,
+    },
     runtimeFallback: {
       enabled: true,
     },

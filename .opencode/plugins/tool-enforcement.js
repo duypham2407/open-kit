@@ -47,8 +47,8 @@ const SUBSTITUTION_RULES = [
       'Use the Read tool (built-in) for file contents with line numbers.',
   },
   {
-    // head / tail on source code
-    pattern: /(?:^|\||\&\&|\;)\s*(?:head|tail)\b\s+\S+\.(?:js|jsx|ts|tsx|mjs|cjs|mts|cts|py|go|rs|java|rb|c|cpp|h|hpp|css|scss|html|json|yaml|yml|toml|xml|md|mdx|vue|svelte)\b/,
+    // head / tail on source code (with or without flags like -20)
+    pattern: /(?:^|\||\&\&|\;)\s*(?:head|tail)\b(?:\s+-\S+)*\s+\S+\.(?:js|jsx|ts|tsx|mjs|cjs|mts|cts|py|go|rs|java|rb|c|cpp|h|hpp|css|scss|html|json|yaml|yml|toml|xml|md|mdx|vue|svelte)\b/,
     category: 'file-read-partial',
     suggestion:
       'Use the Read tool (built-in) with offset and limit parameters.',

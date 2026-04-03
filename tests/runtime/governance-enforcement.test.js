@@ -30,6 +30,9 @@ test('workflow command prompts reference shared prompt contracts except model co
     if (file.endsWith('configure-agent-models.md')) {
       continue;
     }
+    if (file.endsWith('configure-embedding.md')) {
+      continue;
+    }
     const contents = read(file);
     assert.match(contents, /prompt-contracts\.md/);
   }

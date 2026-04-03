@@ -1,12 +1,12 @@
 // ---------------------------------------------------------------------------
-// Runtime Policy Engine (Mức 3)
+// Runtime Policy Engine (Tier 3)
 //
 // Checks tool invocation records from the invocation log before allowing
-// stage transitions.  Unlike Mức 2 (which checks agent-written evidence),
+// stage transitions.  Unlike Tier 2 (which checks agent-written evidence),
 // this layer checks runtime-recorded invocation entries that agents cannot
 // forge.
 //
-// The policy engine is additive to Mức 2 — both layers must pass.
+// The policy engine is additive to Tier 2 — both layers must pass.
 //
 // Enforcement mode:
 //   "enforce"  — block the transition (default)

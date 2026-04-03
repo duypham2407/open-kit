@@ -33,7 +33,7 @@ Based on the evidence, propose hypotheses for why it fails. Do NOT talk about fi
 * Weak guess: "Variable X does not exist, so `.length` fails."
 * Better hypothesis: "Function A expects an array, but the backend API returns `{ data: [] }` (an object), so calling `.map()` crashes."
 
-List 2-3 hypotheses. Then narrow them down by grepping and reading code until you identify the most likely root cause.
+List 2-3 hypotheses. Then narrow them down using the **Grep tool** (built-in), **`tool.semantic-search`**, **`tool.graph-find-references`**, and **Read tool** until you identify the most likely root cause.
 
 ⚠️ Test only 1 primary hypothesis. Do not fix three hypotheses at once and expect the tests to explain which one was correct.
 

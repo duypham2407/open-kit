@@ -3,7 +3,7 @@
   "registryVersion": 1,
   "kit": {
     "name": "OpenKit AI Software Factory",
-    "version": "0.3.18",
+    "version": "0.3.19",
     "description": "Local component metadata for the checked-in OpenKit repository and the global-kit compatibility surface.",
     "repositoryRoot": ".",
     "productSurface": {
@@ -767,6 +767,12 @@
         "status": "foundation"
       },
       {
+        "id": "tool.embedding-index",
+        "name": "Embedding Index Surface",
+        "path": "src/runtime/tools/analysis/embedding-index.js",
+        "status": "active"
+      },
+      {
         "id": "tool.syntax-outline",
         "name": "Syntax Outline",
         "path": "src/runtime/tools/syntax/syntax-outline.js",
@@ -819,6 +825,60 @@
         "name": "LSP Symbols Surface",
         "path": "src/runtime/tools/lsp/lsp-symbols.js",
         "status": "foundation"
+      },
+      {
+        "id": "tool.import-graph",
+        "name": "Import Graph Surface",
+        "path": "src/runtime/tools/graph/import-graph.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.find-dependencies",
+        "name": "Find Dependencies Surface",
+        "path": "src/runtime/tools/graph/find-dependencies.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.find-dependents",
+        "name": "Find Dependents Surface",
+        "path": "src/runtime/tools/graph/find-dependents.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.find-symbol",
+        "name": "Find Symbol Surface",
+        "path": "src/runtime/tools/graph/find-symbol.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.graph-goto-definition",
+        "name": "Graph Go-To Definition Surface",
+        "path": "src/runtime/tools/graph/goto-definition.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.graph-find-references",
+        "name": "Graph Find References Surface",
+        "path": "src/runtime/tools/graph/find-references.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.graph-call-hierarchy",
+        "name": "Graph Call Hierarchy Surface",
+        "path": "src/runtime/tools/graph/call-hierarchy.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.graph-rename-preview",
+        "name": "Graph Rename Preview Surface",
+        "path": "src/runtime/tools/graph/rename-preview.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.semantic-search",
+        "name": "Semantic Search Surface",
+        "path": "src/runtime/tools/graph/semantic-search.js",
+        "status": "active"
       }
     ],
     "runtimeHooks": [
