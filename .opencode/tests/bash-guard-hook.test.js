@@ -102,33 +102,18 @@ test('bash-guard allows ast-grep', () => {
   assert.equal(result.allowed, true);
 });
 
-// ---------------------------------------------------------------------------
-// Moderate mode
-// ---------------------------------------------------------------------------
-
-test('bash-guard allows grep in moderate mode with warning', () => {
+test('bash-guard blocks grep in moderate mode too', () => {
   const hook = createBashGuardHook({ enforcementLevel: 'moderate' });
   const result = hook.run({ toolId: 'tool.interactive-bash', args: { command: 'grep -r "TODO" src/' } });
-  assert.equal(result.allowed, true);
-  assert.ok(result.warning);
-  assert.ok(result.warning.includes('search'));
+  assert.equal(result.allowed, false);
+  assert.equal(result.blocked, true);
 });
 
-test('bash-guard allows sed in moderate mode with warning', () => {
-  const hook = createBashGuardHook({ enforcementLevel: 'moderate' });
-  const result = hook.run({ toolId: 'tool.interactive-bash', args: { command: 'sed -i "s/foo/bar/g" file.ts' } });
-  assert.equal(result.allowed, true);
-  assert.ok(result.warning);
-});
-
-// ---------------------------------------------------------------------------
-// Permissive mode
-// ---------------------------------------------------------------------------
-
-test('bash-guard allows everything in permissive mode', () => {
+test('bash-guard blocks grep in permissive mode too', () => {
   const hook = createBashGuardHook({ enforcementLevel: 'permissive' });
   const result = hook.run({ toolId: 'tool.interactive-bash', args: { command: 'grep -r "TODO" src/' } });
-  assert.equal(result.allowed, true);
+  assert.equal(result.allowed, false);
+  assert.equal(result.blocked, true);
 });
 
 // ---------------------------------------------------------------------------

@@ -96,25 +96,13 @@ export function createBashGuardHook({ enforcementLevel = 'strict' } = {}) {
         return { allowed: true };
       }
 
-      if (enforcementLevel === 'permissive') {
-        return { allowed: true };
-      }
-
       for (const rule of SUBSTITUTION_RULES) {
         if (rule.pattern.test(command)) {
-          if (enforcementLevel === 'strict') {
-            return {
-              allowed: false,
-              blocked: true,
-              blockedBy: [`bash-guard:${rule.category}`],
-              reason: `OS-level command detected (${rule.category}). ${rule.suggestion}`,
-            };
-          }
-
-          // moderate — allow but flag
           return {
-            allowed: true,
-            warning: `OS-level command detected (${rule.category}). Consider: ${rule.suggestion}`,
+            allowed: false,
+            blocked: true,
+            blockedBy: [`bash-guard:${rule.category}`],
+            reason: `OS-level command detected (${rule.category}). ${rule.suggestion}`,
           };
         }
       }

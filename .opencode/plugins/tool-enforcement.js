@@ -5,17 +5,16 @@
  * calls and redirects agents to use the appropriate OpenKit kit tools or
  * OpenCode built-in tools instead.
  *
- * Enforcement levels by workflow mode:
- *   - quick / full: STRICT  -- blocked commands throw, halting the tool call
- *   - migration:    MODERATE -- logged warning + suggestion, not blocked
- *   - (default):    STRICT  -- treats unknown modes as strict
+ * Enforcement model:
+ *   - ALWAYS STRICT for blocked default tools and blocked OS shell patterns.
+ *   - No permissive/moderate bypass for these categories.
  *
  * Design notes:
  *   - The plugin runs inside OpenCode's plugin runtime (Bun), NOT inside the
  *     kit's own Node.js runtime.  It must be self-contained (no imports from
  *     src/ or .opencode/lib/).
- *   - Reads OPENKIT_ENFORCEMENT_LEVEL and OPENKIT_WORKFLOW_MODE env vars so
- *     the kit launcher or session-start hook can override behavior.
+ *   - Intentionally does not honor permissive/moderate overrides for blocked
+ *     default tools and blocked shell patterns.
  *   - An allowlist of safe Bash commands (git, npm, node, docker, etc.) is
  *     checked first so legitimate system operations are never blocked.
  */
@@ -147,22 +146,14 @@ function isAllowedCommand(command) {
 // Enforcement level resolution
 // ---------------------------------------------------------------------------
 
-function resolveEnforcementLevel(env) {
-  // Explicit override takes priority
-  const explicit = env?.OPENKIT_ENFORCEMENT_LEVEL;
-  if (explicit === 'strict' || explicit === 'moderate' || explicit === 'permissive') {
-    return explicit;
-  }
-
-  // Derive from workflow mode
-  const mode = env?.OPENKIT_WORKFLOW_MODE;
-  if (mode === 'migration') {
-    return 'moderate';
-  }
-
-  // Default to strict (quick / full / unknown)
+function resolveEnforcementLevel() {
   return 'strict';
 }
+
+const BLOCKED_DEFAULT_TOOLS = new Map([
+  ['grep', 'Use tool.ast-grep-search, tool.semantic-search, or tool.find-symbol instead of the default grep tool.'],
+  ['glob', 'Use tool.find-symbol, tool.import-graph, or tool.ast-grep-search instead of the default glob tool.'],
+]);
 
 // ---------------------------------------------------------------------------
 // Plugin export
@@ -171,7 +162,16 @@ function resolveEnforcementLevel(env) {
 export const ToolEnforcementPlugin = async ({ project, client, $, directory, worktree }) => {
   return {
     'tool.execute.before': async (input, output) => {
-      // Only intercept bash tool calls
+      const blockedDefaultToolMessage = BLOCKED_DEFAULT_TOOLS.get(input.tool);
+      if (blockedDefaultToolMessage) {
+        throw new Error([
+          `[OpenKit Tool Enforcement] Blocked default tool: ${input.tool}.`,
+          blockedDefaultToolMessage,
+          'This workspace requires OpenKit kit tools for code search/navigation tasks.',
+        ].join('\n'));
+      }
+
+      // Only intercept shell command patterns for bash tool calls
       if (input.tool !== 'bash') {
         return;
       }
@@ -188,11 +188,6 @@ export const ToolEnforcementPlugin = async ({ project, client, $, directory, wor
 
       const level = resolveEnforcementLevel(process.env);
 
-      // In permissive mode, do nothing
-      if (level === 'permissive') {
-        return;
-      }
-
       // Check each substitution rule
       for (const rule of SUBSTITUTION_RULES) {
         if (rule.pattern.test(command)) {
@@ -200,27 +195,8 @@ export const ToolEnforcementPlugin = async ({ project, client, $, directory, wor
             `[OpenKit Tool Enforcement] Blocked bash command (category: ${rule.category}).`,
             `Command: ${command.length > 120 ? command.slice(0, 120) + '...' : command}`,
             `Suggestion: ${rule.suggestion}`,
-            '',
-            'If this command is intentional and cannot be replaced by a kit tool,',
-            'set OPENKIT_ENFORCEMENT_LEVEL=permissive to bypass this check.',
           ].join('\n');
-
-          if (level === 'strict') {
-            throw new Error(message);
-          }
-
-          // moderate — log warning but allow
-          if (client?.app?.log) {
-            await client.app.log({
-              body: {
-                service: 'openkit-tool-enforcement',
-                level: 'warn',
-                message: `OS command detected (${rule.category}): ${command.slice(0, 80)}`,
-                extra: { suggestion: rule.suggestion },
-              },
-            });
-          }
-          return;
+          throw new Error(message);
         }
       }
     },

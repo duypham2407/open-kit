@@ -107,27 +107,42 @@ test('plugin allows mkdir', async () => {
   assert.equal(result.blocked, false);
 });
 
-// ---------------------------------------------------------------------------
-// Moderate mode (migration)
-// ---------------------------------------------------------------------------
-
-test('plugin allows grep in moderate mode', async () => {
+test('plugin blocks grep in migration mode too', async () => {
   const result = await runBeforeHook('grep -r "TODO" src/', { OPENKIT_WORKFLOW_MODE: 'migration' });
-  assert.equal(result.blocked, false);
+  assert.equal(result.blocked, true);
 });
 
-test('plugin allows sed in moderate mode', async () => {
-  const result = await runBeforeHook('sed "s/old/new/g" file.ts', { OPENKIT_WORKFLOW_MODE: 'migration' });
-  assert.equal(result.blocked, false);
-});
-
-// ---------------------------------------------------------------------------
-// Permissive mode
-// ---------------------------------------------------------------------------
-
-test('plugin allows everything in permissive mode', async () => {
+test('plugin blocks grep even with permissive override', async () => {
   const result = await runBeforeHook('grep -r "TODO" src/', { OPENKIT_ENFORCEMENT_LEVEL: 'permissive' });
-  assert.equal(result.blocked, false);
+  assert.equal(result.blocked, true);
+});
+
+test('plugin blocks default grep tool', async () => {
+  const plugin = await ToolEnforcementPlugin({
+    project: {},
+    client: { app: { log: async () => {} } },
+    $: null,
+    directory: '/tmp/test',
+    worktree: '/tmp/test',
+  });
+  await assert.rejects(
+    () => plugin['tool.execute.before']({ tool: 'grep' }, { args: { pattern: 'foo' } }),
+    /Blocked default tool: grep/,
+  );
+});
+
+test('plugin blocks default glob tool', async () => {
+  const plugin = await ToolEnforcementPlugin({
+    project: {},
+    client: { app: { log: async () => {} } },
+    $: null,
+    directory: '/tmp/test',
+    worktree: '/tmp/test',
+  });
+  await assert.rejects(
+    () => plugin['tool.execute.before']({ tool: 'glob' }, { args: { pattern: '**/*.js' } }),
+    /Blocked default tool: glob/,
+  );
 });
 
 // ---------------------------------------------------------------------------

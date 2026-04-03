@@ -10,16 +10,6 @@ function resolveEnforcementLevel(workflowKernel) {
   if (process.env.OPENKIT_ENFORCEMENT_LEVEL) {
     return process.env.OPENKIT_ENFORCEMENT_LEVEL;
   }
-
-  try {
-    const mode = workflowKernel?.state?.()?.mode;
-    if (mode === 'migration') {
-      return 'moderate';
-    }
-  } catch {
-    // Best-effort mode detection
-  }
-
   return 'strict';
 }
 
