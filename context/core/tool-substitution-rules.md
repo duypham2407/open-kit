@@ -3,6 +3,17 @@
 You are working within a codebase intelligence kit that provides specialized
 tools for code understanding.  **Use these tools instead of OS-level commands.**
 
+## How Kit Tools Are Available
+
+Kit intelligence tools are exposed to the agent as **MCP tools** via the
+`openkit` MCP server (configured in `.opencode/opencode.json` under `mcp`).
+When OpenCode starts, it connects to the OpenKit MCP server over stdio and
+registers all kit tools alongside its built-in tools.
+
+Tool names in MCP follow the pattern `openkit_tool.<family>.<name>` — for
+example, `openkit_tool.find-symbol` or `openkit_tool.semantic-search`.
+Use them like any other tool call.
+
 The runtime enforces these substitutions. Bash calls for the listed OS
 commands on source code files are blocked or downgraded based on the active
 enforcement level.

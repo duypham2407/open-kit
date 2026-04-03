@@ -15,6 +15,7 @@ const GLOBAL_KIT_ASSETS = [
   '.opencode',
   'agents',
   'assets',
+  'bin',
   'skills',
   'commands',
   'context',
@@ -26,6 +27,7 @@ const GLOBAL_KIT_ASSETS = [
   'src/runtime',
   'src/global',
   'src/install',
+  'src/mcp-server',
   'src/command-detection.js',
   'src/version.js',
 ];
@@ -110,10 +112,20 @@ function listManagedFiles(kitRoot) {
   return files.sort();
 }
 
-function createOpenCodeConfig() {
+function createOpenCodeConfig(kitRoot) {
+  const mcpCommand = kitRoot
+    ? ['node', path.join(kitRoot, 'bin', 'openkit-mcp.js')]
+    : ['node', 'bin/openkit-mcp.js'];
   return {
     $schema: 'https://opencode.ai/config.json',
     default_agent: 'master-orchestrator',
+    mcp: {
+      openkit: {
+        type: 'local',
+        command: mcpCommand,
+        enabled: true,
+      },
+    },
     permission: {
       npm: 'allow',
       task: 'allow',
@@ -164,7 +176,7 @@ export function materializeGlobalInstall({
   const runtimeDependencies = provisionManagedNodeModules(paths.kitRoot);
 
   const installState = createGlobalInstallState({ kitVersion, profile: 'openkit' });
-  const openCodeConfig = createOpenCodeConfig();
+  const openCodeConfig = createOpenCodeConfig(paths.kitRoot);
 
   writeJson(paths.kitConfigPath, openCodeConfig);
   writeJson(paths.installStatePath, installState);

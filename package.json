@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@ast-grep/cli": "^0.42.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "better-sqlite3": "^12.8.0",
     "jscodeshift": "^17.3.0",
     "tree-sitter-javascript": "^0.25.0",
@@ -40,13 +41,14 @@
     "registry.json"
   ],
   "bin": {
-    "openkit": "bin/openkit.js"
+    "openkit": "bin/openkit.js",
+    "openkit-mcp": "bin/openkit-mcp.js"
   },
   "scripts": {
     "sync:install-bundle": "node scripts/sync-install-bundle.mjs",
     "verify:install-bundle": "node scripts/verify-install-bundle.mjs",
     "verify:runtime-foundation": "node --test tests/runtime/runtime-config-loader.test.js && node --test tests/runtime/capability-registry.test.js && node --test tests/runtime/runtime-bootstrap.test.js",
     "verify:governance": "node --test tests/runtime/governance-enforcement.test.js && node --test tests/runtime/registry-metadata.test.js && node --test \".opencode/tests/workflow-contract-consistency.test.js\"",
-    "verify:all": "npm run verify:install-bundle && npm run verify:governance && node --test \".opencode/tests/workflow-state-cli.test.js\" && node --test \".opencode/tests/session-start-hook.test.js\" && node --test tests/runtime/*.test.js && node --test tests/install/*.test.js && node --test tests/global/*.test.js && node --test tests/cli/*.test.js"
+    "verify:all": "npm run verify:install-bundle && npm run verify:governance && node --test \".opencode/tests/workflow-state-cli.test.js\" && node --test \".opencode/tests/session-start-hook.test.js\" && node --test tests/runtime/*.test.js && node --test tests/install/*.test.js && node --test tests/global/*.test.js && node --test tests/cli/*.test.js && node --test tests/mcp-server/*.test.js"
   }
 }
