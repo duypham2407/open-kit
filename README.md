@@ -107,45 +107,125 @@ For a framework upgrade, it may route to `Migration`.
 
 ## 6. Quick Start
 
-### Install
+### Install (macOS and Ubuntu)
+
+OpenKit is distributed as an npm global package:
 
 ```bash
 npm install -g @duypham93/openkit
 ```
 
-Then provision and verify the managed runtime kit:
+After npm install, run:
 
 ```bash
 openkit install --verify
 ```
 
-`openkit install` does all of the following:
+`openkit install --verify` will:
 
-- materializes the managed OpenKit kit under `OPENCODE_HOME`
-- installs or links `ast-grep`
-- installs or links `semgrep`
-- provisions bundled npm runtime dependencies into the managed kit so runtime tooling can resolve correctly:
+- materialize the managed OpenKit kit under `OPENCODE_HOME`
+- install or link `ast-grep`
+- install or link `semgrep`
+- provision runtime dependencies used by OpenKit tooling:
   - `better-sqlite3`
   - `jscodeshift`
   - `web-tree-sitter`
   - `tree-sitter-javascript`
   - `tree-sitter-typescript`
 
-If `semgrep` installation fails, install Python and pip first, then rerun:
+#### 6.1 macOS setup
+
+Prerequisites:
+
+- Node.js >= 18 (recommended: Node 20 LTS)
+- npm
+- OpenCode CLI (`opencode`) available on PATH
+
+Recommended install flow:
 
 ```bash
-# macOS
-brew install python3
+# 1) Verify Node/npm
+node -v
+npm -v
 
-# Ubuntu / Debian
-sudo apt install python3 python3-pip
+# 2) Install OpenKit globally
+npm install -g @duypham93/openkit
+
+# 3) Provision managed runtime and tooling
+openkit install --verify
+
+# 4) Doctor check
+openkit doctor
 ```
 
-If bundled native/runtime packages are missing or broken, reinstall the npm package and rerun install:
+If `semgrep` is missing:
+
+```bash
+brew install python3
+openkit install --verify
+```
+
+If native module setup fails (`better-sqlite3`):
 
 ```bash
 npm install -g @duypham93/openkit
 openkit install --verify
+openkit doctor
+```
+
+#### 6.2 Ubuntu / Debian setup
+
+Prerequisites:
+
+- Node.js >= 18 (recommended: Node 20 LTS)
+- npm
+- OpenCode CLI (`opencode`) available on PATH
+- build tools for native modules (`better-sqlite3`): `build-essential`, `python3`
+
+Recommended install flow:
+
+```bash
+# 1) Install system prerequisites
+sudo apt update
+sudo apt install -y build-essential python3 python3-pip
+
+# 2) Verify Node/npm
+node -v
+npm -v
+
+# 3) Install OpenKit globally
+npm install -g @duypham93/openkit
+
+# 4) Provision managed runtime and tooling
+openkit install --verify
+
+# 5) Doctor check
+openkit doctor
+```
+
+If `better-sqlite3` fails to build, reinstall after confirming build tools are installed:
+
+```bash
+sudo apt install -y build-essential python3
+npm install -g @duypham93/openkit
+openkit install --verify
+openkit doctor
+```
+
+#### 6.3 Common post-install checks (both OSes)
+
+```bash
+which openkit
+which openkit-mcp
+which opencode
+openkit doctor
+```
+
+If doctor reports install drift or missing global-kit files:
+
+```bash
+openkit upgrade
+openkit doctor
 ```
 
 ### Verify setup
