@@ -50,7 +50,13 @@ async function runCli(args, { cwd = worktreeRoot, env, input, prompt } = {}) {
       stdin.end();
     }
 
-    const status = await runPromise;
+    const timeoutMs = 20_000;
+    const status = await Promise.race([
+      runPromise,
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`runCli timed out after ${timeoutMs}ms`)), timeoutMs),
+      ),
+    ]);
     await new Promise((resolve) => setImmediate(resolve));
     return {
       status,

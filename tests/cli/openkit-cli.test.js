@@ -14,11 +14,12 @@ const __dirname = path.dirname(__filename);
 const worktreeRoot = path.resolve(__dirname, '..', '..');
 const binPath = path.join(worktreeRoot, 'bin', 'openkit.js');
 
-function runCli(args, { cwd = worktreeRoot, env } = {}) {
+function runCli(args, { cwd = worktreeRoot, env, timeout = 30_000 } = {}) {
   return spawnSync(process.execPath, [binPath, ...args], {
     cwd,
     encoding: 'utf8',
     env: env ?? process.env,
+    timeout,
   });
 }
 
