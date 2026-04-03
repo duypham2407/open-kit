@@ -26,6 +26,8 @@ If you have not run the command that proves the claim in the current working ses
 
 ## Gate Function
 
+When verification requires reading diffs, tracing changed code, or checking implementation evidence, follow `context/core/tool-substitution-rules.md` and prefer kit intelligence tools before basic built-in tools.
+
 Before making any statement that implies success:
 
 1. IDENTIFY which command proves the claim

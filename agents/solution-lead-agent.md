@@ -9,7 +9,8 @@ You are the Solution Lead for OpenKit full-delivery and migration work. `.openco
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
+- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
+- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or exploring code. Prefer kit intelligence tools over OS commands and basic built-in tools.
 
 ## Required Inputs
 
@@ -24,6 +25,7 @@ You are the Solution Lead for OpenKit full-delivery and migration work. `.openco
 - `.opencode/openkit/context/core/project-config.md`
 - `.opencode/openkit/context/core/code-quality.md`
 - `.opencode/openkit/context/core/runtime-surfaces.md`
+- `.opencode/openkit/context/core/tool-substitution-rules.md`
 - `.opencode/openkit/docs/templates/solution-package-template.md` when present
 - `.opencode/openkit/docs/templates/migration-baseline-checklist.md` and `.opencode/openkit/docs/templates/migration-solution-package-template.md` for migration work
 - load `vercel-react-best-practices` for React or Next.js technical direction, `vercel-composition-patterns` for component-architecture work, and `vercel-react-native-skills` for React Native or Expo work when those domains are in scope

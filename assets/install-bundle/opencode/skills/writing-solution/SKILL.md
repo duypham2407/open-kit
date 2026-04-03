@@ -9,6 +9,8 @@ description: "Converts an approved Product Lead scope package into an execution-
 
 This skill is used by `Solution Lead`. It turns an approved `Product Lead` scope package into an execution-ready solution package that `FullstackAgent`, `Code Reviewer`, and `QAAgent` can trust.
 
+When this skill requires reading code, tracing dependencies, or inspecting impacted files, follow `context/core/tool-substitution-rules.md` and prefer kit intelligence tools before basic built-in tools.
+
 Each solution package should be detailed enough that implementation can proceed without guesswork and review can trace decisions back to approved scope.
 
 For full delivery, the sequence is strict:

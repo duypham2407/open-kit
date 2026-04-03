@@ -25,6 +25,13 @@ test('agent prompts reference shared prompt contracts', () => {
   }
 });
 
+test('agents explicitly reference tooling-first substitution rules', () => {
+  for (const file of listMarkdownFiles('agents')) {
+    const contents = read(file);
+    assert.match(contents, /tool-substitution-rules\.md/);
+  }
+});
+
 test('workflow command prompts reference shared prompt contracts except model configuration helper', () => {
   for (const file of listMarkdownFiles('commands')) {
     if (file.endsWith('configure-agent-models.md')) {
@@ -35,6 +42,31 @@ test('workflow command prompts reference shared prompt contracts except model co
     }
     const contents = read(file);
     assert.match(contents, /prompt-contracts\.md/);
+  }
+});
+
+test('workflow command prompts explicitly reference tooling-first substitution rules', () => {
+  for (const file of listMarkdownFiles('commands')) {
+    const contents = read(file);
+    assert.match(contents, /tool-substitution-rules\.md/);
+  }
+});
+
+test('high-risk skills reference tooling-first substitution rules', () => {
+  const files = [
+    'skills/code-review/SKILL.md',
+    'skills/systematic-debugging/SKILL.md',
+    'skills/test-driven-development/SKILL.md',
+    'skills/verification-before-completion/SKILL.md',
+    'skills/writing-solution/SKILL.md',
+    'skills/brainstorming/SKILL.md',
+    'skills/subagent-driven-development/SKILL.md',
+    'skills/using-skills/SKILL.md',
+  ];
+
+  for (const file of files) {
+    const contents = read(file);
+    assert.match(contents, /tool-substitution-rules\.md/);
   }
 });
 

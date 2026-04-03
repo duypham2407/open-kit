@@ -84,3 +84,4 @@ You are the workflow controller for OpenKit. `.opencode/openkit/context/core/wor
 - `.opencode/openkit/context/core/session-resume.md`
 - `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/context/core/workflow-state-schema.md`
+- `.opencode/openkit/context/core/tool-substitution-rules.md` — enforce tooling-first rules when dispatching work to other agents

@@ -27,6 +27,8 @@ When you identify a situation (for example: need to write a solution package, fi
 3. **Read**: use `view_file` (or the equivalent tool) to read the ENTIRE `SKILL.md`
 4. **Execute**: apply the steps from that file
 
+When a skill requires code exploration or file inspection, also follow `context/core/tool-substitution-rules.md` so kit intelligence tools are preferred before basic built-in tools or OS commands.
+
 When choosing between multiple plausible skills, use `.opencode/openkit/docs/maintainer/role-skill-matrix.md` when that matrix is available in the active kit surface.
 
 ## Built-In Bundled Skills

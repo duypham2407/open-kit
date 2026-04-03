@@ -6,6 +6,8 @@ description: "Inspect and configure the embedding provider for semantic code sea
 
 Use `/configure-embedding` when you want to set up or inspect the embedding provider used for semantic code search inside an OpenKit session.
 
+When inspecting repository code or runtime surfaces during embedding setup, follow `.opencode/openkit/context/core/tool-substitution-rules.md` and prefer kit intelligence tools before basic built-in tools or OS commands.
+
 ## Purpose
 
 - show the current embedding provider configuration for the project

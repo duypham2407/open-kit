@@ -16,7 +16,8 @@ You are the QA engineer for OpenKit. `.opencode/openkit/context/core/workflow.md
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
+- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
+- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` — use kit intelligence tools instead of OS commands when reading or searching code.
 
 ## Shared Responsibilities
 

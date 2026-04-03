@@ -9,6 +9,8 @@ description: "Socratic design refinement process. Used before writing any specs 
 
 When the user brings a new idea or request, or when `Product Lead` or `Solution Lead` encounters meaningful ambiguity, this skill should be used before locking in scope or solution decisions.
 
+When brainstorming requires exploring existing code, follow `context/core/tool-substitution-rules.md` and prefer kit intelligence tools before basic built-in tools.
+
 Do not force brainstorming when the request is already clear enough for direct scope or solution work. Use it when ambiguity is still high enough that jumping straight into scope, planning, or code would be risky.
 
 ## Execution Process

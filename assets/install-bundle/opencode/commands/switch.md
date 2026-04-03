@@ -5,6 +5,7 @@ description: "Inspect or switch between configured runtime agent model profiles.
 # Command: `/switch`
 
 - Follow `.opencode/openkit/context/core/prompt-contracts.md`.
+- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching runtime code or profile-related files.
 - Use `.opencode/openkit/context/core/runtime-surfaces.md` to keep profile switching explicit and separate from workflow-state authority.
 - Use this command to list, inspect, toggle, set, or clear manual profile selection for an agent with 2 configured profiles.
 - Prefer this when the same model family is available through multiple providers and you want a fast manual switch.

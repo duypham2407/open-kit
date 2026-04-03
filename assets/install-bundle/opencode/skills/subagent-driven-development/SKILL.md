@@ -9,6 +9,8 @@ description: "Execution engine. Dispatches fresh subagents for each task to avoi
 
 Used by the Fullstack Agent to execute a solution package.
 
+When preparing task context from repository code, follow `context/core/tool-substitution-rules.md` and prefer kit intelligence tools before basic built-in tools.
+
 When working through a complex sequence of tasks, the primary agent can get overwhelmed or hallucinate because the context grows too large. Subagent-Driven Development solves this by splitting the work into tasks and dispatching a fresh subagent to handle each task individually.
 
 ## Execution Process

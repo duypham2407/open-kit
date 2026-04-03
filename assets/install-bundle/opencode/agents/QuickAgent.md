@@ -35,6 +35,7 @@ Read these before starting any work:
 - `.opencode/openkit/context/core/workflow.md` — lane semantics (Quick Task Lane section)
 - `.opencode/openkit/context/core/project-config.md` — available commands and tooling reality
 - `.opencode/openkit/context/core/runtime-surfaces.md` — when command-surface boundaries matter
+- `.opencode/openkit/context/core/tool-substitution-rules.md` — **mandatory**: use kit intelligence tools instead of OS commands on source code files
 
 Load these skills when relevant:
 
@@ -118,7 +119,7 @@ This stage is a bookkeeping step. Do not linger here.
 
 This is the most important part of brainstorm. You must understand the codebase before proposing solutions.
 
-- Search for all files related to the user's request using grep, glob, and semantic search
+- Search for all files related to the user's request using the **Grep tool** (built-in), **Glob tool**, **`tool.semantic-search`**, and **`tool.find-symbol`**
 - Read the relevant source files completely — do not skim or read only function signatures
 - Trace the call chain: who calls this code, what does this code call, what data flows through it
 - Identify the test files that cover this area. Read them to understand expected behavior

@@ -23,6 +23,7 @@ You are the Product Lead for OpenKit full-delivery work. `.opencode/openkit/cont
 - `.opencode/openkit/context/core/workflow.md`
 - `.opencode/openkit/context/core/project-config.md`
 - `.opencode/openkit/context/core/runtime-surfaces.md`
+- `.opencode/openkit/context/core/tool-substitution-rules.md` — follow tooling-first rules when reading or exploring code
 - `.opencode/openkit/docs/templates/scope-package-template.md` when present
 
 ## Role-Local Responsibilities

@@ -3,8 +3,17 @@
 You are working within a codebase intelligence kit that provides specialized
 tools for code understanding.  **Use these tools instead of OS-level commands.**
 
-The runtime enforces these substitutions.  Bash calls for the listed OS
-commands on source code files will be blocked in strict mode.
+The runtime enforces these substitutions. Bash calls for the listed OS
+commands on source code files are blocked or downgraded based on the active
+enforcement level.
+
+## Enforcement Levels
+
+- `strict`: block banned OS-command usage on source code files. This is the default for `quick` and `full` work.
+- `moderate`: warn on banned OS-command usage and allow it to proceed only when the lane intentionally tolerates compatibility-oriented fallback. This is the default for `migration` work.
+- `permissive`: do not block or warn. Use only for explicit debugging or compatibility escape hatches.
+
+`OPENKIT_ENFORCEMENT_LEVEL` may override the mode-derived default when the runtime explicitly sets it.
 
 ## Required Substitutions (Level 1 — OS commands → built-in tools)
 
@@ -37,6 +46,7 @@ that regex and glob cannot match.
 | Understand file structure | Read tool (full file) | `tool.syntax-outline` | Want the shape of a file before reading it all |
 | Get context at position | Read tool (offset) | `tool.syntax-context` | Need surrounding code around a specific location |
 | Locate a construct | Read tool + search | `tool.syntax-locate` | Find the line/position of a named construct in a file |
+| Quick symbol navigation | Read + Grep | `tool.heuristic-lsp` | Lightweight symbol navigation when graph-backed tools are unavailable |
 | Navigate to definition | Read + Grep | `tool.graph-goto-definition` | IDE-style "go to definition" |
 | Find all references | Grep tool | `tool.graph-find-references` | Find every usage of a symbol across the codebase |
 | Understand call chains | Manual tracing | `tool.graph-call-hierarchy` | Need to see callers/callees of a function |

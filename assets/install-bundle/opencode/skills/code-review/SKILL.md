@@ -15,6 +15,30 @@ The goal is to be the technical gate before QA, catching off-scope or low-qualit
 - What needs review? (files / commit / PR)
 - Comparison documents: approved scope package (requirements), approved solution package (design), and code standards. Use a separate architecture artifact only as supplemental context when the repository explicitly includes one.
 
+## Tool Usage -- MANDATORY
+
+When this skill requires reading, searching, or tracing code, follow `context/core/tool-substitution-rules.md`.
+
+### Do NOT use OS commands for source-code inspection
+
+- Do not use `grep`, `find`, `cat`, `head`, `tail`, `sed`, `awk`, `wc`, or `echo > file` on source code files.
+- Use built-in tools for fallback (`Grep`, `Glob`, `Read`, `Edit`, `Write`) only when the smarter kit tool is unavailable.
+
+### Prefer these kit tools first
+
+- `tool.syntax-outline`: inspect file structure before reviewing large or unfamiliar files.
+- `tool.syntax-context`: inspect a precise code region without reading the wrong area.
+- `tool.syntax-locate`: verify handlers, exports, and structural expectations exist where claimed.
+- `tool.graph-goto-definition`: jump to the implementation that a symbol or API name resolves to.
+- `tool.graph-find-references`: trace all usages of the reviewed symbol or function.
+- `tool.heuristic-lsp`: use lightweight symbol navigation when graph-backed tools are unavailable.
+- `tool.rule-scan` and `tool.security-scan`: gather quality and security evidence before finalizing review findings.
+
+### Fallback
+
+- If a kit intelligence tool is unavailable or degraded, fall back to the corresponding built-in tool.
+- Always try the smarter tool first and record when you had to fall back.
+
 ## Two-Stage Review Process
 
 Strictly follow these two stages in order. Do not talk about formatting or clean code if the feature itself is off-spec.

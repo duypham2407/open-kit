@@ -20,6 +20,12 @@ Use this file to keep shared prompt rules stable across agent and command instru
 - `context/core/runtime-surfaces.md` explains which OpenKit surface should answer which kind of question.
 - Do not restate lane law, approval law, or runtime-surface law in every agent or command file when a reference is enough.
 
+## Shared Tool Substitution Rule
+
+- Follow `context/core/tool-substitution-rules.md` at all times. OS commands (`grep`, `find`, `cat`, `head`, `tail`, `sed`, `awk`, `wc`, `echo > file`) are blocked on source code files in strict mode.
+- Prefer kit intelligence tools (`tool.semantic-search`, `tool.find-symbol`, `tool.import-graph`, `tool.graph-goto-definition`, `tool.graph-find-references`, `tool.graph-call-hierarchy`, `tool.graph-rename-preview`, `tool.syntax-outline`, `tool.syntax-context`, `tool.codemod-preview`, `tool.codemod-apply`) over basic built-in tools when they provide structural or semantic understanding.
+- When a kit tool is unavailable or degraded, fall back to the corresponding basic built-in tool. Always try the smarter tool first.
+
 ## Shared Verification Rule
 
 - Use the strongest real verification path available.

@@ -35,6 +35,7 @@ Read these before starting any work:
 - `.opencode/openkit/context/core/workflow.md` — lane semantics (Quick Task Lane section)
 - `.opencode/openkit/context/core/project-config.md` — available commands and tooling reality
 - `.opencode/openkit/context/core/runtime-surfaces.md` — when command-surface boundaries matter
+- `.opencode/openkit/context/core/tool-substitution-rules.md` — **mandatory**: use kit intelligence tools instead of OS commands on source code files
 
 Load these skills when relevant:
 

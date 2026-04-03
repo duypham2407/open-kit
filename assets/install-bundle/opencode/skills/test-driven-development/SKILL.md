@@ -9,6 +9,8 @@ description: "RED-GREEN-REFACTOR cycle. Enforces strictly writing failing tests 
 
 This is the Iron Law for the Fullstack Agent. You are NOT ALLOWED to write any production code until a failing test proves that code needs to exist.
 
+When TDD requires locating implementation points, related tests, or call sites, follow `context/core/tool-substitution-rules.md` and prefer kit intelligence tools before basic built-in tools.
+
 ## Execution Process (RED-GREEN-REFACTOR)
 
 ### Step 1: RED (Write a Failing Test)
