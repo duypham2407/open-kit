@@ -11,9 +11,7 @@ import {
 } from "./background-run-store.js"
 
 import {
-  resolveKitRoot,
-  resolveProjectRoot,
-  resolveRuntimeRoot,
+  resolvePathContext,
   resolveStatePath,
 } from "./runtime-paths.js"
 
@@ -297,14 +295,18 @@ function createEmptyWorkItemIndex() {
 }
 
 function ensureWorkItemStoreReady(customStatePath) {
-  const runtimeRoot = resolveRuntimeRoot(customStatePath)
-  const projectRoot = resolveProjectRoot(customStatePath)
+  const pathContext = resolvePathContext(customStatePath)
+  const { projectRoot, runtimeRoot } = pathContext
 
   if (runtimeRoot !== projectRoot) {
     const runtimePaths = resolveWorkItemPaths(runtimeRoot, "__bootstrap__")
     const projectPaths = resolveWorkItemPaths(projectRoot, "__bootstrap__")
 
-    if (!fs.existsSync(runtimePaths.indexPath) && fs.existsSync(projectPaths.workflowStatePath)) {
+    if (
+      !fs.existsSync(runtimePaths.indexPath)
+      && !fs.existsSync(runtimePaths.workflowStatePath)
+      && fs.existsSync(projectPaths.workflowStatePath)
+    ) {
       fs.mkdirSync(path.dirname(runtimePaths.workflowStatePath), { recursive: true })
       fs.copyFileSync(projectPaths.workflowStatePath, runtimePaths.workflowStatePath)
 
@@ -316,7 +318,7 @@ function ensureWorkItemStoreReady(customStatePath) {
 
   bootstrapRuntimeStore(runtimeRoot)
 
-  return runtimeRoot
+  return pathContext
 }
 
 function upsertWorkItemIndexEntry(index, state, workItemId, relativeStatePath) {
@@ -340,9 +342,8 @@ function upsertWorkItemIndexEntry(index, state, workItemId, relativeStatePath) {
 }
 
 function readManagedState(customStatePath, workItemId = null) {
-  const statePath = resolveStatePath(customStatePath)
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  const index = readWorkItemIndex(projectRoot)
+  const { statePath, projectRoot, runtimeRoot, kitRoot } = ensureWorkItemStoreReady(customStatePath)
+  const index = readWorkItemIndex(runtimeRoot)
   const resolvedWorkItemId = workItemId ?? index.active_work_item_id
 
   if (!resolvedWorkItemId) {
@@ -352,22 +353,23 @@ function readManagedState(customStatePath, workItemId = null) {
   return {
     statePath,
     projectRoot,
+    runtimeRoot,
+    kitRoot,
     index,
     workItemId: resolvedWorkItemId,
-    state: _store.readWorkItemState(projectRoot, resolvedWorkItemId),
+    state: _store.readWorkItemState(runtimeRoot, resolvedWorkItemId),
   }
 }
 
 function persistManagedState(customStatePath, state, options = {}) {
-  const statePath = resolveStatePath(customStatePath)
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const { statePath, projectRoot, runtimeRoot, kitRoot } = ensureWorkItemStoreReady(customStatePath)
   const workItemId = options.workItemId ?? deriveWorkItemId(state)
-  const workItemPaths = resolveWorkItemPaths(projectRoot, workItemId)
+  const workItemPaths = resolveWorkItemPaths(runtimeRoot, workItemId)
   const index = fs.existsSync(workItemPaths.indexPath)
-    ? readWorkItemIndex(projectRoot)
+    ? readWorkItemIndex(runtimeRoot)
     : createEmptyWorkItemIndex()
   const hasPersistedState = fs.existsSync(workItemPaths.statePath)
-  const currentPersistedState = hasPersistedState ? _store.readWorkItemState(projectRoot, workItemId) : null
+  const currentPersistedState = hasPersistedState ? _store.readWorkItemState(runtimeRoot, workItemId) : null
   const previousIndexSnapshot = JSON.parse(JSON.stringify(index))
   const hadMirrorState = fs.existsSync(statePath)
   const previousMirrorState = hadMirrorState ? readState(statePath).state : null
@@ -380,9 +382,9 @@ function persistManagedState(customStatePath, state, options = {}) {
     })
   }
 
-  const persistedState = writeWorkItemState(projectRoot, workItemId, state)
+  const persistedState = writeWorkItemState(runtimeRoot, workItemId, state)
   try {
-    validateManagedState(persistedState, projectRoot, workItemId)
+    validateManagedState(persistedState, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
     const nextActiveWorkItemId = options.activateWorkItemId ?? workItemId
     const mirrorRefreshPlan = planGuardedMirrorRefresh({
@@ -402,7 +404,7 @@ function persistManagedState(customStatePath, state, options = {}) {
         })
       }
 
-      _store.writeCompatibilityMirror(projectRoot, persistedState)
+      _store.writeCompatibilityMirror(runtimeRoot, persistedState)
 
       const mirrorState = readState(statePath).state
       const mirrorRevision = captureRevision(mirrorState)
@@ -416,22 +418,22 @@ function persistManagedState(customStatePath, state, options = {}) {
 
     upsertWorkItemIndexEntry(index, persistedState, workItemId, workItemPaths.relativeStatePath)
     index.active_work_item_id = nextActiveWorkItemId
-    _store.writeWorkItemIndex(projectRoot, index)
+    _store.writeWorkItemIndex(runtimeRoot, index)
   } catch (error) {
     if (currentPersistedState) {
-      writeWorkItemState(projectRoot, workItemId, currentPersistedState)
+      writeWorkItemState(runtimeRoot, workItemId, currentPersistedState)
     } else if (fs.existsSync(workItemPaths.statePath)) {
       fs.rmSync(workItemPaths.statePath)
     }
 
     if (previousMirrorState) {
-      _store.writeCompatibilityMirror(projectRoot, previousMirrorState)
+      _store.writeCompatibilityMirror(runtimeRoot, previousMirrorState)
     } else if (!hadMirrorState && fs.existsSync(statePath)) {
       fs.rmSync(statePath)
     }
 
     try {
-      _store.writeWorkItemIndex(projectRoot, previousIndexSnapshot)
+      _store.writeWorkItemIndex(runtimeRoot, previousIndexSnapshot)
     } catch (_rollbackError) {
       // Preserve the original failure after best-effort rollback.
     }
@@ -441,6 +443,8 @@ function persistManagedState(customStatePath, state, options = {}) {
   return {
     statePath,
     projectRoot,
+    runtimeRoot,
+    kitRoot,
     index,
     state: persistedState,
   }
@@ -517,15 +521,16 @@ function buildMigrationSliceBoardView(state, board) {
 
 function readWorkItemContext(workItemId, customStatePath) {
   ensureString(workItemId, "work_item_id")
-  const statePath = resolveStatePath(customStatePath)
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  const state = _store.readWorkItemState(projectRoot, workItemId)
+  const { statePath, projectRoot, runtimeRoot, kitRoot } = ensureWorkItemStoreReady(customStatePath)
+  const state = _store.readWorkItemState(runtimeRoot, workItemId)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
   return {
     statePath,
     projectRoot,
+    runtimeRoot,
+    kitRoot,
     workItemId,
     state,
   }
@@ -590,11 +595,11 @@ function buildMigrationBoardForValidation(state, board) {
 
 function withTaskBoard(workItemId, customStatePath, mutator) {
   const context = readWorkItemContext(workItemId, customStatePath)
-  const { state, projectRoot } = context
+  const { state, runtimeRoot } = context
   requireFullModeWorkItem(state, workItemId)
   requireTaskBoardStage(state, workItemId)
 
-  const existingBoard = readTaskBoardIfExists(projectRoot, workItemId)
+  const existingBoard = readTaskBoardIfExists(runtimeRoot, workItemId)
   const baseBoard = {
     mode: state.mode,
     current_stage: state.current_stage,
@@ -603,7 +608,7 @@ function withTaskBoard(workItemId, customStatePath, mutator) {
   }
   const nextBoard = mutator(JSON.parse(JSON.stringify(baseBoard)), context)
   const validatedBoard = validateTaskBoard(buildBoardForValidation(state, buildBoardView(state, nextBoard)))
-  writeTaskBoard(projectRoot, workItemId, nextBoard)
+  writeTaskBoard(runtimeRoot, workItemId, nextBoard)
 
   return {
     ...context,
@@ -613,15 +618,15 @@ function withTaskBoard(workItemId, customStatePath, mutator) {
 
 function withMigrationSliceBoard(workItemId, customStatePath, mutator) {
   const context = readWorkItemContext(workItemId, customStatePath)
-  const { state, projectRoot } = context
+  const { state, runtimeRoot } = context
   requireMigrationModeWorkItem(state, workItemId)
   requireMigrationSliceBoardStage(state, workItemId)
 
-  const existingBoard = readMigrationSliceBoardIfExists(projectRoot, workItemId)
+  const existingBoard = readMigrationSliceBoardIfExists(runtimeRoot, workItemId)
   const baseBoard = buildMigrationSliceBoardView(state, existingBoard)
   const nextBoard = mutator(JSON.parse(JSON.stringify(baseBoard)), context)
   const validatedBoard = validateMigrationSliceBoard(buildMigrationBoardForValidation(state, nextBoard))
-  writeMigrationSliceBoard(projectRoot, workItemId, validatedBoard)
+  writeMigrationSliceBoard(runtimeRoot, workItemId, validatedBoard)
 
   return {
     ...context,
@@ -700,10 +705,11 @@ function buildMigrationSliceRecord(sliceInput) {
 }
 
 function validateManagedState(state, projectRoot, workItemId, options = {}) {
+  const storeRoot = options.storeRoot ?? projectRoot
   validatePrimaryArtifactContracts(state, projectRoot)
 
-  const taskBoard = readTaskBoardIfExists(projectRoot, workItemId)
-  const migrationSliceBoard = readMigrationSliceBoardIfExists(projectRoot, workItemId)
+  const taskBoard = readTaskBoardIfExists(storeRoot, workItemId)
+  const migrationSliceBoard = readMigrationSliceBoardIfExists(storeRoot, workItemId)
   const effectiveParallelization = state.parallelization ?? createDefaultParallelization(state.mode)
 
   if (state.mode !== "full") {
@@ -830,10 +836,10 @@ function tryReadJson(filePath) {
 }
 
 function getRegistry(customStatePath) {
-  const projectRoot = resolveProjectRoot(customStatePath)
-  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const { projectRoot, kitRoot } = resolvePathContext(customStatePath)
+  const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
   const manifest = readJsonIfExists(manifestPath)
-  const { registryPath } = getManifestPaths(projectRoot, manifest)
+  const { registryPath } = getManifestPaths(kitRoot, manifest)
   const registry = readJsonIfExists(registryPath)
 
   if (!registry) {
@@ -850,10 +856,10 @@ function getRegistry(customStatePath) {
 }
 
 function getInstallManifest(customStatePath) {
-  const projectRoot = resolveProjectRoot(customStatePath)
-  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const { projectRoot, kitRoot } = resolvePathContext(customStatePath)
+  const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
   const manifest = readJsonIfExists(manifestPath)
-  const { installManifestPath } = getManifestPaths(projectRoot, manifest)
+  const { installManifestPath } = getManifestPaths(kitRoot, manifest)
   const installManifest = readJsonIfExists(installManifestPath)
 
   if (!installManifest) {
@@ -1673,9 +1679,8 @@ function requireLinkedArtifacts(state, artifactKinds, message) {
   }
 }
 
-function autoScaffoldPrimaryArtifactIfNeeded(state, projectRoot, targetStage) {
+function autoScaffoldPrimaryArtifactIfNeeded(state, projectRoot, kitRoot, targetStage) {
   let kind = null
-  const kitRoot = process.env.OPENKIT_KIT_ROOT ? path.resolve(process.env.OPENKIT_KIT_ROOT) : null
 
   if (targetStage === "full_product") {
     kind = "scope_package"
@@ -1733,11 +1738,11 @@ function setRoutingProfile(workIntent, behaviorDelta, dominantUncertainty, scope
 
 function mutate(customStatePath, mutator) {
   const context = readManagedState(customStatePath)
-  const { state, workItemId, index, projectRoot } = context
+  const { state, workItemId, index, projectRoot, runtimeRoot } = context
   const expectedRevision = captureRevision(state)
   const expectedMirrorRevision = index.active_work_item_id === workItemId ? expectedRevision : null
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
   const nextState = mutator(JSON.parse(JSON.stringify(state)), context)
   nextState.updated_at = timestamp()
   validateStateObject(nextState)
@@ -1751,13 +1756,13 @@ function mutate(customStatePath, mutator) {
 
 function mutateWorkItem(workItemId, customStatePath, mutator) {
   const context = readWorkItemContext(workItemId, customStatePath)
-  const { state, projectRoot } = context
-  const index = readWorkItemIndex(projectRoot)
+  const { state, projectRoot, runtimeRoot } = context
+  const index = readWorkItemIndex(runtimeRoot)
   const expectedRevision = captureRevision(state)
   const expectedMirrorRevision = index.active_work_item_id === workItemId ? expectedRevision : null
 
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
   const nextState = mutator(JSON.parse(JSON.stringify(state)), context)
   nextState.updated_at = timestamp()
@@ -1772,21 +1777,21 @@ function mutateWorkItem(workItemId, customStatePath, mutator) {
 }
 
 function showState(customStatePath) {
-  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  const { statePath, state, projectRoot, runtimeRoot, workItemId } = readManagedState(customStatePath)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
   return { statePath, state }
 }
 
 function showWorkItemState(workItemId, customStatePath) {
   ensureString(workItemId, "work_item_id")
-  const { statePath, projectRoot, state } = readManagedState(customStatePath, workItemId)
+  const { statePath, projectRoot, runtimeRoot, state } = readManagedState(customStatePath, workItemId)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
   return {
     statePath,
-    workItemStatePath: resolveWorkItemPaths(projectRoot, workItemId).statePath,
+    workItemStatePath: resolveWorkItemPaths(runtimeRoot, workItemId).statePath,
     state,
   }
 }
@@ -1796,13 +1801,14 @@ function createWorkItem(mode, featureId, featureSlug, modeReason, customStatePat
 }
 
 function listWorkItems(customStatePath) {
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  const index = readWorkItemIndex(projectRoot)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  const index = readWorkItemIndex(runtimeRoot)
   return {
     projectRoot,
+    runtimeRoot,
     index,
     workItems: index.work_items.map((entry) => {
-      const state = _store.readWorkItemState(projectRoot, entry.work_item_id)
+      const state = _store.readWorkItemState(runtimeRoot, entry.work_item_id)
       return {
         ...entry,
         next_action: getNextAction(state),
@@ -1822,8 +1828,8 @@ function getWorkItemCloseoutSummary(workItemId, customStatePath) {
   const recommendedArtifacts = artifactReadiness.filter((entry) => entry.status === "recommended-now")
   const linkedArtifacts = flattenArtifactRefs(state)
   const unresolvedIssues = Array.isArray(state.issues) ? state.issues : []
-  const board = state.mode === "full" ? readTaskBoardIfExists(context.projectRoot, workItemId) : null
-  const migrationBoardReadiness = getMigrationSliceBoardReadiness(context.projectRoot, workItemId, state)
+  const board = state.mode === "full" ? readTaskBoardIfExists(context.runtimeRoot, workItemId) : null
+  const migrationBoardReadiness = getMigrationSliceBoardReadiness(context.runtimeRoot, workItemId, state)
   const activeTasks = Array.isArray(board?.tasks)
     ? board.tasks.filter((task) => ["claimed", "in_progress", "qa_in_progress"].includes(task.status))
     : []
@@ -1902,9 +1908,9 @@ function updateIssueStatus(issueId, nextStatus, customStatePath) {
 }
 
 function listStaleIssues(customStatePath) {
-  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  const { statePath, state, projectRoot, runtimeRoot, workItemId } = readManagedState(customStatePath)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
   const staleIssues = state.issues.filter(
     (issue) => issue.current_status === "open" && (issue.reopen_count > 0 || issue.repeat_count > 0 || issue.blocked_since),
@@ -1918,9 +1924,9 @@ function listStaleIssues(customStatePath) {
 }
 
 function getIssueAgingReport(customStatePath) {
-  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  const { statePath, state, projectRoot, runtimeRoot, workItemId } = readManagedState(customStatePath)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
   return {
     statePath,
@@ -1931,12 +1937,12 @@ function getIssueAgingReport(customStatePath) {
 }
 
 function getWorkflowMetrics(customStatePath) {
-  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  const { statePath, state, projectRoot, runtimeRoot, workItemId } = readManagedState(customStatePath)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
-  const board = state.mode === "full" ? readTaskBoardIfExists(projectRoot, workItemId) : null
-  const migrationBoard = state.mode === "migration" ? readMigrationSliceBoardIfExists(projectRoot, workItemId) : null
+  const board = state.mode === "full" ? readTaskBoardIfExists(runtimeRoot, workItemId) : null
+  const migrationBoard = state.mode === "migration" ? readMigrationSliceBoardIfExists(runtimeRoot, workItemId) : null
   const readiness = buildReadinessSummary(state, {
     requireTaskBoard: state.mode === "full" && ["full_implementation", "full_qa", "full_done"].includes(state.current_stage),
     taskBoardValid: state.mode !== "full" || state.current_stage === "full_solution" ? true : Boolean(board),
@@ -1961,9 +1967,9 @@ function getWorkflowMetrics(customStatePath) {
 }
 
 function getApprovalBottlenecks(customStatePath) {
-  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  const { statePath, state, projectRoot, runtimeRoot, workItemId } = readManagedState(customStatePath)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
   const pending = Object.entries(state.approvals)
     .filter(([, approval]) => approval.status === "pending")
@@ -1977,9 +1983,9 @@ function getApprovalBottlenecks(customStatePath) {
 }
 
 function getQaFailureSummary(customStatePath) {
-  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  const { statePath, state, projectRoot, runtimeRoot, workItemId } = readManagedState(customStatePath)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
   const qaIssues = state.issues.filter((issue) => issue.rooted_in === "implementation" || issue.rooted_in === "architecture")
 
@@ -1992,13 +1998,13 @@ function getQaFailureSummary(customStatePath) {
 }
 
 function getTaskAgingReport(customStatePath) {
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  const index = readWorkItemIndex(projectRoot)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  const index = readWorkItemIndex(runtimeRoot)
   const reports = []
 
   for (const item of index.work_items) {
-    const state = _store.readWorkItemState(projectRoot, item.work_item_id)
-    const board = state.mode === "full" ? readTaskBoardIfExists(projectRoot, item.work_item_id) : null
+    const state = _store.readWorkItemState(runtimeRoot, item.work_item_id)
+    const board = state.mode === "full" ? readTaskBoardIfExists(runtimeRoot, item.work_item_id) : null
     const tasks = Array.isArray(board?.tasks) ? board.tasks : []
     const staleTasks = tasks.filter((task) => ["claimed", "in_progress", "qa_in_progress", "blocked"].includes(task.status))
     reports.push({
@@ -2011,6 +2017,7 @@ function getTaskAgingReport(customStatePath) {
 
   return {
     projectRoot,
+    runtimeRoot,
     reports,
   }
 }
@@ -2035,8 +2042,8 @@ function getRuntimeShortSummary(customStatePath) {
 
 function startBackgroundRun(title, payloadJson, workItemId, taskId, customStatePath) {
   ensureString(title, "title")
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  bootstrapBackgroundRunStore(projectRoot)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  bootstrapBackgroundRunStore(runtimeRoot)
 
   let payload = {}
   if (payloadJson) {
@@ -2057,13 +2064,14 @@ function startBackgroundRun(title, payloadJson, workItemId, taskId, customStateP
 
   return {
     projectRoot,
-    run: recordBackgroundRun(projectRoot, run),
+    runtimeRoot,
+    run: recordBackgroundRun(runtimeRoot, run),
   }
 }
 
 function completeBackgroundRun(runId, outputJson, customStatePath) {
   ensureString(runId, "run_id")
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
 
   let output = null
   if (outputJson) {
@@ -2076,7 +2084,8 @@ function completeBackgroundRun(runId, outputJson, customStatePath) {
 
   return {
     projectRoot,
-    run: updateBackgroundRun(projectRoot, runId, {
+    runtimeRoot,
+    run: updateBackgroundRun(runtimeRoot, runId, {
       status: "completed",
       output,
     }),
@@ -2085,10 +2094,11 @@ function completeBackgroundRun(runId, outputJson, customStatePath) {
 
 function cancelBackgroundRun(runId, customStatePath) {
   ensureString(runId, "run_id")
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
   return {
     projectRoot,
-    run: updateBackgroundRun(projectRoot, runId, {
+    runtimeRoot,
+    run: updateBackgroundRun(runtimeRoot, runId, {
       status: "cancelled",
     }),
   }
@@ -2096,28 +2106,30 @@ function cancelBackgroundRun(runId, customStatePath) {
 
 function getBackgroundRun(runId, customStatePath) {
   ensureString(runId, "run_id")
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
   return {
     projectRoot,
-    run: readBackgroundRun(projectRoot, runId),
+    runtimeRoot,
+    run: readBackgroundRun(runtimeRoot, runId),
   }
 }
 
 function getBackgroundRuns(customStatePath) {
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
   return {
     projectRoot,
-    runs: listBackgroundRuns(projectRoot),
+    runtimeRoot,
+    runs: listBackgroundRuns(runtimeRoot),
   }
 }
 
 function getDefinitionOfDone(customStatePath) {
-  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  const { statePath, state, projectRoot, runtimeRoot, workItemId } = readManagedState(customStatePath)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
   const rule = getDodRule(state.mode)
-  const migrationBoardReadiness = getMigrationSliceBoardReadiness(projectRoot, workItemId, state)
+  const migrationBoardReadiness = getMigrationSliceBoardReadiness(runtimeRoot, workItemId, state)
   const readiness = buildReadinessSummary(state, {
     requireTaskBoard: state.mode === "full" && ["full_implementation", "full_qa", "full_done"].includes(state.current_stage),
     taskBoardValid: true,
@@ -2185,7 +2197,7 @@ function getDefinitionOfDone(customStatePath) {
       const policyResult = enforcePolicy({
         mode: state.mode,
         targetStage: policyStage,
-        runtimeRoot: projectRoot,
+        runtimeRoot,
         workItemId: state.work_item_id ?? workItemId,
         enforcementMode: policyEnforcementMode,
       })
@@ -2255,8 +2267,8 @@ function getReleaseReadiness(customStatePath) {
 }
 
 function getWorkflowAnalytics(customStatePath) {
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  const index = readWorkItemIndex(projectRoot)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  const index = readWorkItemIndex(runtimeRoot)
   const analytics = {
     totalWorkItems: index.work_items.length,
     byMode: { quick: 0, migration: 0, full: 0 },
@@ -2268,7 +2280,7 @@ function getWorkflowAnalytics(customStatePath) {
   }
 
   for (const item of index.work_items) {
-    const state = _store.readWorkItemState(projectRoot, item.work_item_id)
+    const state = _store.readWorkItemState(runtimeRoot, item.work_item_id)
     analytics.byMode[state.mode] += 1
     analytics.totalRetries += state.retry_count ?? 0
     analytics.totalEscalations += state.escalated_from ? 1 : 0
@@ -2280,6 +2292,7 @@ function getWorkflowAnalytics(customStatePath) {
 
   return {
     projectRoot,
+    runtimeRoot,
     analytics,
   }
 }
@@ -2377,60 +2390,60 @@ function createReleaseCandidate(releaseId, title, customStatePath) {
   ensureString(releaseId, "release_id")
   ensureString(title, "title")
 
-  const projectRoot = resolveProjectRoot(customStatePath)
-  const index = bootstrapReleaseStore(projectRoot)
+  const { projectRoot, runtimeRoot } = resolvePathContext(customStatePath)
+  const index = bootstrapReleaseStore(runtimeRoot)
   if (index.releases.some((entry) => entry.release_id === releaseId)) {
     fail(`Release candidate '${releaseId}' already exists`)
   }
 
   const candidate = createReleaseCandidateShape(releaseId, title)
   validateReleaseCandidate(candidate)
-  const paths = resolveReleaseCandidatePaths(projectRoot, releaseId)
-  writeReleaseCandidate(projectRoot, releaseId, candidate)
+  const paths = resolveReleaseCandidatePaths(runtimeRoot, releaseId)
+  writeReleaseCandidate(runtimeRoot, releaseId, candidate)
   upsertReleaseIndexEntry(index, candidate, releaseId, paths.relativeReleasePath)
   index.active_release_id = releaseId
-  writeReleaseIndex(projectRoot, index)
+  writeReleaseIndex(runtimeRoot, index)
 
-  return { projectRoot, candidate }
+  return { projectRoot, runtimeRoot, candidate }
 }
 
 function listReleaseCandidates(customStatePath) {
-  const projectRoot = resolveProjectRoot(customStatePath)
-  const index = bootstrapReleaseStore(projectRoot)
-  return { projectRoot, index }
+  const { projectRoot, runtimeRoot } = resolvePathContext(customStatePath)
+  const index = bootstrapReleaseStore(runtimeRoot)
+  return { projectRoot, runtimeRoot, index }
 }
 
 function showReleaseCandidate(releaseId, customStatePath) {
   ensureString(releaseId, "release_id")
-  const projectRoot = resolveProjectRoot(customStatePath)
-  bootstrapReleaseStore(projectRoot)
-  const candidate = readReleaseCandidate(projectRoot, releaseId)
+  const { projectRoot, runtimeRoot } = resolvePathContext(customStatePath)
+  bootstrapReleaseStore(runtimeRoot)
+  const candidate = readReleaseCandidate(runtimeRoot, releaseId)
   validateReleaseCandidate(candidate)
-  return { projectRoot, candidate }
+  return { projectRoot, runtimeRoot, candidate }
 }
 
 function mutateReleaseCandidate(releaseId, customStatePath, mutator) {
-  const projectRoot = resolveProjectRoot(customStatePath)
-  const index = bootstrapReleaseStore(projectRoot)
-  const current = readReleaseCandidate(projectRoot, releaseId)
+  const { projectRoot, runtimeRoot } = resolvePathContext(customStatePath)
+  const index = bootstrapReleaseStore(runtimeRoot)
+  const current = readReleaseCandidate(runtimeRoot, releaseId)
   validateReleaseCandidate(current)
   const next = mutator(JSON.parse(JSON.stringify(current)))
   next.updated_at = timestamp()
   validateReleaseCandidate(next)
-  writeReleaseCandidate(projectRoot, releaseId, next)
-  const paths = resolveReleaseCandidatePaths(projectRoot, releaseId)
+  writeReleaseCandidate(runtimeRoot, releaseId, next)
+  const paths = resolveReleaseCandidatePaths(runtimeRoot, releaseId)
   upsertReleaseIndexEntry(index, next, releaseId, paths.relativeReleasePath)
   if (!index.active_release_id) {
     index.active_release_id = releaseId
   }
-  writeReleaseIndex(projectRoot, index)
-  return { projectRoot, candidate: next }
+  writeReleaseIndex(runtimeRoot, index)
+  return { projectRoot, runtimeRoot, candidate: next }
 }
 
 function addReleaseWorkItem(releaseId, workItemId, customStatePath) {
   ensureString(workItemId, "work_item_id")
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  _store.readWorkItemState(projectRoot, workItemId)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  _store.readWorkItemState(runtimeRoot, workItemId)
   return mutateReleaseCandidate(releaseId, customStatePath, (candidate) => {
     if (!candidate.included_work_items.includes(workItemId)) {
       candidate.included_work_items.push(workItemId)
@@ -2482,13 +2495,13 @@ function recordRollbackPlan(releaseId, summary, owner, triggerSignals, customSta
 }
 
 function draftReleaseNotes(releaseId, customStatePath) {
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  const candidate = readReleaseCandidate(projectRoot, releaseId)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  const candidate = readReleaseCandidate(runtimeRoot, releaseId)
   validateReleaseCandidate(candidate)
 
   const notesPath = path.join(projectRoot, candidate.notes_path)
   const bullets = candidate.included_work_items.map((workItemId) => {
-    const state = _store.readWorkItemState(projectRoot, workItemId)
+    const state = _store.readWorkItemState(runtimeRoot, workItemId)
     return `- ${state.feature_id ?? workItemId}: ${state.feature_slug ?? "work item"} (${state.mode})`
   })
   const content = [
@@ -2512,12 +2525,12 @@ function draftReleaseNotes(releaseId, customStatePath) {
   ].join("\n")
   fs.mkdirSync(path.dirname(notesPath), { recursive: true })
   fs.writeFileSync(notesPath, content, "utf8")
-  return { projectRoot, releaseId, notesPath }
+  return { projectRoot, runtimeRoot, releaseId, notesPath }
 }
 
 function validateReleaseNotes(releaseId, customStatePath) {
-  const projectRoot = resolveProjectRoot(customStatePath)
-  const candidate = readReleaseCandidate(projectRoot, releaseId)
+  const { projectRoot, runtimeRoot } = resolvePathContext(customStatePath)
+  const candidate = readReleaseCandidate(runtimeRoot, releaseId)
   validateReleaseCandidate(candidate)
   const notesPath = path.join(projectRoot, candidate.notes_path)
   const exists = fs.existsSync(notesPath)
@@ -2537,8 +2550,8 @@ function validateReleaseNotes(releaseId, customStatePath) {
 }
 
 function getReleaseCandidateReadiness(releaseId, customStatePath) {
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  const candidate = readReleaseCandidate(projectRoot, releaseId)
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  const candidate = readReleaseCandidate(runtimeRoot, releaseId)
   validateReleaseCandidate(candidate)
   const blockers = []
   const warnings = []
@@ -2579,8 +2592,8 @@ function getReleaseCandidateReadiness(releaseId, customStatePath) {
 }
 
 function getReleaseDashboard(customStatePath) {
-  const projectRoot = resolveProjectRoot(customStatePath)
-  const index = bootstrapReleaseStore(projectRoot)
+  const { projectRoot, runtimeRoot } = resolvePathContext(customStatePath)
+  const index = bootstrapReleaseStore(runtimeRoot)
   const dashboard = {
     total: index.releases.length,
     byStatus: {},
@@ -2606,7 +2619,7 @@ function getReleaseDashboard(customStatePath) {
     }
   }
 
-  return { projectRoot, dashboard, index }
+  return { projectRoot, runtimeRoot, dashboard, index }
 }
 
 function startHotfix(releaseId, mode, featureId, featureSlug, reason, customStatePath) {
@@ -2673,11 +2686,11 @@ function reconcileCompletedWorkItems(customStatePath, workItemIds = []) {
 
 function listTasks(workItemId, customStatePath) {
   const context = readWorkItemContext(workItemId, customStatePath)
-  const { state, projectRoot } = context
+  const { state, runtimeRoot } = context
   requireFullModeWorkItem(state, workItemId)
   requireTaskBoardStage(state, workItemId, "view a task board")
 
-  const board = buildBoardView(state, readTaskBoardIfExists(projectRoot, workItemId))
+  const board = buildBoardView(state, readTaskBoardIfExists(runtimeRoot, workItemId))
   return {
     ...context,
     board,
@@ -2687,11 +2700,11 @@ function listTasks(workItemId, customStatePath) {
 
 function listMigrationSlices(workItemId, customStatePath) {
   const context = readWorkItemContext(workItemId, customStatePath)
-  const { state, projectRoot } = context
+  const { state, runtimeRoot } = context
   requireMigrationModeWorkItem(state, workItemId)
   requireMigrationSliceBoardStage(state, workItemId, "view migration slices")
 
-  const board = buildMigrationSliceBoardView(state, readMigrationSliceBoardIfExists(projectRoot, workItemId))
+  const board = buildMigrationSliceBoardView(state, readMigrationSliceBoardIfExists(runtimeRoot, workItemId))
   return {
     ...context,
     board,
@@ -2989,9 +3002,9 @@ function setTaskStatus(workItemId, taskId, nextStatus, customStatePath, options 
   validateTaskStatus(nextStatus)
 
   const targetContext = readWorkItemContext(workItemId, customStatePath)
-  const { state: targetState, projectRoot } = targetContext
-  validateManagedState(targetState, projectRoot, workItemId)
-  const targetBoard = buildBoardView(targetState, readTaskBoardIfExists(projectRoot, workItemId))
+  const { state: targetState, projectRoot, runtimeRoot } = targetContext
+  validateManagedState(targetState, projectRoot, workItemId, { storeRoot: runtimeRoot })
+  const targetBoard = buildBoardView(targetState, readTaskBoardIfExists(runtimeRoot, workItemId))
   const targetTask = findTask(targetBoard, taskId)
 
   if (targetTask.status === "qa_in_progress" && (nextStatus === "claimed" || nextStatus === "in_progress")) {
@@ -3050,9 +3063,9 @@ function setTaskStatus(workItemId, taskId, nextStatus, customStatePath, options 
 
 function validateWorkItemBoard(workItemId, customStatePath) {
   const context = readWorkItemContext(workItemId, customStatePath)
-  const { state, projectRoot } = context
+  const { state, runtimeRoot } = context
   requireFullModeWorkItem(state, workItemId)
-  const board = readTaskBoardIfExists(projectRoot, workItemId)
+  const board = readTaskBoardIfExists(runtimeRoot, workItemId)
 
   if (!board) {
     fail(`Task board missing for work item '${workItemId}'`)
@@ -3066,9 +3079,9 @@ function validateWorkItemBoard(workItemId, customStatePath) {
 
 function validateMigrationSliceBoardForWorkItem(workItemId, customStatePath) {
   const context = readWorkItemContext(workItemId, customStatePath)
-  const { state, projectRoot } = context
+  const { state, runtimeRoot } = context
   requireMigrationModeWorkItem(state, workItemId)
-  const board = readMigrationSliceBoardIfExists(projectRoot, workItemId)
+  const board = readMigrationSliceBoardIfExists(runtimeRoot, workItemId)
 
   if (!board) {
     fail(`Migration slice board missing for work item '${workItemId}'`)
@@ -3178,14 +3191,13 @@ function setParallelization(parallelMode, why, integrationCheckpoint, maxTracks,
 
 function selectActiveWorkItem(workItemId, customStatePath) {
   ensureString(workItemId, "work_item_id")
-  const statePath = resolveStatePath(customStatePath)
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  const previousIndex = readWorkItemIndex(projectRoot)
+  const { statePath, projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  const previousIndex = readWorkItemIndex(runtimeRoot)
   const previousActiveWorkItemId = previousIndex.active_work_item_id
 
   try {
-    setActiveWorkItem(projectRoot, workItemId)
-    const nextActiveState = _store.readWorkItemState(projectRoot, workItemId)
+    setActiveWorkItem(runtimeRoot, workItemId)
+    const nextActiveState = _store.readWorkItemState(runtimeRoot, workItemId)
     const mirrorRefreshPlan = planGuardedMirrorRefresh({
       activeWorkItemId: workItemId,
       targetWorkItemId: workItemId,
@@ -3201,7 +3213,7 @@ function selectActiveWorkItem(workItemId, customStatePath) {
       })
     }
 
-    _store.writeCompatibilityMirror(projectRoot, nextActiveState)
+    _store.writeCompatibilityMirror(runtimeRoot, nextActiveState)
     const state = readState(statePath).state
     const mirrorRevision = captureRevision(state)
 
@@ -3212,7 +3224,7 @@ function selectActiveWorkItem(workItemId, customStatePath) {
     }
 
     validateStateObject(state)
-    validateManagedState(state, projectRoot, workItemId)
+    validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
 
     return {
       statePath,
@@ -3220,7 +3232,7 @@ function selectActiveWorkItem(workItemId, customStatePath) {
     }
   } catch (error) {
     if (previousActiveWorkItemId !== null && previousActiveWorkItemId !== workItemId) {
-      setActiveWorkItem(projectRoot, previousActiveWorkItemId)
+      setActiveWorkItem(runtimeRoot, previousActiveWorkItemId)
     }
     throw error
   }
@@ -3228,7 +3240,7 @@ function selectActiveWorkItem(workItemId, customStatePath) {
 
 function getRuntimeStatus(customStatePath, options = {}) {
   const { relaxed = false } = options
-  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  const { statePath, state, projectRoot, runtimeRoot, kitRoot, workItemId } = readManagedState(customStatePath)
   const runtimeState = relaxed ? JSON.parse(JSON.stringify(state)) : state
 
   if (relaxed && runtimeState.parallelization?.parallel_mode === "bounded") {
@@ -3240,17 +3252,15 @@ function getRuntimeStatus(customStatePath, options = {}) {
   let runtimeContext = null
   if (relaxed) {
     try {
-      validateManagedState(runtimeState, projectRoot, workItemId)
+      validateManagedState(runtimeState, projectRoot, workItemId, { storeRoot: runtimeRoot })
     } catch (_error) {
       // Doctor/status surfaces should remain observable even when artifact linkage or
       // readiness contracts are temporarily unmet.
     }
   } else {
-    validateManagedState(runtimeState, projectRoot, workItemId)
+    validateManagedState(runtimeState, projectRoot, workItemId, { storeRoot: runtimeRoot })
   }
 
-  const runtimeRoot = resolveRuntimeRoot(customStatePath)
-  const kitRoot = resolveKitRoot(projectRoot)
   const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
   const manifest = readJsonIfExists(manifestPath)
   const { registryPath, installManifestPath } = getManifestPaths(kitRoot, manifest)
@@ -3294,10 +3304,7 @@ function getVersionInfo(customStatePath) {
 }
 
 function runDoctor(customStatePath) {
-  const statePath = resolveStatePath(customStatePath)
-  const projectRoot = resolveProjectRoot(customStatePath)
-  const runtimeRoot = resolveRuntimeRoot(customStatePath)
-  const kitRoot = resolveKitRoot(projectRoot)
+  const { statePath, projectRoot, runtimeRoot, kitRoot } = resolvePathContext(customStatePath)
   const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
   const manifestInfo = tryReadJson(manifestPath)
   const manifest = manifestInfo.data
@@ -3413,8 +3420,7 @@ function runDoctor(customStatePath) {
 }
 
 function getContractConsistencyReport(customStatePath) {
-  const projectRoot = resolveProjectRoot(customStatePath)
-  const kitRoot = resolveKitRoot(projectRoot)
+  const { kitRoot } = resolvePathContext(customStatePath)
   const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
   const manifest = readJsonIfExists(manifestPath)
 
@@ -3422,9 +3428,9 @@ function getContractConsistencyReport(customStatePath) {
 }
 
 function validateState(customStatePath) {
-  const { statePath, state, projectRoot, workItemId } = readManagedState(customStatePath)
+  const { statePath, state, projectRoot, runtimeRoot, workItemId } = readManagedState(customStatePath)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId)
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
   return { statePath, state }
 }
 
@@ -3437,10 +3443,10 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath, op
   const laneSource = options.laneSource ?? "orchestrator_routed"
 
   const workItemId = deriveWorkItemId({ feature_id: featureId })
-  const projectRoot = ensureWorkItemStoreReady(customStatePath)
-  const workItemPaths = resolveWorkItemPaths(projectRoot, workItemId)
-  const index = readWorkItemIndex(projectRoot)
-  const existingState = fs.existsSync(workItemPaths.statePath) ? _store.readWorkItemState(projectRoot, workItemId) : null
+  const { runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  const workItemPaths = resolveWorkItemPaths(runtimeRoot, workItemId)
+  const index = readWorkItemIndex(runtimeRoot)
+  const existingState = fs.existsSync(workItemPaths.statePath) ? _store.readWorkItemState(runtimeRoot, workItemId) : null
   const expectedRevision = existingState ? captureRevision(existingState) : null
   const expectedMirrorRevision = index.active_work_item_id === workItemId && existingState ? expectedRevision : null
   const nextState = createFreshState({
@@ -3479,7 +3485,7 @@ function setApproval(gate, status, approvedBy, approvedAt, notes, customStatePat
     const allowedGates = getApprovalGatesForMode(state.mode)
     ensureKnown(gate, allowedGates, `gate for mode '${state.mode}'`)
 
-    const { projectRoot, workItemId } = context
+    const { projectRoot, runtimeRoot, workItemId } = context
     if (status === "approved" && gate === "product_to_solution" && state.current_stage === "full_product") {
       requireLinkedArtifacts(
         state,
@@ -3504,7 +3510,7 @@ function setApproval(gate, status, approvedBy, approvedAt, notes, customStatePat
       )
       requireValidTaskBoard(
         state,
-        projectRoot,
+        runtimeRoot,
         workItemId,
         "full_solution",
         "A valid task board is required before approving 'solution_to_fullstack' or entering 'full_implementation'",
@@ -3525,7 +3531,7 @@ function advanceStage(targetStage, customStatePath) {
   ensureKnown(targetStage, STAGE_SEQUENCE, "target stage")
 
   return mutate(customStatePath, (state, context) => {
-    const { projectRoot, workItemId } = context
+    const { projectRoot, runtimeRoot, kitRoot, workItemId } = context
     if (getModeForStage(targetStage) !== state.mode) {
       fail(`target stage '${targetStage}' does not belong to mode '${state.mode}'`)
     }
@@ -3542,7 +3548,7 @@ function advanceStage(targetStage, customStatePath) {
     if (targetStage === "full_implementation") {
       requireValidTaskBoard(
         state,
-        projectRoot,
+        runtimeRoot,
         workItemId,
         "full_implementation",
         "A valid task board is required before entering 'full_implementation'",
@@ -3552,14 +3558,14 @@ function advanceStage(targetStage, customStatePath) {
     if (targetStage === "full_qa") {
       requireValidTaskBoard(
         state,
-        projectRoot,
+        runtimeRoot,
         workItemId,
         "full_qa",
         "A valid task board is required before entering 'full_qa'",
       )
     }
 
-    const migrationBoardReadiness = getMigrationSliceBoardReadiness(projectRoot, workItemId, state)
+    const migrationBoardReadiness = getMigrationSliceBoardReadiness(runtimeRoot, workItemId, state)
 
     if (state.mode === "migration" && migrationBoardReadiness.valid === false) {
       fail(
@@ -3608,7 +3614,7 @@ function advanceStage(targetStage, customStatePath) {
       const policyResult = enforcePolicy({
         mode: state.mode,
         targetStage,
-        runtimeRoot: projectRoot,
+        runtimeRoot,
         workItemId: state.work_item_id ?? workItemId,
         enforcementMode: policyEnforcementMode,
       })
@@ -3671,7 +3677,7 @@ function advanceStage(targetStage, customStatePath) {
     state.current_stage = targetStage
     state.current_owner = STAGE_OWNERS[targetStage]
     state.status = targetStage.endsWith("_done") ? "done" : "in_progress"
-    autoScaffoldPrimaryArtifactIfNeeded(state, projectRoot, targetStage)
+    autoScaffoldPrimaryArtifactIfNeeded(state, projectRoot, kitRoot, targetStage)
     return state
   })
 }
@@ -3680,7 +3686,7 @@ function linkArtifact(kind, artifactPath, customStatePath) {
   ensureKnown(kind, ARTIFACT_KINDS, "artifact kind")
   ensureString(artifactPath, "artifact path")
 
-  const projectRoot = resolveProjectRoot(customStatePath)
+  const { projectRoot } = resolvePathContext(customStatePath)
   const resolvedArtifactPath = path.isAbsolute(artifactPath)
     ? artifactPath
     : path.resolve(projectRoot, artifactPath)
@@ -3786,8 +3792,7 @@ function scaffoldAndLinkArtifact(kind, slug, customStatePath, options = {}) {
     }
   }
 
-  const projectRoot = resolveProjectRoot(customStatePath)
-  const kitRoot = process.env.OPENKIT_KIT_ROOT ? path.resolve(process.env.OPENKIT_KIT_ROOT) : null
+  const { projectRoot, kitRoot } = resolvePathContext(customStatePath)
   const featureId = state.feature_id
   const featureSlug = state.feature_slug
 
@@ -3922,7 +3927,7 @@ function routeRework(issueType, repeatFailedFix, customStatePath) {
 // ---------------------------------------------------------------------------
 
 function getInvocationLog(workItemId, customStatePath) {
-  const runtimeRoot = resolveRuntimeRoot(customStatePath)
+  const { runtimeRoot } = resolvePathContext(customStatePath)
 
   // When no explicit workItemId is given, fall back to the active work item
   let effectiveWorkItemId = workItemId ?? null
@@ -3949,7 +3954,7 @@ function getInvocationLog(workItemId, customStatePath) {
 }
 
 function getPolicyStatus(customStatePath) {
-  const runtimeRoot = resolveRuntimeRoot(customStatePath)
+  const { runtimeRoot } = resolvePathContext(customStatePath)
   const { state, statePath } = readState(customStatePath)
 
   const workItemId = state.work_item_id ?? null

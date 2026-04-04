@@ -83,3 +83,17 @@ export function resolveStatePath(customStatePath, env = process.env) {
 export function resolveRuntimeRoot(customStatePath, env = process.env) {
   return path.dirname(path.dirname(resolveStatePath(customStatePath, env)))
 }
+
+export function resolvePathContext(customStatePath, env = process.env) {
+  const projectRoot = resolveProjectRoot(customStatePath, env)
+  const runtimeRoot = resolveRuntimeRoot(customStatePath, env)
+  const kitRoot = resolveKitRoot(projectRoot, env)
+  const statePath = resolveStatePath(customStatePath, env)
+
+  return Object.freeze({
+    projectRoot,
+    runtimeRoot,
+    kitRoot,
+    statePath,
+  })
+}

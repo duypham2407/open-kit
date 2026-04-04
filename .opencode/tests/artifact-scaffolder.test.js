@@ -5,6 +5,7 @@ import os from "node:os"
 import path from "node:path"
 import { spawnSync } from "node:child_process"
 import { scaffoldAndLinkArtifact } from "../lib/workflow-state-controller.js"
+import { scaffoldArtifact } from "../lib/artifact-scaffolder.js"
 import { fileURLToPath } from "node:url"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -176,6 +177,42 @@ function setupTempRuntimeWithRealTemplates(projectRoot) {
   }
 }
 
+function withEnv(overrides, callback) {
+  const previous = {}
+  for (const [key, value] of Object.entries(overrides)) {
+    previous[key] = Object.prototype.hasOwnProperty.call(process.env, key) ? process.env[key] : undefined
+    if (value === null || value === undefined) {
+      delete process.env[key]
+    } else {
+      process.env[key] = value
+    }
+  }
+
+  try {
+    return callback()
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = value
+      }
+    }
+  }
+}
+
+// Returns a copy of process.env with all OPENKIT_ vars removed so that
+// spawnSync subprocesses are not contaminated by the shell environment.
+function cleanEnv(overrides = {}) {
+  const env = { ...process.env }
+  for (const key of Object.keys(env)) {
+    if (key.startsWith('OPENKIT_')) {
+      delete env[key]
+    }
+  }
+  return { ...env, ...overrides }
+}
+
 test("scaffold-artifact creates a quick task card and links it into state", () => {
   const projectRoot = makeTempProject()
   setupTempRuntime(projectRoot)
@@ -183,7 +220,7 @@ test("scaffold-artifact creates a quick task card and links it into state", () =
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "task_card", "copy-fix"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 0)
@@ -192,6 +229,120 @@ test("scaffold-artifact creates a quick task card and links it into state", () =
   const state = JSON.parse(fs.readFileSync(path.join(projectRoot, ".opencode", "workflow-state.json"), "utf8"))
   assert.match(state.artifacts.task_card, /docs\/tasks\/\d{4}-\d{2}-\d{2}-copy-fix\.md$/)
   assert.equal(fs.existsSync(path.join(projectRoot, state.artifacts.task_card)), true)
+})
+
+test("scaffoldArtifact writes output under projectRoot when kitRoot differs", () => {
+  const projectRoot = makeTempProject()
+  const kitRoot = makeTempProject()
+
+  fs.mkdirSync(path.join(projectRoot, "docs", "scope"), { recursive: true })
+  fs.mkdirSync(path.join(kitRoot, "docs", "templates"), { recursive: true })
+  fs.copyFileSync(
+    path.resolve(__dirname, "../../docs/templates/scope-package-template.md"),
+    path.join(kitRoot, "docs", "templates", "scope-package-template.md"),
+  )
+
+  const result = scaffoldArtifact({
+    projectRoot,
+    kitRoot,
+    kind: "scope_package",
+    mode: "full",
+    slug: "scaffold-under-project-root",
+    featureId: "FEATURE-999",
+    featureSlug: "scaffold-under-project-root",
+    sourceScopePackage: null,
+    sourceSolutionPackage: null,
+  })
+
+  assert.equal(fs.existsSync(path.join(projectRoot, result.artifactPath)), true)
+  assert.equal(fs.existsSync(path.join(kitRoot, result.artifactPath)), false)
+})
+
+test("scaffoldArtifact falls back to kitRoot templates when project templates are absent", () => {
+  const projectRoot = makeTempProject()
+  const kitRoot = makeTempProject()
+
+  fs.mkdirSync(path.join(projectRoot, "docs", "scope"), { recursive: true })
+  fs.mkdirSync(path.join(projectRoot, "docs", "templates"), { recursive: true })
+  fs.mkdirSync(path.join(kitRoot, "docs", "templates"), { recursive: true })
+  fs.copyFileSync(
+    path.resolve(__dirname, "../../docs/templates/scope-package-template.md"),
+    path.join(kitRoot, "docs", "templates", "scope-package-template.md"),
+  )
+
+  const result = scaffoldArtifact({
+    projectRoot,
+    kitRoot,
+    kind: "scope_package",
+    mode: "full",
+    slug: "kit-template-fallback",
+    featureId: "FEATURE-1000",
+    featureSlug: "kit-template-fallback",
+    sourceScopePackage: null,
+    sourceSolutionPackage: null,
+  })
+
+  const content = fs.readFileSync(path.join(projectRoot, result.artifactPath), "utf8")
+  assert.match(content, /feature_slug: kit-template-fallback/)
+})
+
+test("scaffold-artifact CLI resolves project and kit roots consistently in divergent-root mode", () => {
+  const projectRoot = makeTempProject()
+  const runtimeRoot = makeTempProject()
+  const kitRoot = path.join(makeTempProject(), "kit")
+  const statePath = path.join(runtimeRoot, ".opencode", "workflow-state.json")
+
+  setupTempRuntime(projectRoot)
+  fs.mkdirSync(path.dirname(statePath), { recursive: true })
+
+  const state = JSON.parse(fs.readFileSync(path.join(projectRoot, ".opencode", "workflow-state.json"), "utf8"))
+  state.feature_id = "FEATURE-713"
+  state.feature_slug = "divergent-manual-scope"
+  state.mode = "full"
+  state.routing_profile = {
+    work_intent: "feature",
+    behavior_delta: "extend",
+    dominant_uncertainty: "product",
+    scope_shape: "cross_boundary",
+    selection_reason: "Divergent-root full-mode scaffold test",
+  }
+  state.current_stage = "full_product"
+  state.current_owner = "ProductLead"
+  state.approvals = {
+    product_to_solution: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    solution_to_fullstack: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    fullstack_to_code_review: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    code_review_to_qa: { status: "pending", approved_by: null, approved_at: null, notes: null },
+    qa_to_done: { status: "pending", approved_by: null, approved_at: null, notes: null },
+  }
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+
+  fs.mkdirSync(path.join(kitRoot, "docs", "templates"), { recursive: true })
+  fs.copyFileSync(
+    path.resolve(__dirname, "../../docs/templates/scope-package-template.md"),
+    path.join(kitRoot, "docs", "templates", "scope-package-template.md"),
+  )
+
+  withEnv(
+    {
+      OPENKIT_PROJECT_ROOT: projectRoot,
+      OPENKIT_KIT_ROOT: kitRoot,
+      OPENKIT_WORKFLOW_STATE: statePath,
+    },
+    () => {
+      const result = spawnSync(
+        "node",
+        [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "scope_package", "divergent-manual-scope"],
+        { cwd: runtimeRoot, encoding: "utf8", env: cleanEnv({ OPENKIT_PROJECT_ROOT: projectRoot, OPENKIT_KIT_ROOT: kitRoot, OPENKIT_WORKFLOW_STATE: statePath }) },
+      )
+
+      assert.equal(result.status, 0)
+      const nextState = JSON.parse(fs.readFileSync(statePath, "utf8"))
+      assert.match(nextState.artifacts.scope_package, /docs\/scope\/\d{4}-\d{2}-\d{2}-divergent-manual-scope\.md$/)
+      assert.equal(fs.existsSync(path.join(projectRoot, nextState.artifacts.scope_package)), true)
+      assert.equal(fs.existsSync(path.join(runtimeRoot, nextState.artifacts.scope_package)), false)
+    },
+  )
 })
 
 test("scaffold-artifact substitutes real checked-in templates correctly", () => {
@@ -224,7 +375,7 @@ test("scaffold-artifact substitutes real checked-in templates correctly", () => 
   let result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "scope_package", "real-template-scope"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
   assert.equal(result.status, 0)
 
@@ -250,7 +401,7 @@ test("scaffold-artifact substitutes real checked-in templates correctly", () => 
   result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "solution_package", "real-template-solution"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
   assert.equal(result.status, 0)
 
@@ -293,7 +444,7 @@ test("scaffold-artifact creates a full scope package and links it into state", (
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "scope_package", "scaffold-scope"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 0)
@@ -333,7 +484,7 @@ test("scaffold-artifact creates a full solution package and links it into state"
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "solution_package", "scaffold-solution"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 0)
@@ -380,7 +531,7 @@ test("scaffold-artifact creates a migration solution package in migration_strate
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "solution_package", "react-19-upgrade"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 0)
@@ -401,7 +552,7 @@ test("scaffold-artifact rejects unsupported old artifact kinds", () => {
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "plan", "legacy-plan"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 1)
@@ -421,7 +572,7 @@ test("scaffold-artifact refuses to overwrite an already populated slot", () => {
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "task_card", "copy-fix"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 1)
@@ -437,7 +588,7 @@ test("scaffold-artifact resolves repo-relative paths from the state project root
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "--state", externalStatePath, "scaffold-artifact", "task_card", "copy-fix-from-external-cwd"],
-    { cwd: os.tmpdir(), encoding: "utf8" },
+    { cwd: os.tmpdir(), encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 0)
@@ -453,7 +604,7 @@ test("scaffold-artifact rejects invalid slugs without writing files", () => {
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "task_card", "../../escape"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 1)
@@ -508,7 +659,7 @@ test("scaffold-artifact rejects task cards outside quick mode", () => {
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "task_card", "wrong-lane-task-card"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 1)
@@ -544,7 +695,7 @@ test("scaffold-artifact rejects scope packages outside full_product stage", () =
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "scope_package", "wrong-scope-stage"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 1)
@@ -580,7 +731,7 @@ test("scaffold-artifact rejects migration solution packages outside migration_st
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "solution_package", "wrong-migration-stage"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 1)
@@ -620,7 +771,7 @@ test("scaffold-artifact creates a migration report in migration_baseline stage",
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "migration_report", "legacy-stack-refresh-report"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 0)
@@ -665,7 +816,7 @@ test("scaffold-artifact rejects migration reports outside migration baseline or 
   const result = spawnSync(
     "node",
     [path.resolve(__dirname, "../workflow-state.js"), "scaffold-artifact", "migration_report", "wrong-report-stage"],
-    { cwd: projectRoot, encoding: "utf8" },
+    { cwd: projectRoot, encoding: "utf8", env: cleanEnv() },
   )
 
   assert.equal(result.status, 1)

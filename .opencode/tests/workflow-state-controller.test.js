@@ -1,4 +1,4 @@
-import test from "node:test"
+import test, { beforeEach, afterEach } from "node:test"
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import os from "node:os"
@@ -97,8 +97,101 @@ function createTempStateFile() {
   return statePath
 }
 
-function writeArtifact(statePath, relativePath, content) {
-  const projectRoot = path.dirname(path.dirname(statePath))
+function withEnv(overrides, callback) {
+  const previous = {}
+  for (const [key, value] of Object.entries(overrides)) {
+    previous[key] = Object.prototype.hasOwnProperty.call(process.env, key) ? process.env[key] : undefined
+    if (value === null || value === undefined) {
+      delete process.env[key]
+    } else {
+      process.env[key] = value
+    }
+  }
+
+  try {
+    return callback()
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) {
+        delete process.env[key]
+      } else {
+        process.env[key] = value
+      }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Global env isolation
+// Clear OPENKIT_ env vars before each test so tests using createTempStateFile
+// are not contaminated by the shell environment (e.g. OPENKIT_PROJECT_ROOT,
+// OPENKIT_KIT_ROOT, OPENKIT_WORKFLOW_STATE set by openkit run).
+// Tests that need specific divergent-root behavior use withEnv() to set them.
+// ---------------------------------------------------------------------------
+const OPENKIT_ENV_KEYS = [
+  "OPENKIT_PROJECT_ROOT",
+  "OPENKIT_KIT_ROOT",
+  "OPENKIT_WORKFLOW_STATE",
+  "OPENKIT_GLOBAL_MODE",
+]
+
+let _savedEnv = {}
+
+beforeEach(() => {
+  _savedEnv = {}
+  for (const key of OPENKIT_ENV_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(process.env, key)) {
+      _savedEnv[key] = process.env[key]
+      delete process.env[key]
+    }
+  }
+})
+
+afterEach(() => {
+  for (const key of OPENKIT_ENV_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(_savedEnv, key)) {
+      process.env[key] = _savedEnv[key]
+    } else {
+      delete process.env[key]
+    }
+  }
+  _savedEnv = {}
+})
+
+function setupDivergentRoots() {
+  const projectRoot = makeTempDir()
+  const runtimeRoot = makeTempDir()
+  const kitRoot = path.join(makeTempDir(), "kit")
+  const statePath = path.join(runtimeRoot, ".opencode", "workflow-state.json")
+  const templatesDir = path.join(kitRoot, "docs", "templates")
+
+  fs.mkdirSync(path.join(projectRoot, "docs", "scope"), { recursive: true })
+  fs.mkdirSync(path.join(projectRoot, "docs", "solution"), { recursive: true })
+  fs.mkdirSync(path.join(projectRoot, "docs", "qa"), { recursive: true })
+  fs.mkdirSync(path.dirname(statePath), { recursive: true })
+  fs.mkdirSync(templatesDir, { recursive: true })
+
+  for (const template of [
+    "scope-package-template.md",
+    "solution-package-template.md",
+    "migration-solution-package-template.md",
+    "migration-report-template.md",
+  ]) {
+    fs.copyFileSync(path.resolve(__dirname, "../../docs/templates", template), path.join(templatesDir, template))
+  }
+
+  fs.writeFileSync(statePath, `${JSON.stringify(loadFixtureState(), null, 2)}\n`, "utf8")
+
+  return {
+    projectRoot,
+    runtimeRoot,
+    kitRoot,
+    statePath,
+  }
+}
+
+function writeArtifact(statePath, relativePath, content, options = {}) {
+  const projectRoot = options.projectRoot ?? path.dirname(path.dirname(statePath))
   const absolutePath = path.join(projectRoot, relativePath)
   fs.mkdirSync(path.dirname(absolutePath), { recursive: true })
   fs.writeFileSync(absolutePath, `${content}\n`, "utf8")
@@ -299,6 +392,27 @@ test("entering full_product auto-scaffolds the scope package", () => {
   assert.equal(fs.existsSync(path.join(path.dirname(path.dirname(statePath)), result.state.artifacts.scope_package)), true)
 })
 
+test("entering full_product auto-scaffolds under projectRoot in divergent-root mode", () => {
+  const { projectRoot, runtimeRoot, kitRoot, statePath } = setupDivergentRoots()
+
+  withEnv(
+    {
+      OPENKIT_PROJECT_ROOT: projectRoot,
+      OPENKIT_KIT_ROOT: kitRoot,
+      OPENKIT_WORKFLOW_STATE: statePath,
+    },
+    () => {
+      startFeature("FEATURE-510", "auto-scope-divergent", statePath)
+      const result = advanceStage("full_product", statePath)
+      const artifactPath = result.state.artifacts.scope_package
+
+      assert.match(artifactPath, /docs\/scope\/\d{4}-\d{2}-\d{2}-auto-scope-divergent\.md$/)
+      assert.equal(fs.existsSync(path.join(projectRoot, artifactPath)), true)
+      assert.equal(fs.existsSync(path.join(runtimeRoot, artifactPath)), false)
+    },
+  )
+})
+
 test("entering full_solution auto-scaffolds the solution package", () => {
   const statePath = createTempStateFile()
 
@@ -311,6 +425,59 @@ test("entering full_solution auto-scaffolds the solution package", () => {
   assert.equal(result.state.last_auto_scaffold.artifact, "solution_package")
   assert.equal(result.state.last_auto_scaffold.stage, "full_solution")
   assert.equal(fs.existsSync(path.join(path.dirname(path.dirname(statePath)), result.state.artifacts.solution_package)), true)
+})
+
+test("entering full_solution auto-scaffolds under projectRoot in divergent-root mode", () => {
+  const { projectRoot, runtimeRoot, kitRoot, statePath } = setupDivergentRoots()
+
+  withEnv(
+    {
+      OPENKIT_PROJECT_ROOT: projectRoot,
+      OPENKIT_KIT_ROOT: kitRoot,
+      OPENKIT_WORKFLOW_STATE: statePath,
+    },
+    () => {
+      startFeature("FEATURE-511", "auto-solution-divergent", statePath)
+      advanceStage("full_product", statePath)
+      setApproval("product_to_solution", "approved", "user", "2026-03-21", "Approved", statePath)
+      const result = advanceStage("full_solution", statePath)
+      const artifactPath = result.state.artifacts.solution_package
+
+      assert.match(artifactPath, /docs\/solution\/\d{4}-\d{2}-\d{2}-auto-solution-divergent\.md$/)
+      assert.equal(fs.existsSync(path.join(projectRoot, artifactPath)), true)
+      assert.equal(fs.existsSync(path.join(runtimeRoot, artifactPath)), false)
+    },
+  )
+})
+
+test("linkArtifact resolves relative paths against projectRoot in divergent-root mode", () => {
+  const { projectRoot, runtimeRoot, kitRoot, statePath } = setupDivergentRoots()
+
+  withEnv(
+    {
+      OPENKIT_PROJECT_ROOT: projectRoot,
+      OPENKIT_KIT_ROOT: kitRoot,
+      OPENKIT_WORKFLOW_STATE: statePath,
+    },
+    () => {
+      startFeature("FEATURE-512", "link-project-root", statePath)
+      advanceStage("full_product", statePath)
+
+      const linkedPath = "docs/scope/2026-03-21-link-project-root.md"
+      writeArtifact(
+        statePath,
+        linkedPath,
+        ["# Scope Package", "", "## Goal", "", "## In Scope", "", "## Out of Scope", "", "## Acceptance Criteria Matrix"].join("\n"),
+        { projectRoot },
+      )
+
+      assert.equal(fs.existsSync(path.join(projectRoot, linkedPath)), true)
+      assert.equal(fs.existsSync(path.join(runtimeRoot, linkedPath)), false)
+
+      const result = linkArtifact("scope_package", linkedPath, statePath)
+      assert.equal(result.state.artifacts.scope_package, linkedPath)
+    },
+  )
 })
 
 test("full mode rejects linking solution_package before full_solution", () => {
