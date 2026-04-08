@@ -251,7 +251,7 @@ test('materializeGlobalInstall preserves existing agent model overrides during u
   assert.equal(settings.agentModels['fullstack-agent'].model, 'anthropic/claude-sonnet-4-5');
 });
 
-test('materializeGlobalInstall configures chrome-devtools MCP by default', () => {
+test('materializeGlobalInstall configures managed MCP defaults', () => {
   const tempHome = makeTempDir();
 
   materializeGlobalInstall({
@@ -265,6 +265,27 @@ test('materializeGlobalInstall configures chrome-devtools MCP by default', () =>
 
   const profileConfig = readJson(path.join(tempHome, 'profiles', 'openkit', 'opencode.json'));
   const kitConfig = readJson(path.join(tempHome, 'kits', 'openkit', 'opencode.json'));
+  const expectedOpenkitCommand = [
+    process.execPath,
+    path.join(process.cwd(), 'bin', 'openkit-mcp.js'),
+  ];
+
+  assert.deepEqual(profileConfig.mcp.openkit, {
+    type: 'local',
+    command: expectedOpenkitCommand,
+    enabled: true,
+    environment: {
+      OPENKIT_PROJECT_ROOT: '{cwd}',
+    },
+  });
+  assert.deepEqual(kitConfig.mcp.openkit, {
+    type: 'local',
+    command: expectedOpenkitCommand,
+    enabled: true,
+    environment: {
+      OPENKIT_PROJECT_ROOT: '{cwd}',
+    },
+  });
 
   assert.deepEqual(profileConfig.mcp['chrome-devtools'], {
     type: 'local',
@@ -276,6 +297,12 @@ test('materializeGlobalInstall configures chrome-devtools MCP by default', () =>
     command: ['npx', '-y', 'chrome-devtools-mcp@0.21.0'],
     enabled: true,
   });
+});
+
+test('package manifest publishes OpenCode plugin runtime surfaces', () => {
+  const packageManifest = readJson(path.join(process.cwd(), 'package.json'));
+
+  assert.equal(packageManifest.files.includes('.opencode/plugins/'), true);
 });
 
 test('materializeGlobalInstall copies the entire src/global directory into the managed kit', () => {

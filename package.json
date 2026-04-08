@@ -19,6 +19,7 @@
     ".opencode/lib/",
     ".opencode/opencode.json",
     ".opencode/package.json",
+    ".opencode/plugins/",
     ".opencode/profile-switch.js",
     ".opencode/README.md",
     ".opencode/workflow-state.js",

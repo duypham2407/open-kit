@@ -115,9 +115,7 @@ function listManagedFiles(kitRoot) {
 }
 
 function createOpenCodeConfig(kitRoot) {
-  const mcpCommand = kitRoot
-    ? ['node', path.join(kitRoot, 'bin', 'openkit-mcp.js')]
-    : ['node', 'bin/openkit-mcp.js'];
+  const mcpCommand = [process.execPath, path.join(PACKAGE_ROOT, 'bin', 'openkit-mcp.js')];
   return {
     $schema: 'https://opencode.ai/config.json',
     default_agent: 'master-orchestrator',
@@ -126,6 +124,9 @@ function createOpenCodeConfig(kitRoot) {
         type: 'local',
         command: mcpCommand,
         enabled: true,
+        environment: {
+          OPENKIT_PROJECT_ROOT: '{cwd}',
+        },
       },
       'chrome-devtools': {
         type: 'local',
