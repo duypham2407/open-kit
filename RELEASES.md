@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.25`](release-notes/0.3.25.md) - fix openkit MCP project install and harden doctor/runtime path checks
-- npm latest: `@duypham93/openkit@0.3.25`
-- git tag: `v0.3.25`
+- [`0.3.26`](release-notes/0.3.26.md) - fix global MCP bridge startup and publish plugin runtime surfaces
+- npm latest: `@duypham93/openkit@0.3.26`
+- git tag: `v0.3.26`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.26`](release-notes/0.3.26.md) - fix global MCP bridge startup and publish plugin runtime surfaces
 - [`0.3.25`](release-notes/0.3.25.md) - fix openkit MCP project install and harden doctor/runtime path checks
 - [`0.3.24`](release-notes/0.3.24.md) - enable default Chrome DevTools MCP and harden artifact scaffold template fallback for managed/global runtime paths
 - [`0.3.23`](release-notes/0.3.23.md) - enforce hard runtime blocking for default tools and OS command shortcuts; require kit tools
