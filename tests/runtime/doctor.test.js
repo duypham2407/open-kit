@@ -380,6 +380,22 @@ test('doctor reports healthy state when install is intact and launcher prerequis
   assert.deepEqual(result.issues, []);
   assert.deepEqual(result.driftedAssets, []);
   assert.deepEqual(result.ownedAssets.managed, ['opencode.json', '.openkit/openkit-install.json']);
+  assert.equal(result.runtimeDoctor.workflow.toolEnforcement.tool_substitution_level, 'strict');
+  assert.equal(result.runtimeDoctor.workflow.toolEnforcement.source, 'mode_default');
+  assert.deepEqual(result.runtimeDoctor.workflow.toolEnforcement.blocked_commands, [
+    'grep',
+    'find',
+    'cat',
+    'head',
+    'tail',
+    'sed',
+    'awk',
+    'echo',
+    'wc',
+    'ls',
+  ]);
+  assert.equal(result.runtimeDoctor.workflow.toolEnforcement.plugin_active, true);
+  assert.equal(result.runtimeDoctor.workflow.toolEnforcement.guard_hook_active, true);
   assert.ok(result.runtimeDoctor.continuation);
   assert.deepEqual(result.runtimeDoctor.continuation.continuationRisk, []);
   assert.match(result.summary, /managed install is healthy/i);

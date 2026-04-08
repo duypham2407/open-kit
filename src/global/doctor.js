@@ -220,6 +220,18 @@ export function renderGlobalDoctorSummary(result) {
       `Workflow runtime: ${workflow.status} | mode=${workflow.mode ?? 'none'} | stage=${workflow.stage ?? 'none'} | active=${workflow.activeWorkItemId ?? 'none'}`
     );
 
+    if (workflow.toolEnforcement) {
+      lines.push(
+        `Tool enforcement: tool_substitution_level=${workflow.toolEnforcement.tool_substitution_level ?? workflow.toolEnforcement.level} | source=${workflow.toolEnforcement.source} | plugin_active=${workflow.toolEnforcement.plugin_active ?? workflow.toolEnforcement.pluginActive} | guard_hook_active=${workflow.toolEnforcement.guard_hook_active ?? workflow.toolEnforcement.guardHookActive}`
+      );
+      if (Array.isArray(workflow.toolEnforcement.blocked_commands) && workflow.toolEnforcement.blocked_commands.length > 0) {
+        lines.push(`Tool enforcement blocked_commands: ${workflow.toolEnforcement.blocked_commands.join(', ')}`);
+      }
+      if (Array.isArray(workflow.toolEnforcement.blockedCategories) && workflow.toolEnforcement.blockedCategories.length > 0) {
+        lines.push(`Tool enforcement categories: ${workflow.toolEnforcement.blockedCategories.join(', ')}`);
+      }
+    }
+
     if (workflow.taskBoardSummary) {
       lines.push(
         `Task board: total=${workflow.taskBoardSummary.total} | ready=${workflow.taskBoardSummary.ready} | active=${workflow.taskBoardSummary.active}`

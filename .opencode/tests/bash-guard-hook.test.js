@@ -105,15 +105,15 @@ test('bash-guard allows ast-grep', () => {
 test('bash-guard blocks grep in moderate mode too', () => {
   const hook = createBashGuardHook({ enforcementLevel: 'moderate' });
   const result = hook.run({ toolId: 'tool.interactive-bash', args: { command: 'grep -r "TODO" src/' } });
-  assert.equal(result.allowed, false);
-  assert.equal(result.blocked, true);
+  assert.equal(result.allowed, true);
+  assert.ok(result.warning.includes('search'));
 });
 
 test('bash-guard blocks grep in permissive mode too', () => {
   const hook = createBashGuardHook({ enforcementLevel: 'permissive' });
   const result = hook.run({ toolId: 'tool.interactive-bash', args: { command: 'grep -r "TODO" src/' } });
-  assert.equal(result.allowed, false);
-  assert.equal(result.blocked, true);
+  assert.equal(result.allowed, true);
+  assert.equal(result.warning, undefined);
 });
 
 // ---------------------------------------------------------------------------

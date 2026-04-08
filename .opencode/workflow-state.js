@@ -532,6 +532,11 @@ function printDoctorReport(report) {
   console.log(`active profile: ${report.runtime.activeProfile}`)
   console.log(`registry: ${report.runtime.registryPath}`)
   console.log(`install manifest: ${report.runtime.installManifestPath}`)
+  if (report.runtime.toolEnforcement) {
+    console.log(
+      `tool enforcement: ${report.runtime.toolEnforcement.level} (${report.runtime.toolEnforcement.source}) | plugin ${report.runtime.toolEnforcement.pluginActive ? "active" : "missing"} | guard-hook ${report.runtime.toolEnforcement.guardHookActive ? "active" : "missing"}`,
+    )
+  }
   printRuntimeTaskContext(report.runtime.runtimeContext)
   if (Array.isArray(report.runtime.backgroundRuns) && report.runtime.backgroundRuns.length > 0) {
     console.log(`background runs tracked: ${report.runtime.backgroundRuns.length}`)
@@ -546,6 +551,9 @@ function printDoctorReport(report) {
 
 function printDoctorReportShort(report) {
   console.log(`doctor | ok ${report.summary.ok} | error ${report.summary.error}`)
+  if (report.runtime?.toolEnforcement) {
+    console.log(`tool-enforcement: ${report.runtime.toolEnforcement.level} (${report.runtime.toolEnforcement.source})`)
+  }
   const runtimeContext = report.runtime?.runtimeContext
   if (runtimeContext?.orchestrationHealth?.reason) {
     console.log(
@@ -905,6 +913,21 @@ function enrichStateResult(result, statePath) {
   }
 }
 
+function resolveToolEnforcementSummary(mode, kitRoot = process.cwd()) {
+  const envLevel = process.env.OPENKIT_ENFORCEMENT_LEVEL
+  const isValidEnvLevel = envLevel === "strict" || envLevel === "moderate" || envLevel === "permissive"
+  const level = isValidEnvLevel ? envLevel : mode === "migration" ? "moderate" : "strict"
+  const source = isValidEnvLevel ? "env_override" : "mode_default"
+  const pluginPath = path.join(kitRoot, ".opencode", "plugins", "tool-enforcement.js")
+
+  return {
+    level,
+    source,
+    pluginActive: fs.existsSync(pluginPath),
+    guardHookActive: true,
+  }
+}
+
 function extendDoctorReport(report, statePath) {
   const runtimeRoot = path.dirname(path.dirname(statePath))
   const checks = [...report.checks]
@@ -998,6 +1021,7 @@ function extendDoctorReport(report, statePath) {
     runtime: {
       ...report.runtime,
       runtimeContext,
+      toolEnforcement: resolveToolEnforcementSummary(report.runtime?.state?.mode, report.runtime?.kitRoot),
     },
     checks,
     summary,

@@ -92,6 +92,8 @@ test('global doctor reports next steps for healthy installs', () => {
   assert.match(output, /Continuation state:/);
   assert.match(output, /Tool families \(total\/active\/degraded\):/);
   assert.match(output, /Workflow runtime:/);
+  assert.match(output, /Tool enforcement: tool_substitution_level=strict \| source=mode_default \| plugin_active=true \| guard_hook_active=true/);
+  assert.match(output, /Tool enforcement blocked_commands: grep, find, cat, head, tail, sed, awk, echo, wc, ls/);
   assert.match(output, /capabilities/);
 });
 

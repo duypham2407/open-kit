@@ -345,6 +345,46 @@ test("contract consistency accepts equivalent quick/task-board guardrail wording
   )
 })
 
+test("contract consistency accepts canonical full-delivery task-board ownership wording", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  fs.writeFileSync(
+    path.join(projectRoot, "context", "core", "workflow.md"),
+    [
+      "# Workflow",
+      "",
+      "Quick Task+ is the live semantics of the quick lane, not a third lane.",
+      "Mode enums remain `quick`, `migration`, and `full`.",
+      "Migration is the dedicated upgrade and modernization lane.",
+      "Migration work must stay free of task boards.",
+      "Migration must preserve behavior first and decouple blockers before broad upgrade work.",
+      "Lane tie breaker: product uncertainty chooses full, compatibility uncertainty chooses migration, low local uncertainty chooses quick.",
+      "Lane Decision Matrix: use examples to choose the lane when wording alone is not enough.",
+      "Do not invent a quick task board; quick work stays task-board free.",
+      "task boards belong only to full-delivery work items.",
+      "Quick stages: `quick_intake -> quick_brainstorm -> quick_plan -> quick_implement -> quick_test -> quick_done`.",
+      "Migration stages: `migration_intake -> migration_baseline -> migration_strategy -> migration_upgrade -> migration_code_review -> migration_verify -> migration_done`.",
+      "Full stages: `full_intake -> full_product -> full_solution -> full_implementation -> full_code_review -> full_qa -> full_done`.",
+      "Quick approvals: `quick_verified`.",
+      "Migration approvals: `baseline_to_strategy`, `strategy_to_upgrade`, `upgrade_to_code_review`, `code_review_to_verify`, `migration_verified`.",
+      "Full approvals: `product_to_solution`, `solution_to_fullstack`, `fullstack_to_code_review`, `code_review_to_qa`, `qa_to_done`.",
+      "Quick artifacts: `task_card`; migration artifacts: `solution_package`, optional `migration_report`; full artifacts: `scope_package`, `solution_package`, `qa_report`, `adr`.",
+      "",
+    ].join("\n"),
+    "utf8",
+  )
+
+  const report = runDoctor(path.join(projectRoot, ".opencode", "workflow-state.json"))
+
+  assert.equal(report.summary.error, 0)
+  assert.ok(
+    report.checks.some(
+      (check) => check.label === "workflow contract states full delivery owns execution task boards" && check.ok === true,
+    ),
+  )
+})
+
 test("contract consistency accepts equivalent compatibility mirror wording", () => {
   const projectRoot = makeTempProject()
   setupTempRuntime(projectRoot)

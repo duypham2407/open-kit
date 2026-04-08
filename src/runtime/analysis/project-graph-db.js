@@ -212,6 +212,12 @@ export class ProjectGraphDb {
     if (readonly && dbPath !== ':memory:' && fs.existsSync(dbPath)) {
       // Read-only mode with existing DB: open without schema writes.
       this._db = new Db(dbPath, { readonly: true, fileMustExist: true });
+    } else if (readonly) {
+      // Read-only mode must not create directories or write project/workspace files.
+      // Fall back to an in-memory schema so queries remain available.
+      this._db = new Db(':memory:');
+      this._db.exec(SCHEMA_SQL);
+      migrateSchema(this._db);
     } else {
       // Read-write mode, or read-only mode where DB does not exist yet.
       // In the latter case we create the schema so the DB is queryable

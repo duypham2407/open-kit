@@ -6,15 +6,15 @@
  * OpenCode built-in tools instead.
  *
  * Enforcement model:
- *   - ALWAYS STRICT for blocked default tools and blocked OS shell patterns.
- *   - No permissive/moderate bypass for these categories.
+ *   - blocked default tools (`grep`, `glob`) are always strict.
+ *   - bash shell pattern checks follow strict/moderate/permissive.
  *
  * Design notes:
  *   - The plugin runs inside OpenCode's plugin runtime (Bun), NOT inside the
  *     kit's own Node.js runtime.  It must be self-contained (no imports from
  *     src/ or .opencode/lib/).
  *   - Intentionally does not honor permissive/moderate overrides for blocked
- *     default tools and blocked shell patterns.
+ *     default tools.
  *   - An allowlist of safe Bash commands (git, npm, node, docker, etc.) is
  *     checked first so legitimate system operations are never blocked.
  */
@@ -147,6 +147,16 @@ function isAllowedCommand(command) {
 // ---------------------------------------------------------------------------
 
 function resolveEnforcementLevel() {
+  const envLevel = process.env.OPENKIT_ENFORCEMENT_LEVEL;
+  if (envLevel === 'strict' || envLevel === 'moderate' || envLevel === 'permissive') {
+    return envLevel;
+  }
+
+  const mode = process.env.OPENKIT_MODE ?? process.env.OPENKIT_WORKFLOW_MODE;
+  if (mode === 'migration') {
+    return 'moderate';
+  }
+
   return 'strict';
 }
 
@@ -188,15 +198,25 @@ export const ToolEnforcementPlugin = async ({ project, client, $, directory, wor
 
       const level = resolveEnforcementLevel(process.env);
 
+      if (level === 'permissive') {
+        return;
+      }
+
       // Check each substitution rule
       for (const rule of SUBSTITUTION_RULES) {
         if (rule.pattern.test(command)) {
           const message = [
-            `[OpenKit Tool Enforcement] Blocked bash command (category: ${rule.category}).`,
+            `[OpenKit Tool Enforcement] ${level === 'strict' ? 'Blocked' : 'Warning'} bash command (category: ${rule.category}).`,
             `Command: ${command.length > 120 ? command.slice(0, 120) + '...' : command}`,
             `Suggestion: ${rule.suggestion}`,
           ].join('\n');
-          throw new Error(message);
+
+          if (level === 'strict') {
+            throw new Error(message);
+          }
+
+          console.warn(message);
+          return;
         }
       }
     },

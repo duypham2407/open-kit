@@ -110,6 +110,14 @@ test("applyOpenKitMergePolicy additively inserts allowed managed-install top-lev
         schema: "openkit/install-state@1",
       },
       mcp: {
+        openkit: {
+          type: "local",
+          command: ["node", "bin/openkit-mcp.js"],
+          enabled: true,
+          environment: {
+            OPENKIT_PROJECT_ROOT: "{cwd}",
+          },
+        },
         "chrome-devtools": {
           type: "local",
           command: ["npx", "-y", "chrome-devtools-mcp@0.21.0"],
@@ -138,6 +146,14 @@ test("applyOpenKitMergePolicy additively inserts allowed managed-install top-lev
       schema: "openkit/install-state@1",
     },
     mcp: {
+      openkit: {
+        type: "local",
+        command: ["node", "bin/openkit-mcp.js"],
+        enabled: true,
+        environment: {
+          OPENKIT_PROJECT_ROOT: "{cwd}",
+        },
+      },
       "chrome-devtools": {
         type: "local",
         command: ["npx", "-y", "chrome-devtools-mcp@0.21.0"],

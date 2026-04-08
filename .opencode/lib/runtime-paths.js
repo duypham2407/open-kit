@@ -38,13 +38,57 @@ export function createWorkspaceId(projectRoot) {
   return crypto.createHash("sha256").update(seed).digest("hex").slice(0, 16)
 }
 
+function tryReadWorkspaceProjectRootFromStatePath(customStatePath) {
+  if (!customStatePath) {
+    return null
+  }
+
+  const resolvedStatePath = path.resolve(customStatePath)
+  const runtimeRoot = path.dirname(path.dirname(resolvedStatePath))
+  const workspaceMetaPath = path.join(runtimeRoot, "workspace.json")
+
+  if (!fs.existsSync(workspaceMetaPath)) {
+    return null
+  }
+
+  try {
+    const workspaceMeta = JSON.parse(fs.readFileSync(workspaceMetaPath, "utf8"))
+    if (typeof workspaceMeta?.projectRoot === "string" && workspaceMeta.projectRoot.length > 0) {
+      return path.resolve(workspaceMeta.projectRoot)
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
+function isGlobalPathMode(env) {
+  return env.OPENKIT_GLOBAL_MODE === "1" || env.OPENKIT_KIT_ROOT || env.OPENCODE_HOME
+}
+
+function hasExplicitStatePathOverride(customStatePath, env) {
+  if (!customStatePath || !env.OPENKIT_WORKFLOW_STATE) {
+    return false
+  }
+
+  return path.resolve(customStatePath) !== path.resolve(env.OPENKIT_WORKFLOW_STATE)
+}
+
 export function resolveProjectRoot(customStatePath, env = process.env) {
-  if (env.OPENKIT_PROJECT_ROOT) {
+  const hasStateOverride = hasExplicitStatePathOverride(customStatePath, env)
+
+  if (!hasStateOverride && env.OPENKIT_PROJECT_ROOT) {
     return path.resolve(env.OPENKIT_PROJECT_ROOT)
   }
 
   if (customStatePath) {
-    if (env.OPENKIT_GLOBAL_MODE === "1" || env.OPENKIT_KIT_ROOT || env.OPENCODE_HOME) {
+    const workspaceProjectRoot = tryReadWorkspaceProjectRootFromStatePath(customStatePath)
+    if (workspaceProjectRoot) {
+      return workspaceProjectRoot
+    }
+
+    if (!hasStateOverride && isGlobalPathMode(env)) {
       return detectProjectRoot(process.cwd())
     }
 
@@ -54,7 +98,11 @@ export function resolveProjectRoot(customStatePath, env = process.env) {
   return detectProjectRoot(process.cwd())
 }
 
-export function resolveKitRoot(projectRoot, env = process.env) {
+export function resolveKitRoot(projectRoot, env = process.env, customStatePath = null) {
+  if (hasExplicitStatePathOverride(customStatePath, env)) {
+    return projectRoot
+  }
+
   if (env.OPENKIT_KIT_ROOT) {
     return path.resolve(env.OPENKIT_KIT_ROOT)
   }
@@ -71,7 +119,7 @@ export function resolveStatePath(customStatePath, env = process.env) {
     return path.resolve(env.OPENKIT_WORKFLOW_STATE)
   }
 
-  if (env.OPENKIT_GLOBAL_MODE === "1" || env.OPENKIT_KIT_ROOT || env.OPENCODE_HOME) {
+  if (isGlobalPathMode(env)) {
     const projectRoot = resolveProjectRoot(customStatePath, env)
     const workspaceId = createWorkspaceId(projectRoot)
     return path.join(getOpenCodeHome(env), "workspaces", workspaceId, "openkit", ".opencode", "workflow-state.json")
@@ -87,7 +135,7 @@ export function resolveRuntimeRoot(customStatePath, env = process.env) {
 export function resolvePathContext(customStatePath, env = process.env) {
   const projectRoot = resolveProjectRoot(customStatePath, env)
   const runtimeRoot = resolveRuntimeRoot(customStatePath, env)
-  const kitRoot = resolveKitRoot(projectRoot, env)
+  const kitRoot = resolveKitRoot(projectRoot, env, customStatePath)
   const statePath = resolveStatePath(customStatePath, env)
 
   return Object.freeze({

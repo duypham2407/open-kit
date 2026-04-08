@@ -27,6 +27,17 @@
     "git diff": "allow"
   },
   "mcp": {
+    "openkit": {
+      "type": "local",
+      "command": [
+        "node",
+        "bin/openkit-mcp.js"
+      ],
+      "enabled": true,
+      "environment": {
+        "OPENKIT_PROJECT_ROOT": "{cwd}"
+      }
+    },
     "chrome-devtools": {
       "type": "local",
       "command": [

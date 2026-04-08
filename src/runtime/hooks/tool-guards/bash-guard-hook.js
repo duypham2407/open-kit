@@ -98,11 +98,25 @@ export function createBashGuardHook({ enforcementLevel = 'strict' } = {}) {
 
       for (const rule of SUBSTITUTION_RULES) {
         if (rule.pattern.test(command)) {
+          const reason = `OS-level command detected (${rule.category}). ${rule.suggestion}`
+
+          if (enforcementLevel === 'permissive') {
+            return { allowed: true }
+          }
+
+          if (enforcementLevel === 'moderate') {
+            return {
+              allowed: true,
+              warning: reason,
+              warnedBy: [`bash-guard:${rule.category}`],
+            }
+          }
+
           return {
             allowed: false,
             blocked: true,
             blockedBy: [`bash-guard:${rule.category}`],
-            reason: `OS-level command detected (${rule.category}). ${rule.suggestion}`,
+            reason,
           };
         }
       }

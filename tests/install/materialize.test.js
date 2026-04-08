@@ -48,6 +48,14 @@ test("materializeInstall creates managed install files without mutating the chec
       schema: "openkit/install-state@1",
     },
     mcp: {
+      openkit: {
+        type: "local",
+        command: ["node", "bin/openkit-mcp.js"],
+        enabled: true,
+        environment: {
+          OPENKIT_PROJECT_ROOT: "{cwd}",
+        },
+      },
       "chrome-devtools": {
         type: "local",
         command: ["npx", "-y", "chrome-devtools-mcp@0.21.0"],
@@ -129,6 +137,14 @@ test("materializeInstall additively inserts allowed managed-install keys into an
       schema: "openkit/install-state@1",
     },
     mcp: {
+      openkit: {
+        type: "local",
+        command: ["node", "bin/openkit-mcp.js"],
+        enabled: true,
+        environment: {
+          OPENKIT_PROJECT_ROOT: "{cwd}",
+        },
+      },
       "chrome-devtools": {
         type: "local",
         command: ["npx", "-y", "chrome-devtools-mcp@0.21.0"],
@@ -180,6 +196,29 @@ test("materializeInstall additively inserts allowed managed-install keys into an
   assert.deepEqual(validateInstallState(installState), [])
   assert.deepEqual(installState.assets.adopted, [])
   assert.deepEqual(installState.conflicts, result.conflicts)
+})
+
+test("materializeInstall configures the openkit MCP in the root manifest", () => {
+  const projectRoot = makeTempDir()
+
+  writeJson(path.join(projectRoot, ".opencode", "opencode.json"), {
+    runtime: true,
+  })
+
+  materializeInstall(projectRoot, {
+    now: new Date("2026-03-22T12:00:00.000Z"),
+  })
+
+  const rootManifest = readJson(path.join(projectRoot, "opencode.json"))
+
+  assert.deepEqual(rootManifest.mcp?.openkit, {
+    type: "local",
+    command: ["node", "bin/openkit-mcp.js"],
+    enabled: true,
+    environment: {
+      OPENKIT_PROJECT_ROOT: "{cwd}",
+    },
+  })
 })
 
 test("materializeInstall fails closed for unsupported root manifest rewrites", () => {

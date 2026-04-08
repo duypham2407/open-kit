@@ -7,14 +7,23 @@ import { createVerificationClaimHook } from './tool-guards/verification-claim-ho
 import { createWriteGuardHook } from './tool-guards/write-guard-hook.js';
 
 function resolveEnforcementLevel(workflowKernel) {
-  if (process.env.OPENKIT_ENFORCEMENT_LEVEL) {
+  if (process.env.OPENKIT_ENFORCEMENT_LEVEL === 'strict' || process.env.OPENKIT_ENFORCEMENT_LEVEL === 'moderate' || process.env.OPENKIT_ENFORCEMENT_LEVEL === 'permissive') {
     return process.env.OPENKIT_ENFORCEMENT_LEVEL;
   }
+
+  if (process.env.OPENKIT_MODE === 'migration' || process.env.OPENKIT_WORKFLOW_MODE === 'migration') {
+    return 'moderate';
+  }
+
   return 'strict';
 }
 
 export function createToolGuardHooks({ workflowKernel, config = {} }) {
-  const enforcementLevel = resolveEnforcementLevel(workflowKernel);
+  const configLevel = config?.toolGuards?.enforcementLevel;
+  const enforcementLevel =
+    configLevel === 'strict' || configLevel === 'moderate' || configLevel === 'permissive'
+      ? configLevel
+      : resolveEnforcementLevel(workflowKernel);
 
   return [
     createStageReadinessHook({ workflowKernel }),

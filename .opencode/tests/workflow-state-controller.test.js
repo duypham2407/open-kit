@@ -1420,6 +1420,32 @@ test("approving code_review_to_qa succeeds with a valid initial full_solution ta
   assert.equal(result.state.approvals.code_review_to_qa.status, "approved")
 })
 
+test("solution_to_fullstack approval succeeds when mirror lags but work-item revision is current", () => {
+  const statePath = createTempStateFile()
+  const projectRoot = path.dirname(path.dirname(statePath))
+
+  startFeature("FEATURE-606", "mirror-lag", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-606", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "queued" })],
+    issues: [],
+  })
+
+  const workItemStatePath = path.join(projectRoot, ".opencode", "work-items", "feature-606", "state.json")
+  const workItemState = JSON.parse(fs.readFileSync(workItemStatePath, "utf8"))
+  workItemState.updated_at = "2026-04-04T02:30:49.524Z"
+  fs.writeFileSync(workItemStatePath, `${JSON.stringify(workItemState, null, 2)}\n`, "utf8")
+
+  const result = setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  const mirrorState = JSON.parse(fs.readFileSync(statePath, "utf8"))
+
+  assert.equal(result.state.approvals.solution_to_fullstack.status, "approved")
+  assert.equal(mirrorState.work_item_id, "feature-606")
+  assert.equal(mirrorState.approvals.solution_to_fullstack.status, "approved")
+})
+
 test("full mode rejects parallelization before full_solution", () => {
   const statePath = createTempStateFile()
 

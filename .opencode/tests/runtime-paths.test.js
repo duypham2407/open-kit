@@ -45,3 +45,17 @@ test("resolvePathContext returns a frozen object", () => {
 
   assert.equal(Object.isFrozen(context), true)
 })
+
+test("resolvePathContext derives projectRoot from workspace metadata when env hints are absent", () => {
+  const projectRoot = makeTempDir()
+  const runtimeRoot = makeTempDir()
+  const statePath = path.join(runtimeRoot, ".opencode", "workflow-state.json")
+
+  fs.mkdirSync(path.dirname(statePath), { recursive: true })
+  fs.writeFileSync(path.join(runtimeRoot, "workspace.json"), `${JSON.stringify({ projectRoot }, null, 2)}\n`, "utf8")
+
+  const context = resolvePathContext(statePath, {})
+  assert.equal(context.projectRoot, projectRoot)
+  assert.equal(context.runtimeRoot, runtimeRoot)
+  assert.equal(context.statePath, statePath)
+})

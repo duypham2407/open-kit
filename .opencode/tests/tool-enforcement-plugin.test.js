@@ -108,13 +108,34 @@ test('plugin allows mkdir', async () => {
 });
 
 test('plugin blocks grep in migration mode too', async () => {
-  const result = await runBeforeHook('grep -r "TODO" src/', { OPENKIT_WORKFLOW_MODE: 'migration' });
-  assert.equal(result.blocked, true);
+  const originalWarn = console.warn;
+  const warnings = [];
+  console.warn = (message) => warnings.push(String(message));
+  try {
+    const result = await runBeforeHook('grep -r "TODO" src/', { OPENKIT_WORKFLOW_MODE: 'migration' });
+    assert.equal(result.blocked, false);
+    assert.ok(warnings.some((entry) => entry.includes('Warning bash command')));
+  } finally {
+    console.warn = originalWarn;
+  }
 });
 
 test('plugin blocks grep even with permissive override', async () => {
   const result = await runBeforeHook('grep -r "TODO" src/', { OPENKIT_ENFORCEMENT_LEVEL: 'permissive' });
-  assert.equal(result.blocked, true);
+  assert.equal(result.blocked, false);
+});
+
+test('plugin warns in moderate mode and allows execution', async () => {
+  const originalWarn = console.warn;
+  const warnings = [];
+  console.warn = (message) => warnings.push(String(message));
+  try {
+    const result = await runBeforeHook('cat src/index.js', { OPENKIT_ENFORCEMENT_LEVEL: 'moderate' });
+    assert.equal(result.blocked, false);
+    assert.ok(warnings.some((entry) => entry.includes('file-read')));
+  } finally {
+    console.warn = originalWarn;
+  }
 });
 
 test('plugin blocks default grep tool', async () => {

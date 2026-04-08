@@ -53,29 +53,15 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
   const schemaPath = path.join(projectRoot, "context", "core", "workflow-state-schema.md")
   const sessionResumePath = path.join(projectRoot, "context", "core", "session-resume.md")
   const runtimeSurfacesPath = path.join(projectRoot, "context", "core", "runtime-surfaces.md")
-  const fullDeliverySpecPath = path.join(
-    projectRoot,
-    "docs",
-    "specs",
-    "2026-03-21-openkit-full-delivery-multi-task-runtime.md",
-  )
-  const fullDeliveryPlanPath = path.join(
-    projectRoot,
-    "docs",
-    "plans",
-    "2026-03-21-openkit-full-delivery-multi-task-runtime.md",
-  )
   const workflowText = readTextIfExists(workflowPath)
   const schemaText = readTextIfExists(schemaPath)
   const sessionResumeText = readTextIfExists(sessionResumePath) ?? ""
   const runtimeSurfacesText = readTextIfExists(runtimeSurfacesPath) ?? ""
-  const fullDeliverySpecText = readTextIfExists(fullDeliverySpecPath) ?? ""
-  const fullDeliveryPlanText = readTextIfExists(fullDeliveryPlanPath) ?? ""
   const surfacePaths = getManifestSurfacePaths(projectRoot, manifest)
-  const taskBoardContractText = [workflowText, sessionResumeText, fullDeliverySpecText, fullDeliveryPlanText]
+  const taskBoardContractText = [workflowText, sessionResumeText]
     .filter(Boolean)
     .join("\n")
-  const compatibilityText = [schemaText, fullDeliverySpecText, fullDeliveryPlanText].filter(Boolean).join("\n")
+  const compatibilityText = [schemaText].filter(Boolean).join("\n")
 
   const allStageNames = Object.values(MODE_STAGE_SEQUENCES).flat()
   const allApprovalGates = Object.values(MODE_APPROVAL_GATES).flat()
@@ -161,6 +147,7 @@ function getContractConsistencyReport({ projectRoot, manifest }) {
           /(full delivery|full mode|full work)[^\n.]{0,120}(owns|uses|carries|gains|has|contains|belong)[^\n.]{0,80}task board/i,
           /task board[^\n.]{0,120}(full delivery|full mode|full work)[^\n.]{0,80}(only|owns|belong)/i,
           /execution task boards? belong only to full delivery/i,
+          /task boards? belong only to full[- ]delivery work items/i,
           /only `?full delivery`? work items gain an execution[- ]task board/i,
         ]),
     ),

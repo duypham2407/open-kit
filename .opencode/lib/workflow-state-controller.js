@@ -450,6 +450,14 @@ function persistManagedState(customStatePath, state, options = {}) {
   }
 }
 
+function readMirrorRevisionIfPresent(statePath) {
+  if (!fs.existsSync(statePath)) {
+    return null
+  }
+
+  return captureRevision(readState(statePath).state)
+}
+
 function getTaskBoardPath(projectRoot, workItemId) {
   return path.join(resolveWorkItemPaths(projectRoot, workItemId).workItemDir, "tasks.json")
 }
@@ -1738,9 +1746,10 @@ function setRoutingProfile(workIntent, behaviorDelta, dominantUncertainty, scope
 
 function mutate(customStatePath, mutator) {
   const context = readManagedState(customStatePath)
-  const { state, workItemId, index, projectRoot, runtimeRoot } = context
+  const { state, statePath, workItemId, index, projectRoot, runtimeRoot } = context
   const expectedRevision = captureRevision(state)
-  const expectedMirrorRevision = index.active_work_item_id === workItemId ? expectedRevision : null
+  const expectedMirrorRevision =
+    index.active_work_item_id === workItemId ? readMirrorRevisionIfPresent(statePath) : null
   validateStateObject(state)
   validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
   const nextState = mutator(JSON.parse(JSON.stringify(state)), context)
@@ -1756,10 +1765,11 @@ function mutate(customStatePath, mutator) {
 
 function mutateWorkItem(workItemId, customStatePath, mutator) {
   const context = readWorkItemContext(workItemId, customStatePath)
-  const { state, projectRoot, runtimeRoot } = context
+  const { state, statePath, projectRoot, runtimeRoot } = context
   const index = readWorkItemIndex(runtimeRoot)
   const expectedRevision = captureRevision(state)
-  const expectedMirrorRevision = index.active_work_item_id === workItemId ? expectedRevision : null
+  const expectedMirrorRevision =
+    index.active_work_item_id === workItemId ? readMirrorRevisionIfPresent(statePath) : null
 
   validateStateObject(state)
   validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
@@ -3305,6 +3315,12 @@ function getVersionInfo(customStatePath) {
 
 function runDoctor(customStatePath) {
   const { statePath, projectRoot, runtimeRoot, kitRoot } = resolvePathContext(customStatePath)
+  let runtimeStatus = null
+  try {
+    runtimeStatus = getRuntimeStatus(customStatePath, { relaxed: true })
+  } catch (_error) {
+    runtimeStatus = null
+  }
   const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
   const manifestInfo = tryReadJson(manifestPath)
   const manifest = manifestInfo.data
@@ -3356,7 +3372,8 @@ function runDoctor(customStatePath) {
     entryAgent,
     activeProfile: installManifest?.installation?.activeProfile ?? manifest?.kit?.activeProfile ?? "unknown",
     installManifest,
-    state,
+    state: runtimeStatus?.state ?? state,
+    runtimeContext: runtimeStatus?.runtimeContext ?? null,
     backgroundRuns: listBackgroundRuns(runtimeRoot),
   }
 
@@ -3443,12 +3460,13 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath, op
   const laneSource = options.laneSource ?? "orchestrator_routed"
 
   const workItemId = deriveWorkItemId({ feature_id: featureId })
-  const { runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  const { statePath, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
   const workItemPaths = resolveWorkItemPaths(runtimeRoot, workItemId)
   const index = readWorkItemIndex(runtimeRoot)
   const existingState = fs.existsSync(workItemPaths.statePath) ? _store.readWorkItemState(runtimeRoot, workItemId) : null
   const expectedRevision = existingState ? captureRevision(existingState) : null
-  const expectedMirrorRevision = index.active_work_item_id === workItemId && existingState ? expectedRevision : null
+  const expectedMirrorRevision =
+    index.active_work_item_id === workItemId && existingState ? readMirrorRevisionIfPresent(statePath) : null
   const nextState = createFreshState({
     workItemId,
     mode,
