@@ -7,9 +7,11 @@ import path from 'node:path';
 import {
   buildOpenCodeLayering,
 } from '../../src/runtime/opencode-layering.js';
+import { createInitialWorkflowState, ensureWorkspaceBootstrap } from '../../src/global/workspace-state.js';
 import { getWorkspacePaths } from '../../src/global/paths.js';
 import { launchManagedOpenCode } from '../../src/runtime/launcher.js';
 import { launchGlobalOpenKit } from '../../src/global/launcher.js';
+import { writeWorkItemIndex, writeWorkItemState, writeWorkItemWorktree } from '../../.opencode/lib/work-item-store.js';
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-launcher-'));
@@ -360,4 +362,86 @@ test('launchGlobalOpenKit records runtime sessions in the managed workspace root
   assert.equal(sessions.length, 1);
   assert.equal(sessions[0].launcher, 'global');
   assert.deepEqual(sessions[0].args, ['status']);
+});
+
+test('launchGlobalOpenKit can target a managed worktree for a specific work item', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let spawnCall = null;
+  const workItemId = 'task-710';
+  const worktreePath = path.join(projectRoot, '.worktrees', workItemId);
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+  fs.mkdirSync(worktreePath, { recursive: true });
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+  ensureWorkspaceBootstrap({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+
+  const quickState = {
+    ...createInitialWorkflowState({ mode: 'quick', selectionReason: 'Parallel quick task' }),
+    feature_id: 'TASK-710',
+    feature_slug: 'parallel-quick',
+    work_item_id: workItemId,
+    status: 'in_progress',
+    current_owner: 'QuickAgent',
+    issues: [],
+    verification_evidence: [],
+    updated_at: '2026-04-08T00:00:00.000Z',
+  };
+
+  writeWorkItemState(workspacePaths.workspaceRoot, workItemId, quickState);
+  writeWorkItemIndex(workspacePaths.workspaceRoot, {
+    active_work_item_id: workItemId,
+    work_items: [
+      {
+        work_item_id: workItemId,
+        feature_id: quickState.feature_id,
+        feature_slug: quickState.feature_slug,
+        mode: quickState.mode,
+        status: quickState.status,
+        state_path: `.opencode/work-items/${workItemId}/state.json`,
+      },
+    ],
+  });
+  writeWorkItemWorktree(workspacePaths.workspaceRoot, workItemId, {
+    schema: 'openkit/worktree@1',
+    work_item_id: workItemId,
+    mode: 'quick',
+    repository_root: projectRoot,
+    target_branch: 'main',
+    branch: `openkit/quick/${workItemId}`,
+    worktree_path: worktreePath,
+    created_at: '2026-04-08T00:00:00.000Z',
+  });
+
+  const result = launchGlobalOpenKit(['--work-item', workItemId, 'status'], {
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      spawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(spawnCall.command, 'opencode');
+  assert.match(spawnCall.args[0], /\.worktrees\/task-710$/);
+  assert.deepEqual(spawnCall.args.slice(1), ['status']);
+  assert.equal(spawnCall.options.cwd, spawnCall.args[0]);
+  assert.equal(spawnCall.options.env.OPENKIT_REPOSITORY_ROOT, projectRoot);
+  assert.equal(spawnCall.options.env.OPENKIT_PROJECT_ROOT, spawnCall.args[0]);
+  assert.equal(spawnCall.options.env.OPENKIT_WORKFLOW_STATE, workspacePaths.workflowStatePath);
 });

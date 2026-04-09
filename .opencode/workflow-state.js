@@ -217,6 +217,12 @@ function printRuntimeTaskContext(context) {
     console.log(`active work item id: ${context.activeWorkItemId}`)
   }
 
+  if (context.activeWorktree?.worktree_path) {
+    console.log(
+      `active worktree: ${context.activeWorktree.worktree_path} (${context.activeWorktree.branch} -> ${context.activeWorktree.target_branch})`,
+    )
+  }
+
   if (typeof context.workItemCount === "number") {
     console.log(`work items tracked: ${context.workItemCount}`)
   }

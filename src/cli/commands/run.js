@@ -4,9 +4,10 @@ import { DEFAULT_ENTRY_COMMAND, getCommandInstructionContract } from '../../runt
 
 function runHelp() {
   return [
-    'Usage: openkit run',
+    'Usage: openkit run [--work-item <work_item_id>] [opencode args...]',
     '',
     'Run OpenCode with the globally installed OpenKit profile for the current project.',
+    'Use `--work-item` to launch a specific work item inside its managed git worktree.',
   ].join('\n');
 }
 

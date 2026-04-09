@@ -19,6 +19,7 @@ import {
   bootstrapRuntimeStore,
   bootstrapLegacyWorkflowState,
   deriveWorkItemId,
+  readWorkItemWorktree,
   readWorkItemIndex,
   readWorkItemState,
   resolveWorkItemPaths,
@@ -27,6 +28,7 @@ import {
   writeWorkItemIndex,
   writeWorkItemState,
 } from "./work-item-store.js"
+import { createManagedWorktree, finalizeManagedWorktree } from "../../src/global/worktree-manager.js"
 import {
   bootstrapReleaseStore,
   readReleaseCandidate,
@@ -3460,13 +3462,14 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath, op
   const laneSource = options.laneSource ?? "orchestrator_routed"
 
   const workItemId = deriveWorkItemId({ feature_id: featureId })
-  const { statePath, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  const { statePath, projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
   const workItemPaths = resolveWorkItemPaths(runtimeRoot, workItemId)
   const index = readWorkItemIndex(runtimeRoot)
   const existingState = fs.existsSync(workItemPaths.statePath) ? _store.readWorkItemState(runtimeRoot, workItemId) : null
   const expectedRevision = existingState ? captureRevision(existingState) : null
   const expectedMirrorRevision =
     index.active_work_item_id === workItemId && existingState ? readMirrorRevisionIfPresent(statePath) : null
+  const repositoryRoot = process.env.OPENKIT_REPOSITORY_ROOT ? path.resolve(process.env.OPENKIT_REPOSITORY_ROOT) : projectRoot
   const nextState = createFreshState({
     workItemId,
     mode,
@@ -3478,12 +3481,37 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath, op
   })
 
   validateStateObject(nextState)
-  return persistManagedState(customStatePath, nextState, {
-    expectedRevision,
-    expectedMirrorRevision,
+  const worktreeResult = createManagedWorktree({
+    repositoryRoot,
+    runtimeRoot,
     workItemId,
-    activateWorkItemId: workItemId,
+    mode,
   })
+
+  try {
+    const persisted = persistManagedState(customStatePath, nextState, {
+      expectedRevision,
+      expectedMirrorRevision,
+      workItemId,
+      activateWorkItemId: workItemId,
+    })
+
+    return {
+      ...persisted,
+      worktree: worktreeResult.metadata ?? readWorkItemWorktree(runtimeRoot, workItemId),
+      worktree_status: worktreeResult.status,
+      worktree_reason: worktreeResult.reason ?? null,
+    }
+  } catch (error) {
+    if (worktreeResult.status === "created") {
+      finalizeManagedWorktree({
+        repositoryRoot,
+        runtimeRoot,
+        workItemId,
+      })
+    }
+    throw error
+  }
 }
 
 function startFeature(featureId, featureSlug, customStatePath) {

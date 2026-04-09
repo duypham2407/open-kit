@@ -91,6 +91,7 @@ export function resolveWorkItemPaths(projectRoot, workItemId) {
     ...paths,
     workItemDir,
     statePath: path.join(workItemDir, "state.json"),
+    worktreePath: path.join(workItemDir, "worktree.json"),
     relativeStatePath: path.posix.join(".opencode", "work-items", workItemId, "state.json"),
   }
 }
@@ -149,6 +150,26 @@ export function writeWorkItemState(projectRoot, workItemId, state) {
 
   writeJson(statePath, nextState)
   return nextState
+}
+
+export function readWorkItemWorktree(projectRoot, workItemId) {
+  const { worktreePath } = resolveWorkItemPaths(projectRoot, workItemId)
+  if (!fs.existsSync(worktreePath)) {
+    return null
+  }
+
+  return readJson(worktreePath, `Work-item worktree metadata missing at '${worktreePath}'`)
+}
+
+export function writeWorkItemWorktree(projectRoot, workItemId, metadata) {
+  const { worktreePath } = resolveWorkItemPaths(projectRoot, workItemId)
+  writeJson(worktreePath, metadata)
+  return metadata
+}
+
+export function removeWorkItemWorktree(projectRoot, workItemId) {
+  const { worktreePath } = resolveWorkItemPaths(projectRoot, workItemId)
+  fs.rmSync(worktreePath, { force: true })
 }
 
 function upsertIndexEntry(index, state, workItemId, relativeStatePath) {

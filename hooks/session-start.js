@@ -120,6 +120,7 @@ function renderResumeHint(state, runtimeSummaryModulePath, statePath) {
     : null;
   const boardSummary = runtimeContext?.taskBoardSummary ?? null;
   const activeTasks = boardSummary?.activeTasks ?? [];
+  const activeWorktree = runtimeContext?.activeWorktree ?? null;
 
   print('<workflow_resume_hint>');
   print('OpenKit workflow resume context detected.');
@@ -132,6 +133,9 @@ function renderResumeHint(state, runtimeSummaryModulePath, statePath) {
   }
   if (workItemId) {
     print(`active work item id: ${workItemId}`);
+  }
+  if (activeWorktree?.worktree_path) {
+    print(`active worktree: ${activeWorktree.worktree_path} (${activeWorktree.branch} -> ${activeWorktree.target_branch})`);
   }
   if (boardSummary) {
     print(`task board: ${boardSummary.total ?? 0} tasks | ready ${boardSummary.ready ?? 0} | active ${boardSummary.active ?? 0}`);

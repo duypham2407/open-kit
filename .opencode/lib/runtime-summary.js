@@ -3,7 +3,7 @@ import path from "node:path"
 
 import { listBackgroundRuns } from "./background-run-store.js"
 import { validateMigrationSliceBoard } from "./migration-slice-rules.js"
-import { readWorkItemIndex, resolveWorkItemPaths } from "./work-item-store.js"
+import { readWorkItemIndex, readWorkItemWorktree, resolveWorkItemPaths } from "./work-item-store.js"
 import {
   getArtifactReadiness,
   getIssueTelemetry,
@@ -921,6 +921,7 @@ function getRuntimeContext(projectRoot, state) {
   const relatedBackgroundRuns = backgroundRuns.filter((run) => !state?.work_item_id || run.work_item_id === state.work_item_id)
   const taskBoard = getTaskBoardDetails(projectRoot, state, relatedBackgroundRuns)
   const migrationSliceBoard = getMigrationSliceBoardDetails(projectRoot, state)
+  const activeWorktree = state?.work_item_id ? readWorkItemWorktree(projectRoot, state.work_item_id) : null
 
   return {
     activeWorkItemId: index?.active_work_item_id ?? state?.work_item_id ?? null,
@@ -933,6 +934,7 @@ function getRuntimeContext(projectRoot, state) {
     migrationSliceBoardValid: migrationSliceBoard.valid,
     migrationSliceBoardError: migrationSliceBoard.error,
     orchestrationHealth: taskBoard.orchestrationHealth,
+    activeWorktree,
     nextAction: getNextAction(state),
     lastAutoScaffold: state?.last_auto_scaffold ?? null,
     lastAutoScaffoldLine:
