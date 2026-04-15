@@ -2,14 +2,15 @@
 
 ## Latest
 
-- [`0.3.26`](release-notes/0.3.26.md) - fix global MCP bridge startup and publish plugin runtime surfaces
-- npm latest: `@duypham93/openkit@0.3.26`
-- git tag: `v0.3.26`
+- [`0.3.27`](release-notes/0.3.27.md) - require quick-task alignment before option analysis and plan confirmation
+- npm latest: `@duypham93/openkit@0.3.27`
+- git tag: `v0.3.27`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.3.27`](release-notes/0.3.27.md) - require quick-task alignment before option analysis and plan confirmation
 - [`0.3.26`](release-notes/0.3.26.md) - fix global MCP bridge startup and publish plugin runtime surfaces
 - [`0.3.25`](release-notes/0.3.25.md) - fix openkit MCP project install and harden doctor/runtime path checks
 - [`0.3.24`](release-notes/0.3.24.md) - enable default Chrome DevTools MCP and harden artifact scaffold template fallback for managed/global runtime paths
