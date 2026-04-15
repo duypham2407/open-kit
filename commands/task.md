@@ -69,5 +69,5 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 User: /task replace the deprecated helper in one module without changing behavior
 OpenKit: I am treating /task as the default entrypoint and classifying the work first.
 OpenKit: The dominant uncertainty is low and local, so I am routing this to Quick Task.
-OpenKit: Dispatching to Quick Agent. Quick Agent will brainstorm 3 solution options and present them for your choice.
+OpenKit: Dispatching to Quick Agent. Quick Agent will first confirm understanding, then analyze options in quick_plan and wait for your option and plan confirmations.
 ```

@@ -23,8 +23,8 @@ const EVIDENCE_RULES = {
 
 const NEXT_ACTION_BY_STAGE = {
   quick_intake: "Initialize workflow state and advance to brainstorm.",
-  quick_brainstorm: "Read the codebase deeply, generate 3 solution options with pros/cons, recommend the best, and wait for user choice.",
-  quick_plan: "Create a concrete execution plan from the chosen option and wait for user confirmation.",
+  quick_brainstorm: "Read the codebase deeply, clarify and align understanding, and obtain explicit user confirmation before any option analysis.",
+  quick_plan: "Analyze the solution space, present 3 options by default (or explain why fewer), wait for user option selection, create the selected-option execution plan, and wait for separate explicit plan confirmation.",
   quick_implement: "Execute the plan step by step, staying within the agreed scope.",
   quick_test: "Run tests, verify acceptance points with real evidence, check regression, and approve quick_verified.",
   quick_done: "Summarize changes, evidence, and notes, then close the quick task.",

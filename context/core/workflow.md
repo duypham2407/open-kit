@@ -42,9 +42,9 @@ User Request
     ↓
 Quick Agent (single owner, no handoffs)
     ↓
-quick_brainstorm   ← deep codebase reading, 3 solution options, user chooses
+quick_brainstorm   ← deep codebase reading, clarify + align, explicit user confirmation of understanding
     ↓
-quick_plan         ← execution plan from chosen option, user confirms
+quick_plan         ← solution analysis, default 3 options, user selects, execution plan, separate user plan confirmation
     ↓
 quick_implement    ← execute plan step by step
     ↓
@@ -59,11 +59,17 @@ When the user invokes `/quick-task`, the Quick Agent receives the request direct
 
 Quick mode expectations:
 
-- deep codebase reading before proposing solutions
-- 3 genuinely different solution options with pros, cons, effort, and risk analysis — unless the task is so simple that only one approach exists
-- user chooses the approach before implementation begins
-- concrete execution plan with specific files, changes, and validation per step
-- bounded implementation following the plan
+- deep codebase reading during `quick_brainstorm` before any solution analysis
+- `quick_brainstorm` is clarify-and-align only: ask follow-up questions, present draft understanding, and require explicit user confirmation of understanding
+- explicit confirmation requirement applies to every quick task, including tiny or seemingly obvious tasks
+- no solution options, approach comparison, recommendation, or execution planning before explicit understanding confirmation
+- `quick_plan` owns solution analysis and option comparison
+- default `quick_plan` behavior is 3 meaningfully different options with pros, cons, effort, and risk analysis; fewer than 3 options are allowed only when 3 meaningful options do not exist, and the reason must be explicit
+- options must be holistic and preserve project stability and consistency across logic and workflow, not just local patch choices when broader consistency matters
+- user chooses the approach before execution plan creation
+- concrete execution plan with specific files, changes, and validation per step for the selected option
+- user explicitly confirms the execution plan as a separate checkpoint before `quick_implement`
+- bounded implementation following the confirmed plan
 - real test evidence before claiming completion
 - no architecture exploration beyond what brainstorm requires
 - no full-delivery Product-Lead scope-package to Solution-Lead solution-package handoff requirement
@@ -277,8 +283,8 @@ Approval state should be recorded in the managed active work-item state before a
 
 - optional lightweight task card: `docs/tasks/YYYY-MM-DD-<task>.md`
 - source code changes
-- brainstorm analysis with 3 options and recommendation (in workflow communication)
-- execution plan confirmed by user (in workflow communication)
+- `quick_brainstorm` clarification/alignment with explicit user confirmation of understanding (in workflow communication)
+- `quick_plan` solution analysis with default 3 options (or explicit fewer-options justification), user option selection, execution plan, and separate user plan confirmation (in workflow communication)
 - test and verification evidence with real command output
 
 ### Migration

@@ -33,7 +33,8 @@ Use `/quick-task` when the user wants to enter the quick lane directly for daily
 - Record `lane_source = user_explicit`, `mode = quick`, and `mode_reason` in workflow state
 - Initialize `quick_intake`, then advance immediately to `quick_brainstorm`
 - Follow the single-agent quick pipeline: `quick_brainstorm -> quick_plan -> quick_implement -> quick_test -> quick_done`
-- During brainstorm: read the codebase deeply, generate 3 solution options with pros/cons analysis, recommend the best option, and wait for the user to choose
+- During `quick_brainstorm`: read the codebase deeply, clarify understanding, and obtain explicit user confirmation before any option analysis
+- During `quick_plan`: analyze solution space, present 3 options by default (or fewer only with explicit justification), wait for user option selection, produce execution plan, and require separate plan confirmation before `quick_implement`
 - Create an optional task card only when traceability is genuinely useful
 
 ## Lane authority
@@ -55,7 +56,9 @@ The user selected `/quick-task` explicitly. This is a **lane lock**.
 ```text
 User: /quick-task fix the CSV export that drops the header row
 QuickAgent: Let me read the codebase to understand the export logic...
-QuickAgent: I've analyzed the code. Here are 3 options:
+QuickAgent: Here is my understanding of the task and constraints. Please confirm before I analyze options.
+User: Confirmed.
+QuickAgent: Great — here are 3 options:
   Option A: Fix the off-by-one in the slice() call (low effort, low risk)
   Option B: Rewrite the export function with streaming (medium effort, medium risk)
   Option C: Add a header template system (high effort, low risk)

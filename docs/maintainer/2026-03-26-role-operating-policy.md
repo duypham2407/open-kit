@@ -113,7 +113,8 @@ Use it to keep role boundaries sharp during daily work.
 ### Owns
 
 - the entire quick-mode lifecycle: `quick_intake` through `quick_done`
-- brainstorming 3 solution options and waiting for user confirmation
+- `quick_brainstorm` clarification + alignment and explicit user understanding confirmation before any option analysis
+- `quick_plan` solution analysis with default 3 options, user option selection, execution planning, and separate plan confirmation before implementation
 - planning, implementation, testing, and verification within quick mode
 - `quick_verified` approval gate
 
@@ -133,7 +134,7 @@ Use it to keep role boundaries sharp during daily work.
 
 ### Guiding Question
 
-- Have I given the user real choices, implemented only the confirmed option, and proven correctness with reproducible evidence?
+- Have I confirmed understanding before analysis, then implemented only the user-confirmed option and plan, with reproducible evidence?
 
 ## Code Reviewer
 

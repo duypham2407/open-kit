@@ -113,7 +113,7 @@ This stage is a bookkeeping step. Do not linger here.
 
 ## Stage 2: `quick_brainstorm`
 
-**Purpose**: Understand the problem deeply before committing to a plan. Read the codebase thoroughly. Explore options. Present the user with clear choices.
+**Purpose**: Clarify and align on task understanding before any solution analysis begins.
 
 ### Step 1: Deep Codebase Reading
 
@@ -130,9 +130,46 @@ This is the most important part of brainstorm. You must understand the codebase 
 
 Do not skip this step. Do not assume you understand the code from file names alone. Read the actual source.
 
-### Step 2: Generate 3 Solution Options
+### Step 2: Clarify Understanding With User
 
-After understanding the codebase, propose **exactly 3 options** to the user:
+After reading the relevant code, summarize your understanding and ask for explicit confirmation.
+
+```text
+## Understanding Check
+
+Here is my current understanding:
+- <task outcome I will target>
+- <constraints I will preserve>
+- <important files/surfaces likely involved>
+
+Please confirm this understanding before I analyze solution options.
+```
+
+Rules in `quick_brainstorm`:
+
+- You may ask follow-up questions when uncertainty remains
+- You may present updated understanding after user corrections and ask for confirmation again
+- You must get explicit confirmation of understanding before moving to `quick_plan`
+- This requirement applies even for tiny or seemingly obvious quick tasks
+- Do not present solution options, approach comparisons, recommendations, or execution plans before explicit understanding confirmation
+
+### Step 3: Wait for Explicit Understanding Confirmation
+
+Stay in clarify-and-align behavior until confirmation is explicit.
+
+- If the user confirms understanding → advance to `quick_plan`
+- If the user provides corrections or new requirements → update understanding and ask for confirmation again
+- If the user asks clarifying questions → answer using codebase evidence, then return to confirmation
+
+---
+
+## Stage 3: `quick_plan`
+
+**Purpose**: Analyze solution options, let the user select an option, create the execution plan, and get separate plan confirmation.
+
+### Step 1: Present Solution Options
+
+Default behavior is to present 3 meaningfully different options.
 
 ```text
 ## Option A: <Short Name>
@@ -167,27 +204,23 @@ I recommend **Option X** because:
 - <reason tied to risk/effort tradeoff>
 ```
 
-Rules for the 3 options:
+Option rules:
 
-- Each option must be a genuinely different approach, not minor variations of the same idea
-- Options should span a range: typically one conservative/minimal, one balanced, one thorough
-- Pros and cons must reference the actual codebase — not generic software engineering advice
-- The recommendation must have a clear reason tied to this specific task and codebase
-- If the task is so simple that 3 meaningfully different options do not exist (e.g. "fix typo on line 42"), state that clearly: present the single obvious approach and explain why alternatives do not apply. Do not fabricate artificial options
+- Options must be genuinely different approaches, not minor variations
+- Options must be holistic and protect project stability/consistency across logic and workflow where relevant
+- Pros/cons must reference this codebase, not generic advice
+- 3 options is the default
+- Fewer than 3 options are allowed only when 3 meaningful approaches truly do not exist; explain why explicitly (do not fabricate artificial options)
 
-### Step 3: Wait for User Decision
+### Step 2: Wait for User Option Selection
 
-Present the 3 options and your recommendation. Wait for the user to choose before proceeding.
+Do not produce a final execution plan until the user selects an option.
 
-- If the user picks an option → advance to `quick_plan` with that option
-- If the user wants a hybrid or modification → adjust and confirm, then advance
-- If the user asks clarifying questions → answer with codebase evidence, then re-present options if needed
+- If user picks an option → proceed to execution plan for that option
+- If user wants a hybrid → refine options and reconfirm the selected path
+- If scope meaning changes materially → return to `quick_brainstorm` understanding confirmation
 
----
-
-## Stage 3: `quick_plan`
-
-**Purpose**: Turn the chosen option into a concrete execution plan.
+### Step 3: Create Execution Plan For Selected Option
 
 Create a step-by-step plan:
 
@@ -226,12 +259,12 @@ Regression check:
 - <lint, type-check, build, or full test suite commands if available>
 ```
 
-Rules:
+Plan rules:
 
 - Every step must name specific files and describe the exact change
 - Steps must be ordered by dependency — do not plan step 3 before step 1 if step 3 depends on step 1
 - The test strategy must reference real commands from the project. If no test tooling exists, document the manual verification path
-- Present the plan to the user and wait for confirmation before implementing
+- Present the plan to the user and wait for explicit plan confirmation before implementing
 
 ---
 

@@ -11,8 +11,8 @@ export const COMMAND_INSTRUCTION_CONTRACTS = {
   'quick-task': {
     command: '/quick-task',
     purpose: 'Direct quick-lane entry routed to Quick Agent with no Master Orchestrator involvement.',
-    nextAction: 'Quick Agent reads the codebase, brainstorms 3 options, presents to user, then plans, implements, and tests.',
-    expectedOutputs: ['3 solution options', 'execution plan', 'test evidence'],
+    nextAction: 'Quick Agent reads the codebase, confirms understanding in quick_brainstorm, then analyzes options in quick_plan, produces a selected-option plan, and tests after explicit plan confirmation.',
+    expectedOutputs: ['understanding confirmation', 'solution options in quick_plan', 'selected-option execution plan', 'plan confirmation', 'test evidence'],
     whenToUse: 'Use for daily work — bounded tasks where you want a single agent to handle everything.',
   },
   migrate: {
