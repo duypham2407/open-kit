@@ -414,14 +414,20 @@ test('launchGlobalOpenKit can target a managed worktree for a specific work item
     ],
   });
   writeWorkItemWorktree(workspacePaths.workspaceRoot, workItemId, {
-    schema: 'openkit/worktree@1',
+    schema: 'openkit/worktree@2',
     work_item_id: workItemId,
-    mode: 'quick',
+    workflow_mode: 'quick',
+    lineage_key: workItemId,
     repository_root: projectRoot,
     target_branch: 'main',
     branch: `openkit/quick/${workItemId}`,
     worktree_path: worktreePath,
     created_at: '2026-04-08T00:00:00.000Z',
+    env_propagation: {
+      mode: 'none',
+      applied_at: null,
+      source_files: [],
+    },
   });
 
   const result = launchGlobalOpenKit(['--work-item', workItemId, 'status'], {
@@ -444,4 +450,457 @@ test('launchGlobalOpenKit can target a managed worktree for a specific work item
   assert.equal(spawnCall.options.env.OPENKIT_REPOSITORY_ROOT, projectRoot);
   assert.equal(spawnCall.options.env.OPENKIT_PROJECT_ROOT, spawnCall.args[0]);
   assert.equal(spawnCall.options.env.OPENKIT_WORKFLOW_STATE, workspacePaths.workflowStatePath);
+  assert.match(result.stdout, /Retained managed worktree:/);
+  assert.match(result.stdout, /Recommended next mode: reuse/);
+  assert.match(result.stdout, /Last env propagation mode: none/);
+  assert.match(result.stdout, /cleanup-worktree task-710/);
+});
+
+test('launchGlobalOpenKit returns prompt_required when mode is missing and no retained worktree exists', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  const workItemId = 'task-711';
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+  ensureWorkspaceBootstrap({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+
+  const quickState = {
+    ...createInitialWorkflowState({ mode: 'quick', selectionReason: 'Prompt required coverage' }),
+    feature_id: 'TASK-711',
+    feature_slug: 'prompt-required',
+    work_item_id: workItemId,
+    status: 'in_progress',
+    current_owner: 'QuickAgent',
+    issues: [],
+    verification_evidence: [],
+    updated_at: '2026-04-08T00:00:00.000Z',
+  };
+
+  writeWorkItemState(workspacePaths.workspaceRoot, workItemId, quickState);
+  writeWorkItemIndex(workspacePaths.workspaceRoot, {
+    active_work_item_id: workItemId,
+    work_items: [
+      {
+        work_item_id: workItemId,
+        feature_id: quickState.feature_id,
+        feature_slug: quickState.feature_slug,
+        mode: quickState.mode,
+        status: quickState.status,
+        state_path: `.opencode/work-items/${workItemId}/state.json`,
+      },
+    ],
+  });
+
+  const result = launchGlobalOpenKit(['--work-item', workItemId, 'status'], {
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+    stdio: 'pipe',
+    spawn: () => {
+      throw new Error('spawn should not be called when prompt is required');
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.promptRequired, true);
+  assert.match(result.promptReason, /No usable retained managed worktree exists/);
+  assert.equal(result.runtimeFoundation, null);
+});
+
+test('launchGlobalOpenKit blocks explicit new when retained worktree already exists', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  const workItemId = 'task-712';
+  const worktreePath = path.join(projectRoot, '.worktrees', workItemId);
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+  fs.mkdirSync(worktreePath, { recursive: true });
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+  ensureWorkspaceBootstrap({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+
+  const quickState = {
+    ...createInitialWorkflowState({ mode: 'quick', selectionReason: 'Explicit new rejection coverage' }),
+    feature_id: 'TASK-712',
+    feature_slug: 'explicit-new-blocked',
+    work_item_id: workItemId,
+    status: 'in_progress',
+    current_owner: 'QuickAgent',
+    issues: [],
+    verification_evidence: [],
+    updated_at: '2026-04-08T00:00:00.000Z',
+  };
+
+  writeWorkItemState(workspacePaths.workspaceRoot, workItemId, quickState);
+  writeWorkItemIndex(workspacePaths.workspaceRoot, {
+    active_work_item_id: workItemId,
+    work_items: [
+      {
+        work_item_id: workItemId,
+        feature_id: quickState.feature_id,
+        feature_slug: quickState.feature_slug,
+        mode: quickState.mode,
+        status: quickState.status,
+        state_path: `.opencode/work-items/${workItemId}/state.json`,
+      },
+    ],
+  });
+  writeWorkItemWorktree(workspacePaths.workspaceRoot, workItemId, {
+    schema: 'openkit/worktree@2',
+    work_item_id: workItemId,
+    workflow_mode: 'quick',
+    lineage_key: workItemId,
+    repository_root: projectRoot,
+    target_branch: 'main',
+    branch: `openkit/quick/${workItemId}`,
+    worktree_path: worktreePath,
+    created_at: '2026-04-08T00:00:00.000Z',
+    env_propagation: {
+      mode: 'none',
+      applied_at: null,
+      source_files: [],
+    },
+  });
+
+  const result = launchGlobalOpenKit(
+    {
+      workItemId,
+      worktreeMode: 'new',
+      envPropagation: 'none',
+      passthroughArgs: ['status'],
+    },
+    {
+      projectRoot,
+      env: {
+        OPENCODE_HOME: openCodeHome,
+      },
+      stdio: 'pipe',
+      spawn: () => {
+        throw new Error('spawn should not be called when explicit new is blocked');
+      },
+    },
+  );
+
+  assert.equal(result.exitCode, 1);
+  assert.match(result.stderr, /already retained/);
+  assert.match(result.stderr, /worktree-mode reuse\/reopen\/none/);
+});
+
+test('launchGlobalOpenKit blocks explicit reuse when the work item is already done', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  const workItemId = 'task-713';
+  const worktreePath = path.join(projectRoot, '.worktrees', workItemId);
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+  fs.mkdirSync(worktreePath, { recursive: true });
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+  ensureWorkspaceBootstrap({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+
+  const quickState = {
+    ...createInitialWorkflowState({ mode: 'quick', selectionReason: 'Explicit reuse terminal coverage' }),
+    feature_id: 'TASK-713',
+    feature_slug: 'explicit-reuse-blocked',
+    work_item_id: workItemId,
+    status: 'done',
+    current_stage: 'quick_done',
+    current_owner: 'QuickAgent',
+    issues: [],
+    verification_evidence: [],
+    updated_at: '2026-04-08T00:00:00.000Z',
+  };
+
+  writeWorkItemState(workspacePaths.workspaceRoot, workItemId, quickState);
+  writeWorkItemIndex(workspacePaths.workspaceRoot, {
+    active_work_item_id: workItemId,
+    work_items: [
+      {
+        work_item_id: workItemId,
+        feature_id: quickState.feature_id,
+        feature_slug: quickState.feature_slug,
+        mode: quickState.mode,
+        status: quickState.status,
+        state_path: `.opencode/work-items/${workItemId}/state.json`,
+      },
+    ],
+  });
+  writeWorkItemWorktree(workspacePaths.workspaceRoot, workItemId, {
+    schema: 'openkit/worktree@2',
+    work_item_id: workItemId,
+    workflow_mode: 'quick',
+    lineage_key: workItemId,
+    repository_root: projectRoot,
+    target_branch: 'main',
+    branch: `openkit/quick/${workItemId}`,
+    worktree_path: worktreePath,
+    created_at: '2026-04-08T00:00:00.000Z',
+    env_propagation: {
+      mode: 'none',
+      applied_at: null,
+      source_files: [],
+    },
+  });
+
+  const result = launchGlobalOpenKit(
+    {
+      workItemId,
+      worktreeMode: 'reuse',
+      envPropagation: 'none',
+      passthroughArgs: ['status'],
+    },
+    {
+      projectRoot,
+      env: {
+        OPENCODE_HOME: openCodeHome,
+      },
+      stdio: 'pipe',
+      spawn: () => {
+        throw new Error('spawn should not be called when explicit reuse is blocked');
+      },
+    },
+  );
+
+  assert.equal(result.exitCode, 1);
+  assert.match(result.stderr, /requires an active same-lineage work item/);
+  assert.match(result.stderr, /use --worktree-mode reopen/);
+});
+
+test('launchGlobalOpenKit blocks explicit reopen when the work item is still active', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  const workItemId = 'task-714';
+  const worktreePath = path.join(projectRoot, '.worktrees', workItemId);
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+  fs.mkdirSync(worktreePath, { recursive: true });
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+  ensureWorkspaceBootstrap({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+
+  const quickState = {
+    ...createInitialWorkflowState({ mode: 'quick', selectionReason: 'Explicit reopen active coverage' }),
+    feature_id: 'TASK-714',
+    feature_slug: 'explicit-reopen-blocked',
+    work_item_id: workItemId,
+    status: 'in_progress',
+    current_owner: 'QuickAgent',
+    issues: [],
+    verification_evidence: [],
+    updated_at: '2026-04-08T00:00:00.000Z',
+  };
+
+  writeWorkItemState(workspacePaths.workspaceRoot, workItemId, quickState);
+  writeWorkItemIndex(workspacePaths.workspaceRoot, {
+    active_work_item_id: workItemId,
+    work_items: [
+      {
+        work_item_id: workItemId,
+        feature_id: quickState.feature_id,
+        feature_slug: quickState.feature_slug,
+        mode: quickState.mode,
+        status: quickState.status,
+        state_path: `.opencode/work-items/${workItemId}/state.json`,
+      },
+    ],
+  });
+  writeWorkItemWorktree(workspacePaths.workspaceRoot, workItemId, {
+    schema: 'openkit/worktree@2',
+    work_item_id: workItemId,
+    workflow_mode: 'quick',
+    lineage_key: workItemId,
+    repository_root: projectRoot,
+    target_branch: 'main',
+    branch: `openkit/quick/${workItemId}`,
+    worktree_path: worktreePath,
+    created_at: '2026-04-08T00:00:00.000Z',
+    env_propagation: {
+      mode: 'none',
+      applied_at: null,
+      source_files: [],
+    },
+  });
+
+  const result = launchGlobalOpenKit(
+    {
+      workItemId,
+      worktreeMode: 'reopen',
+      envPropagation: 'none',
+      passthroughArgs: ['status'],
+    },
+    {
+      projectRoot,
+      env: {
+        OPENCODE_HOME: openCodeHome,
+      },
+      stdio: 'pipe',
+      spawn: () => {
+        throw new Error('spawn should not be called when explicit reopen is blocked');
+      },
+    },
+  );
+
+  assert.equal(result.exitCode, 1);
+  assert.match(result.stderr, /is for work items returning after a completion boundary/);
+  assert.match(result.stderr, /use --worktree-mode reuse/);
+});
+
+test('launchGlobalOpenKit reuses retained env propagation without conflict on repeated reuse launches', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let spawnCallCount = 0;
+  const workItemId = 'task-715';
+  const worktreePath = path.join(projectRoot, '.worktrees', workItemId);
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+  fs.mkdirSync(worktreePath, { recursive: true });
+  writeJson(path.join(projectRoot, '.env'), { invalid: 'fixture' });
+  fs.writeFileSync(path.join(projectRoot, '.env'), 'ROOT=true\n', 'utf8');
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+  ensureWorkspaceBootstrap({
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+    },
+  });
+
+  const quickState = {
+    ...createInitialWorkflowState({ mode: 'quick', selectionReason: 'Repeated reuse env coverage' }),
+    feature_id: 'TASK-715',
+    feature_slug: 'repeated-reuse-env',
+    work_item_id: workItemId,
+    status: 'in_progress',
+    current_owner: 'QuickAgent',
+    issues: [],
+    verification_evidence: [],
+    updated_at: '2026-04-08T00:00:00.000Z',
+  };
+
+  writeWorkItemState(workspacePaths.workspaceRoot, workItemId, quickState);
+  writeWorkItemIndex(workspacePaths.workspaceRoot, {
+    active_work_item_id: workItemId,
+    work_items: [
+      {
+        work_item_id: workItemId,
+        feature_id: quickState.feature_id,
+        feature_slug: quickState.feature_slug,
+        mode: quickState.mode,
+        status: quickState.status,
+        state_path: `.opencode/work-items/${workItemId}/state.json`,
+      },
+    ],
+  });
+  writeWorkItemWorktree(workspacePaths.workspaceRoot, workItemId, {
+    schema: 'openkit/worktree@2',
+    work_item_id: workItemId,
+    workflow_mode: 'quick',
+    lineage_key: workItemId,
+    repository_root: projectRoot,
+    target_branch: 'main',
+    branch: `openkit/quick/${workItemId}`,
+    worktree_path: worktreePath,
+    created_at: '2026-04-08T00:00:00.000Z',
+    env_propagation: {
+      mode: 'symlink',
+      applied_at: '2026-04-08T00:00:00.000Z',
+      source_files: ['.env'],
+    },
+  });
+
+  fs.symlinkSync(path.join(projectRoot, '.env'), path.join(worktreePath, '.env'));
+
+  const firstResult = launchGlobalOpenKit(
+    {
+      workItemId,
+      worktreeMode: 'reuse',
+      envPropagation: null,
+      passthroughArgs: ['status'],
+    },
+    {
+      projectRoot,
+      env: {
+        OPENCODE_HOME: openCodeHome,
+      },
+      stdio: 'pipe',
+      spawn: () => {
+        spawnCallCount += 1;
+        return { status: 0, stdout: '', stderr: '' };
+      },
+    },
+  );
+
+  const secondResult = launchGlobalOpenKit(
+    {
+      workItemId,
+      worktreeMode: 'reuse',
+      envPropagation: null,
+      passthroughArgs: ['status'],
+    },
+    {
+      projectRoot,
+      env: {
+        OPENCODE_HOME: openCodeHome,
+      },
+      stdio: 'pipe',
+      spawn: () => {
+        spawnCallCount += 1;
+        return { status: 0, stdout: '', stderr: '' };
+      },
+    },
+  );
+
+  assert.equal(firstResult.exitCode, 0);
+  assert.equal(secondResult.exitCode, 0);
+  assert.equal(spawnCallCount, 2);
+  assert.doesNotMatch(secondResult.stderr, /overwrite existing files/);
+  assert.match(secondResult.stdout, /Last env propagation mode: symlink/);
 });

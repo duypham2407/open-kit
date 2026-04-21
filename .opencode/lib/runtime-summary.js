@@ -921,7 +921,7 @@ function getRuntimeContext(projectRoot, state) {
   const relatedBackgroundRuns = backgroundRuns.filter((run) => !state?.work_item_id || run.work_item_id === state.work_item_id)
   const taskBoard = getTaskBoardDetails(projectRoot, state, relatedBackgroundRuns)
   const migrationSliceBoard = getMigrationSliceBoardDetails(projectRoot, state)
-  const activeWorktree = state?.work_item_id ? readWorkItemWorktree(projectRoot, state.work_item_id) : null
+  const retainedWorktree = state?.work_item_id ? readWorkItemWorktree(projectRoot, state.work_item_id) : null
 
   return {
     activeWorkItemId: index?.active_work_item_id ?? state?.work_item_id ?? null,
@@ -934,7 +934,7 @@ function getRuntimeContext(projectRoot, state) {
     migrationSliceBoardValid: migrationSliceBoard.valid,
     migrationSliceBoardError: migrationSliceBoard.error,
     orchestrationHealth: taskBoard.orchestrationHealth,
-    activeWorktree,
+    retainedWorktree,
     nextAction: getNextAction(state),
     lastAutoScaffold: state?.last_auto_scaffold ?? null,
     lastAutoScaffoldLine:

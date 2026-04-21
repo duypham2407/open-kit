@@ -7,6 +7,7 @@ import path from "node:path"
 import {
   bootstrapLegacyWorkflowState,
   deriveWorkItemId,
+  readWorkItemWorktree,
   readWorkItemIndex,
   readWorkItemState,
   refreshCompatibilityMirror,
@@ -15,6 +16,7 @@ import {
   validateActiveMirror,
   writeWorkItemIndex,
   writeWorkItemState,
+  writeWorkItemWorktree,
 } from "../lib/work-item-store.js"
 
 function makeTempProject() {
@@ -371,4 +373,62 @@ test("activating a different work item and refreshing the mirror rewrites compat
   assert.equal(mirrorState.feature_id, "FEATURE-002")
   assert.equal(mirrorState.feature_slug, "parallel-runtime")
   assert.equal(mirrorState.updated_at, "2026-03-21")
+})
+
+test("readWorkItemWorktree normalizes legacy openkit/worktree@1 metadata into the v2 shape", () => {
+  const projectRoot = makeTempProject()
+
+  writeWorkItemWorktree(projectRoot, "feature-936", {
+    schema: "openkit/worktree@1",
+    work_item_id: "feature-936",
+    mode: "full",
+    repository_root: "/repo",
+    target_branch: "main",
+    branch: "openkit/full/feature-936",
+    worktree_path: "/repo/.worktrees/feature-936",
+    created_at: "2026-04-20T00:00:00.000Z",
+  })
+
+  const metadata = readWorkItemWorktree(projectRoot, "feature-936")
+
+  assert.equal(metadata.schema, "openkit/worktree@2")
+  assert.equal(metadata.workflow_mode, "full")
+  assert.equal(metadata.lineage_key, "feature-936")
+  assert.equal(metadata.last_used_at, "2026-04-20T00:00:00.000Z")
+  assert.deepEqual(metadata.env_propagation, {
+    mode: "none",
+    applied_at: null,
+    source_files: [],
+  })
+})
+
+test("writeWorkItemWorktree persists normalized v2 metadata with env propagation", () => {
+  const projectRoot = makeTempProject()
+
+  writeWorkItemWorktree(projectRoot, "feature-937", {
+    schema: "openkit/worktree@2",
+    work_item_id: "feature-937",
+    workflow_mode: "quick",
+    repository_root: "/repo",
+    target_branch: "main",
+    branch: "openkit/quick/feature-937",
+    worktree_path: "/repo/.worktrees/feature-937",
+    created_at: "2026-04-20T00:00:00.000Z",
+    env_propagation: {
+      mode: "symlink",
+      applied_at: "2026-04-20T01:00:00.000Z",
+      source_files: [".env", ".env.local"],
+    },
+  })
+
+  const metadata = readWorkItemWorktree(projectRoot, "feature-937")
+
+  assert.equal(metadata.schema, "openkit/worktree@2")
+  assert.equal(metadata.workflow_mode, "quick")
+  assert.equal(metadata.lineage_key, "feature-937")
+  assert.deepEqual(metadata.env_propagation, {
+    mode: "symlink",
+    applied_at: "2026-04-20T01:00:00.000Z",
+    source_files: [".env", ".env.local"],
+  })
 })

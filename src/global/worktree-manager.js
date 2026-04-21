@@ -3,12 +3,13 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 import {
+  normalizeWorkItemWorktreeMetadata,
   readWorkItemWorktree,
   removeWorkItemWorktree,
   writeWorkItemWorktree,
 } from '../../.opencode/lib/work-item-store.js';
 
-const WORKTREE_SCHEMA = 'openkit/worktree@1';
+const WORKTREE_SCHEMA = 'openkit/worktree@2';
 
 function runGit(repositoryRoot, args, { spawn = spawnSync, allowFailure = false } = {}) {
   const result = spawn('git', ['-C', repositoryRoot, ...args], {
@@ -50,21 +51,65 @@ function branchExists(repositoryRoot, branch, spawn = spawnSync) {
 function ensureCleanGitStatus(repositoryRoot, label, spawn = spawnSync) {
   const result = runGit(repositoryRoot, ['status', '--porcelain'], { spawn });
   if ((result.stdout ?? '').trim().length > 0) {
-    throw new Error(`${label} has uncommitted changes. Commit or stash them before automatic worktree cleanup can run.`);
+    throw new Error(`${label} has uncommitted changes. Commit or stash them before explicit managed worktree cleanup can run.`);
   }
 }
 
-function buildMetadata({ repositoryRoot, workItemId, mode, targetBranch, branch, worktreePath }) {
+function createDefaultEnvPropagationMetadata() {
   return {
-    schema: WORKTREE_SCHEMA,
-    work_item_id: workItemId,
-    mode,
-    repository_root: repositoryRoot,
-    target_branch: targetBranch,
-    branch,
-    worktree_path: worktreePath,
-    created_at: new Date().toISOString(),
+    mode: 'none',
+    applied_at: null,
+    source_files: [],
   };
+}
+
+function buildMetadata({ repositoryRoot, workItemId, workflowMode, targetBranch, branch, worktreePath, envPropagation, previousMetadata }) {
+  const now = new Date().toISOString();
+  return normalizeWorkItemWorktreeMetadata(
+    {
+      schema: WORKTREE_SCHEMA,
+      work_item_id: workItemId,
+      workflow_mode: workflowMode,
+      lineage_key: workItemId,
+      repository_root: repositoryRoot,
+      target_branch: targetBranch,
+      branch,
+      worktree_path: worktreePath,
+      created_at: previousMetadata?.created_at ?? now,
+      last_used_at: now,
+      env_propagation: envPropagation ?? previousMetadata?.env_propagation ?? createDefaultEnvPropagationMetadata(),
+    },
+    workItemId,
+  );
+}
+
+export function updateManagedWorktreeMetadata({
+  runtimeRoot,
+  workItemId,
+  workflowMode,
+  envPropagation,
+  repositoryRoot,
+  targetBranch,
+  branch,
+  worktreePath,
+} = {}) {
+  const existing = readWorkItemWorktree(runtimeRoot, workItemId);
+  if (!existing) {
+    return null;
+  }
+
+  const metadata = buildMetadata({
+    repositoryRoot: repositoryRoot ?? existing.repository_root,
+    workItemId,
+    workflowMode: workflowMode ?? existing.workflow_mode,
+    targetBranch: targetBranch ?? existing.target_branch,
+    branch: branch ?? existing.branch,
+    worktreePath: worktreePath ?? existing.worktree_path,
+    envPropagation: envPropagation ?? existing.env_propagation,
+    previousMetadata: existing,
+  });
+  writeWorkItemWorktree(runtimeRoot, workItemId, metadata);
+  return metadata;
 }
 
 export function getManagedWorktree({ runtimeRoot, workItemId } = {}) {
@@ -82,11 +127,19 @@ export function getManagedWorktree({ runtimeRoot, workItemId } = {}) {
 export function createManagedWorktree({ repositoryRoot, runtimeRoot, workItemId, mode, spawn = spawnSync } = {}) {
   const resolvedRepositoryRoot = path.resolve(repositoryRoot);
   const existing = getManagedWorktree({ runtimeRoot, workItemId });
+  const workflowMode = mode ?? 'quick';
 
   if (existing?.exists) {
+    const refreshedMetadata = updateManagedWorktreeMetadata({
+      runtimeRoot,
+      workItemId,
+      workflowMode,
+      repositoryRoot: resolvedRepositoryRoot,
+    });
+
     return {
       status: 'existing',
-      metadata: existing,
+      metadata: refreshedMetadata ?? existing,
     };
   }
 
@@ -99,7 +152,7 @@ export function createManagedWorktree({ repositoryRoot, runtimeRoot, workItemId,
   }
 
   const targetBranch = getCurrentBranch(resolvedRepositoryRoot, spawn);
-  const branch = `openkit/${mode}/${workItemId}`;
+  const branch = `openkit/${workflowMode}/${workItemId}`;
   const worktreePath = path.join(resolvedRepositoryRoot, '.worktrees', workItemId);
   fs.mkdirSync(path.dirname(worktreePath), { recursive: true });
 
@@ -116,10 +169,12 @@ export function createManagedWorktree({ repositoryRoot, runtimeRoot, workItemId,
   const metadata = buildMetadata({
     repositoryRoot: resolvedRepositoryRoot,
     workItemId,
-    mode,
+    workflowMode,
     targetBranch,
     branch,
     worktreePath,
+    envPropagation: createDefaultEnvPropagationMetadata(),
+    previousMetadata: null,
   });
   writeWorkItemWorktree(runtimeRoot, workItemId, metadata);
 

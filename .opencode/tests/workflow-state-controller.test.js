@@ -11,6 +11,7 @@ import {
   advanceStage,
   assignQaOwner,
   addReleaseWorkItem,
+  cleanupWorkItemWorktree,
   clearVerificationEvidence,
   claimTask,
   claimMigrationSlice,
@@ -188,6 +189,13 @@ function setupDivergentRoots() {
     kitRoot,
     statePath,
   }
+}
+
+function writeWorkItemWorktreeMetadata(statePath, workItemId, metadata) {
+  const projectRoot = path.dirname(path.dirname(statePath))
+  const worktreePath = path.join(projectRoot, ".opencode", "work-items", workItemId, "worktree.json")
+  fs.mkdirSync(path.dirname(worktreePath), { recursive: true })
+  fs.writeFileSync(worktreePath, `${JSON.stringify(metadata, null, 2)}\n`, "utf8")
 }
 
 function writeArtifact(statePath, relativePath, content, options = {}) {
@@ -1271,6 +1279,51 @@ test("legacy startTask creates and selects the active work item through backing 
   assert.equal(persistedState.work_item_id, "task-123")
   assert.equal(persistedState.feature_id, "TASK-123")
   assert.deepEqual(mirrorState, persistedState)
+  assert.equal(result.worktree_status, "not_requested")
+  assert.equal(result.worktree_reason, null)
+  assert.equal(result.worktree, null)
+})
+
+test("cleanupWorkItemWorktree skips with explicit reason when no retained metadata exists", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-936", "cleanup-skip", "No retained metadata exists", statePath)
+  const result = cleanupWorkItemWorktree("task-936", statePath)
+
+  assert.equal(result.status, "skipped")
+  assert.match(result.reason, /No retained managed worktree metadata is registered/)
+  assert.equal(result.metadata, null)
+})
+
+test("cleanupWorkItemWorktree removes stale metadata when worktree path is already missing", () => {
+  const statePath = createTempStateFile()
+  const projectRoot = path.dirname(path.dirname(statePath))
+  const runtimeRoot = projectRoot
+
+  startTask("quick", "TASK-937", "cleanup-missing-path", "Metadata exists but path is gone", statePath)
+  writeWorkItemWorktreeMetadata(statePath, "task-937", {
+    schema: "openkit/worktree@2",
+    work_item_id: "task-937",
+    workflow_mode: "quick",
+    lineage_key: "task-937",
+    repository_root: projectRoot,
+    target_branch: "main",
+    branch: "openkit/quick/task-937",
+    worktree_path: path.join(projectRoot, ".worktrees", "task-937"),
+    created_at: "2026-04-20T00:00:00.000Z",
+    env_propagation: {
+      mode: "none",
+      applied_at: null,
+      source_files: [],
+    },
+  })
+
+  const result = cleanupWorkItemWorktree("task-937", statePath)
+
+  assert.equal(result.status, "skipped")
+  assert.match(result.reason, /already missing/)
+  assert.equal(result.metadata.work_item_id, "task-937")
+  assert.equal(workItemStore.readWorkItemWorktree(runtimeRoot, "task-937"), null)
 })
 
 test("legacy startTask full creates and selects the active full-delivery work item through backing storage", () => {

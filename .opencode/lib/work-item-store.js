@@ -1,6 +1,17 @@
 import fs from "node:fs"
 import path from "node:path"
 
+const WORKFLOW_MODES = new Set(["quick", "migration", "full"])
+
+export const WORKTREE_SCHEMA_V1 = "openkit/worktree@1"
+export const WORKTREE_SCHEMA_V2 = "openkit/worktree@2"
+
+const DEFAULT_ENV_PROPAGATION = Object.freeze({
+  mode: "none",
+  applied_at: null,
+  source_files: [],
+})
+
 function fail(message) {
   const error = new Error(message)
   error.isWorkItemStoreError = true
@@ -57,6 +68,67 @@ function slugify(value) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
+}
+
+function normalizeString(value) {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function normalizeWorkflowMode(value, fallback = "quick") {
+  const candidate = normalizeString(value)
+  if (candidate && WORKFLOW_MODES.has(candidate)) {
+    return candidate
+  }
+
+  return fallback
+}
+
+function normalizeEnvPropagationMetadata(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {
+      ...DEFAULT_ENV_PROPAGATION,
+    }
+  }
+
+  const mode = normalizeString(value.mode)
+  const sourceFiles = Array.isArray(value.source_files)
+    ? value.source_files.filter((entry) => typeof entry === "string" && entry.trim().length > 0)
+    : []
+
+  return {
+    mode: mode && ["none", "symlink", "copy"].includes(mode) ? mode : "none",
+    applied_at: normalizeString(value.applied_at),
+    source_files: sourceFiles,
+  }
+}
+
+export function normalizeWorkItemWorktreeMetadata(metadata, workItemId) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null
+  }
+
+  const resolvedWorkItemId = normalizeString(metadata.work_item_id) ?? workItemId
+  const workflowMode = normalizeWorkflowMode(metadata.workflow_mode ?? metadata.mode, "quick")
+  const createdAt = normalizeString(metadata.created_at)
+
+  return {
+    schema: WORKTREE_SCHEMA_V2,
+    work_item_id: resolvedWorkItemId,
+    workflow_mode: workflowMode,
+    lineage_key: normalizeString(metadata.lineage_key) ?? resolvedWorkItemId,
+    repository_root: normalizeString(metadata.repository_root),
+    target_branch: normalizeString(metadata.target_branch),
+    branch: normalizeString(metadata.branch),
+    worktree_path: normalizeString(metadata.worktree_path),
+    created_at: createdAt,
+    last_used_at: normalizeString(metadata.last_used_at) ?? createdAt,
+    env_propagation: normalizeEnvPropagationMetadata(metadata.env_propagation),
+  }
 }
 
 export function deriveWorkItemId(state) {
@@ -158,13 +230,19 @@ export function readWorkItemWorktree(projectRoot, workItemId) {
     return null
   }
 
-  return readJson(worktreePath, `Work-item worktree metadata missing at '${worktreePath}'`)
+  const metadata = readJson(worktreePath, `Work-item worktree metadata missing at '${worktreePath}'`)
+  return normalizeWorkItemWorktreeMetadata(metadata, workItemId)
 }
 
 export function writeWorkItemWorktree(projectRoot, workItemId, metadata) {
   const { worktreePath } = resolveWorkItemPaths(projectRoot, workItemId)
-  writeJson(worktreePath, metadata)
-  return metadata
+  const normalizedMetadata = normalizeWorkItemWorktreeMetadata(metadata, workItemId)
+  if (!normalizedMetadata) {
+    fail(`Work-item worktree metadata must be an object for '${workItemId}'`)
+  }
+
+  writeJson(worktreePath, normalizedMetadata)
+  return normalizedMetadata
 }
 
 export function removeWorkItemWorktree(projectRoot, workItemId) {
