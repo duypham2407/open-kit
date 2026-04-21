@@ -8,6 +8,7 @@ import {
   createManagedWorktree,
   finalizeManagedWorktree,
   getManagedWorktree,
+  updateManagedWorktreeMetadata,
 } from '../../src/global/worktree-manager.js';
 
 function makeTempDir() {
@@ -96,6 +97,45 @@ test('createManagedWorktree records metadata and creates a per-work-item path', 
   const persisted = getManagedWorktree({ runtimeRoot, workItemId: 'task-900' });
   assert.equal(persisted.branch, 'openkit/quick/task-900');
   assert.equal(persisted.target_branch, 'main');
+  assert.equal(persisted.schema, 'openkit/worktree@2');
+  assert.equal(persisted.workflow_mode, 'quick');
+  assert.equal(persisted.lineage_key, 'task-900');
+  assert.deepEqual(persisted.env_propagation, {
+    mode: 'none',
+    applied_at: null,
+    source_files: [],
+  });
+});
+
+test('updateManagedWorktreeMetadata persists env propagation updates', () => {
+  const repositoryRoot = makeTempDir();
+  const runtimeRoot = makeTempDir();
+  const stub = createSpawnStub();
+
+  createManagedWorktree({
+    repositoryRoot,
+    runtimeRoot,
+    workItemId: 'task-901',
+    mode: 'quick',
+    spawn: stub.spawn,
+  });
+
+  const updated = updateManagedWorktreeMetadata({
+    runtimeRoot,
+    workItemId: 'task-901',
+    envPropagation: {
+      mode: 'symlink',
+      applied_at: '2026-04-20T00:00:00.000Z',
+      source_files: ['.env', '.env.local'],
+    },
+  });
+
+  assert.equal(updated.env_propagation.mode, 'symlink');
+  assert.deepEqual(updated.env_propagation.source_files, ['.env', '.env.local']);
+
+  const persisted = getManagedWorktree({ runtimeRoot, workItemId: 'task-901' });
+  assert.equal(persisted.env_propagation.mode, 'symlink');
+  assert.deepEqual(persisted.env_propagation.source_files, ['.env', '.env.local']);
 });
 
 test('finalizeManagedWorktree merges and removes a clean completed worktree', () => {

@@ -13,6 +13,7 @@ import {
   advanceStage,
   clearIssues,
   clearVerificationEvidence,
+  cleanupWorkItemWorktree,
   claimTask,
   claimMigrationSlice,
   completeBackgroundRun,
@@ -134,6 +135,7 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] release-readiness
   node .opencode/workflow-state.js [--state <path>] show-dod
   node .opencode/workflow-state.js [--state <path>] validate-dod
+  node .opencode/workflow-state.js [--state <path>] cleanup-worktree <work_item_id>
   node .opencode/workflow-state.js [--state <path>] reconcile-work-items <work_item_id> [additional_work_item_ids...]
   node .opencode/workflow-state.js [--state <path>] activate-work-item <work_item_id>
   node .opencode/workflow-state.js [--state <path>] advance-stage <stage>
@@ -217,9 +219,11 @@ function printRuntimeTaskContext(context) {
     console.log(`active work item id: ${context.activeWorkItemId}`)
   }
 
-  if (context.activeWorktree?.worktree_path) {
+  const retainedWorktree = context.retainedWorktree ?? context.activeWorktree ?? null
+
+  if (retainedWorktree?.worktree_path) {
     console.log(
-      `active worktree: ${context.activeWorktree.worktree_path} (${context.activeWorktree.branch} -> ${context.activeWorktree.target_branch})`,
+      `retained managed worktree: ${retainedWorktree.worktree_path} (${retainedWorktree.branch} -> ${retainedWorktree.target_branch})`,
     )
   }
 
@@ -961,9 +965,16 @@ function extendDoctorReport(report, statePath) {
   }
 
   if (report.runtime.state?.mode === "full" && report.runtime.state?.work_item_id) {
-    boardOk = report.runtime.state.current_stage === "full_implementation" || report.runtime.state.current_stage === "full_qa"
-      ? runtimeContext.taskBoardPresent
-      : true
+    if (report.runtime.state.current_stage === "full_implementation" || report.runtime.state.current_stage === "full_qa") {
+      try {
+        validateWorkItemBoard(report.runtime.state.work_item_id, statePath)
+        boardOk = true
+      } catch (_error) {
+        boardOk = false
+      }
+    } else {
+      boardOk = true
+    }
   } else if (!report.runtime.state && activeWorkItem?.mode === "full") {
     try {
       validateWorkItemBoard(activeWorkItemId, statePath)
@@ -1251,6 +1262,16 @@ async function main() {
       result = getDefinitionOfDone(statePath)
       printDefinitionOfDone(result)
       process.exit(result.ready ? 0 : 1)
+      return
+    case "cleanup-worktree":
+      result = cleanupWorkItemWorktree(rest[0], statePath)
+      if (result.status === "cleaned") {
+        console.log(`Managed worktree cleanup completed for '${result.workItemId}'.`)
+      } else if (result.status === "blocked") {
+        console.log(`Managed worktree cleanup blocked for '${result.workItemId}': ${result.reason}`)
+      } else {
+        console.log(`Managed worktree cleanup skipped for '${result.workItemId}': ${result.reason}`)
+      }
       return
     case "reconcile-work-items":
       result = reconcileCompletedWorkItems(statePath, rest)

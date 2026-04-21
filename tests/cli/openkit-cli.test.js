@@ -62,6 +62,14 @@ test('openkit --help shows global-install oriented help', () => {
   assert.equal(result.stderr, '');
 });
 
+test('openkit run --help includes worktree and env propagation flags', () => {
+  const result = runCli(['run', '--help']);
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /--worktree-mode <new\|reuse\|reopen\|none>/);
+  assert.match(result.stdout, /--env-propagation <none\|symlink\|copy>/);
+});
+
 test('openkit doctor --help shows global doctor help', () => {
   const result = runCli(['doctor', '--help']);
 
@@ -855,6 +863,283 @@ test('openkit run blocks on invalid global install state and recommends upgrade'
   assert.equal(result.status, 1);
   assert.match(result.stderr, /schema must be 'openkit\/global-install-state@1'/i);
   assert.match(result.stderr, /Next: Run openkit upgrade to refresh the global install/i);
+});
+
+test('openkit run returns non-zero when worktree selection is required in non-interactive mode', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+  const workItemId = 'feature-936';
+
+  const installResult = runCli(['install-global'], {
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  assert.equal(installResult.status, 0);
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  // Materialize workspace state first.
+  const firstRun = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+  assert.equal(firstRun.status, 0);
+
+  const [workspaceDirectory] = fs.readdirSync(path.join(tempHome, 'workspaces'));
+  const workspaceRoot = path.join(tempHome, 'workspaces', workspaceDirectory, 'openkit', '.opencode');
+  const statePath = path.join(workspaceRoot, 'workflow-state.json');
+  const indexPath = path.join(workspaceRoot, 'work-items', 'index.json');
+  const workItemStatePath = path.join(workspaceRoot, 'work-items', workItemId, 'state.json');
+
+  const workflowState = {
+    work_item_id: workItemId,
+    feature_id: 'FEATURE-936',
+    feature_slug: 'worktree-ux-selection-retention',
+    mode: 'full',
+    mode_reason: 'feature fixture',
+    lane_source: 'user_explicit',
+    routing_profile: {
+      work_intent: 'feature',
+      behavior_delta: 'extend',
+      dominant_uncertainty: 'product',
+      scope_shape: 'cross_boundary',
+      selection_reason: 'feature fixture',
+    },
+    migration_context: {
+      baseline_summary: null,
+      target_outcome: null,
+      preserved_invariants: [],
+      allowed_behavior_changes: [],
+      compatibility_hotspots: [],
+      baseline_evidence_refs: [],
+      rollback_checkpoints: [],
+    },
+    parallelization: {
+      parallel_mode: 'none',
+      why: null,
+      safe_parallel_zones: [],
+      sequential_constraints: [],
+      integration_checkpoint: null,
+      max_active_execution_tracks: null,
+    },
+    current_stage: 'full_implementation',
+    status: 'in_progress',
+    current_owner: 'FullstackAgent',
+    artifacts: {
+      task_card: null,
+      scope_package: 'docs/scope/2026-04-19-worktree-ux-selection-retention.md',
+      solution_package: 'docs/solution/2026-04-19-worktree-ux-selection-retention.md',
+      migration_report: null,
+      qa_report: null,
+      adr: [],
+    },
+    approvals: {
+      product_to_solution: { status: 'approved', approved_by: 'SolutionLead', approved_at: '2026-04-20', notes: null },
+      solution_to_fullstack: { status: 'approved', approved_by: 'FullstackAgent', approved_at: '2026-04-20', notes: null },
+      fullstack_to_code_review: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      code_review_to_qa: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      qa_to_done: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+    },
+    issues: [],
+    verification_evidence: [],
+    retry_count: 0,
+    escalated_from: null,
+    escalation_reason: null,
+    last_auto_scaffold: null,
+    updated_at: '2026-04-20T00:00:00.000Z',
+  };
+
+  writeJson(indexPath, {
+    active_work_item_id: workItemId,
+    work_items: [
+      {
+        work_item_id: workItemId,
+        feature_id: 'FEATURE-936',
+        feature_slug: 'worktree-ux-selection-retention',
+        mode: 'full',
+        status: 'in_progress',
+        state_path: `.opencode/work-items/${workItemId}/state.json`,
+      },
+    ],
+  });
+  writeJson(workItemStatePath, workflowState);
+  writeJson(statePath, workflowState);
+
+  const result = runCli(['run', '--work-item', workItemId], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+      CI: '1',
+    },
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /No usable retained managed worktree exists/);
+  assert.match(result.stderr, /Run again with --worktree-mode <new\|reuse\|reopen\|none>/);
+});
+
+test('openkit run surfaces copy warning before retained-context lines', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+  const logPath = path.join(tempHome, 'opencode-run-copy-warning.json');
+  const workItemId = 'feature-938';
+
+  const installResult = runCli(['install-global'], {
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  assert.equal(installResult.status, 0);
+
+  writeExecutable(
+    path.join(fakeBinDir, 'opencode'),
+    `#!/usr/bin/env node
+import fs from 'node:fs';
+fs.writeFileSync(process.env.OPENKIT_TEST_LOG_PATH, JSON.stringify({
+  argv: process.argv.slice(2),
+  cwd: process.cwd(),
+}, null, 2));
+process.stdout.write('mock opencode launched\\n');
+`
+  );
+
+  const firstRun = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      OPENKIT_TEST_LOG_PATH: logPath,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+  assert.equal(firstRun.status, 0);
+
+  fs.writeFileSync(path.join(projectRoot, '.env'), 'ROOT=true\n', 'utf8');
+
+  const [workspaceDirectory] = fs.readdirSync(path.join(tempHome, 'workspaces'));
+  const workspaceRoot = path.join(tempHome, 'workspaces', workspaceDirectory, 'openkit', '.opencode');
+  const statePath = path.join(workspaceRoot, 'workflow-state.json');
+  const indexPath = path.join(workspaceRoot, 'work-items', 'index.json');
+  const workItemStatePath = path.join(workspaceRoot, 'work-items', workItemId, 'state.json');
+  const worktreeMetadataPath = path.join(workspaceRoot, 'work-items', workItemId, 'worktree.json');
+  const retainedWorktreePath = path.join(projectRoot, '.worktrees', workItemId);
+  fs.mkdirSync(retainedWorktreePath, { recursive: true });
+
+  const workflowState = {
+    work_item_id: workItemId,
+    feature_id: 'FEATURE-938',
+    feature_slug: 'copy-warning-order',
+    mode: 'full',
+    mode_reason: 'copy warning fixture',
+    lane_source: 'user_explicit',
+    routing_profile: {
+      work_intent: 'feature',
+      behavior_delta: 'extend',
+      dominant_uncertainty: 'product',
+      scope_shape: 'cross_boundary',
+      selection_reason: 'copy warning fixture',
+    },
+    migration_context: {
+      baseline_summary: null,
+      target_outcome: null,
+      preserved_invariants: [],
+      allowed_behavior_changes: [],
+      compatibility_hotspots: [],
+      baseline_evidence_refs: [],
+      rollback_checkpoints: [],
+    },
+    parallelization: {
+      parallel_mode: 'none',
+      why: null,
+      safe_parallel_zones: [],
+      sequential_constraints: [],
+      integration_checkpoint: null,
+      max_active_execution_tracks: null,
+    },
+    current_stage: 'full_implementation',
+    status: 'in_progress',
+    current_owner: 'FullstackAgent',
+    artifacts: {
+      task_card: null,
+      scope_package: 'docs/scope/2026-04-19-worktree-ux-selection-retention.md',
+      solution_package: 'docs/solution/2026-04-19-worktree-ux-selection-retention.md',
+      migration_report: null,
+      qa_report: null,
+      adr: [],
+    },
+    approvals: {
+      product_to_solution: { status: 'approved', approved_by: 'SolutionLead', approved_at: '2026-04-20', notes: null },
+      solution_to_fullstack: { status: 'approved', approved_by: 'FullstackAgent', approved_at: '2026-04-20', notes: null },
+      fullstack_to_code_review: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      code_review_to_qa: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      qa_to_done: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+    },
+    issues: [],
+    verification_evidence: [],
+    retry_count: 0,
+    escalated_from: null,
+    escalation_reason: null,
+    last_auto_scaffold: null,
+    updated_at: '2026-04-20T00:00:00.000Z',
+  };
+
+  writeJson(indexPath, {
+    active_work_item_id: workItemId,
+    work_items: [
+      {
+        work_item_id: workItemId,
+        feature_id: 'FEATURE-938',
+        feature_slug: 'copy-warning-order',
+        mode: 'full',
+        status: 'in_progress',
+        state_path: `.opencode/work-items/${workItemId}/state.json`,
+      },
+    ],
+  });
+  writeJson(workItemStatePath, workflowState);
+  writeJson(statePath, workflowState);
+  writeJson(worktreeMetadataPath, {
+    schema: 'openkit/worktree@2',
+    work_item_id: workItemId,
+    workflow_mode: 'full',
+    lineage_key: workItemId,
+    repository_root: projectRoot,
+    target_branch: 'main',
+    branch: `openkit/full/${workItemId}`,
+    worktree_path: retainedWorktreePath,
+    created_at: '2026-04-20T00:00:00.000Z',
+    env_propagation: {
+      mode: 'none',
+      applied_at: null,
+      source_files: [],
+    },
+  });
+
+  const result = runCli(['run', '--work-item', workItemId, '--worktree-mode', 'reuse', '--env-propagation', 'copy', 'status'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      OPENKIT_TEST_LOG_PATH: logPath,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /copy mode duplicates env files/);
+  assert.match(result.stdout, /Retained managed worktree:/);
+  assert.ok(result.stdout.indexOf('copy mode duplicates env files') < result.stdout.indexOf('Retained managed worktree:'));
 });
 
 test('openkit upgrade refreshes the global kit install', () => {

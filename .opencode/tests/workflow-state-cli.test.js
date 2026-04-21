@@ -1,4 +1,4 @@
-import test from "node:test"
+import test, { afterEach, beforeEach } from "node:test"
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import os from "node:os"
@@ -7,6 +7,38 @@ import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+
+const OPENKIT_ENV_KEYS = [
+  "OPENKIT_PROJECT_ROOT",
+  "OPENKIT_KIT_ROOT",
+  "OPENKIT_WORKFLOW_STATE",
+  "OPENKIT_GLOBAL_MODE",
+  "OPENKIT_ENFORCEMENT_LEVEL",
+  "OPENCODE_HOME",
+]
+
+let savedEnv = {}
+
+beforeEach(() => {
+  savedEnv = {}
+  for (const key of OPENKIT_ENV_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(process.env, key)) {
+      savedEnv[key] = process.env[key]
+      delete process.env[key]
+    }
+  }
+})
+
+afterEach(() => {
+  for (const key of OPENKIT_ENV_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(savedEnv, key)) {
+      process.env[key] = savedEnv[key]
+    } else {
+      delete process.env[key]
+    }
+  }
+  savedEnv = {}
+})
 
 function makeTempProject() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "openkit-workflow-cli-"))
@@ -165,10 +197,24 @@ function setupTempRuntime(projectRoot) {
 }
 
 function runCli(projectRoot, args) {
+  const env = { ...process.env }
+  delete env.OPENKIT_GLOBAL_MODE
+  delete env.OPENKIT_PROJECT_ROOT
+  delete env.OPENKIT_REPOSITORY_ROOT
+  delete env.OPENKIT_WORKFLOW_STATE
+  delete env.OPENKIT_KIT_ROOT
+  delete env.OPENCODE_HOME
+
   return spawnSync("node", [path.resolve(__dirname, "../workflow-state.js"), ...args], {
     cwd: projectRoot,
     encoding: "utf8",
+    env,
   })
+}
+
+function writeJson(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true })
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8")
 }
 
 function writeArtifact(projectRoot, relativePath, content) {
@@ -1599,6 +1645,67 @@ test("doctor reports invalid active full task board as an error even when runtim
   assert.match(result.stdout, /\[error\] workflow state is valid/)
   assert.match(result.stdout, /\[error\] active work item task board is valid/)
   assert.doesNotMatch(result.stdout, /\[ok\] active work item task board is valid/)
+})
+
+test("status surfaces retained managed worktree wording for active work item metadata", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, ["start-task", "quick", "TASK-936", "retained-worktree-status", "Retained worktree status wording"])
+  assert.equal(result.status, 0)
+
+  const workItemId = "task-936"
+  const retainedWorktreePath = path.join(projectRoot, ".worktrees", workItemId)
+  fs.mkdirSync(retainedWorktreePath, { recursive: true })
+
+  writeJson(path.join(projectRoot, ".opencode", "work-items", workItemId, "worktree.json"), {
+    schema: "openkit/worktree@1",
+    work_item_id: workItemId,
+    mode: "quick",
+    repository_root: projectRoot,
+    target_branch: "main",
+    branch: `openkit/quick/${workItemId}`,
+    worktree_path: retainedWorktreePath,
+    created_at: "2026-04-20T00:00:00.000Z",
+  })
+
+  result = runCli(projectRoot, ["status"])
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /retained managed worktree: .*\.worktrees\/task-936/)
+})
+
+test("cleanup-worktree command reports skip and removes stale retained metadata when path is missing", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, ["start-task", "quick", "TASK-937", "cleanup-worktree-cli", "Cleanup worktree CLI command"])
+  assert.equal(result.status, 0)
+
+  const workItemId = "task-937"
+  const worktreeMetadataPath = path.join(projectRoot, ".opencode", "work-items", workItemId, "worktree.json")
+  writeJson(worktreeMetadataPath, {
+    schema: "openkit/worktree@2",
+    work_item_id: workItemId,
+    workflow_mode: "quick",
+    lineage_key: workItemId,
+    repository_root: projectRoot,
+    target_branch: "main",
+    branch: `openkit/quick/${workItemId}`,
+    worktree_path: path.join(projectRoot, ".worktrees", workItemId),
+    created_at: "2026-04-20T00:00:00.000Z",
+    env_propagation: {
+      mode: "none",
+      applied_at: null,
+      source_files: [],
+    },
+  })
+
+  result = runCli(projectRoot, ["cleanup-worktree", workItemId])
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /Managed worktree cleanup skipped for 'task-937': .*already missing/)
+  assert.equal(fs.existsSync(worktreeMetadataPath), false)
 })
 
 test("doctor reports invalid active migration slice board as an explicit error", () => {

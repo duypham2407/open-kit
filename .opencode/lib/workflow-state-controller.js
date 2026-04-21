@@ -19,6 +19,7 @@ import {
   bootstrapRuntimeStore,
   bootstrapLegacyWorkflowState,
   deriveWorkItemId,
+  removeWorkItemWorktree,
   readWorkItemWorktree,
   readWorkItemIndex,
   readWorkItemState,
@@ -3469,7 +3470,6 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath, op
   const expectedRevision = existingState ? captureRevision(existingState) : null
   const expectedMirrorRevision =
     index.active_work_item_id === workItemId && existingState ? readMirrorRevisionIfPresent(statePath) : null
-  const repositoryRoot = process.env.OPENKIT_REPOSITORY_ROOT ? path.resolve(process.env.OPENKIT_REPOSITORY_ROOT) : projectRoot
   const nextState = createFreshState({
     workItemId,
     mode,
@@ -3481,36 +3481,79 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath, op
   })
 
   validateStateObject(nextState)
-  const worktreeResult = createManagedWorktree({
+  const persisted = persistManagedState(customStatePath, nextState, {
+    expectedRevision,
+    expectedMirrorRevision,
+    workItemId,
+    activateWorkItemId: workItemId,
+  })
+
+  return {
+    ...persisted,
+    worktree: readWorkItemWorktree(runtimeRoot, workItemId),
+    worktree_status: "not_requested",
+    worktree_reason: null,
+  }
+}
+
+function cleanupWorkItemWorktree(workItemId, customStatePath) {
+  const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
+  ensureString(workItemId, "work_item_id")
+
+  const worktreeMetadata = readWorkItemWorktree(runtimeRoot, workItemId)
+  if (!worktreeMetadata) {
+    return {
+      projectRoot,
+      runtimeRoot,
+      workItemId,
+      status: "skipped",
+      reason: `No retained managed worktree metadata is registered for work item '${workItemId}'.`,
+      metadata: null,
+    }
+  }
+
+  const repositoryRoot = process.env.OPENKIT_REPOSITORY_ROOT
+    ? path.resolve(process.env.OPENKIT_REPOSITORY_ROOT)
+    : projectRoot
+  const cleanupResult = finalizeManagedWorktree({
     repositoryRoot,
     runtimeRoot,
     workItemId,
-    mode,
   })
 
-  try {
-    const persisted = persistManagedState(customStatePath, nextState, {
-      expectedRevision,
-      expectedMirrorRevision,
-      workItemId,
-      activateWorkItemId: workItemId,
-    })
-
+  if (cleanupResult.status === "blocked") {
     return {
-      ...persisted,
-      worktree: worktreeResult.metadata ?? readWorkItemWorktree(runtimeRoot, workItemId),
-      worktree_status: worktreeResult.status,
-      worktree_reason: worktreeResult.reason ?? null,
+      projectRoot,
+      runtimeRoot,
+      workItemId,
+      status: "blocked",
+      reason: cleanupResult.reason,
+      metadata: cleanupResult.metadata ?? worktreeMetadata,
     }
-  } catch (error) {
-    if (worktreeResult.status === "created") {
-      finalizeManagedWorktree({
-        repositoryRoot,
-        runtimeRoot,
-        workItemId,
-      })
+  }
+
+  if (cleanupResult.status === "merged") {
+    return {
+      projectRoot,
+      runtimeRoot,
+      workItemId,
+      status: "cleaned",
+      reason: null,
+      metadata: cleanupResult.metadata ?? worktreeMetadata,
     }
-    throw error
+  }
+
+  if (cleanupResult.status === "skipped" && cleanupResult.metadata) {
+    removeWorkItemWorktree(runtimeRoot, workItemId)
+  }
+
+  return {
+    projectRoot,
+    runtimeRoot,
+    workItemId,
+    status: cleanupResult.status,
+    reason: cleanupResult.reason ?? null,
+    metadata: cleanupResult.metadata ?? worktreeMetadata,
   }
 }
 
@@ -4119,6 +4162,7 @@ export {
   resolveStatePath,
   routeRework,
   runDoctor,
+  cleanupWorkItemWorktree,
   scaffoldAndLinkArtifact,
   selectActiveWorkItem,
   setParallelization,

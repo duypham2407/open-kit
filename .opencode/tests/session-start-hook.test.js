@@ -128,6 +128,23 @@ function writeMetaSkill(projectRoot) {
   fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# using-skills\n", "utf8")
 }
 
+function makeHookEnv(projectRoot, overrides = {}) {
+  const env = { ...process.env }
+  delete env.OPENKIT_GLOBAL_MODE
+  delete env.OPENKIT_PROJECT_ROOT
+  delete env.OPENKIT_REPOSITORY_ROOT
+  delete env.OPENKIT_WORKFLOW_STATE
+  delete env.OPENKIT_KIT_ROOT
+  delete env.OPENCODE_HOME
+
+  return {
+    ...env,
+    OPENKIT_PROJECT_ROOT: projectRoot,
+    OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
+    ...overrides,
+  }
+}
+
 test("session-start emits mode-aware resume hint for quick tasks", () => {
   const projectRoot = makeTempProject()
 
@@ -137,12 +154,9 @@ test("session-start emits mode-aware resume hint for quick tasks", () => {
   const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
     cwd: projectRoot,
     encoding: "utf8",
-    env: {
-      ...process.env,
-      OPENKIT_PROJECT_ROOT: projectRoot,
+    env: makeHookEnv(projectRoot, {
       OPENKIT_SESSION_START_NO_SKILL: "1",
-      OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
-    },
+    }),
   })
 
   assert.equal(result.status, 0)
@@ -180,12 +194,9 @@ test("session-start reports quick_plan as a resumable quick stage", () => {
   const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
     cwd: projectRoot,
     encoding: "utf8",
-    env: {
-      ...process.env,
-      OPENKIT_PROJECT_ROOT: projectRoot,
+    env: makeHookEnv(projectRoot, {
       OPENKIT_SESSION_START_NO_SKILL: "1",
-      OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
-    },
+    }),
   })
 
   assert.equal(result.status, 0)
@@ -213,11 +224,7 @@ test("session-start reports loaded startup skill when meta-skill exists", () => 
   const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
     cwd: projectRoot,
     encoding: "utf8",
-    env: {
-      ...process.env,
-      OPENKIT_PROJECT_ROOT: projectRoot,
-      OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
-    },
+    env: makeHookEnv(projectRoot),
   })
 
   assert.equal(result.status, 0)
@@ -242,12 +249,9 @@ test("session-start prints canonical resume guidance and inspection commands", (
   const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
     cwd: projectRoot,
     encoding: "utf8",
-    env: {
-      ...process.env,
-      OPENKIT_PROJECT_ROOT: projectRoot,
+    env: makeHookEnv(projectRoot, {
       OPENKIT_SESSION_START_NO_SKILL: "1",
-      OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
-    },
+    }),
   })
 
   assert.equal(result.status, 0)
@@ -270,12 +274,9 @@ test("session-start degrades gracefully when the JSON helper fails", () => {
   const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
     cwd: projectRoot,
     encoding: "utf8",
-    env: {
-      ...process.env,
-      OPENKIT_PROJECT_ROOT: projectRoot,
+    env: makeHookEnv(projectRoot, {
       OPENKIT_SESSION_START_NO_SKILL: "1",
-      OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
-    },
+    }),
   })
 
   assert.equal(result.status, 0)
@@ -334,12 +335,9 @@ test("session-start emits task-aware resume hint for active full-delivery work",
   const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
     cwd: projectRoot,
     encoding: "utf8",
-    env: {
-      ...process.env,
-      OPENKIT_PROJECT_ROOT: projectRoot,
+    env: makeHookEnv(projectRoot, {
       OPENKIT_SESSION_START_NO_SKILL: "1",
-      OPENKIT_WORKFLOW_STATE: path.join(projectRoot, ".opencode", "workflow-state.json"),
-    },
+    }),
   })
 
   assert.equal(result.status, 0)
