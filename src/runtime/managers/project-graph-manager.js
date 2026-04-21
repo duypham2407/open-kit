@@ -78,7 +78,7 @@ export class ProjectGraphManager {
     }
 
     return {
-      status: this._readOnly ? 'read-only' : 'ok',
+      status: this._readOnly ? 'read-only' : 'active',
       readOnly: this._readOnly,
       dbPath: this._dbPath,
       indexingInProgress: this._indexingInProgress,
