@@ -1,5 +1,13 @@
 import { summarizeSession } from './session-analysis.js';
 
+function sortNewestFirst(entries = []) {
+  return [...entries].sort((left, right) => {
+    const leftTime = new Date(left?.recorded_at ?? 0).getTime();
+    const rightTime = new Date(right?.recorded_at ?? 0).getTime();
+    return rightTime - leftTime;
+  });
+}
+
 export function createSessionReadTool({ sessionStateManager }) {
   return {
     id: 'tool.session-read',
@@ -9,7 +17,7 @@ export function createSessionReadTool({ sessionStateManager }) {
     stage: 'active',
     status: 'active',
     execute(input = 0) {
-      const sessions = sessionStateManager.list();
+      const sessions = sortNewestFirst(sessionStateManager.list());
       const session = typeof input === 'string'
         ? sessions.find((entry) => entry.session_id === input) ?? null
         : sessions[input] ?? null;
