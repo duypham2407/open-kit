@@ -339,6 +339,7 @@ function normalizeClassificationSummary(scanEvidence) {
   return {
     groupCount: triage.groupCount ?? triage.group_count ?? groups.length,
     blockingCount: triage.blockingCount ?? triage.blocking_count ?? countGroupsByClassification(groups, "blocking") + countGroupsByClassification(groups, "true_positive"),
+    truePositiveCount: triage.truePositiveCount ?? triage.true_positive_count ?? countGroupsByClassification(groups, "true_positive"),
     nonBlockingNoiseCount: triage.nonBlockingNoiseCount ?? triage.non_blocking_noise_count ?? countGroupsByClassification(groups, "non_blocking_noise"),
     falsePositiveCount: triage.falsePositiveCount ?? triage.false_positive_count ?? countGroupsByClassification(groups, "false_positive"),
     followUpCount: triage.followUpCount ?? triage.follow_up_count ?? countGroupsByClassification(groups, "follow_up"),
@@ -423,6 +424,7 @@ function evaluateStructuredScanEvidence(entry, targetStage, sourceGroup = null) 
   }
   const directAvailable = directTool.availability_state === "available"
   const directSucceeded = ["succeeded", "degraded"].includes(directTool.result_state)
+  const namespaceStatus = directTool.namespace_status ?? "not_checked"
   let runtimePolicySatisfiedToolId = null
 
   if (sourceGroup && isNonEmptyString(toolId) && !sourceGroupContainsToolId(sourceGroup, toolId)) {
@@ -431,6 +433,10 @@ function evaluateStructuredScanEvidence(entry, targetStage, sourceGroup = null) 
 
   if (evidenceType === "direct_tool" && (!directAvailable || !directSucceeded)) {
     blockers.push(`required scan evidence for ${toolId} did not run successfully for ${targetStage}`)
+  }
+
+  if (evidenceType === "direct_tool" && namespaceStatus !== "callable" && directAvailable && directSucceeded) {
+    blockers.push(`direct scan evidence for ${toolId} before ${targetStage} cannot claim success while namespace_status is '${namespaceStatus}'`)
   }
 
   if (evidenceType === "substitute_scan") {

@@ -75,7 +75,7 @@ export function wrapToolExecution(tool, { actionModelStateManager, invocationLog
 
   const execute = tool.execute.bind(tool);
 
-  function recordInvocation(status, startTime, tracking) {
+  function recordInvocation(status, startTime, tracking, result = null, metadata = null) {
     if (!invocationLogger) {
       return;
     }
@@ -87,6 +87,8 @@ export function wrapToolExecution(tool, { actionModelStateManager, invocationLog
         durationMs: Date.now() - startTime,
         stage: tracking.stage ?? null,
         owner: tracking.owner ?? null,
+        result,
+        metadata,
       });
     } catch {
       // Invocation logging is best-effort; do not block tool execution
@@ -131,7 +133,7 @@ export function wrapToolExecution(tool, { actionModelStateManager, invocationLog
                   detail: value.status,
                 });
               }
-              recordInvocation(success ? 'success' : 'failure', startTime, tracking);
+              recordInvocation(success ? 'success' : 'failure', startTime, tracking, value);
               return value;
             })
             .catch((error) => {
@@ -140,7 +142,9 @@ export function wrapToolExecution(tool, { actionModelStateManager, invocationLog
                 actionKey: tracking.actionKey,
                 detail: error instanceof Error ? error.message : String(error),
               });
-              recordInvocation('error', startTime, tracking);
+              recordInvocation('error', startTime, tracking, null, {
+                error_summary: error instanceof Error ? error.message : String(error),
+              });
               throw error;
             });
         }
@@ -158,7 +162,7 @@ export function wrapToolExecution(tool, { actionModelStateManager, invocationLog
             detail: result.status,
           });
         }
-        recordInvocation(success ? 'success' : 'failure', startTime, tracking);
+        recordInvocation(success ? 'success' : 'failure', startTime, tracking, result);
         return result;
       } catch (error) {
         actionModelStateManager.recordFailure({
@@ -166,7 +170,9 @@ export function wrapToolExecution(tool, { actionModelStateManager, invocationLog
           actionKey: tracking.actionKey,
           detail: error instanceof Error ? error.message : String(error),
         });
-        recordInvocation('error', startTime, tracking);
+        recordInvocation('error', startTime, tracking, null, {
+          error_summary: error instanceof Error ? error.message : String(error),
+        });
         throw error;
       }
     },

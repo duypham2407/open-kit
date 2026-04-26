@@ -33,6 +33,7 @@ function normalizeClassificationSummary(scanEvidence) {
   return {
     group_count: triage.groupCount ?? triage.group_count ?? 0,
     blocking_count: triage.blockingCount ?? triage.blocking_count ?? 0,
+    true_positive_count: triage.truePositiveCount ?? triage.true_positive_count ?? 0,
     non_blocking_noise_count: triage.nonBlockingNoiseCount ?? triage.non_blocking_noise_count ?? 0,
     false_positive_count: triage.falsePositiveCount ?? triage.false_positive_count ?? 0,
     follow_up_count: triage.followUpCount ?? triage.follow_up_count ?? 0,
@@ -56,7 +57,7 @@ function summarizeFalsePositiveEvidence(scanEvidence) {
 }
 
 function formatCounts(counts = {}) {
-  const orderedKeys = ["total", "blocking", "non_blocking_noise", "false_positive", "unclassified", "follow_up"]
+  const orderedKeys = ["total", "blocking", "true_positive", "non_blocking_noise", "false_positive", "unclassified", "follow_up"]
   const parts = []
 
   for (const key of orderedKeys) {
@@ -103,6 +104,9 @@ function summarizeScanEvidence(state) {
           availability_state: directTool.availability_state ?? null,
           result_state: directTool.result_state ?? null,
           reason: directTool.reason ?? null,
+          namespace_status: directTool.namespace_status ?? null,
+          stale_process: directTool.stale_process ?? null,
+          invocation_ref: directTool.invocation_ref ?? null,
         },
         substitute,
         finding_counts: normalizeFindingCounts(scanEvidence),
@@ -143,7 +147,7 @@ function describeScanEvidence(entry) {
     entry.evidence_type !== "substitute_scan" && substituteStatus !== "substitute none" ? substituteStatus : null,
     `surface ${entry.validation_surface ?? "unknown"}`,
     `findings ${formatCounts(entry.finding_counts)}`,
-    `classifications groups=${classification.group_count ?? 0},blocking=${classification.blocking_count ?? 0},noise=${classification.non_blocking_noise_count ?? 0},false_positive=${classification.false_positive_count ?? 0},unclassified=${classification.unclassified_count ?? 0}`,
+    `classifications groups=${classification.group_count ?? 0},blocking=${classification.blocking_count ?? 0},true_positive=${classification.true_positive_count ?? 0},noise=${classification.non_blocking_noise_count ?? 0},false_positive=${classification.false_positive_count ?? 0},unclassified=${classification.unclassified_count ?? 0}`,
     `false-positive count=${falsePositive.count ?? 0}`,
   ].filter(Boolean).join(" | ") + artifactRefs
 }

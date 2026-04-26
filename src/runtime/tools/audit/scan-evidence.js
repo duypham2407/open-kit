@@ -21,6 +21,9 @@ export const VALID_TRIAGE_CLASSIFICATIONS = new Set([
 export const DEFAULT_SCAN_FALLBACK =
   'Use an allowed substitute scan path if available, or record a manual_override evidence entry with the unavailable tool, reason, limitations, and actor before advancing the gate.';
 
+const DEFAULT_STALE_PROCESS_CAVEAT =
+  'If the direct scan tool is missing from an already-running role/session namespace, treat it as possible stale runtime/tool registration: restart or reload OpenCode/OpenKit, or refresh the global install before claiming the direct tool is absent everywhere.';
+
 export function createSemgrepUnavailableResult({
   toolId,
   scanKind,
@@ -225,6 +228,7 @@ export function createScanResult({
       state: availability?.state ?? capabilityStateForStatus(normalizedStatus),
       reason: availability?.reason ?? null,
       fallback: availability?.fallback ?? null,
+      staleProcessHint: normalizeStaleProcessHint(availability?.staleProcessHint),
     },
     target: {
       requestedPath: requestedPath ?? projectRoot ?? '',
@@ -265,7 +269,7 @@ export function createScanResult({
     result.message = message;
   }
 
-  return result;
+  return attachScanEvidenceDetails(result);
 }
 
 function byteLength(value) {
@@ -317,14 +321,14 @@ export function applyTriageClassifications(scanResult, classifications = []) {
     .map((entry) => normalizeFalsePositiveItem(entry.false_positive ?? entry.falsePositive ?? entry))
     .filter((entry) => Object.keys(entry).length > 0);
 
-  return {
+  return attachScanEvidenceDetails({
     ...scanResult,
     triageSummary: summarizeGroups(groups),
     falsePositiveSummary: {
       count: falsePositiveItems.length,
       items: falsePositiveItems,
     },
-  };
+  });
 }
 
 export function resolveRuleConfigSource(rawConfig, resolvedConfig, aliases = {}) {
@@ -395,6 +399,7 @@ function buildTriageSummary(findings) {
   return {
     groupCount: groups.length,
     blockingCount: countGroupsByClassification(groups, 'blocking') + countGroupsByClassification(groups, 'true_positive'),
+    truePositiveCount: countGroupsByClassification(groups, 'true_positive'),
     nonBlockingNoiseCount: countGroupsByClassification(groups, 'non_blocking_noise'),
     falsePositiveCount: countGroupsByClassification(groups, 'false_positive'),
     followUpCount: countGroupsByClassification(groups, 'follow_up'),
@@ -447,6 +452,7 @@ function summarizeGroups(groups) {
   return {
     groupCount: groups.length,
     blockingCount: countGroupsByClassification(groups, 'blocking') + countGroupsByClassification(groups, 'true_positive'),
+    truePositiveCount: countGroupsByClassification(groups, 'true_positive'),
     nonBlockingNoiseCount: countGroupsByClassification(groups, 'non_blocking_noise'),
     falsePositiveCount: countGroupsByClassification(groups, 'false_positive'),
     followUpCount: countGroupsByClassification(groups, 'follow_up'),
@@ -499,6 +505,76 @@ function normalizeFalsePositiveItem(item = {}) {
   };
 
   return Object.fromEntries(Object.entries(normalized).filter(([, value]) => value !== undefined && value !== null));
+}
+
+function attachScanEvidenceDetails(scanResult) {
+  return {
+    ...scanResult,
+    details: createScanEvidenceDetails(scanResult),
+  };
+}
+
+function createScanEvidenceDetails(scanResult) {
+  const triageSummary = scanResult?.triageSummary ?? { groups: [] };
+  const falsePositiveSummary = scanResult?.falsePositiveSummary ?? { count: 0, items: [] };
+  const groups = Array.isArray(triageSummary.groups) ? triageSummary.groups : [];
+  const availabilityState = scanResult?.availability?.state ?? scanResult?.capabilityState ?? capabilityStateForStatus(scanResult?.status);
+  const resultState = scanResult?.resultState ?? resultStateForStatus(scanResult?.status);
+  const staleProcessHint = normalizeStaleProcessHint(scanResult?.availability?.staleProcessHint);
+
+  return {
+    validation_surface: 'runtime_tooling',
+    scan_evidence: {
+      evidence_type: 'direct_tool',
+      direct_tool: {
+        tool_id: scanResult?.toolId ?? null,
+        availability_state: availabilityState,
+        result_state: resultState,
+        reason: scanResult?.availability?.reason ?? null,
+        invocation_ref: null,
+        namespace_status: 'callable',
+        stale_process: {
+          suspected: staleProcessHint.suspected,
+          affected_surface: staleProcessHint.surface,
+          caveat: staleProcessHint.refresh,
+        },
+      },
+      substitute: null,
+      scan_kind: scanResult?.scanKind ?? null,
+      target_scope_summary: scanResult?.target?.scopeSummary ?? summarizeTargetScope(null, scanResult?.targetPath),
+      rule_config_source: scanResult?.ruleConfig?.source ?? 'custom',
+      finding_counts: {
+        total: scanResult?.findingCount ?? 0,
+        blocking: triageSummary.blockingCount ?? 0,
+        true_positive: triageSummary.truePositiveCount ?? countGroupsByClassification(groups, 'true_positive'),
+        non_blocking_noise: triageSummary.nonBlockingNoiseCount ?? 0,
+        false_positive: triageSummary.falsePositiveCount ?? 0,
+        follow_up: triageSummary.followUpCount ?? 0,
+        unclassified: triageSummary.unclassifiedCount ?? 0,
+      },
+      severity_summary: scanResult?.severitySummary ?? {},
+      triage_summary: triageSummary,
+      false_positive_summary: falsePositiveSummary,
+      manual_override: null,
+      artifact_refs: Array.isArray(scanResult?.artifactRefs) ? scanResult.artifactRefs : [],
+    },
+  };
+}
+
+function normalizeStaleProcessHint(hint) {
+  if (!hint || typeof hint !== 'object' || Array.isArray(hint)) {
+    return {
+      suspected: false,
+      surface: 'in_session',
+      refresh: DEFAULT_STALE_PROCESS_CAVEAT,
+    };
+  }
+
+  return {
+    suspected: hint.suspected === true,
+    surface: typeof hint.surface === 'string' && hint.surface.length > 0 ? hint.surface : 'unknown',
+    refresh: typeof hint.refresh === 'string' && hint.refresh.length > 0 ? hint.refresh : DEFAULT_STALE_PROCESS_CAVEAT,
+  };
 }
 
 function capabilityStateForStatus(status) {

@@ -556,6 +556,17 @@ function makeScanEvidenceDetails(overrides = {}) {
         availability_state: "available",
         result_state: "succeeded",
         reason: null,
+        invocation_ref: {
+          work_item_id: "feature-001",
+          entry_id: "invocation-1",
+          log_path: ".opencode/work-items/feature-001/tool-invocations.json",
+        },
+        namespace_status: "callable",
+        stale_process: {
+          suspected: false,
+          affected_surface: "in_session",
+          caveat: "No stale role namespace observed in this evidence fixture.",
+        },
       },
       substitute: null,
       scan_kind: "rule",
@@ -564,6 +575,7 @@ function makeScanEvidenceDetails(overrides = {}) {
       finding_counts: {
         total: 2301,
         blocking: 0,
+        true_positive: 0,
         non_blocking_noise: 2298,
         false_positive: 3,
         unclassified: 0,
@@ -574,6 +586,7 @@ function makeScanEvidenceDetails(overrides = {}) {
       triage_summary: {
         groupCount: 2,
         blockingCount: 0,
+        truePositiveCount: 0,
         nonBlockingNoiseCount: 1,
         falsePositiveCount: 1,
         followUpCount: 0,
@@ -775,8 +788,13 @@ test("record-verification-evidence preserves scan evidence details and compact r
   assert.equal(scanEvidence.direct_tool.tool_id, "tool.rule-scan")
   assert.equal(scanEvidence.direct_tool.availability_state, "available")
   assert.equal(scanEvidence.direct_tool.result_state, "succeeded")
+  assert.equal(scanEvidence.direct_tool.namespace_status, "callable")
+  assert.equal(scanEvidence.direct_tool.stale_process.suspected, false)
+  assert.equal(scanEvidence.direct_tool.invocation_ref.work_item_id, "feature-001")
   assert.equal(scanEvidence.finding_counts.total, 2301)
+  assert.equal(scanEvidence.finding_counts.true_positive, 0)
   assert.equal(scanEvidence.classification_summary.non_blocking_noise_count, 1)
+  assert.equal(scanEvidence.classification_summary.true_positive_count, 0)
   assert.equal(scanEvidence.classification_summary.false_positive_count, 1)
   assert.equal(scanEvidence.classification_summary.group_count, 2)
   assert.equal(scanEvidence.false_positive_summary.count, 3)
@@ -794,6 +812,39 @@ test("record-verification-evidence preserves scan evidence details and compact r
   const showResult = runCli(projectRoot, ["show"])
   assert.equal(showResult.status, 0)
   assert.match(showResult.stdout, /scan evidence: scan-direct-quality \| direct tool\.rule-scan available\/succeeded \| surface runtime_tooling \| findings total=2301/)
+})
+
+test("show-invocations prints compact scan metadata without raw findings", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+  writeInvocationLog(projectRoot, "feature-001", [
+    {
+      tool_id: "tool.rule-scan",
+      status: "success",
+      stage: "full_implementation",
+      owner: "FullstackAgent",
+      duration_ms: 12,
+      recorded_at: "2026-03-21T00:00:00Z",
+      scan_kind: "rule",
+      availability_state: "available",
+      result_state: "succeeded",
+      target_scope_summary: "project path: src/runtime/tools/audit/scan-evidence.js",
+      finding_counts: { total: 0 },
+      error_summary: null,
+      artifact_refs: [".openkit/artifacts/rule-scan.json"],
+      evidence_type: "direct_tool",
+    },
+  ])
+
+  const result = runCli(projectRoot, ["show-invocations", "feature-001"])
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /tool\.rule-scan \| success/)
+  assert.match(result.stdout, /scan=rule availability=available result=succeeded/)
+  assert.match(result.stdout, /target=project path: src\/runtime\/tools\/audit\/scan-evidence\.js/)
+  assert.match(result.stdout, /findings=0/)
+  assert.match(result.stdout, /artifacts=\.openkit\/artifacts\/rule-scan\.json/)
+  assert.doesNotMatch(result.stdout, /raw|findings":\[/i)
 })
 
 test("scan evidence read models distinguish substitute scans and manual override caveats", () => {
@@ -1654,6 +1705,7 @@ test("status reports missing migration evidence kinds until all required kinds a
           availability_state: "available",
           result_state: "succeeded",
           reason: null,
+          namespace_status: "callable",
         },
         substitute: null,
         scan_kind: "rule",

@@ -73,7 +73,32 @@ exec ${JSON.stringify(semgrepPath)} "$@"
   const command = findUsableSemgrepCommand({ env });
 
   assert.equal(isSemgrepAvailable({ env }), true);
-  assert.equal(command.command, 'npx');
+  assert.match(command.command, /npx(?:\.cmd)?$/);
+  assert.deepEqual(command.args, ['--no-install', 'semgrep']);
+});
+
+test('isSemgrepAvailable uses Node sibling npx fallback when PATH omits Homebrew npm bin but shell PATH remains available', () => {
+  const tempHome = makeTempDir();
+  const cwdNodeModulesBin = path.join(process.cwd(), 'node_modules', '.bin');
+  const semgrepPath = path.join(cwdNodeModulesBin, 'semgrep');
+  if (!fs.existsSync(semgrepPath)) {
+    return;
+  }
+
+  const nodeBin = path.dirname(process.execPath);
+  const command = findUsableSemgrepCommand({
+    env: {
+      OPENCODE_HOME: tempHome,
+      PATH: [nodeBin, '/bin', '/usr/bin'].join(path.delimiter),
+    },
+  });
+
+  if (!command) {
+    assert.fail('Expected Semgrep to resolve through Node sibling npx with the repository-local semgrep package');
+  }
+
+  assert.equal(command.source, 'npx');
+  assert.match(command.command, /npx(?:\.cmd)?$/);
   assert.deepEqual(command.args, ['--no-install', 'semgrep']);
 });
 
@@ -191,6 +216,16 @@ test('rule-scan tool returns structured unavailable when semgrep is not availabl
     assert.equal(result.triageSummary.groupCount, 0);
     assert.equal(result.evidenceHint.evidenceType, 'direct_tool');
     assert.equal(result.evidenceHint.validationSurface, 'runtime_tooling');
+    assert.equal(result.details.validation_surface, 'runtime_tooling');
+    assert.equal(result.details.scan_evidence.evidence_type, 'direct_tool');
+    assert.equal(result.details.scan_evidence.direct_tool.tool_id, 'tool.rule-scan');
+    assert.equal(result.details.scan_evidence.direct_tool.availability_state, 'unavailable');
+    assert.equal(result.details.scan_evidence.direct_tool.result_state, 'unavailable');
+    assert.equal(result.details.scan_evidence.direct_tool.namespace_status, 'callable');
+    assert.equal(result.details.scan_evidence.direct_tool.stale_process.suspected, false);
+    assert.match(result.details.scan_evidence.direct_tool.stale_process.caveat, /restart|reload|install/i);
+    assert.equal(result.details.scan_evidence.finding_counts.total, 0);
+    assert.deepEqual(result.details.scan_evidence.triage_summary.groups, []);
   } finally {
     process.env = originalEnv;
   }
@@ -248,7 +283,16 @@ test('rule-scan tool resolves auto config to bundled quality-default pack', () =
     assert.equal(result.triageSummary.groups[0].ruleId, 'openkit.quality.no-console-log');
     assert.equal(result.triageSummary.groups[0].severity, 'WARNING');
     assert.equal(result.triageSummary.groups[0].classification, 'unclassified');
+    assert.equal(result.triageSummary.truePositiveCount, 0);
     assert.equal(result.evidenceHint.source, 'tool.rule-scan');
+    assert.equal(result.details.validation_surface, 'runtime_tooling');
+    assert.equal(result.details.scan_evidence.scan_kind, 'rule');
+    assert.equal(result.details.scan_evidence.finding_counts.total, 1);
+    assert.equal(result.details.scan_evidence.finding_counts.unclassified, 1);
+    assert.equal(result.details.scan_evidence.finding_counts.true_positive, 0);
+    assert.equal(result.details.scan_evidence.triage_summary.truePositiveCount, 0);
+    assert.equal(result.details.scan_evidence.triage_summary.groups[0].ruleId, 'openkit.quality.no-console-log');
+    assert.equal(Object.prototype.hasOwnProperty.call(result.details.scan_evidence, 'findings'), false);
   } finally {
     process.env = originalEnv;
   }

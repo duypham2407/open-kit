@@ -44,7 +44,52 @@ function writeLog(logPath, log) {
   fs.writeFileSync(logPath, `${JSON.stringify(log, null, 2)}\n`, "utf8")
 }
 
-function createInvocationEntry({ toolId, status, durationMs = null, stage = null, owner = null }) {
+function normalizeArray(value) {
+  return Array.isArray(value) ? value : []
+}
+
+function readObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {}
+}
+
+function summarizeError(result) {
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    return null
+  }
+
+  return result.message ?? result.reason ?? result.availability?.reason ?? result.error ?? null
+}
+
+function normalizeScanInvocationMetadata(result) {
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    return {}
+  }
+
+  const toolId = result.toolId ?? result.details?.scan_evidence?.direct_tool?.tool_id
+  if (toolId !== "tool.rule-scan" && toolId !== "tool.security-scan") {
+    return {}
+  }
+
+  const directTool = readObject(result.details?.scan_evidence?.direct_tool)
+  const target = readObject(result.target)
+  const findingCounts = readObject(result.details?.scan_evidence?.finding_counts)
+
+  return {
+    scan_kind: result.scanKind ?? result.details?.scan_evidence?.scan_kind ?? null,
+    availability_state: result.availability?.state ?? result.capabilityState ?? directTool.availability_state ?? null,
+    result_state: result.resultState ?? directTool.result_state ?? null,
+    target_scope_summary: target.scopeSummary ?? result.details?.scan_evidence?.target_scope_summary ?? null,
+    finding_counts: {
+      ...findingCounts,
+      total: result.findingCount ?? findingCounts.total ?? 0,
+    },
+    error_summary: summarizeError(result),
+    artifact_refs: normalizeArray(result.artifactRefs ?? result.details?.scan_evidence?.artifact_refs),
+    evidence_type: result.evidenceHint?.evidenceType ?? result.details?.scan_evidence?.evidence_type ?? "direct_tool",
+  }
+}
+
+function createInvocationEntry({ toolId, status, durationMs = null, stage = null, owner = null, result = null, metadata = null }) {
   return {
     tool_id: toolId,
     status,
@@ -52,6 +97,8 @@ function createInvocationEntry({ toolId, status, durationMs = null, stage = null
     owner: owner ?? null,
     duration_ms: durationMs ?? null,
     recorded_at: new Date().toISOString(),
+    ...normalizeScanInvocationMetadata(result),
+    ...(metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {}),
   }
 }
 
@@ -102,11 +149,11 @@ export function createInvocationLogger({ runtimeRoot, workItemId = null, getWork
   const staticLogPath = resolveLogPath(runtimeRoot, workItemId)
 
   return {
-    record({ toolId, status, durationMs = null, stage = null, owner = null }) {
+    record({ toolId, status, durationMs = null, stage = null, owner = null, result = null, metadata = null }) {
       const logPath = resolveEffectiveLogPath()
 
       const log = readLog(logPath)
-      const entry = createInvocationEntry({ toolId, status, durationMs, stage, owner })
+      const entry = createInvocationEntry({ toolId, status, durationMs, stage, owner, result, metadata })
       log.entries.push(entry)
 
       // Trim oldest entries when over the cap

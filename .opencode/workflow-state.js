@@ -920,7 +920,14 @@ function printInvocationLog(result) {
     const duration = entry.duration_ms != null ? ` ${entry.duration_ms}ms` : ""
     const stage = entry.stage ? ` stage=${entry.stage}` : ""
     const owner = entry.owner ? ` owner=${entry.owner}` : ""
-    console.log(`  ${entry.recorded_at} | ${entry.tool_id} | ${entry.status}${duration}${stage}${owner}`)
+    const scan = entry.scan_kind
+      ? ` scan=${entry.scan_kind} availability=${entry.availability_state ?? "unknown"} result=${entry.result_state ?? "unknown"} target=${entry.target_scope_summary ?? "unknown"} findings=${entry.finding_counts?.total ?? 0}`
+      : ""
+    const artifacts = Array.isArray(entry.artifact_refs) && entry.artifact_refs.length > 0
+      ? ` artifacts=${entry.artifact_refs.join(",")}`
+      : ""
+    const error = entry.error_summary ? ` error=${entry.error_summary}` : ""
+    console.log(`  ${entry.recorded_at} | ${entry.tool_id} | ${entry.status}${duration}${stage}${owner}${scan}${artifacts}${error}`)
   }
 }
 

@@ -20,6 +20,8 @@ OpenKit provisions Semgrep through the managed tooling path:
 1. **System Semgrep** — if `semgrep` is already on your PATH, OpenKit links it into the managed tooling bin
 2. **pip fallback** — if no system Semgrep is found, OpenKit attempts `python3 -m pip install --target <toolingRoot> semgrep` and writes a shim script
 
+At scan time, `tool.rule-scan` and `tool.security-scan` resolve Semgrep in this order: managed/system `semgrep` on the OpenKit tooling PATH, `npx --no-install semgrep` when a local or global npm package provides it, then `python3 -m semgrep`. This fallback resolver is for direct OpenKit scan tools; substitute scans still must be labeled as substitute evidence and must not be reported as direct-tool successes.
+
 Provisioning happens during `openkit run` (first-time setup) or `openkit upgrade`.
 
 ### Prerequisites

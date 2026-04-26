@@ -213,6 +213,104 @@ test('wrapped tool with dynamic work item getter writes to per-work-item log', (
   assert.equal(globalEntries.length, 0);
 });
 
+test('wrapped direct rule-scan records compact scan metadata in invocation log', () => {
+  const runtimeRoot = makeTempDir();
+  const workItemId = 'feature-943';
+  fs.mkdirSync(path.join(runtimeRoot, '.opencode', 'work-items', workItemId), { recursive: true });
+
+  const logger = createInvocationLogger({
+    runtimeRoot,
+    getWorkItemId: () => workItemId,
+  });
+  const stateManager = createMockActionModelStateManager();
+  const tool = {
+    id: 'tool.rule-scan',
+    name: 'Rule Scan',
+    execute() {
+      return {
+        status: 'ok',
+        toolId: 'tool.rule-scan',
+        scanKind: 'rule',
+        capabilityState: 'available',
+        resultState: 'succeeded',
+        availability: { state: 'available', reason: null },
+        target: { scopeSummary: 'project path: src/runtime/tools/audit/scan-evidence.js' },
+        findingCount: 2,
+        artifactRefs: ['.openkit/artifacts/rule-scan.json'],
+        evidenceHint: { evidenceType: 'direct_tool' },
+        details: {
+          scan_evidence: {
+            evidence_type: 'direct_tool',
+            finding_counts: { total: 2, true_positive: 0, unclassified: 0 },
+          },
+        },
+      };
+    },
+  };
+
+  const wrapped = wrapToolExecution(tool, { actionModelStateManager: stateManager, invocationLogger: logger });
+  wrapped.execute({
+    __actionTracking: {
+      subjectId: 'tool.rule-scan',
+      actionKey: 'tool.rule-scan',
+      stage: 'full_implementation',
+      owner: 'FullstackAgent',
+    },
+  });
+
+  const [entry] = readInvocationLog(runtimeRoot, workItemId);
+  assert.equal(entry.tool_id, 'tool.rule-scan');
+  assert.equal(entry.status, 'success');
+  assert.equal(entry.stage, 'full_implementation');
+  assert.equal(entry.owner, 'FullstackAgent');
+  assert.equal(entry.scan_kind, 'rule');
+  assert.equal(entry.availability_state, 'available');
+  assert.equal(entry.result_state, 'succeeded');
+  assert.match(entry.target_scope_summary, /scan-evidence\.js/);
+  assert.equal(entry.finding_counts.total, 2);
+  assert.equal(entry.error_summary, null);
+  assert.deepEqual(entry.artifact_refs, ['.openkit/artifacts/rule-scan.json']);
+  assert.equal(entry.evidence_type, 'direct_tool');
+});
+
+test('wrapped unavailable direct security-scan records reached attempt metadata', () => {
+  const runtimeRoot = makeTempDir();
+  const logger = createInvocationLogger({ runtimeRoot });
+  const stateManager = createMockActionModelStateManager();
+  const tool = {
+    id: 'tool.security-scan',
+    name: 'Security Scan',
+    execute() {
+      return {
+        status: 'unavailable',
+        toolId: 'tool.security-scan',
+        scanKind: 'security',
+        capabilityState: 'unavailable',
+        resultState: 'unavailable',
+        availability: { state: 'unavailable', reason: 'Semgrep unavailable' },
+        target: { scopeSummary: 'project path: src/runtime' },
+        findingCount: 0,
+        artifactRefs: [],
+        evidenceHint: { evidenceType: 'direct_tool' },
+      };
+    },
+  };
+
+  const wrapped = wrapToolExecution(tool, { actionModelStateManager: stateManager, invocationLogger: logger });
+  wrapped.execute();
+
+  const [entry] = readInvocationLog(runtimeRoot, null);
+  assert.equal(entry.tool_id, 'tool.security-scan');
+  assert.equal(entry.status, 'failure');
+  assert.equal(entry.scan_kind, 'security');
+  assert.equal(entry.availability_state, 'unavailable');
+  assert.equal(entry.result_state, 'unavailable');
+  assert.equal(entry.target_scope_summary, 'project path: src/runtime');
+  assert.equal(entry.finding_counts.total, 0);
+  assert.match(entry.error_summary, /Semgrep unavailable/);
+  assert.equal(stateManager.records[0].type, 'failure');
+});
+
 test('multiple tool invocations accumulate in the log', () => {
   const runtimeRoot = makeTempDir();
   const logger = createInvocationLogger({ runtimeRoot });

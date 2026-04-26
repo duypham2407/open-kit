@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -180,6 +181,80 @@ test('MCP scan tools return structured unavailable when Semgrep is missing', asy
     assert.match(parsed.availability.reason, /semgrep/i);
     assert.match(parsed.availability.fallback, /substitute|manual/i);
     assert.equal(parsed.evidenceHint.evidenceType, 'direct_tool');
+    assert.equal(parsed.details.validation_surface, 'runtime_tooling');
+    assert.equal(parsed.details.scan_evidence.direct_tool.tool_id, 'tool.rule-scan');
+    assert.equal(parsed.details.scan_evidence.direct_tool.namespace_status, 'callable');
+    assert.equal(parsed.details.scan_evidence.direct_tool.stale_process.suspected, false);
+    assert.match(parsed.details.scan_evidence.direct_tool.stale_process.caveat, /restart|reload|install/i);
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP security scan returns structured unavailable with direct evidence hint when Semgrep is missing', async () => {
+  const tempHome = path.join(os.tmpdir(), `openkit-mcp-security-missing-${Date.now()}`);
+  const client = createMcpClient({ env: { OPENCODE_HOME: tempHome, PATH: '' } });
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.security-scan',
+      arguments: { path: 'src/runtime/tools/audit/security-scan.js' },
+    });
+
+    assert.equal(result.isError, true, 'unavailable scan should be an error-like MCP result');
+    const parsed = JSON.parse(result.content[0].text);
+    assert.equal(parsed.status, 'unavailable');
+    assert.equal(parsed.toolId, 'tool.security-scan');
+    assert.equal(parsed.scanKind, 'security');
+    assert.equal(parsed.evidenceHint.evidenceType, 'direct_tool');
+    assert.equal(parsed.details.scan_evidence.direct_tool.tool_id, 'tool.security-scan');
+    assert.equal(parsed.details.scan_evidence.direct_tool.namespace_status, 'callable');
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP direct scan namespace miss returns structured stale-process caveat', async () => {
+  const tempHome = path.join(os.tmpdir(), `openkit-mcp-scan-namespace-${Date.now()}`);
+  const configPath = path.join(tempHome, 'openkit.runtime.json');
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, `${JSON.stringify({ disabled: { tools: ['tool.rule-scan'] } })}\n`, 'utf8');
+
+  const client = createMcpClient({
+    env: {
+      OPENCODE_HOME: tempHome,
+      OPENKIT_RUNTIME_CONFIG: configPath,
+    },
+  });
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.rule-scan',
+      arguments: { path: 'src/runtime/tools/audit/rule-scan.js' },
+    });
+
+    assert.equal(result.isError, true, 'unknown direct scan should be an error-like MCP result');
+    const parsed = JSON.parse(result.content[0].text);
+    assert.equal(parsed.status, 'unregistered');
+    assert.equal(parsed.toolId, 'tool.rule-scan');
+    assert.equal(parsed.capabilityState, 'unavailable');
+    assert.equal(parsed.validationSurface, 'runtime_tooling');
+    assert.equal(parsed.details.scan_evidence.evidence_type, 'direct_tool');
+    assert.equal(parsed.details.scan_evidence.direct_tool.namespace_status, 'unknown_tool');
+    assert.equal(parsed.details.scan_evidence.direct_tool.stale_process.suspected, true);
+    assert.match(parsed.details.scan_evidence.direct_tool.stale_process.caveat, /refresh|restart/i);
   } finally {
     await client.close();
   }

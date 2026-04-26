@@ -95,8 +95,9 @@ export function findUsableSemgrepCommand({ env = process.env, platform = process
     return { command: semgrepPath, args: [], source: 'PATH', path: semgrepPath };
   }
 
-  if (isCommandAvailable('npx', { env, platform }) && semgrepVersionSucceeds('npx', ['--no-install', 'semgrep'], env)) {
-    return { command: 'npx', args: ['--no-install', 'semgrep'], source: 'npx', path: null };
+  const npxCommand = resolveNpxCommand(env, platform);
+  if (semgrepVersionSucceeds(npxCommand, ['--no-install', 'semgrep'], env)) {
+    return { command: npxCommand, args: ['--no-install', 'semgrep'], source: 'npx', path: null };
   }
 
   if (isCommandAvailable('python3', { env, platform }) && semgrepVersionSucceeds('python3', ['-m', 'semgrep'], env)) {
@@ -171,6 +172,24 @@ function resolveNpmCommand(env = process.env, platform = process.platform) {
   }
 
   return 'npm';
+}
+
+function resolveNpxCommand(env = process.env, platform = process.platform) {
+  if (platform === 'win32' && isCommandAvailable('npx.cmd', { env, platform })) {
+    return 'npx.cmd';
+  }
+
+  if (isCommandAvailable('npx', { env, platform })) {
+    return 'npx';
+  }
+
+  const nodeDir = path.dirname(process.execPath);
+  const siblingNpx = platform === 'win32' ? path.join(nodeDir, 'npx.cmd') : path.join(nodeDir, 'npx');
+  if (fs.existsSync(siblingNpx)) {
+    return siblingNpx;
+  }
+
+  return 'npx';
 }
 
 export function getToolingEnv(env = process.env) {

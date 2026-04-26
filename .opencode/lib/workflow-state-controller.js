@@ -4099,8 +4099,9 @@ function getInvocationLog(workItemId, customStatePath) {
     entries,
     totalEntries: entries.length,
     successfulEntries: entries.filter((e) => e.status === "success").length,
-    failedEntries: entries.filter((e) => e.status === "failure" || e.status === "error").length,
+    failedEntries: entries.filter((e) => ["failure", "error", "unavailable", "degraded", "unregistered"].includes(e.status)).length,
     uniqueTools: [...new Set(entries.map((e) => e.tool_id))],
+    scanEntries: entries.filter((e) => e.tool_id === "tool.rule-scan" || e.tool_id === "tool.security-scan"),
   }
 }
 

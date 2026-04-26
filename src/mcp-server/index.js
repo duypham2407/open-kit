@@ -23,6 +23,100 @@ import { bootstrapRuntimeFoundation } from '../runtime/index.js';
 import { parseServerArgs } from './args.js';
 import { TOOL_SCHEMAS, getMcpExposedToolIds } from './tool-schemas.js';
 
+function isDirectScanToolName(name) {
+  return name === 'tool.rule-scan' || name === 'tool.security-scan';
+}
+
+function createUnknownScanToolResult(name) {
+  const scanKind = name === 'tool.security-scan' ? 'security' : 'rule';
+  return {
+    status: 'unregistered',
+    capabilityState: 'unavailable',
+    validationSurface: 'runtime_tooling',
+    toolId: name,
+    scanKind,
+    provider: 'semgrep',
+    availability: {
+      state: 'unavailable',
+      reason: `${name} is not registered in this MCP runtime tool namespace.`,
+      fallback: 'Refresh or restart the active OpenCode/OpenKit runtime, then retry the direct scan tool. If the active session remains stale, record substitute_scan or manual_override evidence with this namespace caveat.',
+      staleProcessHint: {
+        suspected: true,
+        surface: 'in_session',
+        refresh: 'Restart/reload the OpenCode session or refresh the global OpenKit install so the role namespace reconnects to a fresh MCP tool list.',
+      },
+    },
+    resultState: 'unavailable',
+    findingCount: 0,
+    severitySummary: {},
+    triageSummary: {
+      groupCount: 0,
+      blockingCount: 0,
+      truePositiveCount: 0,
+      nonBlockingNoiseCount: 0,
+      falsePositiveCount: 0,
+      followUpCount: 0,
+      unclassifiedCount: 0,
+      groups: [],
+    },
+    falsePositiveSummary: { count: 0, items: [] },
+    artifactRefs: [],
+    limitations: ['The direct scan tool call reached MCP but did not resolve to a registered OpenKit runtime tool.'],
+    evidenceHint: {
+      evidenceType: 'direct_tool',
+      source: name,
+      kind: 'automated',
+      validationSurface: 'runtime_tooling',
+    },
+    details: {
+      validation_surface: 'runtime_tooling',
+      scan_evidence: {
+        evidence_type: 'direct_tool',
+        direct_tool: {
+          tool_id: name,
+          availability_state: 'unavailable',
+          result_state: 'unavailable',
+          reason: `${name} is not registered in this MCP runtime tool namespace.`,
+          invocation_ref: null,
+          namespace_status: 'unknown_tool',
+          stale_process: {
+            suspected: true,
+            affected_surface: 'in_session',
+            caveat: 'Direct scan call reached MCP but the active namespace did not expose the tool; refresh/restart OpenCode/OpenKit before claiming global absence.',
+          },
+        },
+        substitute: null,
+        scan_kind: scanKind,
+        target_scope_summary: 'direct scan tool was not registered in MCP namespace',
+        rule_config_source: 'bundled',
+        finding_counts: {
+          total: 0,
+          blocking: 0,
+          true_positive: 0,
+          non_blocking_noise: 0,
+          false_positive: 0,
+          follow_up: 0,
+          unclassified: 0,
+        },
+        severity_summary: {},
+        triage_summary: {
+          groupCount: 0,
+          blockingCount: 0,
+          truePositiveCount: 0,
+          nonBlockingNoiseCount: 0,
+          falsePositiveCount: 0,
+          followUpCount: 0,
+          unclassifiedCount: 0,
+          groups: [],
+        },
+        false_positive_summary: { count: 0, items: [] },
+        manual_override: null,
+        artifact_refs: [],
+      },
+    },
+  };
+}
+
 async function main() {
   const { projectRoot } = parseServerArgs(process.argv.slice(2), process.env);
 
@@ -82,6 +176,14 @@ async function main() {
     const { name, arguments: args } = request.params;
     const tool = mcpTools.find((t) => t.name === name);
     if (!tool) {
+      if (isDirectScanToolName(name)) {
+        const result = createUnknownScanToolResult(name);
+        return {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+          isError: true,
+        };
+      }
+
       return {
         content: [{ type: 'text', text: JSON.stringify({ status: 'error', reason: `Unknown tool: ${name}` }) }],
         isError: true,

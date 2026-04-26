@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { STANDARD_CAPABILITY_STATES, VALIDATION_SURFACES } from './capability-registry.js';
 import { createToolRegistry } from './tools/index.js';
+import { resolvePathContext } from '../../.opencode/lib/runtime-paths.js';
 
 const require = createRequire(import.meta.url);
 const { createInvocationLogger } = require('../../.opencode/lib/invocation-log.js');
@@ -75,13 +76,14 @@ function normalizeToolValidationSurface(tool) {
 export function createTools({ config, capabilityIndex, projectRoot, managers, mcpPlatform, modelRuntime, hooks = null, env = process.env }) {
   let invocationLogger = null;
   try {
+    const pathContext = resolvePathContext(env.OPENKIT_WORKFLOW_STATE ?? null, env);
     // Use a dynamic getter so the invocation logger writes to the
     // per-work-item log of the currently active work item.  This
     // ensures runtime tool invocations are visible to the policy
     // engine which reads per-work-item logs during stage transitions.
     function getActiveWorkItemId() {
       try {
-        const index = readWorkItemIndex(projectRoot);
+        const index = readWorkItemIndex(pathContext.runtimeRoot);
         return index?.active_work_item_id ?? null;
       } catch {
         return null;
@@ -89,7 +91,7 @@ export function createTools({ config, capabilityIndex, projectRoot, managers, mc
     }
 
     invocationLogger = createInvocationLogger({
-      runtimeRoot: projectRoot,
+      runtimeRoot: pathContext.runtimeRoot,
       getWorkItemId: getActiveWorkItemId,
     });
   } catch {

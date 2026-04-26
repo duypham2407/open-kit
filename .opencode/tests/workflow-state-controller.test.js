@@ -253,6 +253,17 @@ function makeScanEvidenceDetails({
         availability_state: availabilityState,
         result_state: resultState,
         reason: availabilityState === "available" ? null : "direct scan tool unavailable in this test",
+        invocation_ref: {
+          work_item_id: "feature-test",
+          entry_id: "invocation-test",
+          log_path: ".opencode/work-items/feature-test/tool-invocations.json",
+        },
+        namespace_status: "callable",
+        stale_process: {
+          suspected: false,
+          affected_surface: "in_session",
+          caveat: "No stale role namespace observed in this test fixture.",
+        },
       },
       substitute,
       scan_kind: scanKind,
@@ -261,6 +272,7 @@ function makeScanEvidenceDetails({
       finding_counts: {
         total,
         blocking: countGroupsByClassification(groups, "blocking") + countGroupsByClassification(groups, "true_positive"),
+        true_positive: countGroupsByClassification(groups, "true_positive"),
         non_blocking_noise: countGroupsByClassification(groups, "non_blocking_noise"),
         false_positive: countGroupsByClassification(groups, "false_positive"),
         unclassified: countGroupsByClassification(groups, "unclassified"),
@@ -273,6 +285,7 @@ function makeScanEvidenceDetails({
       triage_summary: {
         groupCount: groups.length,
         blockingCount: countGroupsByClassification(groups, "blocking") + countGroupsByClassification(groups, "true_positive"),
+        truePositiveCount: countGroupsByClassification(groups, "true_positive"),
         nonBlockingNoiseCount: countGroupsByClassification(groups, "non_blocking_noise"),
         falsePositiveCount: countGroupsByClassification(groups, "false_positive"),
         followUpCount: countGroupsByClassification(groups, "follow_up"),
