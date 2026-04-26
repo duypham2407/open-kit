@@ -8,6 +8,12 @@ import { createCodemodPreviewTool } from './codemod/codemod-preview.js';
 import { createLookAtTool } from './analysis/look-at.js';
 import { createEmbeddingIndexTool } from './analysis/embedding-index.js';
 import { createBrowserVerifyTool } from './browser/browser-verify.js';
+import { createCapabilityHealthTool } from './capability/capability-health.js';
+import { createCapabilityInventoryTool } from './capability/capability-inventory.js';
+import { createCapabilityRouterTool } from './capability/capability-router.js';
+import { createMcpDoctorTool } from './capability/mcp-doctor.js';
+import { createSkillIndexTool } from './capability/skill-index.js';
+import { createSkillMcpBindingsTool } from './capability/skill-mcp-bindings.js';
 import { createContinuationHandoffTool } from './continuation/continuation-handoff.js';
 import { createContinuationStartTool } from './continuation/continuation-start.js';
 import { createContinuationStatusTool } from './continuation/continuation-status.js';
@@ -55,6 +61,12 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     createWorkflowStateTool({ projectRoot, workflowKernel: managers.workflowKernel }),
     createRuntimeSummaryTool({ workflowKernel: managers.workflowKernel }),
     createEvidenceCaptureTool({ workflowKernel: managers.workflowKernel }),
+    createCapabilityInventoryTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
+    createCapabilityRouterTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
+    createCapabilityHealthTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
+    createMcpDoctorTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
+    createSkillIndexTool(),
+    createSkillMcpBindingsTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
     createSessionListTool({ sessionStateManager: managers.sessionStateManager }),
     createSessionReadTool({ sessionStateManager: managers.sessionStateManager }),
     createSessionSearchTool({ sessionStateManager: managers.sessionStateManager }),

@@ -1,3 +1,10 @@
+import {
+  STANDARD_CAPABILITY_STATES,
+  VALIDATION_SURFACES,
+} from '../capabilities/status.js';
+import { listMcpCatalogEntries } from '../capabilities/mcp-catalog.js';
+import { listBundledSkills } from '../capabilities/skill-catalog.js';
+
 const DEFAULT_RUNTIME_CAPABILITIES = [
   {
     id: 'capability.runtime-bootstrap',
@@ -152,23 +159,43 @@ const DEFAULT_RUNTIME_CAPABILITIES = [
   },
 ];
 
-export const STANDARD_CAPABILITY_STATES = [
-  'available',
-  'unavailable',
-  'degraded',
-  'preview',
-  'compatibility_only',
-  'not_configured',
-];
+export { STANDARD_CAPABILITY_STATES, VALIDATION_SURFACES };
 
-export const VALIDATION_SURFACES = [
-  'global_cli',
-  'in_session',
-  'compatibility_runtime',
-  'runtime_tooling',
-  'documentation',
-  'target_project_app',
-];
+export function listBundledMcpCapabilities() {
+  return listMcpCatalogEntries().map((entry) => ({
+    id: `mcp.${entry.id}`,
+    mcpId: entry.id,
+    category: entry.category,
+    description: entry.description,
+    status: entry.lifecycle === 'stable' ? 'active' : 'foundation',
+    capabilityState: entry.status,
+    validationSurface: 'runtime_tooling',
+    enabledByDefault: entry.defaultEnabled?.openkit === true,
+    lifecycle: entry.lifecycle,
+    optional: entry.optional === true,
+    policyGated: entry.lifecycle === 'policy_gated',
+    secretEnvVars: (entry.secretBindings ?? []).map((binding) => binding.envVar),
+    scopes: entry.scopes ?? ['openkit', 'global'],
+  }));
+}
+
+export function listBundledSkillCapabilities() {
+  return listBundledSkills().map((entry) => ({
+    id: entry.id,
+    skillName: entry.name,
+    category: entry.category,
+    description: `${entry.name} skill`,
+    status: entry.status === 'available' ? 'active' : 'foundation',
+    capabilityState: entry.status,
+    validationSurface: 'runtime_tooling',
+    enabledByDefault: entry.status !== 'unavailable',
+    lifecycle: entry.lifecycle,
+    bundled: entry.bundled,
+    mcpRefs: entry.mcpRefs,
+    optionalMcpRefs: entry.optionalMcpRefs,
+    limitations: entry.limitations,
+  }));
+}
 
 function normalizeCapabilityState(capability) {
   if (STANDARD_CAPABILITY_STATES.includes(capability.capabilityState)) {
@@ -212,7 +239,11 @@ function isCapabilityEnabled(capability, config) {
 }
 
 export function listRuntimeCapabilities({ config } = {}) {
-  return DEFAULT_RUNTIME_CAPABILITIES.map((capability) => ({
+  return [
+    ...DEFAULT_RUNTIME_CAPABILITIES,
+    ...listBundledMcpCapabilities(),
+    ...listBundledSkillCapabilities(),
+  ].map((capability) => ({
     ...capability,
     capabilityState: normalizeCapabilityState(capability),
     validationSurface: normalizeValidationSurface(capability),

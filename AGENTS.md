@@ -170,6 +170,7 @@ Current state:
 - Node.js is a documented runtime dependency for the workflow-state utility only, not for future application code by default
 - The workflow-state CLI exists and is aligned with the live stage and approval model documented in this repository
 - The repository-local OpenCode config still lives at `.opencode/opencode.json`; do not claim that a root `opencode.json` entrypoint already exists unless the file is added
+- `npm run verify:semgrep-quality` exists for OpenKit bundled Semgrep rule-pack regression checks; it validates OpenKit runtime/tooling governance, not target-project application behavior. Semgrep unavailability fails this gate by default, including in CI; `OPENKIT_ALLOW_SEMGREP_QUALITY_SKIP=1` is only a local non-CI convenience skip and is not valid gate evidence
 
 Rules for agents:
 

@@ -6,6 +6,7 @@ import { buildAgentModelConfigOverrides } from './agent-models.js';
 import { deepMergeConfig, parseInlineConfig } from './config-merge.js';
 import { ensureWorkspaceBootstrap } from './workspace-state.js';
 import { getToolingEnv } from './tooling.js';
+import { loadSecretsEnv } from './mcp/secret-manager.js';
 import { createManagedWorktree, getManagedWorktree, updateManagedWorktreeMetadata } from './worktree-manager.js';
 import { COPY_ENV_WARNING, propagateWorktreeEnvFiles, resolveEnvPropagationMode } from './worktree-env.js';
 import { parseRunOptions } from '../cli/commands/run-options.js';
@@ -403,8 +404,18 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
   const baselineInlineConfig = parseInlineConfig(env.OPENCODE_CONFIG_CONTENT, 'OPENCODE_CONFIG_CONTENT') ?? {};
   const agentModelOverrides = buildAgentModelConfigOverrides(paths.agentModelSettingsPath);
   const layeredInlineConfig = deepMergeConfig(baselineInlineConfig, agentModelOverrides);
+  let loadedSecrets = { values: {} };
+  try {
+    loadedSecrets = loadSecretsEnv({ env });
+  } catch (error) {
+    appendUniqueNotices(launcherNotices, `OpenKit secrets.env was not loaded: ${error.message}`);
+  }
+  const secretEnv = Object.fromEntries(
+    Object.entries(loadedSecrets.values ?? {}).filter(([key]) => env[key] === undefined)
+  );
   const runtimeBootstrapEnv = {
     ...env,
+    ...secretEnv,
     OPENKIT_GLOBAL_MODE: '1',
     OPENKIT_PROJECT_ROOT: launchProjectRoot,
     OPENKIT_REPOSITORY_ROOT: paths.projectRoot,

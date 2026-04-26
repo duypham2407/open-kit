@@ -9,6 +9,7 @@ Use this document to decide which OpenKit surface to use for a given goal.
 - audience: everyday operators
 - validation label: `global_cli`
 - primary commands: `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, `openkit uninstall`
+- capability configuration: `openkit configure mcp ...` for bundled MCP discovery, local-only key storage, scope materialization, and MCP readiness checks
 - optional helper: `openkit onboard` for a dry onboarding summary before launch
 - use it for: launching OpenCode, checking global readiness, and managing the installed kit
 - default path: `npm install -g @duypham93/openkit` -> `openkit doctor` -> `openkit run` -> `/task`
@@ -39,6 +40,7 @@ Use this document to decide which OpenKit surface to use for a given goal.
 | check machine or workspace readiness | product surface | `openkit doctor` |
 | get a dry onboarding summary | product surface | `openkit onboard` |
 | refresh or remove the global kit | product surface | `openkit upgrade`, `openkit uninstall` |
+| inspect or configure bundled MCPs | product surface | `openkit configure mcp list`, `doctor`, `enable`, `disable`, `set-key`, `unset-key`, `test` |
 | choose the correct lane | in-session workflow surface | `/task` |
 | force a known lane | in-session workflow surface | `/quick-task`, `/migrate`, `/delivery` |
 | inspect active workflow state | compatibility runtime surface | `node .opencode/workflow-state.js status` |
@@ -49,6 +51,7 @@ Use this document to decide which OpenKit surface to use for a given goal.
 ## Boundary Rules
 
 - prefer the global product surface for daily work
+- use `openkit configure mcp ...` for MCP catalog/configuration work and keep examples placeholder-only; raw secrets belong only in the local OpenKit secret store and runtime process environment
 - use `openkit upgrade` and `openkit uninstall` for product lifecycle maintenance; do not switch to repository-local workflow-state commands for install, launch, upgrade, or uninstall work
 - prefer slash commands once OpenCode is running
 - prefer the low-level runtime CLI only when you need raw state inspection, maintainer diagnostics, or work-item/task-board operations

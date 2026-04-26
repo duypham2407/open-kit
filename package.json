@@ -50,6 +50,7 @@
     "verify:install-bundle": "node scripts/verify-install-bundle.mjs",
     "verify:runtime-foundation": "node --test tests/runtime/runtime-config-loader.test.js && node --test tests/runtime/capability-registry.test.js && node --test tests/runtime/runtime-bootstrap.test.js",
     "verify:governance": "node --test tests/runtime/governance-enforcement.test.js && node --test tests/runtime/registry-metadata.test.js && node --test \".opencode/tests/workflow-contract-consistency.test.js\"",
-    "verify:all": "npm run verify:install-bundle && npm run verify:governance && node --test \".opencode/tests/workflow-state-cli.test.js\" && node --test \".opencode/tests/session-start-hook.test.js\" && node --test tests/runtime/*.test.js && node --test tests/install/*.test.js && node --test tests/global/*.test.js && node --test tests/cli/*.test.js"
+    "verify:all": "npm run verify:install-bundle && npm run verify:governance && npm run verify:semgrep-quality && node --test \".opencode/tests/workflow-state-cli.test.js\" && node --test \".opencode/tests/session-start-hook.test.js\" && node --test tests/runtime/*.test.js && node --test tests/install/*.test.js && node --test tests/global/*.test.js && node --test tests/cli/*.test.js",
+    "verify:semgrep-quality": "node --test tests/semgrep/quality-rules.test.js"
   }
 }

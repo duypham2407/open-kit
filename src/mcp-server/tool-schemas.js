@@ -335,6 +335,74 @@ export const TOOL_SCHEMAS = {
     },
   },
 
+  // ── Capability pack tools ─────────────────────────────────────────────
+  'tool.capability-inventory': {
+    description: 'List bundled MCPs and skills with scope, status, key presence, dependency status, preview/policy labels, and redacted outputs.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scope: { type: 'string', enum: ['openkit', 'global'], description: 'Scope to inspect (default: openkit)' },
+        includeSkills: { type: 'boolean', description: 'Include skill catalog (default true)' },
+        includeMcps: { type: 'boolean', description: 'Include MCP catalog (default true)' },
+      },
+    },
+  },
+
+  'tool.capability-router': {
+    description: 'Route a requested skill, MCP, or intent to an available capability, or return unavailable/not_configured/degraded guidance.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        intent: { type: 'string', description: 'Task intent to route' },
+        skillName: { type: 'string', description: 'Skill name or skill id' },
+        mcpId: { type: 'string', description: 'MCP id to route directly' },
+        scope: { type: 'string', enum: ['openkit', 'global'], description: 'Scope to inspect (default: openkit)' },
+        mode: { type: 'string', description: 'Workflow mode hint' },
+        role: { type: 'string', description: 'Role hint' },
+      },
+    },
+  },
+
+  'tool.capability-health': {
+    description: 'Run read-only health checks for one MCP or the capability pack with redacted status output.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scope: { type: 'string', enum: ['openkit', 'global'], description: 'Scope to inspect (default: openkit)' },
+        mcpId: { type: 'string', description: 'Optional MCP id to inspect' },
+      },
+    },
+  },
+
+  'tool.mcp-doctor': {
+    description: 'Read-only doctor report aligned with openkit configure mcp doctor, with redacted MCP capability-pack readiness output.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scope: { type: 'string', enum: ['openkit', 'global'], description: 'Scope to inspect (default: openkit)' },
+        mcpId: { type: 'string', description: 'Optional MCP id to inspect' },
+      },
+    },
+  },
+
+  'tool.skill-index': {
+    description: 'List bundled skills with status, triggers, limitations, and backing MCP refs.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        category: { type: 'string', description: 'Optional skill category filter' },
+      },
+    },
+  },
+
+  'tool.skill-mcp-bindings': {
+    description: 'List bundled skill-to-MCP bindings from the capability pack.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+
   // ── Analysis tools ───────────────────────────────────────────────────
   'tool.look-at': {
     description: 'Inspects one file or directory with lightweight metadata (size, type, line count, first lines).',

@@ -10,6 +10,8 @@ import { NotificationManager } from './managers/notification-manager.js';
 import { PersistentBackgroundStore } from './managers/persistent-background-store.js';
 import { SessionStateManager } from './managers/session-state-manager.js';
 import { SkillMcpManager } from './managers/skill-mcp-manager.js';
+import { CapabilityRegistryManager } from './managers/capability-registry-manager.js';
+import { McpHealthManager } from './managers/mcp-health-manager.js';
 import { SyntaxIndexManager } from './managers/syntax-index-manager.js';
 import { ProjectGraphManager } from './managers/project-graph-manager.js';
 import { SessionMemoryManager } from './managers/session-memory-manager.js';
@@ -26,6 +28,8 @@ function createManagerList({
   configHandler,
   backgroundManager,
   skillMcpManager,
+  capabilityRegistryManager,
+  mcpHealthManager,
   syntaxIndexManager,
   projectGraphManager,
   sessionMemoryManager,
@@ -66,6 +70,22 @@ function createManagerList({
       description: 'Runtime registry for built-in and skill-provided MCP surfaces.',
       enabled: true,
       lifecycle: 'foundation',
+      dispose() {},
+    },
+    {
+      id: 'manager.capability-registry',
+      name: 'Capability Registry Manager',
+      description: 'Joins bundled MCP and skill catalogs with local configuration, key presence, and health status.',
+      enabled: capabilityRegistryManager !== null,
+      lifecycle: 'active',
+      dispose() {},
+    },
+    {
+      id: 'manager.mcp-health',
+      name: 'MCP Health Manager',
+      description: 'Read-only health checker for bundled MCP catalog entries.',
+      enabled: mcpHealthManager !== null,
+      lifecycle: 'active',
       dispose() {},
     },
     {
@@ -177,6 +197,8 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     layout: config?.tmux?.layout,
   });
   const skillMcpManager = new SkillMcpManager();
+  const mcpHealthManager = new McpHealthManager({ env });
+  const capabilityRegistryManager = new CapabilityRegistryManager({ mcpHealthManager, skillMcpManager });
   const syntaxIndexManager = new SyntaxIndexManager({ projectRoot });
   const projectGraphManager = new ProjectGraphManager({ projectRoot, runtimeRoot, syntaxIndexManager, mode });
 
@@ -246,6 +268,8 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     configHandler,
     backgroundManager,
     skillMcpManager,
+    capabilityRegistryManager,
+    mcpHealthManager,
     syntaxIndexManager,
     projectGraphManager,
     sessionMemoryManager,
@@ -267,6 +291,8 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     configHandler,
     backgroundManager,
     skillMcpManager,
+    capabilityRegistryManager,
+    mcpHealthManager,
     syntaxIndexManager,
     projectGraphManager,
     sessionMemoryManager,

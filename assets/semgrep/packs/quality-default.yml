@@ -29,6 +29,8 @@ rules:
     severity: WARNING
 
   - id: openkit.quality.no-var-declaration
+    options:
+      let_is_var: false
     patterns:
       - pattern: var $X = ...;
     message: "Prefer const or let over var."

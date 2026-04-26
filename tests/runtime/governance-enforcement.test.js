@@ -186,13 +186,46 @@ test('operator and maintainer docs describe scan evidence states and triage poli
   assert.match(docs, /target_project_app/);
 });
 
+test('operator docs describe MCP configuration and secret-safe boundaries', () => {
+  const mcpDocs = read('docs/operator/mcp-configuration.md');
+  const operatorIndex = read('docs/operator/README.md');
+  const supportedSurfaces = read('docs/operator/supported-surfaces.md');
+  const surfaceContract = read('docs/operator/surface-contract.md');
+  const docs = [mcpDocs, operatorIndex, supportedSurfaces, surfaceContract].join('\n');
+
+  assert.match(mcpDocs, /Default Bundled MCP Catalog/);
+  assert.match(mcpDocs, /Default Bundled Skill Catalog Overview/);
+  assert.match(mcpDocs, /openkit configure mcp <list\|doctor\|enable\|disable\|set-key\|unset-key\|test>/);
+  assert.match(mcpDocs, /set-key.*automatically enables/s);
+  assert.match(mcpDocs, /Scope Semantics/);
+  assert.match(mcpDocs, /`openkit`/);
+  assert.match(mcpDocs, /`global`/);
+  assert.match(mcpDocs, /`both`/);
+  assert.match(mcpDocs, /<OPENCODE_HOME>\/openkit\/secrets\.env/);
+  assert.match(mcpDocs, /0700/);
+  assert.match(mcpDocs, /0600/);
+  assert.match(mcpDocs, /No Raw Secret Rule/);
+  assert.match(mcpDocs, /Direct OpenCode Caveat/);
+  assert.match(mcpDocs, /disable.*keeps any stored key/s);
+  assert.match(mcpDocs, /unset-key.*does not.*disable/s);
+  assert.match(mcpDocs, /openkit configure mcp doctor/);
+  assert.match(mcpDocs, /openkit configure mcp test/);
+  assert.match(mcpDocs, /target_project_app/);
+  assert.match(mcpDocs, /Target-project application validation is `target_project_app` only when the target project declares real app/);
+
+  assert.match(docs, /docs\/operator\/mcp-configuration\.md/);
+  assert.doesNotMatch(mcpDocs, /sk-[A-Za-z0-9_-]{8,}/);
+});
+
 test('package scripts expose governance and install-bundle verification gates', () => {
   const packageJson = JSON.parse(read('package.json'));
 
   assert.equal(typeof packageJson.scripts['sync:install-bundle'], 'string');
   assert.equal(typeof packageJson.scripts['verify:install-bundle'], 'string');
   assert.equal(typeof packageJson.scripts['verify:governance'], 'string');
+  assert.equal(typeof packageJson.scripts['verify:semgrep-quality'], 'string');
   assert.equal(typeof packageJson.scripts['verify:all'], 'string');
+  assert.match(packageJson.scripts['verify:all'], /verify:semgrep-quality/);
 });
 
 test('repository defines CI workflow for verification gates', () => {
@@ -200,7 +233,29 @@ test('repository defines CI workflow for verification gates', () => {
 
   assert.match(workflow, /name: Verify/);
   assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /Install Semgrep for bundled rule-pack regression tests/);
   assert.match(workflow, /npm run verify:all/);
+});
+
+test('semgrep quality regression docs keep unavailability fail-closed', () => {
+  const semgrepTest = read('tests/semgrep/quality-rules.test.js');
+  const semgrepDocs = read('docs/operator/semgrep.md');
+  const projectConfig = read('context/core/project-config.md');
+  const agentGuide = read('AGENTS.md');
+  const testMatrix = read('docs/maintainer/test-matrix.md');
+
+  assert.match(semgrepTest, /OPENKIT_ALLOW_SEMGREP_QUALITY_SKIP/);
+  assert.match(semgrepTest, /isCiEnvironment/);
+  assert.match(semgrepTest, /process\.env\.CI/);
+  assert.match(semgrepTest, /process\.env\.GITHUB_ACTIONS/);
+  assert.match(semgrepTest, /!isCiEnvironment/);
+  assert.match(semgrepTest, /assert\.fail\(`\$\{semgrepUnavailableReason\}/);
+  assert.match(semgrepDocs, /Semgrep availability is required gate evidence/);
+  assert.match(semgrepDocs, /fails by default, including in CI/);
+  assert.match(semgrepDocs, /OPENKIT_ALLOW_SEMGREP_QUALITY_SKIP=1/);
+  assert.match(projectConfig, /Semgrep unavailability fails this gate by default/);
+  assert.match(agentGuide, /Semgrep unavailability fails this gate by default/);
+  assert.match(testMatrix, /Semgrep unavailability fails the gate by default/);
 });
 
 test('maintainer docs advertise one-command verification and workflow telemetry', () => {

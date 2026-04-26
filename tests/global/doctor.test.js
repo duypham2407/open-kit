@@ -99,6 +99,37 @@ test('global doctor reports next steps for healthy installs', () => {
   assert.match(output, /capabilities/);
 });
 
+test('global doctor reports redacted MCP capability and secret readiness', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+  const sentinel = 'sk-openkit-doctor-sentinel-941';
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  fs.writeFileSync(path.join(tempHome, 'openkit', 'secrets.env'), `CONTEXT7_API_KEY=${sentinel}\n`, { mode: 0o600 });
+
+  const result = inspectGlobalDoctor({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+  });
+
+  const output = renderGlobalDoctorSummary(result);
+  assert.match(output, /MCP capability pack:/);
+  assert.match(output, /secret_file=ok/);
+  assert.doesNotMatch(output, new RegExp(sentinel));
+});
+
 test('global doctor reports missing ast-grep tooling explicitly', () => {
   const tempHome = makeTempDir();
   const projectRoot = makeTempDir();

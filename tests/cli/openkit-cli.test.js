@@ -14,12 +14,13 @@ const __dirname = path.dirname(__filename);
 const worktreeRoot = path.resolve(__dirname, '..', '..');
 const binPath = path.join(worktreeRoot, 'bin', 'openkit.js');
 
-function runCli(args, { cwd = worktreeRoot, env, timeout = 30_000 } = {}) {
+function runCli(args, { cwd = worktreeRoot, env, timeout = 30_000, input = null } = {}) {
   return spawnSync(process.execPath, [binPath, ...args], {
     cwd,
     encoding: 'utf8',
     env: env ?? process.env,
     timeout,
+    input,
   });
 }
 
@@ -283,6 +284,101 @@ process.stdout.write('mock opencode launched\\n');
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.json')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.js')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'profile-switch.js')), true);
+});
+
+test('openkit run loads OpenKit secrets env without printing or serializing raw values', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+  const logPath = path.join(tempHome, 'opencode-secret-run.json');
+  const sentinel = 'sk-openkit-run-sentinel-941';
+
+  const installResult = runCli(['install-global'], {
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  assert.equal(installResult.status, 0);
+
+  const setKey = runCli(['configure', 'mcp', 'set-key', 'context7', '--stdin'], {
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+    input: `${sentinel}\n`,
+  });
+  assert.equal(setKey.status, 0);
+  assert.doesNotMatch(setKey.stdout, new RegExp(sentinel));
+
+  writeExecutable(
+    path.join(fakeBinDir, 'opencode'),
+    `#!/usr/bin/env node
+import fs from 'node:fs';
+fs.writeFileSync(process.env.OPENKIT_TEST_LOG_PATH, JSON.stringify({
+  context7: process.env.CONTEXT7_API_KEY,
+  runtimeConfigContent: process.env.OPENKIT_RUNTIME_CONFIG_CONTENT,
+  opencodeConfigContent: process.env.OPENCODE_CONFIG_CONTENT,
+}, null, 2));
+process.stdout.write('secret env launch complete\\n');
+`
+  );
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      OPENKIT_TEST_LOG_PATH: logPath,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /secret env launch complete/);
+  assert.doesNotMatch(result.stdout, new RegExp(sentinel));
+  assert.doesNotMatch(result.stderr, new RegExp(sentinel));
+  const invocation = readJson(logPath);
+  assert.equal(invocation.context7, sentinel);
+  assert.equal((invocation.runtimeConfigContent ?? '').includes(sentinel), false);
+  assert.equal((invocation.opencodeConfigContent ?? '').includes(sentinel), false);
+});
+
+test('openkit run preserves explicit process env over secrets.env values', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+  const logPath = path.join(tempHome, 'opencode-secret-precedence.json');
+  const sentinel = 'sk-openkit-secret-file-value';
+  const explicit = 'sk-openkit-explicit-env-value';
+
+  assert.equal(runCli(['install-global'], { env: { ...process.env, OPENCODE_HOME: tempHome } }).status, 0);
+  assert.equal(runCli(['configure', 'mcp', 'set-key', 'context7', '--stdin'], {
+    env: { ...process.env, OPENCODE_HOME: tempHome },
+    input: `${sentinel}\n`,
+  }).status, 0);
+
+  writeExecutable(
+    path.join(fakeBinDir, 'opencode'),
+    `#!/usr/bin/env node
+import fs from 'node:fs';
+fs.writeFileSync(process.env.OPENKIT_TEST_LOG_PATH, JSON.stringify({ context7: process.env.CONTEXT7_API_KEY }, null, 2));
+`
+  );
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      CONTEXT7_API_KEY: explicit,
+      OPENKIT_TEST_LOG_PATH: logPath,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+  assert.equal(readJson(logPath).context7, explicit);
 });
 
 test('openkit run does not reinstall when the global install already exists', () => {

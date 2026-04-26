@@ -44,19 +44,63 @@ function listWindowsExecutableExtensions(env) {
     .filter(Boolean);
 }
 
-function resolveCommandPath(command, { env = process.env, platform = process.platform } = {}) {
+function resolveCommandPaths(command, { env = process.env, platform = process.platform } = {}) {
   const pathValue = env.PATH ?? '';
   const segments = pathValue.split(path.delimiter).filter(Boolean);
   const hasExtension = path.extname(command).length > 0;
   const suffixes = platform === 'win32' && !hasExtension ? ['', ...listWindowsExecutableExtensions(env)] : [''];
+  const matches = [];
 
   for (const segment of segments) {
     for (const suffix of suffixes) {
       const candidate = path.join(segment, `${command}${suffix}`);
       if (fs.existsSync(candidate)) {
-        return candidate;
+        matches.push(candidate);
       }
     }
+  }
+
+  return matches;
+}
+
+function resolveCommandPath(command, { env = process.env, platform = process.platform } = {}) {
+  return resolveCommandPaths(command, { env, platform })[0] ?? null;
+}
+
+function isSelfRecursiveShellShim(commandPath) {
+  try {
+    const contents = fs.readFileSync(commandPath, 'utf8');
+    return contents.includes(`exec ${JSON.stringify(commandPath)} "$@"`);
+  } catch {
+    return false;
+  }
+}
+
+function semgrepVersionSucceeds(command, args, env) {
+  const result = spawnSync(command, [...args, '--version'], {
+    env,
+    encoding: 'utf8',
+    timeout: 5_000,
+    maxBuffer: 1024 * 1024,
+  });
+
+  return result.status === 0;
+}
+
+export function findUsableSemgrepCommand({ env = process.env, platform = process.platform } = {}) {
+  const toolingEnv = getToolingEnv(env);
+  const semgrepPath = resolveCommandPaths('semgrep', { env: toolingEnv, platform })
+    .find((candidate) => fs.existsSync(candidate) && !isSelfRecursiveShellShim(candidate));
+  if (semgrepPath && fs.existsSync(semgrepPath) && !isSelfRecursiveShellShim(semgrepPath)) {
+    return { command: semgrepPath, args: [], source: 'PATH', path: semgrepPath };
+  }
+
+  if (isCommandAvailable('npx', { env, platform }) && semgrepVersionSucceeds('npx', ['--no-install', 'semgrep'], env)) {
+    return { command: 'npx', args: ['--no-install', 'semgrep'], source: 'npx', path: null };
+  }
+
+  if (isCommandAvailable('python3', { env, platform }) && semgrepVersionSucceeds('python3', ['-m', 'semgrep'], env)) {
+    return { command: 'python3', args: ['-m', 'semgrep'], source: 'python-module', path: null };
   }
 
   return null;
@@ -162,9 +206,7 @@ export function isAstGrepAvailable({ env = process.env, platform = process.platf
 }
 
 export function isSemgrepAvailable({ env = process.env, platform = process.platform } = {}) {
-  const toolingEnv = getToolingEnv(env);
-  const semgrepPath = resolveCommandPath('semgrep', { env: toolingEnv, platform });
-  return Boolean(semgrepPath && fs.existsSync(semgrepPath));
+  return Boolean(findUsableSemgrepCommand({ env, platform }));
 }
 
 export function isCodemodAvailable() {

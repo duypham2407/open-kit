@@ -55,6 +55,7 @@ Command reality rule: mark a command as current only when it exists in `package.
 - When enabled, `ProjectGraphManager` fires an `onFileIndexed` callback after each file is indexed; `EmbeddingIndexer` is wired as that callback in `create-managers.js` so embeddings are generated automatically on each index cycle.
 - Use the `tool.embedding-index` in-session tool to trigger indexing manually or inspect indexer status: actions are `"status"`, `"index-file"` (requires `filePath`), and `"index-project"` (accepts `maxFiles` and `force`).
 - `tool.semantic-search` automatically uses embedding-based vector search when an embedding provider is configured and the DB contains indexed embeddings. When both embeddings and keyword matches are available it can return hybrid results; when no embeddings are available it falls back to keyword search. The response includes a `searchMode` field (`"embedding"`, `"keyword"`, or `"hybrid"`).
+- `npm run verify:semgrep-quality` runs the bundled Semgrep rule-pack regression suite against controlled OpenKit fixtures. It validates OpenKit `runtime_tooling` rule behavior and security-pack sanity, not target-project application build, lint, or test behavior. Semgrep unavailability fails this gate by default, including in CI; `OPENKIT_ALLOW_SEMGREP_QUALITY_SKIP=1` may skip only local non-CI convenience runs and skipped runs are not valid gate evidence.
 
 ## Permission Policy
 

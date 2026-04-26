@@ -16,6 +16,7 @@ npm run verify:all
 | workflow-state resume, evidence, issue, readiness, or validation-surface labels | `node --test ".opencode/tests/workflow-state-cli.test.js"` | validates compatibility-runtime read-model output and surface labeling |
 | governance or anti-hallucination prompt contracts | `node --test tests/runtime/governance-enforcement.test.js` | validates prompt, docs, and evidence-discipline guardrails |
 | scan/tool evidence reporting prompts, QA templates, Semgrep docs, or manual override language | `npm run verify:governance` and `node --test ".opencode/tests/workflow-contract-consistency.test.js"` | validates that reporting surfaces preserve direct/substitute/manual distinctions, validation-surface labels, and workflow contract alignment |
+| bundled Semgrep rule packs or Semgrep fixtures | `npm run verify:semgrep-quality` | validates real Semgrep JSON output for quality no-var precision and security-pack sanity on controlled fixtures; Semgrep unavailability fails the gate by default, and any local `OPENKIT_ALLOW_SEMGREP_QUALITY_SKIP=1` skip is non-CI convenience only, not gate evidence |
 | registry metadata contracts | `node --test tests/runtime/registry-metadata.test.js` | validates machine-readable workflow metadata |
 | workflow-state controller logic | `node --test ".opencode/tests/workflow-state-controller.test.js"` | validates state transitions and controller rules |
 | release readiness, DoD, analytics, or ops summaries | `node --test ".opencode/tests/workflow-state-controller.test.js" && node --test ".opencode/tests/workflow-state-cli.test.js"` | validates management and closure runtime behavior |
@@ -50,6 +51,7 @@ Run:
 ```bash
 npm run sync:install-bundle
 npm run verify:install-bundle
+npm run verify:semgrep-quality
 npm run verify:governance
 node --test ".opencode/tests/workflow-contract-consistency.test.js"
 node .opencode/workflow-state.js validate

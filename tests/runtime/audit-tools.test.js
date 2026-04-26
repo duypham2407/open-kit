@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { createRuleScanTool } from '../../src/runtime/tools/audit/rule-scan.js';
 import { createSecurityScanTool } from '../../src/runtime/tools/audit/security-scan.js';
 import { applyTriageClassifications } from '../../src/runtime/tools/audit/scan-evidence.js';
-import { isSemgrepAvailable, ensureSemgrepInstalled, getToolingEnv } from '../../src/global/tooling.js';
+import { findUsableSemgrepCommand, isSemgrepAvailable, ensureSemgrepInstalled, getToolingEnv } from '../../src/global/tooling.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -52,6 +52,29 @@ test('isSemgrepAvailable returns true when semgrep shim exists in tooling bin', 
     },
   });
   assert.equal(result, true);
+});
+
+test('isSemgrepAvailable ignores a self-recursive managed semgrep shim and uses fallback', () => {
+  const tempHome = makeTempDir();
+  const toolingBin = path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin');
+  const fakeBin = makeTempDir();
+  const semgrepPath = path.join(toolingBin, 'semgrep');
+
+  writeExecutable(semgrepPath, `#!/bin/sh
+exec ${JSON.stringify(semgrepPath)} "$@"
+`);
+  writeExecutable(path.join(fakeBin, 'npx'), '#!/bin/sh\nexit 0\n');
+
+  const env = {
+    OPENCODE_HOME: tempHome,
+    PATH: fakeBin,
+  };
+
+  const command = findUsableSemgrepCommand({ env });
+
+  assert.equal(isSemgrepAvailable({ env }), true);
+  assert.equal(command.command, 'npx');
+  assert.deepEqual(command.args, ['--no-install', 'semgrep']);
 });
 
 test('isSemgrepAvailable returns true when semgrep is on system PATH', () => {

@@ -41,6 +41,13 @@ export function createRuntimeInterface({
 }) {
   const capabilityIds = capabilities.map((capability) => capability.id);
   const capabilitySummary = summarizeRuntimeCapabilities(capabilities);
+  const capabilityPackInventory = managers.capabilityRegistryManager?.listCapabilities?.({ scope: 'openkit' }) ?? { mcps: [], skills: [] };
+  const capabilityPack = {
+    catalogVersion: 1,
+    mcpSummary: summarizePackEntries(capabilityPackInventory.mcps, 'capabilityState'),
+    skillSummary: summarizePackEntries(capabilityPackInventory.skills, 'status'),
+    keySummary: summarizeKeyState(capabilityPackInventory.mcps),
+  };
   const latestSession = managers.sessionStateManager?.latest?.() ?? null;
   const workflowDoctor = inspectWorkflowDoctor(managers.workflowKernel);
   const supervisorDialogue = getSupervisorManagerHealth(managers.supervisorDialogueManager);
@@ -60,6 +67,7 @@ export function createRuntimeInterface({
     warnings: [...(configResult.warnings ?? [])],
     capabilityIds,
     capabilitySummary,
+    capabilityPack,
     managers: managers.managerList,
     tools: tools.toolMetadata ?? tools.toolList,
     hooks: hooks.hookList.map((hook) => ({ id: hook.id, name: hook.name, stage: hook.stage })),
@@ -92,4 +100,43 @@ export function createRuntimeInterface({
       OPENKIT_RUNTIME_MCPS: JSON.stringify(mcpPlatform.builtin.map((entry) => entry.id)),
     },
   };
+}
+
+function summarizePackEntries(entries, stateKey) {
+  const states = {
+    available: 0,
+    unavailable: 0,
+    degraded: 0,
+    preview: 0,
+    compatibility_only: 0,
+    not_configured: 0,
+  };
+  for (const entry of entries ?? []) {
+    const state = entry[stateKey];
+    if (Object.hasOwn(states, state)) {
+      states[state] += 1;
+    }
+  }
+  return {
+    total: entries?.length ?? 0,
+    enabledOpenKit: (entries ?? []).filter((entry) => entry.enabled).length,
+    states,
+  };
+}
+
+function summarizeKeyState(mcps) {
+  let required = 0;
+  let presentRedacted = 0;
+  let missing = 0;
+  for (const mcp of mcps ?? []) {
+    for (const value of Object.values(mcp.keyState ?? {})) {
+      required += 1;
+      if (value === 'present_redacted') {
+        presentRedacted += 1;
+      } else {
+        missing += 1;
+      }
+    }
+  }
+  return { required, presentRedacted, missing };
 }

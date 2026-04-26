@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { getToolingEnv, isSemgrepAvailable } from '../../../global/tooling.js';
+import { findUsableSemgrepCommand, getToolingEnv, isSemgrepAvailable } from '../../../global/tooling.js';
 import { isInsideProjectRoot, resolveProjectPath } from '../shared/project-file-utils.js';
 import {
   createInvalidPathResult,
@@ -46,6 +46,7 @@ export function createRuleScanTool({ projectRoot, toolId = 'tool.rule-scan', sca
       const config = resolveSemgrepConfig(rawConfig);
       const ruleConfigSource = resolveRuleConfigSource(rawConfig, config, BUNDLED_PACK_ALIASES);
       const maxBuffer = resolveMaxBuffer(process.env.OPENKIT_SEMGREP_MAX_BUFFER, DEFAULT_SEMGREP_MAX_BUFFER);
+      const semgrepCommand = findUsableSemgrepCommand({ env: toolingEnv });
 
       if (!rawConfig) {
         return createNotConfiguredResult({
@@ -85,7 +86,7 @@ export function createRuleScanTool({ projectRoot, toolId = 'tool.rule-scan', sca
         });
       }
 
-      const result = spawnSync('semgrep', ['scan', '--json', '--config', config, targetPath], {
+      const result = spawnSync(semgrepCommand.command, [...semgrepCommand.args, 'scan', '--json', '--config', config, targetPath], {
         cwd: projectRoot,
         encoding: 'utf8',
         env: toolingEnv,

@@ -4,6 +4,8 @@ import path from 'node:path';
 import { readJsonIfPresent, validateGlobalInstallState } from './install-state.js';
 import { inspectWorkspaceMeta } from './workspace-state.js';
 import { getGlobalPaths, getWorkspacePaths } from './paths.js';
+import { inspectSecretFile } from './mcp/secret-manager.js';
+import { listMcpStatuses } from './mcp/health-checks.js';
 import { isCommandAvailable } from '../command-detection.js';
 import { isAstGrepAvailable, isBetterSqliteAvailable, isCodemodAvailable, isSemgrepAvailable } from './tooling.js';
 import { DEFAULT_ENTRY_COMMAND, getCommandInstructionContract } from '../runtime/instruction-contracts.js';
@@ -120,6 +122,8 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
   }
 
   const workspace = inspectWorkspaceMeta({ projectRoot, env });
+  const mcpSecretFile = inspectSecretFile({ env });
+  const mcpStatuses = listMcpStatuses({ scope: 'openkit', env });
   const runtimeBootstrapEnv = {
     ...env,
     OPENKIT_GLOBAL_MODE: '1',
@@ -152,8 +156,18 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
     workspacePaths,
     workspace,
     runtimeFoundation,
-    runtimeDoctor,
-    issues,
+      runtimeDoctor,
+      mcpCapabilityPack: {
+        scope: 'openkit',
+        secretFile: mcpSecretFile,
+        total: mcpStatuses.length,
+        enabled: mcpStatuses.filter((entry) => entry.enabled).length,
+        states: mcpStatuses.reduce((accumulator, entry) => {
+          accumulator[entry.capabilityState] = (accumulator[entry.capabilityState] ?? 0) + 1;
+          return accumulator;
+        }, {}),
+      },
+      issues,
   }, issues.length === 0 ? 'Run openkit run.' : 'Review the issues above before relying on this workspace. If templates are missing from the global kit, run openkit upgrade.', issues.length === 0 ? 'openkit run' : null);
 }
 
@@ -223,6 +237,15 @@ export function renderGlobalDoctorSummary(result) {
         `Runtime config: project=${runtimeInterface.configPaths.project ?? 'none'} | user=${runtimeInterface.configPaths.user ?? 'none'}`
       );
     }
+  }
+
+  if (result.mcpCapabilityPack) {
+    const stateSummary = Object.entries(result.mcpCapabilityPack.states ?? {})
+      .map(([state, count]) => `${state}:${count}`)
+      .join(', ');
+    lines.push(
+      `MCP capability pack: total=${result.mcpCapabilityPack.total} | enabled=${result.mcpCapabilityPack.enabled} | secret_file=${result.mcpCapabilityPack.secretFile?.status ?? 'unknown'} | states=${stateSummary}`
+    );
   }
 
   if (result.runtimeDoctor?.workflow) {

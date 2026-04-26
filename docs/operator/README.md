@@ -17,7 +17,9 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Read `README.md` for the top-level product and runtime boundary summary
 - Read `docs/operations/runbooks/openkit-daily-usage.md` for the detailed day-to-day usage path in this repository
 - Read `docs/operator/surface-contract.md` when you need a fast answer to "which OpenKit surface should I use right now?"
+- Read `docs/operator/mcp-configuration.md` when you need to inspect bundled MCPs/skills or configure key-required MCPs safely
 - Install the CLI with `npm install -g @duypham93/openkit`, then use `openkit doctor` for a non-mutating readiness check and `openkit run` to launch OpenKit. The first `openkit run` materializes the managed kit when needed.
+- If you need MCP-backed capabilities such as Context7, run `openkit configure mcp list`, `openkit configure mcp doctor`, and `openkit configure mcp set-key <mcp-id> --stdin` with placeholder-only shared examples and local-only secrets.
 - Once OpenCode is open, use `Ctrl+P` and choose `/task`, `/quick-task`, `/migrate`, or `/delivery` to enter the right workflow lane
 - If you want different providers or models per agent, run `/configure-agent-models`, `openkit configure-agent-models --interactive`, or `openkit configure-agent-models --models` before starting the session you care about
 - Use `/task` unless you already know the work must start in `Quick Task`, `Migration`, or `Full Delivery`
@@ -49,6 +51,7 @@ Then use the in-session path (`in_session`):
 - Command and runtime reality: `context/core/project-config.md`
 - Surface contract: `docs/operator/surface-contract.md`
 - Supported product and compatibility surfaces: `docs/operator/supported-surfaces.md`
+- MCP and skills capability configuration: `docs/operator/mcp-configuration.md`
 - Detailed usage walkthrough: `docs/operations/runbooks/openkit-daily-usage.md`
 - Role boundary quick policy: `docs/maintainer/2026-03-26-role-operating-policy.md`
 - AI reading-surface map: `docs/maintainer/2026-03-26-ai-surface-map.md`
@@ -61,6 +64,7 @@ Then use the in-session path (`in_session`):
 ## Live Operator Surfaces In This Repository
 
 - Slash commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`
+- MCP capability configuration: `openkit configure mcp list`, `doctor`, `enable`, `disable`, `set-key`, `unset-key`, and `test`
 - Global diagnostics: `openkit doctor`
 - Global launcher: `openkit run`
 - Global lifecycle: `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, `openkit uninstall`

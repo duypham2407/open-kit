@@ -35,6 +35,20 @@ openkit doctor
 
 The doctor output will include a Semgrep availability check. If Semgrep is missing, the runtime reports the audit tools with standard OpenKit availability states such as `unavailable` and includes the known reason and fallback guidance.
 
+## Rule-pack regression checks
+
+Maintainers can run the bundled Semgrep rule-pack regression suite directly:
+
+```sh
+npm run verify:semgrep-quality
+```
+
+This command executes Semgrep against controlled OpenKit fixtures under `tests/fixtures/semgrep/`. It validates that `openkit.quality.no-var-declaration` reports real JavaScript `var` declarations while ignoring `const`, `let`, imports, object keys, environment-variable text, comments, documentation strings, test-title text, and metadata-only mentions. It also includes a security-pack sanity fixture so quality-rule edits do not silently break the bundled security scan path.
+
+The command validates OpenKit `runtime_tooling` and rule-pack governance only. It is not target-project application build, lint, or test evidence.
+
+Semgrep availability is required gate evidence for `npm run verify:semgrep-quality`. If Semgrep cannot be resolved, the command fails by default, including in CI. For local convenience only, maintainers may set `OPENKIT_ALLOW_SEMGREP_QUALITY_SKIP=1` outside CI to skip the fixture assertions while working offline or provisioning tooling; such a skipped run is not valid Code Review, QA, release, or CI evidence. Any truthy CI signal such as `CI=true` or `GITHUB_ACTIONS=true` always disables that skip opt-in so gate validation fails when Semgrep is unavailable.
+
 ## Bundled rule packs
 
 Rule packs live in `assets/semgrep/packs/`:

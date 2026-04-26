@@ -39,8 +39,8 @@ function createMcpClient({ env = {} } = {}) {
           pending.get(msg.id)(msg);
           pending.delete(msg.id);
         }
-      } catch {
-        // Ignore non-JSON lines (e.g. stderr redirected)
+      } catch (error) {
+        // Ignore non-JSON lines (e.g. stderr redirected); `error` is intentionally unused because stderr noise is non-actionable for this client.
       }
     }
   });
@@ -124,6 +124,12 @@ test('MCP server lists tools via tools/list', async () => {
     assert.ok(toolNames.includes('tool.import-graph'), 'should have tool.import-graph');
     assert.ok(toolNames.includes('tool.rule-scan'), 'should have tool.rule-scan');
     assert.ok(toolNames.includes('tool.security-scan'), 'should have tool.security-scan');
+    assert.ok(toolNames.includes('tool.capability-inventory'), 'should have tool.capability-inventory');
+    assert.ok(toolNames.includes('tool.capability-router'), 'should have tool.capability-router');
+    assert.ok(toolNames.includes('tool.capability-health'), 'should have tool.capability-health');
+    assert.ok(toolNames.includes('tool.mcp-doctor'), 'should have tool.mcp-doctor');
+    assert.ok(toolNames.includes('tool.skill-index'), 'should have tool.skill-index');
+    assert.ok(toolNames.includes('tool.skill-mcp-bindings'), 'should have tool.skill-mcp-bindings');
 
     // Check tool structure
     const findSymbol = result.tools.find((t) => t.name === 'tool.find-symbol');

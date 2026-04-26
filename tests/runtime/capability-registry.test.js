@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   createCapabilityIndex,
   getRuntimeCapability,
+  listBundledMcpCapabilities,
+  listBundledSkillCapabilities,
   listRuntimeCapabilities,
   STANDARD_CAPABILITY_STATES,
   VALIDATION_SURFACES,
@@ -118,4 +120,23 @@ test('runtime capabilities expose standardized capability states and validation 
     capabilities.find((entry) => entry.id === 'capability.background-execution')?.capabilityState,
     'preview'
   );
+});
+
+test('runtime capability registry exposes bundled MCP and skill catalog capabilities', () => {
+  const mcps = listBundledMcpCapabilities();
+  const skills = listBundledSkillCapabilities();
+
+  assert.ok(mcps.some((entry) => entry.id === 'mcp.context7'));
+  assert.ok(mcps.some((entry) => entry.id === 'mcp.augment_context_engine'));
+  assert.ok(skills.some((entry) => entry.id === 'skill.verification-before-completion'));
+  assert.ok(skills.some((entry) => entry.id === 'skill.rust-router'));
+
+  const context7 = mcps.find((entry) => entry.id === 'mcp.context7');
+  assert.equal(context7.capabilityState, 'not_configured');
+  assert.equal(context7.validationSurface, 'runtime_tooling');
+  assert.deepEqual(context7.secretEnvVars, ['CONTEXT7_API_KEY']);
+
+  const rustRouter = skills.find((entry) => entry.id === 'skill.rust-router');
+  assert.equal(rustRouter.capabilityState, 'unavailable');
+  assert.match(rustRouter.limitations.join('\n'), /not currently packaged/i);
 });

@@ -11,6 +11,7 @@ import { createModelRuntime } from './models/index.js';
 import { createCategoryRuntime } from './categories/index.js';
 import { createSkillRegistry } from './skills/index.js';
 import { createSpecialistRegistry } from './specialists/index.js';
+import { listBundledSkills } from '../capabilities/skill-catalog.js';
 
 export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = process.env, mode = 'read-write' } = {}) {
   const configResult = createRuntimeConfig({ projectRoot, env });
@@ -40,7 +41,7 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
       },
     },
   });
-  managers.skillMcpManager.registerSkillBindings(skills.skills);
+  managers.skillMcpManager.registerSkillBindings([...skills.skills, ...listBundledSkills()]);
   const mcpPlatform = createMcpPlatform({
     projectRoot,
     env,

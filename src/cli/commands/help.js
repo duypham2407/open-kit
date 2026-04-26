@@ -17,6 +17,7 @@ function topLevelHelp() {
     '  uninstall Remove the global OpenKit install',
     '  doctor    Inspect global OpenKit and workspace readiness',
     '  onboard   Explain the safest first-run path and command choices',
+    '  configure Configure OpenKit product surfaces such as bundled MCPs',
     '  configure-agent-models  Configure provider-specific models per OpenKit agent',
     '  release   Prepare, verify, and publish OpenKit releases',
     '',

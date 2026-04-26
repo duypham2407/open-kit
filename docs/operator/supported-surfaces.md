@@ -12,6 +12,7 @@ Use this document to understand which OpenKit surfaces are intended for end user
 | `openkit upgrade` | available | `global_cli` | operators | refreshing the managed global kit | use after package upgrades or drift |
 | `openkit uninstall` | available | `global_cli` | operators | removing the managed global kit | optional workspace cleanup supported |
 | `openkit configure-agent-models` | available | `global_cli` | operators | saving per-agent provider/model overrides | global to the current OpenCode home |
+| `openkit configure mcp ...` | available | `global_cli` | operators | inspecting bundled MCPs/skills, enabling/disabling MCPs, storing local MCP keys, and testing MCP readiness | see `docs/operator/mcp-configuration.md`; outputs and profiles must use placeholders/redaction only |
 | `openkit onboard` | available | `global_cli` | operators | getting the safest first-run path without launching immediately | onboarding helper |
 | `openkit install` / `openkit install-global` | compatibility_only | `global_cli` | maintainers/operators with manual setup needs | explicit provisioning or compatibility setup | not the preferred onboarding path |
 | `openkit release ...` | available | `global_cli` | maintainers | preparing, verifying, and publishing OpenKit releases | maintainer-only workflow |

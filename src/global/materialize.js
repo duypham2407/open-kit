@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createGlobalInstallState, writeJson } from './install-state.js';
 import { createEmptyAgentModelSettings, readAgentModelSettings, writeAgentModelSettings } from './agent-models.js';
 import { getGlobalPaths } from './paths.js';
+import { materializeMcpProfiles } from './mcp/profile-materializer.js';
 import { ensureAstGrepInstalled, ensureSemgrepInstalled } from './tooling.js';
 import { getOpenKitVersion } from '../version.js';
 
@@ -25,6 +26,7 @@ const GLOBAL_KIT_ASSETS = [
   'registry.json',
   'AGENTS.md',
   'README.md',
+  'src/capabilities',
   'src/runtime',
   'src/mcp-server',
   'src/global',
@@ -210,6 +212,7 @@ export function materializeGlobalInstall({
       ],
     },
   });
+  materializeMcpProfiles({ scope: 'openkit', env });
   writeJson(paths.managedFilesPath, {
     schema: 'openkit/managed-files@1',
     generatedAt: new Date().toISOString(),

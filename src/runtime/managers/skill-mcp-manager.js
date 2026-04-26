@@ -9,10 +9,11 @@ export class SkillMcpManager {
 
   registerSkillBindings(skills = []) {
     const nextBindings = skills.flatMap((skill) =>
-      (skill.mcpRefs ?? []).map((mcpId) => ({
+      [...(skill.mcpRefs ?? []), ...(skill.optionalMcpRefs ?? [])].map((mcpId) => ({
         skill: skill.name,
         scope: skill.scope,
         mcpId,
+        optional: (skill.optionalMcpRefs ?? []).includes(mcpId),
       }))
     );
     this.registry = nextBindings;
