@@ -41,12 +41,35 @@ Current notable tool families include:
 
 ## 3. Important Tool Groups
 
+Capability status vocabulary for this layer:
+
+- `available`: implemented and dependencies/configuration needed for use are present
+- `unavailable`: not usable in the current environment
+- `degraded`: usable through fallback behavior or reduced accuracy/scope
+- `preview`: early or partial surface with visible limitations
+- `compatibility_only`: maintainer or repository-local compatibility surface, not the preferred operator product path
+- `not_configured`: implemented but disabled because local config or provider settings are absent
+
+Use these labels when documenting tool, MCP, browser, graph, semantic-search, external-tool, or background execution readiness.
+
+Read-model labeling rules:
+
+- workflow-state, runtime-summary, and evidence-capture tools are `compatibility_runtime` surfaces because they inspect or record OpenKit workflow state
+- browser verification remains `preview` `runtime_tooling` because it plans or captures evidence but does not close QA by itself
+- typecheck, lint, and test-run tools are `target_project_app` surfaces only when the target project provides the relevant config or framework; otherwise their `unavailable` status records a missing app-native validation path
+- graph, semantic search, syntax, AST, codemod, MCP, and background execution tools stay `runtime_tooling` unless a narrower implemented surface label is explicitly provided
+- supervisor dialogue manager configuration and adapter health are `runtime_tooling`; persisted supervisor dialogue read models surfaced through workflow-state `status` or `resume-summary --json` are `compatibility_runtime`
+
 ### Workflow tools
 
 Examples:
 - workflow state
 - runtime summary
 - evidence capture
+
+Workflow-state runtime summaries also expose supervisor dialogue read models for the active work item when relevant. The compact read model includes supervisor health, outbound delivery counts (`pending`, `delivered`, `failed`, `skipped`), inbound rejection counts, duplicate counts, last adjudication, and attention state. Missing supervisor stores are reported as absent/unavailable so reviewer and QA surfaces stay inspectable without requiring OpenClaw to be configured.
+
+For FEATURE-940 and later supervisor dialogue work, QA evidence must be explicit about supervisor health, outbound event statuses, inbound dispositions, authority-boundary rejection, duplicate/repeated proposal handling, degraded/offline behavior, and proof that inbound OpenClaw messages did not mutate workflow state beyond supervisor dialogue records. Reports must cite FEATURE-940 artifacts as the active delivery proof; FEATURE-937 is historical risk context only. FEATURE-939 scan/tool evidence remains a separate required reporting section with direct tool status, substitute/manual evidence, classification, false-positive, manual-override, validation-surface, and artifact-ref fields.
 
 ### Session and continuation tools
 
@@ -61,6 +84,27 @@ Examples:
 - `tool.security-scan`
 - `tool.codemod-preview`
 - `tool.codemod-apply`
+
+Audit tools are Semgrep-backed `runtime_tooling` surfaces. Standard gate evidence uses bundled rule packs from `assets/semgrep/packs/`:
+
+- `quality-default.yml` for `tool.rule-scan`
+- `security-audit.yml` for `tool.security-scan`
+
+Availability states for scan tools use the standard runtime vocabulary: `available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, and `not_configured`. Missing Semgrep or managed tooling path is `unavailable` with reason/fallback guidance, not a silent success. Partial usable output is `degraded` and must report its limitations.
+
+Result states are separate from availability states: a scan can be `succeeded`, `failed`/`scan_failed`, `unavailable`, `degraded`, or `invalid_path`. A succeeded scan can still block if findings are unclassified, `blocking`, or unresolved `true_positive` security findings.
+
+Evidence types stay distinct through runtime evidence and human reports:
+
+- `direct_tool`: the OpenKit tool (`tool.rule-scan` or `tool.security-scan`) actually ran
+- `substitute_scan`: direct invocation was unavailable/degraded and an allowed substitute path produced evidence with explicit limitations
+- `manual_override`: an exceptional caveat for genuine tool unavailability, unusable scan output, or authorized operational exception
+
+High-volume finding triage should group findings by rule, severity/category, affected area, and relevance to changed work, then classify groups as `blocking`, `true_positive`, `non_blocking_noise`, `false_positive`, `follow_up`, or `unclassified`. Human reports should reference raw artifact refs for full output rather than embedding untriaged walls of findings.
+
+False-positive requirements are explicit: record rule/finding id, file or area, context, rationale, behavior/security impact, and follow-up decision. Test-fixture placeholders must be distinguished from production/runtime code before they are considered non-blocking.
+
+Manual override limits: overrides must include target stage, unavailable tool, reason, actor when known, substitute evidence ids and limitations when present, and a downstream-visible caveat. Overrides cannot be used to avoid classifying noisy but usable findings and do not convert OpenKit scan evidence into `target_project_app` validation.
 
 ### Syntax, AST, and graph tools
 
@@ -103,6 +147,8 @@ All external tools return `status: 'unavailable'` when the relevant config is
 missing, and `status: 'timeout'` when the child process exceeds its deadline.
 They are registered in `createToolRegistry()` and wrapped by `wrapToolExecution()`
 like all other tools.
+
+External tools validate target-project app behavior only when project-local config exists. If no `tsconfig`, lint config, or test framework is detected, their `unavailable` result is honest evidence of a missing target-project validation path, not a failed OpenKit runtime check.
 
 ## 4. Hook Layer
 
@@ -213,6 +259,14 @@ Builtin MCP runtime semantics:
 - `mcp.code-search` delegates to `SessionMemoryManager.semanticSearchQuery()`
 - `mcp.docs-search` delegates to external provider capability `docs-search` when configured, otherwise returns `no-provider`
 - `mcp.websearch` delegates to external provider capability `websearch` when configured, otherwise returns `no-provider`
+
+Treat provider-backed MCPs without a configured provider as `not_configured` or `degraded` in operator-facing summaries rather than fully available.
+
+## 7.1 Browser And Background Boundaries
+
+- `/browser-verify` and browser runtime tools are `preview` evidence helpers. They can plan checks and capture artifacts, but they do not approve QA gates by themselves.
+- Background execution and continuation controls are runtime aids. They do not create unrestricted parallelism and do not override workflow stages, approvals, or task-board safety checks.
+- Any parallel or background work must stay inside the approved solution package and runtime allocation constraints.
 
 ## 8. Specialists
 

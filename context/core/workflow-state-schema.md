@@ -245,3 +245,82 @@ Current live semantics:
 - on full-delivery task boards, they compile into effective `depends_on` and `blocked_by` overlays instead of a separate sequencing field
 - tasks later in a chain should remain queued until the earlier task order is satisfied through the existing dependency model
 - current runtime enforcement also applies to migration slice boards when a strategy enables them; migration slices remain migration-owned and never replace feature-stage ownership
+
+## Capability Status And Validation Surface Labels
+
+Capability and command state labels should use this vocabulary:
+
+- `available`
+- `unavailable`
+- `degraded`
+- `preview`
+- `compatibility_only`
+- `not_configured`
+
+Validation evidence should identify the surface it proves:
+
+- `global_cli`
+- `in_session`
+- `compatibility_runtime`
+- `runtime_tooling`
+- `documentation`
+- `target_project_app`
+
+`target_project_app` applies only to app build/lint/test commands declared by the target project. If those commands do not exist, record the validation path as unavailable rather than substituting OpenKit runtime checks.
+
+`resume-summary --json` includes a `validation_surfaces` object with these labels and diagnostic surface labels for the two direct diagnostic commands: `global_cli` for `openkit doctor` and `compatibility_runtime` for `node .opencode/workflow-state.js doctor`.
+
+## Verification Evidence Details
+
+`verification_evidence` preserves the existing positional record shape and may also carry an optional `details` object. Existing evidence remains valid when `details` is absent.
+
+Optional scan evidence uses this additive shape:
+
+- `details.validation_surface`: one of `runtime_tooling`, `compatibility_runtime`, `documentation`, or `target_project_app`; OpenKit rule/security scan evidence should normally use `runtime_tooling`, or `compatibility_runtime` when the workflow-state/runtime read model itself is the validated surface.
+- `details.scan_evidence.evidence_type`: `direct_tool`, `substitute_scan`, or `manual_override`.
+- `details.scan_evidence.direct_tool`: direct tool metadata such as `tool_id`, `availability_state`, `result_state`, and unavailable/degraded `reason`.
+- `details.scan_evidence.substitute`: optional substitute metadata, including what command/tool ran, its own `validation_surface`, and limitations.
+- `details.scan_evidence.scan_kind`: `rule` or `security`.
+- `details.scan_evidence.target_scope_summary` and `rule_config_source`: compact target/config descriptions.
+- `details.scan_evidence.finding_counts`, `severity_summary`, and `triage_summary`: summarized counts and classification data; raw findings should be linked through `artifact_refs` instead of embedded in normal summaries.
+- `details.scan_evidence.false_positive_summary`: compact false-positive count/items with rationale when available.
+- `details.scan_evidence.manual_override`: optional caveat metadata including target stage, unavailable tool, reason, substitute evidence ids/limitations, actor, and caveat.
+
+Structured scan gate evaluation uses these classification values for grouped findings:
+
+- `blocking`: must be fixed or resolved before the required gate can pass.
+- `true_positive`: a real finding; unresolved production/runtime security true positives block.
+- `non_blocking_noise`: can pass only with rationale and traceability through group metadata or artifact refs.
+- `false_positive`: can pass only with rule/finding identity, file or area, context, rationale, behavior/security impact, and follow-up decision.
+- `follow_up`: non-blocking but traceable as a maintenance or tuning follow-up.
+- `unclassified`: default state; blocks required scan gates while present.
+
+Manual override entries are valid only when `details.scan_evidence.evidence_type` is `manual_override` and `details.scan_evidence.manual_override` includes target stage, unavailable tool, reason, substitute evidence ids plus limitations, actor, and caveat. Manual overrides are for genuine unavailable/unusable tool output or authorized operational exceptions; they must not be used to avoid triaging noisy but available scan output.
+
+Runtime read models (`status`, `show`, `resume-summary`, `resume-summary --json`, runtime summary, and closeout surfaces) should show compact scan evidence lines: direct tool status, substitute status, finding counts, classification summary, false-positive summary, manual override caveats, validation surface, and artifact refs. They must not present OpenKit scan evidence as `target_project_app` build/lint/test validation.
+
+## Task And Slice Inspectability
+
+When full-delivery task-level coordination is present, the runtime or handoff should keep these details inspectable:
+
+- task owner
+- task status
+- artifact references
+- dependencies or sequential constraints
+- safe parallel zones when approved
+- QA owner when assigned
+- integration readiness
+- unresolved issues
+- verification evidence
+
+When migration slice coordination is present, the runtime or handoff should keep these migration-specific details inspectable:
+
+- preserved behavior
+- baseline evidence
+- compatibility risk
+- staged sequencing
+- rollback checkpoints
+- parity evidence
+- slice verification
+
+Full-delivery task boards remain full-only. Migration slice boards remain strategy-driven, parity-oriented coordination and are not full-delivery task boards by default.

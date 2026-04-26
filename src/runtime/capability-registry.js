@@ -152,6 +152,52 @@ const DEFAULT_RUNTIME_CAPABILITIES = [
   },
 ];
 
+export const STANDARD_CAPABILITY_STATES = [
+  'available',
+  'unavailable',
+  'degraded',
+  'preview',
+  'compatibility_only',
+  'not_configured',
+];
+
+export const VALIDATION_SURFACES = [
+  'global_cli',
+  'in_session',
+  'compatibility_runtime',
+  'runtime_tooling',
+  'documentation',
+  'target_project_app',
+];
+
+function normalizeCapabilityState(capability) {
+  if (STANDARD_CAPABILITY_STATES.includes(capability.capabilityState)) {
+    return capability.capabilityState;
+  }
+
+  if (capability.status === 'active') {
+    return 'available';
+  }
+
+  if (capability.status === 'foundation') {
+    return 'preview';
+  }
+
+  if (capability.status === 'planned') {
+    return 'unavailable';
+  }
+
+  return 'degraded';
+}
+
+function normalizeValidationSurface(capability) {
+  if (VALIDATION_SURFACES.includes(capability.validationSurface)) {
+    return capability.validationSurface;
+  }
+
+  return 'runtime_tooling';
+}
+
 function isCapabilityEnabled(capability, config) {
   const disabled = new Set(config?.disabled?.capabilities ?? []);
   if (disabled.has(capability.id)) {
@@ -168,6 +214,8 @@ function isCapabilityEnabled(capability, config) {
 export function listRuntimeCapabilities({ config } = {}) {
   return DEFAULT_RUNTIME_CAPABILITIES.map((capability) => ({
     ...capability,
+    capabilityState: normalizeCapabilityState(capability),
+    validationSurface: normalizeValidationSurface(capability),
     enabled: isCapabilityEnabled(capability, config),
   })).filter((capability) => capability.enabled);
 }
@@ -188,6 +236,7 @@ export function summarizeRuntimeCapabilities(capabilities) {
     active: 0,
     foundation: 0,
     planned: 0,
+    capabilityStates: Object.fromEntries(STANDARD_CAPABILITY_STATES.map((state) => [state, 0])),
   };
 
   for (const capability of capabilities ?? []) {
@@ -201,6 +250,9 @@ export function summarizeRuntimeCapabilities(capabilities) {
     if (capability.status === 'planned') {
       summary.planned += 1;
     }
+
+    const capabilityState = normalizeCapabilityState(capability);
+    summary.capabilityStates[capabilityState] = (summary.capabilityStates[capabilityState] ?? 0) + 1;
   }
 
   return summary;

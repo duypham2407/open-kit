@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { inspectManagedDoctor } from '../../src/runtime/doctor.js';
+import { inspectCapabilityDoctor } from '../../src/runtime/doctor/capability-doctor.js';
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-doctor-'));
@@ -95,6 +96,34 @@ function materializeManagedInstall(projectRoot) {
     conflicts: [],
   });
 }
+
+test('capability doctor exposes standardized capability and validation surface labels', () => {
+  const result = inspectCapabilityDoctor({
+    capabilities: [
+      {
+        id: 'capability.runtime-bootstrap',
+        status: 'active',
+        capabilityState: 'available',
+        validationSurface: 'runtime_tooling',
+      },
+    ],
+    tools: {
+      toolList: [{ id: 'tool.workflow-state' }],
+      toolFamilies: [{ family: 'workflow', total: 1, active: 1, degraded: 0 }],
+    },
+    managers: { managerList: [{ id: 'manager.workflow', enabled: true }] },
+    hooks: { hookList: [{ id: 'hook.resume-context' }] },
+    runtimeInterface: {
+      capabilityVocabulary: ['available', 'unavailable', 'degraded', 'preview', 'compatibility_only', 'not_configured'],
+      validationSurfaces: ['global_cli', 'runtime_tooling', 'target_project_app'],
+    },
+  });
+
+  assert.equal(result.capabilityStateById['capability.runtime-bootstrap'], 'available');
+  assert.equal(result.validationSurfaceById['capability.runtime-bootstrap'], 'runtime_tooling');
+  assert.ok(result.capabilityVocabulary.includes('compatibility_only'));
+  assert.ok(result.validationSurfaces.includes('target_project_app'));
+});
 
 test('doctor reports install missing when managed install files are absent', () => {
   const projectRoot = makeTempDir();

@@ -63,11 +63,52 @@ that regex and glob cannot match.
 | Understand call chains | Manual tracing | `tool.graph-call-hierarchy` | Need to see callers/callees of a function |
 | Preview multi-file rename | Grep + Edit | `tool.graph-rename-preview` | Want to see all locations that would change before renaming |
 | Multi-file code transform | Edit tool (repeated) | `tool.codemod-preview` / `tool.codemod-apply` | Same transformation applied across many files |
-| Quality/security scan | Manual review | `tool.rule-scan` / `tool.security-scan` | Before handoff or completion claims |
+| Quality/security scan | Manual review | `tool.rule-scan` / `tool.security-scan` | Before handoff or completion claims; report direct status, substitute/manual distinction, classifications, validation surface, and artifact refs |
 
 **Fallback rule:** if a kit tool is unavailable, not indexed, or degraded, fall
 back to the corresponding basic built-in tool.  But always try the smarter tool
 first.
+
+## Scan/Tool Evidence Reporting
+
+`tool.rule-scan` and `tool.security-scan` are special because they feed review,
+QA, and stage-readiness gates. When a required scan is run, substituted, or
+overridden, reports and evidence must include a dedicated scan/tool evidence
+summary.
+
+Required scan evidence fields:
+
+- direct tool status: tool id, availability state (`available`, `unavailable`,
+  `degraded`, `preview`, `compatibility_only`, or `not_configured`), result
+  state, target scope, finding counts, and `runtime_tooling` validation-surface
+  label
+- substitute status: what actually ran when the direct tool was unavailable or
+  degraded, which validation surface it checks, why the direct tool was not
+  direct successful evidence, and the substitute limitations
+- evidence type: keep `direct_tool`, `substitute_scan`, and `manual_override`
+  separate in wording and workflow evidence
+- classification summary: grouped counts for `blocking`, `true_positive`,
+  `non_blocking_noise`, `false_positive`, `follow_up`, and `unclassified`
+- false-positive rationale: rule/finding id, file or area, context, behavior or
+  security impact, rationale, and follow-up decision
+- manual override caveats: target stage, unavailable tool, reason, actor when
+  known, substitute evidence ids, substitute limitations, and caveat
+- validation-surface labels: identify `runtime_tooling`, stored
+  `compatibility_runtime`, and unavailable `target_project_app` validation
+  separately
+- artifact refs: raw scan output or evidence ids when available; high-volume
+  findings should be summarized and linked instead of pasted as an untriaged
+  wall
+
+Manual override limits: use overrides only for genuine direct-tool
+unavailability, unusable scan output, or explicitly authorized operational
+exceptions. Do not use a manual override merely to avoid triaging noisy but
+usable findings.
+
+Validation-surface split: OpenKit scan evidence is `runtime_tooling` when the
+scan or substitute scanner runs and `compatibility_runtime` when preserved or
+read through workflow state. It is never a replacement for `target_project_app`
+build/lint/test evidence; missing app-native commands stay unavailable.
 
 ## When Bash IS appropriate
 

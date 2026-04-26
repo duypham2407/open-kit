@@ -64,6 +64,7 @@ Task-aware full-delivery note:
 - when a review or QA finding reveals a design flaw or requirement gap, the feature returns to `full_solution` or `full_product` even if the finding started from one execution task
 - preserve task ids and task evidence in issue notes so the orchestrator can reconnect feature routing with task-board state
 - multiple Fullstack or QA owners are allowed only when the approved solution package marks the work item as parallel-capable and the task graph passes runtime validation
+- issue notes for task-level coordination should identify owner, task status, artifact refs, dependency or sequential constraint impact, QA owner if assigned, integration readiness impact, and linked verification evidence when those fields are relevant
 
 ### Migration routing
 
@@ -79,6 +80,7 @@ Migration-mode guardrail:
 
 - do not invent a migration task board, per-task owners, or QA-per-subtask routing in the current live contract
 - if migration slice execution is later enabled by the approved strategy, keep slice-level routing subordinate to the migration stage owner and do not absorb product ambiguity into migration-local rework
+- migration slice findings should preserve migration evidence vocabulary: baseline, preserved behavior, compatibility risk, staged sequence, rollback checkpoint, parity evidence, and slice verification
 
 ## Retry And Escalation
 

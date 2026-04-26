@@ -13,6 +13,7 @@ import { SkillMcpManager } from './managers/skill-mcp-manager.js';
 import { SyntaxIndexManager } from './managers/syntax-index-manager.js';
 import { ProjectGraphManager } from './managers/project-graph-manager.js';
 import { SessionMemoryManager } from './managers/session-memory-manager.js';
+import { SupervisorDialogueManager } from './managers/supervisor-dialogue-manager.js';
 import { TmuxSessionManager } from './managers/tmux-session-manager.js';
 import { ToolMetadataStore } from './managers/tool-metadata-store.js';
 import { EmbeddingIndexer } from './analysis/embedding-indexer.js';
@@ -28,6 +29,7 @@ function createManagerList({
   syntaxIndexManager,
   projectGraphManager,
   sessionMemoryManager,
+  supervisorDialogueManager,
   embeddingIndexer,
   notificationManager,
   tmuxSessionManager,
@@ -35,6 +37,10 @@ function createManagerList({
   continuationStateManager,
   fileWatcher,
 }) {
+  const supervisorDescription = supervisorDialogueManager?.describe?.() ?? null;
+  const supervisorConfigured = supervisorDescription?.adapter?.configured === true;
+  const supervisorAvailability = supervisorDescription?.enabled === true && supervisorConfigured ? 'available' : 'not_configured';
+
   return [
     {
       id: 'manager.config-handler',
@@ -87,6 +93,18 @@ function createManagerList({
       enabled: sessionMemoryManager?.available === true,
       lifecycle: 'foundation',
       dispose() {},
+    },
+    {
+      id: 'manager.supervisor-dialogue',
+      name: 'Supervisor Dialogue Manager',
+      description: 'Event-driven OpenClaw supervisor dialogue bridge with OpenKit-only authority boundaries.',
+      enabled: supervisorDialogueManager?.enabled === true,
+      availability: supervisorAvailability,
+      validation_surface: 'runtime_tooling',
+      lifecycle: 'foundation',
+      dispose() {
+        supervisorDialogueManager?.dispose?.();
+      },
     },
     {
       id: 'manager.embedding-indexer',
@@ -186,6 +204,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
 
   // Re-create sessionMemoryManager with the embedding provider when available
   const sessionMemoryManager = new SessionMemoryManager({ projectGraphManager, embeddingProvider });
+  const supervisorDialogueManager = new SupervisorDialogueManager({ runtimeRoot, config, mode });
 
   // Wire automatic per-file embedding generation: when a file is indexed,
   // immediately queue embedding extraction for that file (best-effort).
@@ -230,6 +249,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     syntaxIndexManager,
     projectGraphManager,
     sessionMemoryManager,
+    supervisorDialogueManager,
     embeddingIndexer,
     delegationSupervisor,
     continuationStateManager,
@@ -250,6 +270,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     syntaxIndexManager,
     projectGraphManager,
     sessionMemoryManager,
+    supervisorDialogueManager,
     embeddingIndexer,
     delegationSupervisor,
     continuationStateManager,

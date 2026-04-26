@@ -15,7 +15,7 @@ This runbook assumes the intended OpenKit team topology:
 - multiple `Fullstack` workers
 - multiple `QA` workers
 
-Planning and architecture roles remain singleton. Worker pools apply only to execution and verification after the solution package explicitly blesses parallel work.
+Planning and solution-direction roles remain singleton. Worker pools apply only to execution and verification after the solution package explicitly blesses parallel work.
 
 ## Golden Rule
 
@@ -221,7 +221,7 @@ Do not do any of the following:
 - use per-task QA as a substitute for final QA
 - hide overlap behind vague task titles
 
-## Practical Checklist For Tech Leads
+## Practical Checklist For Solution Leads
 
 Before blessing parallel execution, confirm all of these:
 

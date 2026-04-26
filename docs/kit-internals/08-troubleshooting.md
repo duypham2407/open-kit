@@ -180,19 +180,27 @@ Rerank boosts:
 
 **Symptom:** Runtime errors mentioning `better-sqlite3` module not found.
 
-**Fix 1:** Run the install verifier:
+**Fix 1:** Run the product readiness check first:
+
+```
+openkit doctor
+```
+
+Follow the printed recovery step, usually `openkit upgrade` or reinstalling the npm package. The preferred operator path is still `npm install -g @duypham93/openkit`, `openkit doctor`, then `openkit run`.
+
+**Fix 2:** If you intentionally need the manual compatibility provisioning helper:
 
 ```
 openkit install --verify
 ```
 
-**Fix 2:** Manual install in the managed kit:
+**Fix 3:** Manual install in the managed kit:
 
 ```
 npm install better-sqlite3 --save-optional
 ```
 
-**Fix 3:** If compilation fails (no C++ compiler), install build tools:
+**Fix 4:** If compilation fails (no C++ compiler), install build tools:
 
 - macOS: `xcode-select --install`
 - Ubuntu: `sudo apt-get install build-essential python3`
@@ -207,6 +215,16 @@ node -e "try { require('better-sqlite3'); console.log('OK'); } catch(e) { consol
 Without `better-sqlite3`, the project graph and embedding subsystems are
 entirely unavailable. Semantic search degrades to not-available (no keyword
 fallback either, since keyword search also uses the SQLite DB).
+
+Status labels to use in troubleshooting notes:
+
+- missing `better-sqlite3` or missing graph database access: `unavailable`
+- disabled embedding provider: `not_configured`
+- keyword-only or partial-index semantic search: `degraded`
+- preview-first rename/codemod paths that only propose changes: `preview`
+- workflow-state inspection commands used from the checked-in runtime: `compatibility_only`
+
+Do not treat any of these runtime-tooling checks as `target_project_app` validation. Target-project app validation requires the project to define the build, lint, or test command being reported.
 
 ## Tree-Sitter Parse Failures
 
@@ -249,7 +267,7 @@ Use these for quick health checks during development or debugging.
 
 | Error | Likely cause | Fix |
 |---|---|---|
-| `Cannot find module 'better-sqlite3'` | Native module not installed | `openkit install --verify` |
+| `Cannot find module 'better-sqlite3'` | Native module not installed | `openkit doctor`, then follow recovery guidance; `openkit install --verify` only for manual compatibility provisioning |
 | `SQLITE_BUSY` | Another process has the DB locked | Close other openkit sessions |
 | `embedding provider returned empty` | API key missing or provider down | Check `OPENAI_API_KEY` / Ollama running |
 | `chunk extraction returned 0 chunks` | File has no parseable symbols | Check tree-sitter grammar for language |

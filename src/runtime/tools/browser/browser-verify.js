@@ -29,6 +29,8 @@ export function createBrowserVerifyTool({ config = {}, env = process.env }) {
     family: 'browser',
     stage: 'foundation',
     status: availability.available ? 'active' : 'degraded',
+    capabilityState: 'preview',
+    validationSurface: 'runtime_tooling',
     provider,
     execute({ target = null, scenarios = [] } = {}) {
       const normalizedScenarios = Array.isArray(scenarios) && scenarios.length > 0

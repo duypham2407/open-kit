@@ -57,7 +57,7 @@ const TOOL_INVOCATION_POLICIES = {
 // Policy check
 // ---------------------------------------------------------------------------
 
-function checkPolicy({ mode, targetStage, runtimeRoot, workItemId }) {
+function checkPolicy({ mode, targetStage, runtimeRoot, workItemId, satisfiedToolIds = [] }) {
   const policy = TOOL_INVOCATION_POLICIES[mode]?.[targetStage]
   if (!policy) {
     return { passed: true, violations: [], summary: null }
@@ -69,6 +69,9 @@ function checkPolicy({ mode, targetStage, runtimeRoot, workItemId }) {
       .filter((entry) => entry.status === "success")
       .map((entry) => entry.tool_id),
   )
+  for (const toolId of satisfiedToolIds) {
+    successfulToolIds.add(toolId)
+  }
 
   const violations = []
   for (const toolGroup of policy.requiredTools) {
@@ -98,12 +101,12 @@ function checkPolicy({ mode, targetStage, runtimeRoot, workItemId }) {
 //   - warnings: non-blocking policy failures (only when mode is "warn")
 // ---------------------------------------------------------------------------
 
-function enforcePolicy({ mode, targetStage, runtimeRoot, workItemId, enforcementMode = "enforce" }) {
+function enforcePolicy({ mode, targetStage, runtimeRoot, workItemId, enforcementMode = "enforce", satisfiedToolIds = [] }) {
   if (enforcementMode === "off") {
     return { allowed: true, mode: "off", violations: [], warnings: [] }
   }
 
-  const result = checkPolicy({ mode, targetStage, runtimeRoot, workItemId })
+  const result = checkPolicy({ mode, targetStage, runtimeRoot, workItemId, satisfiedToolIds })
 
   if (result.passed) {
     return { allowed: true, mode: enforcementMode, violations: [], warnings: [] }

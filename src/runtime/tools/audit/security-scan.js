@@ -1,7 +1,12 @@
 import { createRuleScanTool } from './rule-scan.js';
 
 export function createSecurityScanTool({ projectRoot }) {
-  const base = createRuleScanTool({ projectRoot });
+  const base = createRuleScanTool({
+    projectRoot,
+    toolId: 'tool.security-scan',
+    scanKind: 'security',
+    defaultConfig: 'p/security-audit',
+  });
   return {
     ...base,
     id: 'tool.security-scan',

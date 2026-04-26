@@ -174,6 +174,22 @@ Current merge behavior includes:
 - lightweight rerank boosts
 - bounded graph-based result context
 
+Capability status guidance:
+
+- project graph unavailable because the SQLite/native dependency is missing: `unavailable`
+- semantic embeddings disabled in runtime config: `not_configured`
+- semantic search running without vectors or with partial indexing: `degraded` keyword or symbol-backed behavior
+- graph, syntax, or AST helpers using narrower fallback parsing: `degraded`
+- rename preview and preview-first codemod/edit paths: `preview` when they intentionally return proposed changes instead of mutating files
+
+Validation surface guidance:
+
+- graph, semantic search, syntax, AST, embedding-index, and codemod tools are `runtime_tooling`
+- their results prove OpenKit runtime/tool behavior and code-intelligence readiness, not target-project build, lint, or test success
+- target-project validation remains `target_project_app` and must come from the target project's own declared build/lint/test command or an explicit unavailable-path note
+
+Do not describe semantic search, graph queries, or AST helpers as fully available when dependencies, config, or indexing are missing.
+
 ## 6. Context Expansion
 
 Result context can currently include:

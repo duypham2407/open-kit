@@ -6,6 +6,8 @@ Use it to distinguish between live workflow contract docs and background/histori
 
 Use it to keep the global-kit migration story honest: the preferred operator path is now the globally installed OpenKit kit, while this repository still keeps the checked-in `.opencode/` runtime as the authoring and compatibility surface.
 
+Preferred operator path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall`. In-session workflow commands (`in_session`) choose and execute the lane after launch. Manual provisioning or workflow-state commands (`compatibility_runtime`) are compatibility/diagnostic surfaces, not the default onboarding path.
+
 Audience index layers outside `context/`:
 
 - `README.md` is the concise top-level repository entrypoint
@@ -96,6 +98,9 @@ Use `context/core/workflow.md` when you need the current live workflow semantics
 - do not treat `Quick Task+` as a live third mode; current runtime terms remain `Quick Task`, `Migration`, `Full Delivery`, `quick`, `migration`, and `full`
 - do not describe the checked-in `.opencode/` runtime as the preferred end-user install path now that the global kit exists
 - do not describe the new audience index layers as canonical replacements for the docs they route to
+- do not invent target-project app build/lint/test commands; label missing app-native validation as unavailable
+- keep Quick Task, Migration, and Full Delivery artifact expectations lane-aware: quick task cards are optional, migration artifacts are baseline/parity oriented, and full delivery requires Product Lead scope before Solution Lead solution
+- use the shared capability vocabulary (`available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, `not_configured`) and validation surface labels (`global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, `target_project_app`) when updating runtime or operator docs
 
 ## Priority
 

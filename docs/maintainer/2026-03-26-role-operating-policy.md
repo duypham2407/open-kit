@@ -14,6 +14,7 @@ Use it to keep role boundaries sharp during daily work.
 - dispatch and handoff control
 - workflow state and approval gates
 - escalation and rerouting
+- procedural route/state/gate control for task-board and migration-slice visibility
 
 ### Does Not Own
 
@@ -23,6 +24,7 @@ Use it to keep role boundaries sharp during daily work.
 - code review
 - QA judgment
 - writing or editing code, even for a small fix
+- treating task-level coordination as permission to redefine feature-level ownership
 
 ### Guiding Question
 
@@ -96,6 +98,7 @@ Use it to keep role boundaries sharp during daily work.
 - implementation
 - local verification evidence
 - execution notes needed for review and QA
+- task-level implementation notes when a full-delivery task board is approved
 
 ### Does Not Own
 
@@ -103,10 +106,17 @@ Use it to keep role boundaries sharp during daily work.
 - changing solution direction
 - closing requirement or design ambiguity by assumption
 - quick-mode work (Quick Agent owns all quick stages)
+- making full-delivery task boards available to quick or migration modes by default
 
 ### Guiding Question
 
 - Have I implemented the approved work and left enough evidence for review and QA?
+
+### Task-Coordination Evidence
+
+- When full-delivery task-level coordination is used, leave owner, status, artifact refs, dependencies or sequential constraints, safe-parallel-zone assumptions, QA owner when assigned, integration readiness, unresolved issues, and verification evidence inspectable.
+- When `parallel_mode` is `none`, execute sequentially even if more than one task appears ready.
+- In migration work, report baseline, preserved behavior, compatibility risk, staged sequencing, rollback checkpoints, parity evidence, and slice verification rather than importing full-delivery task-board semantics.
 
 ## Quick Agent
 

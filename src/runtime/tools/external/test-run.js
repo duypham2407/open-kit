@@ -282,6 +282,7 @@ export function createTestRunTool({ projectRoot, toolRunner }) {
     family: 'external',
     stage: 'foundation',
     status: isActive ? 'active' : 'unavailable',
+    validationSurface: 'target_project_app',
     detectedFramework: framework,
     async execute({ testFile, testName, timeout = 120_000 } = {}) {
       if (!isActive) {

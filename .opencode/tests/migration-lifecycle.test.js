@@ -27,6 +27,14 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const CLI = path.resolve(__dirname, "../workflow-state.js")
+const OPENKIT_ENV_KEYS = [
+  "OPENKIT_PROJECT_ROOT",
+  "OPENKIT_KIT_ROOT",
+  "OPENKIT_WORKFLOW_STATE",
+  "OPENKIT_GLOBAL_MODE",
+  "OPENKIT_ENFORCEMENT_LEVEL",
+  "OPENCODE_HOME",
+]
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -191,7 +199,12 @@ function setupTempRuntime(projectRoot) {
 }
 
 function run(projectRoot, args) {
-  return spawnSync("node", [CLI, ...args], { cwd: projectRoot, encoding: "utf8" })
+  const env = { ...process.env }
+  for (const key of OPENKIT_ENV_KEYS) {
+    delete env[key]
+  }
+
+  return spawnSync("node", [CLI, ...args], { cwd: projectRoot, encoding: "utf8", env })
 }
 
 function assertOk(result, label) {

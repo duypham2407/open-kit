@@ -55,10 +55,26 @@ Tools are classified by enforcement level. **MUST** tools are mandatory before t
 ### Gate rule
 
 Do not output `PASS` as Observed Result until:
-1. `tool.rule-scan` and `tool.security-scan` have both been executed on changed files
+1. `tool.rule-scan` and `tool.security-scan` have both been executed on changed files, or each unavailable/degraded direct tool is paired with substitute evidence or a valid manual override caveat
 2. At least one `tool.evidence-capture` record has been written to workflow state
 
-If a MUST tool is unavailable, record `tool.<id>: unavailable — <reason>` in the output and substitute manual evidence. The `evidence-capture` gate still applies — record the manual evidence through `tool.evidence-capture` with `kind: manual`.
+If a MUST tool is unavailable, record `tool.<id>: unavailable — <reason>` in the output and distinguish any substitute/manual evidence from successful direct tool evidence. The `evidence-capture` gate still applies — record the manual evidence through `tool.evidence-capture` with `kind: manual`.
+
+### Scan/Tool Evidence Reporting
+
+Every QA output and QA report must include a dedicated `Scan/Tool Evidence` section whenever scan evidence was required, attempted, substituted, or overridden. QA must preserve any substitute/manual override caveats in the closure recommendation and must not report OpenKit scan evidence as target-project application validation.
+
+The `Scan/Tool Evidence` section must report:
+
+- direct tool status for `tool.rule-scan` and `tool.security-scan`: availability state, result state, changed-file scope, finding counts, severity/category summary, and `runtime_tooling` validation-surface label
+- substitute status when direct invocation is unavailable or degraded: what actually ran, direct-tool unavailable/degraded reason, substitute validation surface, substitute limitations, and why it is not direct-tool success
+- manual override caveats: target stage, unavailable tool, reason, substitute evidence ids if any, substitute limitations, actor if known, and caveat that the override is exceptional and cannot bypass triage of usable noisy findings
+- classification summary grouped by rule, severity/category, and relevance to the verified work, using `blocking`, `true_positive`, `non_blocking_noise`, `false_positive`, `follow_up`, and `unclassified`
+- false-positive rationale for every false-positive group: rule/finding identity, file or area, context, behavior/security impact, rationale, and follow-up decision; test-fixture security placeholders must be distinguished from production/runtime code
+- validation-surface labels that keep OpenKit scan evidence (`runtime_tooling` or stored `compatibility_runtime`) separate from target-project app validation (`target_project_app`, unavailable when no app-native command exists)
+- artifact refs for raw scan output, evidence records, QA report, and task artifacts; high-volume findings should be summarized with artifact refs rather than pasted as an untriaged wall
+
+QA cannot recommend `PASS` while required scan findings remain unclassified, while a true-positive security finding remains unresolved, or while a manual override is missing target stage/tool/reason/substitute limitations/actor/caveat details.
 
 ### Evidence requirement in output
 
@@ -66,10 +82,14 @@ Every QA output must include a `Tool Evidence` section:
 
 ```text
 Tool Evidence:
-- rule-scan: <finding_count> findings on <file_count> files (or: unavailable — <reason>)
-- security-scan: <finding_count> findings on <file_count> files (or: unavailable — <reason>)
-- evidence-capture: <record_count> records written (or: unavailable — <reason>, manual evidence recorded)
+- rule-scan: direct=<available|unavailable|degraded|not_configured>, result=<succeeded|failed|unavailable|degraded>, findings=<finding_count> on <file_count> files, surface=runtime_tooling (or substitute/manual evidence with limitations)
+- security-scan: direct=<available|unavailable|degraded|not_configured>, result=<succeeded|failed|unavailable|degraded>, findings=<finding_count> on <file_count> files, surface=runtime_tooling (or substitute/manual evidence with limitations)
+- evidence-capture: <record_count> records written with validation-surface labels and artifact refs (or: unavailable — <reason>, manual evidence recorded)
 - syntax-outline: <file_count> files outlined (or: not needed)
+- classification summary: blocking=<n>, true_positive=<n>, non_blocking_noise=<n>, false_positive=<n>, follow_up=<n>, unclassified=<n>
+- false positives: <none | rule/file/context/rationale/impact/follow-up>
+- manual override caveats: <none | target_stage/tool/reason/substitute limitations/actor/caveat>
+- artifact refs: <raw scan output/evidence records/QA report/task refs>
 ```
 
 ## Do Not

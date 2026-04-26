@@ -69,20 +69,35 @@ Tools are classified by enforcement level. **MUST** tools are mandatory before c
 
 ### Gate rules
 
-1. Do not claim `implementation complete` or hand off to Code Reviewer until `tool.rule-scan` has been executed on changed files and at least one `tool.evidence-capture` record exists in workflow state
+1. Do not claim `implementation complete` or hand off to Code Reviewer until `tool.rule-scan` has been executed on changed files, or its structured unavailable/degraded result is paired with substitute/manual evidence, and at least one `tool.evidence-capture` record exists in workflow state
 2. In migration mode: do not call `tool.codemod-apply` until `tool.codemod-preview` has been executed for that transform
-3. If a MUST tool is unavailable, record `tool.<id>: unavailable — <reason>` in the handoff output and substitute manual evidence through `tool.evidence-capture` with `kind: manual`
+3. If a MUST tool is unavailable, record `tool.<id>: unavailable — <reason>` in the handoff output, distinguish any substitute scan from direct tool evidence, and substitute manual evidence through `tool.evidence-capture` with `kind: manual`
+
+### Scan/Tool Evidence Reporting
+
+Implementation handoff output must include a dedicated `Scan/Tool Evidence` section whenever scan evidence was required, attempted, substituted, or overridden. The section must report:
+
+- direct tool status for `tool.rule-scan` and, when relevant, `tool.security-scan`: availability state, result state, changed-file scope, finding counts, severity/category summary, and `runtime_tooling` validation-surface label
+- substitute status when a direct tool is unavailable or degraded: what actually ran, which validation surface it checks, direct-tool unavailable/degraded reason, and substitute limitations
+- manual override caveats when an override was used: target stage, unavailable tool, reason, actor if known, substitute evidence ids, substitute limitations, and caveat that the override is exceptional
+- classification summary for findings using `blocking`, `true_positive`, `non_blocking_noise`, `false_positive`, `follow_up`, and `unclassified`; unclassified or blocking groups must be called out as risks instead of hidden in raw output
+- false-positive rationale for every false-positive group: rule/finding id, file or area, relevant context, behavior/security impact, rationale, and follow-up decision
+- validation-surface labels that keep OpenKit scan evidence (`runtime_tooling` or `compatibility_runtime`) separate from target-project app build/lint/test validation (`target_project_app`, unavailable when no app-native command exists)
+- artifact refs for raw scan output, evidence records, or task-board artifacts when available; high-volume findings should be summarized in the handoff and linked through artifacts rather than pasted as an untriaged wall
 
 ### Evidence requirement in output
 
-Implementation handoff output must include a `Tool Evidence` section:
+Implementation handoff output must include a `Tool Evidence` section and, when scan evidence applies, the `Scan/Tool Evidence` details above:
 
 ```text
 Tool Evidence:
-- rule-scan: <finding_count> findings on <file_count> files (or: unavailable — <reason>)
-- evidence-capture: <record_count> records written
+- rule-scan: direct=<available|unavailable|degraded|not_configured>, result=<succeeded|failed|unavailable|degraded>, findings=<finding_count> on <file_count> files, surface=runtime_tooling (or substitute/manual evidence with limitations)
+- evidence-capture: <record_count> records written with validation-surface labels and artifact refs
 - codemod-preview: <transform_count> transforms previewed (migration only, or: not applicable)
-- security-scan: <finding_count> findings (or: not run — task does not touch security surface)
+- security-scan: direct=<status>, findings=<finding_count> (or: not run — task does not touch security surface)
+- classification summary: blocking=<n>, true_positive=<n>, non_blocking_noise=<n>, false_positive=<n>, follow_up=<n>, unclassified=<n>
+- manual override caveats: <none | target_stage/tool/reason/substitute limitations/actor/caveat>
+- artifact refs: <raw scan output/evidence records/task refs>
 ```
 
 ## Quick Mode

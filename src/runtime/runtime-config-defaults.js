@@ -66,6 +66,17 @@ export function createDefaultRuntimeConfig() {
     notifications: {
       enabled: false,
     },
+    supervisorDialogue: {
+      enabled: false,
+      openclaw: {
+        transport: 'unconfigured',
+        url: null,
+        command: null,
+        args: [],
+        timeoutMs: 10000,
+        env: {},
+      },
+    },
     tmux: {
       enabled: false,
       layout: 'main-vertical',

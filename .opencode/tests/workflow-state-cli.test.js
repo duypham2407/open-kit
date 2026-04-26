@@ -250,6 +250,137 @@ function writeInvocationLog(projectRoot, workItemId, entries) {
   fs.writeFileSync(logPath, `${JSON.stringify({ entries }, null, 2)}\n`, "utf8")
 }
 
+function writeSupervisorDialogueStore(projectRoot, workItemId, overrides = {}) {
+  const storePath = path.join(projectRoot, ".opencode", "work-items", workItemId, "supervisor-dialogue.json")
+  const store = {
+    schema: "openkit/supervisor-dialogue-store@1",
+    session: {
+      schema: "openkit/supervisor-session@1",
+      work_item_id: workItemId,
+      session_id: `supervisor-${workItemId}`,
+      session_sequence: 1,
+      status: "attached",
+      attached_work_item_id: workItemId,
+      provider: "openclaw",
+      transport_health: "degraded",
+      delivery_mode: "watch",
+      degraded_mode: true,
+      attention_required: true,
+      timestamps: {
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:05.000Z",
+        attached_at: "2026-03-21T00:00:00.000Z",
+        detached_at: null,
+      },
+      last_detach_reason: null,
+    },
+    checkpoint: {
+      schema: "openkit/supervisor-checkpoint@1",
+      last_outbound_event_seq: 4,
+      last_delivered_outbound_seq: 2,
+      last_inbound_message_seq: 6,
+      last_processed_inbound_seq: 6,
+      dedupe_message_ids: ["msg-1", "msg-2", "msg-3", "msg-4", "msg-concern", "msg-5"],
+      dedupe_proposal_keys: ["proposal:repeat-runtime"],
+      updated_at: "2026-03-21T00:00:05.000Z",
+    },
+    outbound_events: [
+      {
+        schema: "openkit/supervisor-event@1",
+        event_id: "evt-pending",
+        event_seq: 1,
+        work_item_id: workItemId,
+        origin: "openkit",
+        event_type: "stage_changed",
+        created_at: "2026-03-21T00:00:01.000Z",
+        state_cursor: { stage: "full_implementation" },
+        summary: "Implementation started.",
+        details: {},
+        delivery_status: "pending",
+        delivered_at: null,
+        last_delivery_attempt_at: null,
+        last_delivery_error: null,
+        delivery_attempts: [],
+      },
+      {
+        schema: "openkit/supervisor-event@1",
+        event_id: "evt-delivered",
+        event_seq: 2,
+        work_item_id: workItemId,
+        origin: "openkit",
+        event_type: "verification_signal",
+        created_at: "2026-03-21T00:00:02.000Z",
+        state_cursor: { stage: "full_implementation" },
+        summary: "Verification recorded.",
+        details: {},
+        delivery_status: "delivered",
+        delivered_at: "2026-03-21T00:00:03.000Z",
+        last_delivery_attempt_at: "2026-03-21T00:00:03.000Z",
+        last_delivery_error: null,
+        delivery_attempts: [],
+      },
+      {
+        schema: "openkit/supervisor-event@1",
+        event_id: "evt-failed",
+        event_seq: 3,
+        work_item_id: workItemId,
+        origin: "openkit",
+        event_type: "issue_or_blocker_signal",
+        created_at: "2026-03-21T00:00:03.000Z",
+        state_cursor: { stage: "full_implementation" },
+        summary: "Supervisor delivery failed.",
+        details: {},
+        delivery_status: "failed",
+        delivered_at: null,
+        last_delivery_attempt_at: "2026-03-21T00:00:04.000Z",
+        last_delivery_error: "OpenClaw unavailable",
+        delivery_attempts: [],
+      },
+      {
+        schema: "openkit/supervisor-event@1",
+        event_id: "evt-skipped",
+        event_seq: 4,
+        work_item_id: workItemId,
+        origin: "openkit",
+        event_type: "human_attention_needed",
+        created_at: "2026-03-21T00:00:04.000Z",
+        state_cursor: { stage: "full_implementation" },
+        summary: "Supervisor delivery skipped while disabled.",
+        details: {},
+        delivery_status: "skipped",
+        delivered_at: null,
+        last_delivery_attempt_at: "2026-03-21T00:00:05.000Z",
+        last_delivery_error: "Supervisor disabled",
+        delivery_attempts: [],
+      },
+    ],
+    inbound_messages: [
+      { message_id: "msg-1", message_seq: 1, work_item_id: workItemId, type: "proposal", intent: "review", target: "TASK-1", body: "Consider adding context.", proposal_key: "proposal:review-task" },
+      { message_id: "msg-2", message_seq: 2, work_item_id: workItemId, type: "request", intent: "approve", target: "fullstack_to_code_review", body: "Approve this gate.", proposal_key: "proposal:approve-gate" },
+      { message_id: "msg-3", message_seq: 3, work_item_id: workItemId, type: "request", intent: "review", target: "TASK-1", body: "Repeat review pressure.", proposal_key: "proposal:repeat-runtime" },
+      { message_id: "msg-4", message_seq: 4, work_item_id: workItemId, type: "attention", intent: "attention", target: "operator", body: "Needs human attention.", proposal_key: null },
+      { message_id: "msg-concern", message_seq: 5, work_item_id: workItemId, type: "concern", intent: "concern", target: "feature-940", body: "Concern about authority coverage.", proposal_key: null },
+      { message_id: "msg-5", message_seq: 6, work_item_id: workItemId, type: "message", intent: null, target: null, body: "Missing target.", proposal_key: null },
+    ],
+    adjudications: [
+      { message_id: "msg-1", message_seq: 1, proposal_key: "proposal:review-task", disposition: "recorded_suggestion", actionable: false, reason: "advisory", authority_boundary: "openkit_only_mutates_state_and_executes_code", duplicate_of: null, created_at: "2026-03-21T00:00:01.000Z", details: {} },
+      { message_id: "msg-2", message_seq: 2, proposal_key: "proposal:approve-gate", disposition: "rejected_authority_boundary", actionable: false, reason: "OpenClaw cannot mutate OpenKit workflow state.", authority_boundary: "openkit_only_mutates_state_and_executes_code", duplicate_of: null, created_at: "2026-03-21T00:00:02.000Z", details: {} },
+      { message_id: "msg-3", message_seq: 3, proposal_key: "proposal:repeat-runtime", disposition: "duplicate_ignored", actionable: false, reason: "duplicate_proposal_key", authority_boundary: "openkit_only_mutates_state_and_executes_code", duplicate_of: "msg-1", created_at: "2026-03-21T00:00:03.000Z", details: {} },
+      { message_id: "msg-4", message_seq: 4, proposal_key: null, disposition: "attention_required", actionable: false, reason: "OpenClaw requested operator attention.", authority_boundary: "openkit_only_mutates_state_and_executes_code", duplicate_of: null, created_at: "2026-03-21T00:00:04.000Z", details: {} },
+      { message_id: "msg-concern", message_seq: 5, proposal_key: null, disposition: "concern_recorded", actionable: false, reason: "OpenClaw concern recorded for OpenKit operator review.", authority_boundary: "openkit_only_mutates_state_and_executes_code", duplicate_of: null, created_at: "2026-03-21T00:00:05.000Z", details: {} },
+      { message_id: "msg-5", message_seq: 6, proposal_key: null, disposition: "invalid_rejected", actionable: false, reason: "missing_minimum_inbound_information", authority_boundary: "openkit_only_mutates_state_and_executes_code", duplicate_of: null, created_at: "2026-03-21T00:00:06.000Z", details: { missing_fields: ["intent", "target"] } },
+    ],
+    dedupe_records: [
+      { schema: "openkit/supervisor-dedupe-record@1", work_item_id: workItemId, message_id: "msg-duplicate-message", message_seq: 6, proposal_key: null, duplicate_of: "msg-1", reason: "duplicate_message_id", created_at: "2026-03-21T00:00:06.000Z", actionable: false },
+      { schema: "openkit/supervisor-dedupe-record@1", work_item_id: workItemId, message_id: "msg-duplicate-proposal", message_seq: 7, proposal_key: "proposal:repeat-runtime", duplicate_of: "msg-3", reason: "duplicate_proposal_key", created_at: "2026-03-21T00:00:07.000Z", actionable: false },
+    ],
+    delivery_records: [],
+    ...overrides,
+  }
+  writeJson(storePath, store)
+  return store
+}
+
 function writeMigrationSliceBoard(projectRoot, workItemId, board) {
   const boardPath = path.join(projectRoot, ".opencode", "work-items", workItemId, "migration-slices.json")
   fs.mkdirSync(path.dirname(boardPath), { recursive: true })
@@ -415,6 +546,74 @@ function makeMigrationSliceBoard(overrides = {}) {
   }
 }
 
+function makeScanEvidenceDetails(overrides = {}) {
+  return {
+    validation_surface: "runtime_tooling",
+    scan_evidence: {
+      evidence_type: "direct_tool",
+      direct_tool: {
+        tool_id: "tool.rule-scan",
+        availability_state: "available",
+        result_state: "succeeded",
+        reason: null,
+      },
+      substitute: null,
+      scan_kind: "rule",
+      target_scope_summary: "changed runtime workflow files",
+      rule_config_source: "bundled",
+      finding_counts: {
+        total: 2301,
+        blocking: 0,
+        non_blocking_noise: 2298,
+        false_positive: 3,
+        unclassified: 0,
+      },
+      severity_summary: {
+        WARNING: 2301,
+      },
+      triage_summary: {
+        groupCount: 2,
+        blockingCount: 0,
+        nonBlockingNoiseCount: 1,
+        falsePositiveCount: 1,
+        followUpCount: 0,
+        unclassifiedCount: 0,
+        groups: [
+          {
+            ruleId: "openkit.noisy-quality-rule",
+            severity: "WARNING",
+            classification: "non_blocking_noise",
+            count: 2298,
+            rationale: "Broad quality noise unrelated to the changed evidence read model.",
+          },
+          {
+            ruleId: "openkit.fixture-token",
+            severity: "WARNING",
+            classification: "false_positive",
+            count: 3,
+            rationale: "Test-fixture placeholder only; no production runtime exposure.",
+          },
+        ],
+      },
+      false_positive_summary: {
+        count: 3,
+        items: [
+          {
+            rule_id: "openkit.fixture-token",
+            file: "tests/fixtures/token.js",
+            context: "test fixture placeholder",
+            rationale: "Not a real secret and not loaded by runtime code.",
+            impact: "No production or runtime security impact.",
+            follow_up: "none",
+          },
+        ],
+      },
+      manual_override: null,
+    },
+    ...overrides,
+  }
+}
+
 test("status command prints workflow and runtime summary", () => {
   const projectRoot = makeTempProject()
   setupTempRuntime(projectRoot)
@@ -454,6 +653,7 @@ test("resume-summary prints resumable context and next safe action", () => {
   assert.match(result.stdout, /pending approvals: none/)
   assert.match(result.stdout, /linked artifacts:/)
   assert.match(result.stdout, /read next: AGENTS\.md -> context\/navigation\.md -> context\/core\/workflow\.md -> context\/core\/session-resume\.md/)
+  assert.match(result.stdout, /diagnostics: \[global_cli\] openkit doctor for global readiness \| \[compatibility_runtime\] node \.opencode\/workflow-state\.js doctor for runtime diagnostics/)
 })
 
 test("background run commands persist and surface runtime execution context", () => {
@@ -523,9 +723,324 @@ test("resume-summary supports machine-readable JSON output", () => {
   assert.ok(Array.isArray(payload.linked_artifacts))
   assert.ok(Array.isArray(payload.read_next))
   assert.equal(payload.diagnostics.global, "openkit doctor")
+  assert.equal(payload.diagnostics.global_surface, "global_cli")
+  assert.equal(payload.diagnostics.runtime_surface, "compatibility_runtime")
+  assert.deepEqual(payload.validation_surfaces, {
+    global_cli: "OpenKit product CLI install, launch, upgrade, uninstall, and doctor checks",
+    in_session: "Slash-command lane routing, workflow stage ownership, and handoff behavior",
+    compatibility_runtime: "Repository-local workflow-state inspection, resume, readiness, issue, and evidence diagnostics",
+    runtime_tooling: "OpenKit runtime tools including graph, semantic search, AST, syntax, codemod, MCP, browser, and background execution",
+    documentation: "Roadmap, operator, maintainer, governance, and runbook artifacts",
+    target_project_app: "Target-project build, lint, and test commands only when the project defines them",
+  })
   assert.equal(typeof payload.verification_readiness, "object")
   assert.ok(Array.isArray(payload.verification_evidence))
   assert.equal(typeof payload.issue_telemetry, "object")
+})
+
+test("record-verification-evidence preserves scan evidence details and compact resume/read models", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const details = makeScanEvidenceDetails()
+  const result = runCli(projectRoot, [
+    "record-verification-evidence",
+    "scan-direct-quality",
+    "automated",
+    "full_code_review",
+    "Rule scan completed with classified noisy findings",
+    "tool.rule-scan",
+    "semgrep --config bundled/rules --json src/runtime",
+    "0",
+    "artifacts/rule-scan.json",
+    "--details-json",
+    JSON.stringify(details),
+  ])
+
+  assert.equal(result.status, 0)
+
+  const state = JSON.parse(fs.readFileSync(path.join(projectRoot, ".opencode", "workflow-state.json"), "utf8"))
+  const evidence = state.verification_evidence.find((entry) => entry.id === "scan-direct-quality")
+  assert.equal(evidence.details.validation_surface, "runtime_tooling")
+  assert.equal(evidence.details.scan_evidence.evidence_type, "direct_tool")
+  assert.equal(evidence.details.scan_evidence.finding_counts.total, 2301)
+
+  const summaryResult = runCli(projectRoot, ["resume-summary", "--json"])
+  assert.equal(summaryResult.status, 0)
+  const payload = JSON.parse(summaryResult.stdout)
+  const scanEvidence = payload.scan_evidence.find((entry) => entry.evidence_id === "scan-direct-quality")
+  assert.equal(scanEvidence.validation_surface, "runtime_tooling")
+  assert.notEqual(scanEvidence.validation_surface, "target_project_app")
+  assert.equal(scanEvidence.evidence_type, "direct_tool")
+  assert.equal(scanEvidence.direct_tool.tool_id, "tool.rule-scan")
+  assert.equal(scanEvidence.direct_tool.availability_state, "available")
+  assert.equal(scanEvidence.direct_tool.result_state, "succeeded")
+  assert.equal(scanEvidence.finding_counts.total, 2301)
+  assert.equal(scanEvidence.classification_summary.non_blocking_noise_count, 1)
+  assert.equal(scanEvidence.classification_summary.false_positive_count, 1)
+  assert.equal(scanEvidence.classification_summary.group_count, 2)
+  assert.equal(scanEvidence.false_positive_summary.count, 3)
+  assert.deepEqual(scanEvidence.artifact_refs, ["artifacts/rule-scan.json"])
+  assert.equal(Object.prototype.hasOwnProperty.call(scanEvidence, "findings"), false)
+  assert.ok(payload.scan_evidence_lines.some((line) => (
+    line.includes("scan-direct-quality") &&
+    line.includes("direct tool.rule-scan available/succeeded") &&
+    line.includes("surface runtime_tooling") &&
+    line.includes("findings total=2301") &&
+    line.includes("false-positive count=3") &&
+    line.includes("artifacts artifacts/rule-scan.json")
+  )))
+
+  const showResult = runCli(projectRoot, ["show"])
+  assert.equal(showResult.status, 0)
+  assert.match(showResult.stdout, /scan evidence: scan-direct-quality \| direct tool\.rule-scan available\/succeeded \| surface runtime_tooling \| findings total=2301/)
+})
+
+test("scan evidence read models distinguish substitute scans and manual override caveats", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const substituteDetails = makeScanEvidenceDetails({
+    validation_surface: "compatibility_runtime",
+    scan_evidence: {
+      ...makeScanEvidenceDetails().scan_evidence,
+      evidence_type: "substitute_scan",
+      direct_tool: {
+        tool_id: "tool.security-scan",
+        availability_state: "unavailable",
+        result_state: "unavailable",
+        reason: "direct tool was unavailable in the role namespace",
+      },
+      substitute: {
+        ran: true,
+        command_or_tool: "semgrep --config bundled/security --json src/runtime",
+        validation_surface: "runtime_tooling",
+        limitations: "substitute command ran outside direct MCP tool invocation",
+      },
+      scan_kind: "security",
+      finding_counts: {
+        total: 1,
+        blocking: 0,
+        non_blocking_noise: 0,
+        false_positive: 1,
+        unclassified: 0,
+      },
+      severity_summary: {
+        WARNING: 1,
+      },
+      triage_summary: {
+        groupCount: 1,
+        blockingCount: 0,
+        nonBlockingNoiseCount: 0,
+        falsePositiveCount: 1,
+        followUpCount: 0,
+        unclassifiedCount: 0,
+        groups: [
+          {
+            ruleId: "openkit.fixture-token",
+            severity: "WARNING",
+            classification: "false_positive",
+            count: 1,
+            rationale: "Fixture-only token-looking placeholder.",
+          },
+        ],
+      },
+      false_positive_summary: {
+        count: 1,
+        items: [
+          {
+            rule_id: "openkit.fixture-token",
+            file: "tests/fixtures/token.js",
+            context: "test fixture placeholder",
+            rationale: "Not a real secret and not loaded by runtime code.",
+            impact: "No production or runtime security impact.",
+            follow_up: "none",
+          },
+        ],
+      },
+      manual_override: null,
+    },
+  })
+  const manualOverrideDetails = makeScanEvidenceDetails({
+    validation_surface: "compatibility_runtime",
+    scan_evidence: {
+      ...makeScanEvidenceDetails().scan_evidence,
+      evidence_type: "manual_override",
+      direct_tool: {
+        tool_id: "tool.rule-scan",
+        availability_state: "unavailable",
+        result_state: "unavailable",
+        reason: "Semgrep executable unavailable in managed tooling path",
+      },
+      substitute: {
+        ran: false,
+        command_or_tool: null,
+        validation_surface: "runtime_tooling",
+        limitations: "no substitute scan output available",
+      },
+      finding_counts: {
+        total: 0,
+        blocking: 0,
+        non_blocking_noise: 0,
+        false_positive: 0,
+        unclassified: 0,
+      },
+      severity_summary: {},
+      triage_summary: {
+        groupCount: 0,
+        blockingCount: 0,
+        nonBlockingNoiseCount: 0,
+        falsePositiveCount: 0,
+        followUpCount: 0,
+        unclassifiedCount: 0,
+        groups: [],
+      },
+      false_positive_summary: {
+        count: 0,
+        items: [],
+      },
+      manual_override: {
+        target_stage: "full_code_review",
+        unavailable_tool: "tool.rule-scan",
+        reason: "managed Semgrep executable was unavailable",
+        substitute_evidence_ids: ["scan-substitute-security"],
+        substitute_limitations: "security substitute exists, quality direct evidence unavailable",
+        actor: "FullstackAgent",
+        caveat: "Manual override does not prove target-project build, lint, or test behavior.",
+      },
+    },
+  })
+
+  let result = runCli(projectRoot, [
+    "record-verification-evidence",
+    "scan-substitute-security",
+    "automated",
+    "full_qa",
+    "Security scan substitute completed",
+    "semgrep-substitute",
+    "semgrep --config bundled/security --json src/runtime",
+    "0",
+    "artifacts/security-substitute.json",
+    "--details-json",
+    JSON.stringify(substituteDetails),
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, [
+    "record-verification-evidence",
+    "scan-manual-override",
+    "manual",
+    "tool-evidence-override:full_code_review",
+    "Manual override recorded because direct rule scan was unavailable",
+    "manual",
+    "manual override",
+    "0",
+    "docs/qa/manual-scan-override.md",
+    "--details-json",
+    JSON.stringify(manualOverrideDetails),
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["resume-summary", "--json"])
+  assert.equal(result.status, 0)
+  const payload = JSON.parse(result.stdout)
+  const substitute = payload.scan_evidence.find((entry) => entry.evidence_id === "scan-substitute-security")
+  const override = payload.scan_evidence.find((entry) => entry.evidence_id === "scan-manual-override")
+  assert.equal(substitute.validation_surface, "compatibility_runtime")
+  assert.equal(substitute.evidence_type, "substitute_scan")
+  assert.equal(substitute.direct_tool.availability_state, "unavailable")
+  assert.equal(substitute.substitute.ran, true)
+  assert.equal(substitute.substitute.command_or_tool, "semgrep --config bundled/security --json src/runtime")
+  assert.equal(substitute.substitute.validation_surface, "runtime_tooling")
+  assert.equal(override.validation_surface, "compatibility_runtime")
+  assert.equal(override.evidence_type, "manual_override")
+  assert.equal(override.manual_override.target_stage, "full_code_review")
+  assert.equal(override.manual_override.unavailable_tool, "tool.rule-scan")
+  assert.match(override.manual_override.caveat, /does not prove target-project build, lint, or test behavior/)
+  assert.ok(payload.scan_evidence_lines.some((line) => (
+    line.includes("scan-substitute-security") &&
+    line.includes("substitute semgrep --config bundled/security --json src/runtime ran") &&
+    line.includes("direct tool.security-scan unavailable/unavailable")
+  )))
+  assert.ok(payload.scan_evidence_lines.some((line) => (
+    line.includes("scan-manual-override") &&
+    line.includes("manual override for full_code_review: tool.rule-scan") &&
+    line.includes("Manual override does not prove target-project build, lint, or test behavior")
+  )))
+
+  result = runCli(projectRoot, ["closeout-summary", "feature-001"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /scan evidence: scan-substitute-security \| substitute semgrep --config bundled\/security --json src\/runtime ran/)
+  assert.match(result.stdout, /scan evidence: scan-manual-override \| manual override for full_code_review: tool\.rule-scan/)
+})
+
+test("show-policy-status reports classified scan evidence blockers", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  state.work_item_id = "feature-001"
+  state.current_stage = "full_implementation"
+  state.current_owner = "FullstackAgent"
+  state.status = "in_progress"
+  state.approvals.fullstack_to_code_review.status = "approved"
+  state.verification_evidence = [
+    {
+      id: "scan-unclassified-cli",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan findings are not classified",
+      source: "tool.rule-scan",
+      command: "tool.rule-scan",
+      exit_status: 0,
+      artifact_refs: ["artifacts/rule-scan.json"],
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({
+        scan_evidence: {
+          ...makeScanEvidenceDetails().scan_evidence,
+          finding_counts: {
+            total: 1,
+            blocking: 0,
+            non_blocking_noise: 0,
+            false_positive: 0,
+            unclassified: 1,
+          },
+          triage_summary: {
+            groupCount: 1,
+            blockingCount: 0,
+            nonBlockingNoiseCount: 0,
+            falsePositiveCount: 0,
+            followUpCount: 0,
+            unclassifiedCount: 1,
+            groups: [
+              {
+                ruleId: "openkit.quality.noisy-rule",
+                severity: "WARNING",
+                classification: "unclassified",
+                count: 1,
+              },
+            ],
+          },
+        },
+      }),
+    },
+  ]
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+  const workItemStatePath = path.join(projectRoot, ".opencode", "work-items", "feature-001", "state.json")
+  fs.mkdirSync(path.dirname(workItemStatePath), { recursive: true })
+  fs.writeFileSync(workItemStatePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+  const invocationLogPath = path.join(projectRoot, ".opencode", "work-items", "feature-001", "tool-invocations.json")
+  fs.writeFileSync(invocationLogPath, `${JSON.stringify({
+    entries: [
+      { tool_id: "tool.rule-scan", status: "success", recorded_at: "2026-03-21T00:00:00Z" },
+    ],
+  }, null, 2)}\n`, "utf8")
+
+  const result = runCli(projectRoot, ["show-policy-status"])
+  assert.equal(result.status, 1)
+  assert.match(result.stdout, /tool evidence gate \(Tier 2\): blocked/)
+  assert.match(result.stdout, /unclassified scan findings remain/)
 })
 
 test("status --short prints compact runtime summary", () => {
@@ -1122,7 +1637,44 @@ test("status reports missing migration evidence kinds until all required kinds a
   ])
 
   // Record Tier 2 tool evidence required for migration_code_review
-  result = runCli(projectRoot, ["record-verification-evidence", "rule-scan-evidence", "automated", "migration_upgrade", "Rule scan complete", "tool.rule-scan"])
+  result = runCli(projectRoot, [
+    "record-verification-evidence",
+    "rule-scan-evidence",
+    "automated",
+    "migration_upgrade",
+    "Rule scan complete",
+    "tool.rule-scan",
+    "--details-json",
+    JSON.stringify({
+      validation_surface: "runtime_tooling",
+      scan_evidence: {
+        evidence_type: "direct_tool",
+        direct_tool: {
+          tool_id: "tool.rule-scan",
+          availability_state: "available",
+          result_state: "succeeded",
+          reason: null,
+        },
+        substitute: null,
+        scan_kind: "rule",
+        target_scope_summary: "migration upgrade changes",
+        rule_config_source: "bundled",
+        finding_counts: { total: 0 },
+        severity_summary: {},
+        triage_summary: {
+          groupCount: 0,
+          blockingCount: 0,
+          nonBlockingNoiseCount: 0,
+          falsePositiveCount: 0,
+          followUpCount: 0,
+          unclassifiedCount: 0,
+          groups: [],
+        },
+        false_positive_summary: { count: 0, items: [] },
+        manual_override: null,
+      },
+    }),
+  ])
   assert.equal(result.status, 0)
 
   result = runCli(projectRoot, ["advance-stage", "migration_code_review"])
@@ -1189,6 +1741,67 @@ test("show command includes task-aware context before state JSON for active full
   assert.match(result.stdout, /"current_stage": "full_implementation"/)
 })
 
+test("status and resume-summary expose supervisor dialogue read model details", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  state.current_stage = "full_implementation"
+  state.status = "in_progress"
+  state.current_owner = "FullstackAgent"
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+  writeSupervisorDialogueStore(projectRoot, "feature-001")
+
+  let result = runCli(projectRoot, ["status"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /supervisor dialogue: openclaw \| health degraded \| pending 1 \| delivered 1 \| failed 1 \| skipped 1 \| rejections 2 \| duplicates 2 \| attention required/)
+  assert.match(result.stdout, /supervisor last adjudication: invalid_rejected \| message msg-5 \| reason missing_minimum_inbound_information/)
+
+  result = runCli(projectRoot, ["resume-summary", "--json"])
+  assert.equal(result.status, 0)
+  const payload = JSON.parse(result.stdout)
+  assert.equal(payload.supervisor_dialogue.validation_surface, "compatibility_runtime")
+  assert.equal(payload.supervisor_dialogue.present, true)
+  assert.equal(payload.supervisor_dialogue.health.status, "degraded")
+  assert.equal(payload.supervisor_dialogue.health.attention_state, "attention_required")
+  assert.equal(payload.supervisor_dialogue.delivery_counts.pending, 1)
+  assert.equal(payload.supervisor_dialogue.delivery_counts.delivered, 1)
+  assert.equal(payload.supervisor_dialogue.delivery_counts.failed, 1)
+  assert.equal(payload.supervisor_dialogue.delivery_counts.skipped, 1)
+  assert.equal(payload.supervisor_dialogue.inbound_counts.rejected, 2)
+  assert.equal(payload.supervisor_dialogue.inbound_counts.duplicates, 2)
+  assert.equal(payload.supervisor_dialogue.inbound_counts.concerns, 1)
+  assert.equal(payload.supervisor_dialogue.inbound_counts.suggestions, 1)
+  assert.equal(payload.supervisor_dialogue.last_adjudication.disposition, "invalid_rejected")
+  assert.equal(payload.supervisor_dialogue.last_adjudication.message_id, "msg-5")
+  assert.equal(payload.validation_surfaces.compatibility_runtime.includes("workflow-state"), true)
+  assert.notEqual(payload.supervisor_dialogue.validation_surface, "target_project_app")
+})
+
+test("resume-summary reports missing supervisor store as absent without throwing", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  state.current_stage = "full_implementation"
+  state.status = "in_progress"
+  state.current_owner = "FullstackAgent"
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+
+  const result = runCli(projectRoot, ["resume-summary", "--json"])
+  assert.equal(result.status, 0)
+  const payload = JSON.parse(result.stdout)
+  assert.equal(payload.supervisor_dialogue.present, false)
+  assert.equal(payload.supervisor_dialogue.health.status, "absent")
+  assert.equal(payload.supervisor_dialogue.health.availability, "unavailable")
+  assert.equal(payload.supervisor_dialogue.health.attention_state, "none")
+  assert.equal(payload.supervisor_dialogue.delivery_counts.pending, 0)
+  assert.equal(payload.supervisor_dialogue.inbound_counts.rejected, 0)
+  assert.equal(payload.supervisor_dialogue.validation_surface, "compatibility_runtime")
+})
+
 test("status and doctor surface migration slice summary for active migration work", () => {
   const projectRoot = makeTempProject()
   setupTempRuntime(projectRoot)
@@ -1253,6 +1866,27 @@ test("resume-summary JSON includes migration slice readiness when a migration bo
   result = runCli(projectRoot, ["advance-stage", "migration_baseline"])
   assert.equal(result.status, 0)
 
+  result = runCli(projectRoot, [
+    "set-migration-context",
+    "--baseline-summary",
+    "Legacy runtime baseline captured before slice execution",
+    "--target-outcome",
+    "Modernized runtime with parity preserved",
+  ])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["append-preserved-invariant", "existing runtime behavior remains unchanged"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["append-baseline-evidence", "docs/baseline/runtime-before.txt"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["append-compatibility-hotspot", "runtime seam compatibility"])
+  assert.equal(result.status, 0)
+
+  result = runCli(projectRoot, ["append-rollback-checkpoint", "restore pre-migration runtime bundle"])
+  assert.equal(result.status, 0)
+
   result = runCli(projectRoot, ["set-approval", "baseline_to_strategy", "approved", "MasterOrchestrator"])
   assert.equal(result.status, 0)
 
@@ -1279,6 +1913,145 @@ test("resume-summary JSON includes migration slice readiness when a migration bo
   assert.equal(payload.migration_slice_readiness.nextGate, "migration_code_review")
   assert.equal(payload.migration_slice_readiness.nextGateBlocked, true)
   assert.ok(payload.migration_slice_readiness.blockers.some((blocker) => blocker.includes("SLICE-BOARD-1")))
+  assert.equal(payload.migration_slice_coordination.mode, "migration")
+  assert.equal(payload.migration_slice_coordination.readiness.status, "review-blocked")
+  assert.deepEqual(payload.migration_slice_coordination.migration_context.baseline_evidence_refs, [
+    "docs/baseline/runtime-before.txt",
+  ])
+  assert.deepEqual(payload.migration_slice_coordination.migration_context.preserved_invariants, [
+    "existing runtime behavior remains unchanged",
+  ])
+  assert.deepEqual(payload.migration_slice_coordination.migration_context.rollback_checkpoints, [
+    "restore pre-migration runtime bundle",
+  ])
+  assert.deepEqual(payload.migration_slice_coordination.slices.map((slice) => slice.slice_id), [
+    "SLICE-BOARD-1",
+    "SLICE-BOARD-2",
+    "SLICE-BOARD-3",
+    "SLICE-BOARD-4",
+  ])
+  assert.deepEqual(payload.migration_slice_coordination.slices[0].preserved_invariants, ["existing runtime behavior"])
+  assert.deepEqual(payload.migration_slice_coordination.slices[0].compatibility_risks, ["seam drift"])
+  assert.deepEqual(payload.migration_slice_coordination.slices[0].verification_targets, ["parity smoke"])
+  assert.deepEqual(payload.migration_slice_coordination.slices[0].rollback_notes, ["revert seam changes"])
+})
+
+test("resume-summary JSON includes full task coordination details", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  state.current_stage = "full_implementation"
+  state.status = "in_progress"
+  state.current_owner = "FullstackAgent"
+  state.parallelization = {
+    parallel_mode: "limited",
+    why: "Phase 3 task coordination fixture",
+    safe_parallel_zones: ["docs/phase3/"],
+    sequential_constraints: ["TASK-SEQ-A -> TASK-SEQ-B"],
+    integration_checkpoint: "Phase 3 integration checkpoint",
+    max_active_execution_tracks: 2,
+  }
+  state.issues = [
+    {
+      issue_id: "ISSUE-TASK-B",
+      title: "Task B artifact still needs review",
+      type: "bug",
+      severity: "medium",
+      rooted_in: "implementation",
+      recommended_owner: "FullstackAgent",
+      evidence: "docs/phase3/b.md still has a failing coordination note",
+      artifact_refs: ["docs/phase3/b.md"],
+      current_status: "open",
+      opened_at: "2026-03-21T00:00:00.000Z",
+      last_updated_at: "2026-03-21T00:00:00.000Z",
+      reopen_count: 0,
+      repeat_count: 0,
+      blocked_since: "2026-03-21T00:00:00.000Z",
+    },
+  ]
+  state.verification_evidence = [
+    {
+      id: "evidence-task-a",
+      kind: "automated",
+      scope: "TASK-SEQ-A",
+      summary: "Task A targeted verification passed",
+      source: "workflow-state-cli-test",
+      command: "node --test task-a.test.js",
+      exit_status: 0,
+      artifact_refs: ["docs/phase3/a.md"],
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+  ]
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+
+  writeTaskBoard(projectRoot, "feature-001", {
+    mode: "full",
+    current_stage: "full_implementation",
+    tasks: [
+      {
+        task_id: "TASK-SEQ-A",
+        title: "Implement first orchestration detail",
+        summary: "First task in the ordered chain",
+        kind: "implementation",
+        status: "dev_done",
+        primary_owner: "Dev-A",
+        qa_owner: "QA-A",
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["docs/phase3/a.md"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
+        branch_or_worktree: ".worktrees/phase3/task-seq-a",
+        concurrency_class: "parallel_limited",
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+      {
+        task_id: "TASK-SEQ-B",
+        title: "Implement second orchestration detail",
+        summary: "Second task should expose sequence and issue detail",
+        kind: "implementation",
+        status: "queued",
+        primary_owner: null,
+        qa_owner: null,
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: ["docs/phase3/b.md"],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
+        branch_or_worktree: null,
+        concurrency_class: "parallel_limited",
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+  })
+
+  const result = runCli(projectRoot, ["resume-summary", "--json"])
+
+  assert.equal(result.status, 0)
+  const payload = JSON.parse(result.stdout)
+  assert.equal(payload.task_coordination.mode, "full")
+  assert.equal(payload.task_coordination.parallel_mode, "limited")
+  assert.deepEqual(payload.task_coordination.safe_parallel_zones, ["docs/phase3/"])
+  assert.deepEqual(payload.task_coordination.sequential_constraints, ["TASK-SEQ-A -> TASK-SEQ-B"])
+  assert.equal(payload.task_coordination.integration_readiness.status, "blocked-incomplete-tasks")
+  assert.deepEqual(payload.task_coordination.integration_readiness.incomplete_task_ids, ["TASK-SEQ-B"])
+  assert.deepEqual(payload.task_coordination.unresolved_issues.map((issue) => issue.issue_id), ["ISSUE-TASK-B"])
+  assert.deepEqual(payload.task_coordination.verification_evidence.map((entry) => entry.id), ["evidence-task-a"])
+  const firstTask = payload.task_coordination.tasks.find((task) => task.task_id === "TASK-SEQ-A")
+  const secondTask = payload.task_coordination.tasks.find((task) => task.task_id === "TASK-SEQ-B")
+  assert.equal(firstTask.primary_owner, "Dev-A")
+  assert.equal(firstTask.qa_owner, "QA-A")
+  assert.deepEqual(firstTask.artifact_refs, ["docs/phase3/a.md"])
+  assert.deepEqual(firstTask.linked_evidence.map((entry) => entry.id), ["evidence-task-a"])
+  assert.deepEqual(secondTask.depends_on, ["TASK-SEQ-A"])
+  assert.deepEqual(secondTask.blocked_by, ["TASK-SEQ-A"])
+  assert.deepEqual(secondTask.sequential_constraint_dependencies, ["TASK-SEQ-A"])
+  assert.deepEqual(secondTask.linked_issues.map((issue) => issue.issue_id), ["ISSUE-TASK-B"])
 })
 
 test("doctor command reports task-aware runtime diagnostics and mirror safety for active full-delivery work", () => {

@@ -112,6 +112,11 @@ Master Orchestrator   ← close or reroute
 
 Full mode preserves the structured team workflow for work that benefits from deliberate product definition, solution design, implementation, review, and QA handoffs.
 
+Phase-gate readiness note for deeper orchestration:
+
+- do not deepen task-level coordination, QA ownership splitting, integration checks, or safe parallel zones until operator guidance and runtime/tooling command reality are inspectable, or the gaps are explicitly recorded as blockers in the solution or handoff
+- deeper orchestration must make ownership, dependencies, evidence, and blockers more visible; it must not hide workflow complexity behind background or parallel execution
+
 Implemented full-delivery task-runtime note:
 
 - from `full_solution` onward, a full-delivery work item may carry an execution task board under `.opencode/work-items/<work_item_id>/tasks.json`
@@ -126,6 +131,8 @@ Implemented full-delivery task-runtime note:
 - tasks named later in a sequential chain should remain queued until the earlier task order is satisfied; orchestration may report `waiting-sequential-constraint` while that order is still active
 - when the solution package does not approve parallel execution, full-delivery work remains sequential even if multiple Fullstack or QA agents are available
 - singleton planning roles remain singleton: one `Product Lead` and one `Solution Lead` define the work; worker pools apply only to implementation and QA execution after planning is approved
+- task coordination should make task owner, task status, artifact references, dependency overlays or sequential constraints, safe parallel zones when approved, QA owner, integration readiness, unresolved issues, and verification evidence inspectable before handoff or resume
+- `parallel_mode = none` means sequential execution even if multiple task-board rows are ready or multiple workers are available
 
 ## Migration Lane
 
@@ -168,6 +175,8 @@ Migration mode expectations:
 - migration slice boards remain optional and strategy-driven; they are the only migration board form in the live contract
 - when a migration slice board is present, the runtime enforces completion gates before review and closure
 - entering `migration_code_review` requires no active or incomplete slices on the board; entering `migration_done` requires every slice to be `verified` or `cancelled`
+- migration orchestration remains parity-oriented: preserved behavior, baseline evidence, compatibility risk, staged sequencing, rollback checkpoints, parity evidence, and slice verification are the inspectable coordination surfaces
+- full-delivery task-board semantics are not applied to migration by default
 
 Canonical migration heuristic:
 
@@ -286,6 +295,7 @@ Approval state should be recorded in the managed active work-item state before a
 - `quick_brainstorm` clarification/alignment with explicit user confirmation of understanding (in workflow communication)
 - `quick_plan` solution analysis with default 3 options (or explicit fewer-options justification), user option selection, execution plan, and separate user plan confirmation (in workflow communication)
 - test and verification evidence with real command output
+- if the target project has no app-native build, lint, or test command, record that validation path as unavailable instead of substituting OpenKit runtime checks
 
 ### Migration
 
@@ -296,6 +306,7 @@ Approval state should be recorded in the managed active work-item state before a
 - preserved invariants and parity expectations recorded in workflow communication and state
 - optional consolidated migration report in `docs/solution/YYYY-MM-DD-<migration>-report.md`
 - concise review, regression, and compatibility evidence in workflow communication and state
+- app-native build, lint, test, smoke, or regression evidence applies only when the migrated project actually defines those commands; otherwise report the unavailable validation path and use honest baseline/manual evidence
 
 ### Full Delivery
 
@@ -306,6 +317,8 @@ Approval state should be recorded in the managed active work-item state before a
 | Fullstack | Source code and verification evidence |
 | Code Reviewer | Review findings in workflow communication and state |
 | QA | `docs/qa/YYYY-MM-DD-<feature>.md` |
+
+Full-delivery `product_to_solution` requires the Product Lead scope package before Solution Lead design. OpenKit runtime or CLI checks may support OpenKit surface validation, but they do not prove target-project application behavior when no app-native command exists.
 
 Stage-entry note:
 

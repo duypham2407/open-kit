@@ -146,6 +146,7 @@ export function createLintTool({ projectRoot, toolRunner }) {
     family: 'external',
     stage: 'foundation',
     status: isActive ? 'active' : 'unavailable',
+    validationSurface: 'target_project_app',
     detectedLinter: linter,
     async execute({ filePath, fix = false, timeout = 60_000 } = {}) {
       if (!isActive) {

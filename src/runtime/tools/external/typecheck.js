@@ -90,6 +90,7 @@ export function createTypecheckTool({ projectRoot, toolRunner }) {
     family: 'external',
     stage: 'foundation',
     status: isActive ? 'active' : 'unavailable',
+    validationSurface: 'target_project_app',
     async execute({ filePath, project, timeout = 60_000 } = {}) {
       if (!isActive) {
         return {

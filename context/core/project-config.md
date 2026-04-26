@@ -10,10 +10,11 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - There is no repo-native lint command for generated application code yet.
 - There is no repo-native test command for generated application code yet.
 - OpenKit does have repo-native validation for its own runtime, CLI, install, and launch surfaces through `tests/` and `.opencode/tests/`.
+- OpenKit runtime/CLI validation and target-project application validation are different surfaces; label evidence with the validation surface it actually checks.
 - There is no single canonical package manager or language toolchain for future applications yet.
 - OpenKit uses the mode-aware workflow documented in `context/core/workflow.md`; keep tooling and command guidance here aligned with that live contract instead of re-stating lane policy in full.
 - The active compatibility mirror uses a mode-aware schema and `.opencode/workflow-state.js` supports that workflow model.
-- The preferred operator install path is now global: `npm install -g @duypham93/openkit`, then `openkit run` and `openkit doctor`.
+- The preferred operator install path is now global: `npm install -g @duypham93/openkit`, then `openkit doctor` and `openkit run`; use `openkit upgrade` and `openkit uninstall` for lifecycle maintenance.
 - The checked-in repository-local runtime still exists as the authoring and compatibility surface under `.opencode/`.
 - The capability-runtime foundation now starts under `src/runtime/` and is additive over the existing workflow kernel.
 - `registry.json` and `.opencode/install-manifest.json` are additive local metadata surfaces; they do not imply destructive install or plugin-only packaging.
@@ -21,6 +22,8 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - Global-facing metadata surface is currently limited to documentation and metadata that explain the global install and compatibility contract.
 
 ## Commands That Do Exist
+
+Command reality rule: mark a command as current only when it exists in `package.json`, `bin/openkit.js`, `.opencode/workflow-state.js`, or a checked-in runtime command surface. Label future examples as illustrative until implemented. Treat stale command docs as documentation defects.
 
 - Session hook configuration lives in `hooks/hooks.json`.
 - The session-start hook script lives in `hooks/session-start`.
@@ -69,7 +72,8 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 These are repository workflow commands, not application build/lint/test commands:
 
 - `npm install -g @duypham93/openkit`
-- `openkit install-global`
+- `openkit install [--verify]` (manual/compatibility setup with tooling verification, not preferred onboarding)
+- `openkit install-global` (manual/compatibility setup, not preferred onboarding)
 - `openkit doctor`
 - `openkit run [args]`
 - `openkit upgrade`
@@ -144,7 +148,7 @@ These are repository workflow commands, not application build/lint/test commands
 - `node .opencode/workflow-state.js update-issue-status <issue_id> <status>`
 - `node .opencode/workflow-state.js list-stale-issues`
 - `node .opencode/workflow-state.js issue-aging-report`
-- `node .opencode/workflow-state.js record-verification-evidence <id> <kind> <scope> <summary> <source> [command] [exit_status] [artifact_refs]`
+- `node .opencode/workflow-state.js record-verification-evidence <id> <kind> <scope> <summary> <source> [command] [exit_status] [artifact_refs] [--details-json <json>]`
 - `node .opencode/workflow-state.js clear-verification-evidence`
 - `node .opencode/workflow-state.js clear-issues`
 - `node .opencode/workflow-state.js route-rework <issue_type> [repeat_failed_fix]`
@@ -155,12 +159,14 @@ Current workflow-state behavior:
 - `npm install -g @duypham93/openkit` installs the OpenKit CLI globally.
 - `openkit run` materializes the globally managed kit into the OpenCode home directory on first use when needed.
 - `openkit doctor` checks the global install and the current workspace bootstrap.
+- `openkit install` remains available as a manual or compatibility setup path with runtime tooling verification.
 - `openkit install-global` remains available as a manual or compatibility setup path.
 - The global OpenKit install now provisions `ast-grep` into the managed tooling path and doctor verifies that tooling path is available.
 - `openkit run` launches OpenCode with the OpenKit-managed config directory and workspace-specific environment.
 - `openkit run` now also injects runtime foundation metadata through environment variables for capability bootstrap.
 - `openkit upgrade` refreshes the global managed kit bundle in place.
 - `openkit uninstall` removes the global managed kit and profile, with optional workspace cleanup.
+- Normal operator docs should describe `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall` as the product lifecycle path. Keep `openkit install`, `openkit install-global`, and repository-local workflow-state commands in manual, compatibility, or diagnostic sections only.
 - `status`, `resume-summary`, `doctor`, `version`, `profiles`, `show-profile`, and `sync-install-manifest` are part of the current runtime inspection surface.
 - `status --short`, `resume-summary --short`, and `doctor --short` provide compact runtime views for fast operational decisions.
 - `start-feature` remains available as a compatibility shortcut and initializes `Full Delivery` mode.
@@ -182,12 +188,20 @@ Current workflow-state behavior:
 - `workflow-analytics` and `ops-summary` compress multi-work-item and daily operator insights into inspectable reports.
 - release candidate commands add release-level governance over multiple work items, release notes, approvals, rollback planning, and hotfix linkage.
 - `record-verification-evidence` and `clear-verification-evidence` keep verification claims inspectable and machine-readable.
+- `record-verification-evidence` remains backward-compatible with the existing positional arguments and additively accepts `--details-json` for structured evidence details such as `details.validation_surface` and `details.scan_evidence`.
+- Runtime read models summarize `details.scan_evidence` compactly with direct tool status, substitute status, finding counts, classification summary, false positives, manual override caveats, validation-surface labels, and artifact references; raw high-volume scan findings should stay in referenced artifacts rather than normal summaries.
+- `status` and `resume-summary --json` also expose supervisor dialogue read models when a work item exists: supervisor health, delivery counts (`pending`, `delivered`, `failed`, `skipped`), last adjudication, rejection counts, duplicate counts, and attention state. These are `compatibility_runtime` read models; an absent supervisor store is reported as `absent`/`unavailable` instead of throwing.
+- FEATURE-940 review and QA evidence must cite FEATURE-940 scope, solution, implementation evidence, code review evidence, and QA artifacts as the active delivery proof. FEATURE-937 may appear only as historical risk context.
+- FEATURE-940 QA reports must include a supervisor dialogue evidence section covering supervisor health, outbound event statuses, inbound dispositions, authority-boundary rejection, duplicate/repeated proposal handling, degraded/offline behavior, and proof that inbound OpenClaw messages did not mutate workflow state beyond supervisor dialogue records.
+- FEATURE-940 QA reports must retain FEATURE-939 scan/tool evidence fields alongside supervisor evidence: direct tool status, substitute/manual evidence, finding counts, classification summary, false-positive rationale, manual override caveats, validation-surface labels, and artifact refs.
+- Target-project app validation remains unavailable for FEATURE-940 unless a real target project defines app-native build, lint, or test commands; OpenKit runtime, workflow-state, governance, scan, or CLI checks must not be reported as target-project application validation.
 - `update-issue-status`, `list-stale-issues`, and `issue-aging-report` support issue lifecycle tracking instead of one-shot issue snapshots.
 - Task-board support is bounded: only full-delivery work items may use it, and it does not imply unrestricted parallel safety outside the validated command surface.
 - Migration remains sequential by default; migration slice execution, when enabled, is strategy-driven and parity-oriented rather than a copy of the full-delivery task board.
 - Runtime foundation phase 1 currently exposes config, capability, manager, tool, and hook metadata rather than a full MCP or background execution layer.
 - The checked-in runtime now also includes thin foundation implementations for background execution, MCP loading, categories, specialists, skills, commands, context injection, and recovery. These surfaces are intentionally lightweight but real and testable.
 - Runtime config now supports category and specialist overrides for `model`, `fallback_models`, prompt append data, related model-shaping fields, automatic fallback policy, and dual quick-switch profiles through `.opencode/openkit.runtime.jsonc`.
+- Runtime config also includes `supervisorDialogue`, disabled by default with OpenClaw transport `unconfigured`; this state is valid and non-fatal, and runtime manager summaries label it `not_configured` on the `runtime_tooling` surface.
 - `file://` prompt references are supported in runtime config for agent `prompt`, agent `prompt_append`, and category `prompt_append` values.
 - Runtime doctor now exposes model-resolution trace data so maintainers can inspect where a resolved model came from and which fallback entries are available.
 
@@ -200,12 +214,36 @@ Current workflow-state behavior:
 - Global install writes its own managed kit bundle, profile manifest, and workspace state under the OpenCode home directory.
 - The checked-in repository runtime remains important for authoring, tests, and compatibility, not as the preferred end-user install shape.
 
+## Capability And Validation Surface Vocabulary
+
+Capability/tool state labels:
+
+- `available`: implemented and required dependencies/configuration are present.
+- `unavailable`: not usable in the current environment.
+- `degraded`: usable through fallback behavior or with reduced accuracy/scope.
+- `preview`: implemented as an early or partial surface whose limitations must be visible.
+- `compatibility_only`: available for repository-local compatibility or maintainer diagnostics, not the preferred operator product path.
+- `not_configured`: implemented but disabled because required local config or provider settings are absent.
+
+Validation surface labels:
+
+- `global_cli`: `openkit ...` product commands.
+- `in_session`: slash-command workflow path and stage/handoff behavior.
+- `compatibility_runtime`: `.opencode/workflow-state.js` state and diagnostic commands.
+- `runtime_tooling`: OpenKit runtime tools, graph, semantic search, AST, syntax, codemod, audit, browser, MCP, background execution, and external-tool probes.
+- `documentation`: roadmap, operator, maintainer, governance, and runbook artifacts.
+- `target_project_app`: application build/lint/test commands only when the target project actually defines them.
+
 ## Validation Reality By Mode
 
 Validation split to keep explicit:
 
 - OpenKit runtime and CLI validation: yes, through runtime checks and automated tests in this repository
 - target-project app validation: only when the target project actually defines the relevant commands
+- OpenKit runtime checks must not be presented as proof of target-project application behavior
+- missing target-project commands should be reported as an unavailable validation path, not replaced by illustrative examples
+- `tool.typecheck`, `tool.lint`, and `tool.test-run` validate `target_project_app` only when their corresponding project-local config or framework is detected; an `unavailable` result means the target project did not provide that validation surface
+- workflow-state and evidence runtime tools validate `compatibility_runtime`; they can prove OpenKit workflow state, readiness, issues, and evidence records, not application behavior
 
 ### Quick Task
 

@@ -77,7 +77,23 @@ Tools are classified by enforcement level. **MUST** tools are mandatory before t
 
 ### Gate rule
 
-Do not output the Stage 2 result until `tool.rule-scan` and `tool.security-scan` have both been executed on the changed files. If either tool is unavailable (e.g. semgrep not installed), record `tool.<id>: unavailable — <reason>` in the review output and proceed with manual-only evidence for that check.
+Do not output the Stage 2 result until `tool.rule-scan` and `tool.security-scan` have both been executed on the changed files, or until each unavailable/degraded direct tool has structured substitute evidence or a valid manual override caveat. If either tool is unavailable (e.g. Semgrep not installed), record `tool.<id>: unavailable — <reason>` in the review output, distinguish substitute/manual evidence from direct tool evidence, and proceed only with clearly labeled limitations for that check.
+
+### Scan/Tool Evidence Reporting
+
+Before writing Stage 2, include a dedicated `Scan/Tool Evidence` section. Code Reviewer must not output the Stage 2 result until scan evidence is one of: direct successful tool evidence, structured unavailable/degraded direct status with substitute evidence, or a valid manual override with caveats.
+
+The `Scan/Tool Evidence` section must report:
+
+- direct tool status for `tool.rule-scan` and `tool.security-scan`: availability state, result state, changed-file scope, finding counts, severity/category summary, and `runtime_tooling` validation-surface label
+- substitute status when direct invocation is unavailable or degraded: what actually ran, direct-tool unavailable/degraded reason, substitute validation surface, substitute limitations, and why it is not being reported as successful direct evidence
+- manual override caveats: target stage, unavailable tool, reason, substitute evidence ids if any, substitute limitations, actor if known, and caveat that the override is exceptional and cannot avoid triaging usable noisy scan output
+- classification summary grouped by rule, severity/category, and relevance to the changed work, using `blocking`, `true_positive`, `non_blocking_noise`, `false_positive`, `follow_up`, and `unclassified`
+- false-positive rationale for every false-positive group: rule/finding identity, file or area, context, behavior/security impact, rationale, and follow-up decision; test-fixture security placeholders must be distinguished from production/runtime code
+- validation-surface labels that keep OpenKit scan evidence (`runtime_tooling` or stored `compatibility_runtime`) separate from target-project app validation (`target_project_app`, unavailable when no app-native command exists)
+- artifact refs for raw scan output, evidence records, and related implementation/task artifacts; high-volume findings must be summarized and linked, not dumped as an untriaged wall
+
+Blocking rule: any unclassified scan group, unresolved `true_positive`, or `blocking` security finding must produce `NEEDS WORK` unless the issue is explicitly routed with approved unresolved-risk handling.
 
 ### Evidence requirement in output
 
@@ -85,9 +101,13 @@ The review output must include a `Tool Evidence` section:
 
 ```text
 Tool Evidence:
-- rule-scan: <finding_count> findings on <file_count> files (or: unavailable — <reason>)
-- security-scan: <finding_count> findings on <file_count> files (or: unavailable — <reason>)
+- rule-scan: direct=<available|unavailable|degraded|not_configured>, result=<succeeded|failed|unavailable|degraded>, findings=<finding_count> on <file_count> files, surface=runtime_tooling (or substitute/manual evidence with limitations)
+- security-scan: direct=<available|unavailable|degraded|not_configured>, result=<succeeded|failed|unavailable|degraded>, findings=<finding_count> on <file_count> files, surface=runtime_tooling (or substitute/manual evidence with limitations)
 - syntax-outline: <file_count> files outlined (or: not needed — all files under 100 lines)
+- classification summary: blocking=<n>, true_positive=<n>, non_blocking_noise=<n>, false_positive=<n>, follow_up=<n>, unclassified=<n>
+- false positives: <none | rule/file/context/rationale/impact/follow-up>
+- manual override caveats: <none | target_stage/tool/reason/substitute limitations/actor/caveat>
+- artifact refs: <raw scan output/evidence records/task refs>
 ```
 
 **Categories:**

@@ -415,6 +415,36 @@ export function validateRuntimeConfig(config) {
     errors.push('notifications must be an object when provided.');
   }
 
+  if (isPlainObject(config.supervisorDialogue)) {
+    validateBooleanIfPresent(config.supervisorDialogue.enabled, 'supervisorDialogue.enabled', errors);
+    if (isPlainObject(config.supervisorDialogue.openclaw)) {
+      const openclaw = config.supervisorDialogue.openclaw;
+      if (
+        openclaw.transport !== undefined &&
+        !['unconfigured', 'http', 'command'].includes(openclaw.transport)
+      ) {
+        errors.push('supervisorDialogue.openclaw.transport must be one of: unconfigured, http, command.');
+      }
+      if (openclaw.url !== undefined && openclaw.url !== null && typeof openclaw.url !== 'string') {
+        errors.push('supervisorDialogue.openclaw.url must be a string or null when provided.');
+      }
+      if (openclaw.command !== undefined && openclaw.command !== null && typeof openclaw.command !== 'string') {
+        errors.push('supervisorDialogue.openclaw.command must be a string or null when provided.');
+      }
+      if (openclaw.args !== undefined) {
+        validateStringArray(openclaw.args, 'supervisorDialogue.openclaw.args', errors);
+      }
+      if (openclaw.timeoutMs !== undefined) {
+        validatePositiveIntegerIfPresent(openclaw.timeoutMs, 'supervisorDialogue.openclaw.timeoutMs', errors);
+      }
+      validateObjectIfPresent(openclaw.env, 'supervisorDialogue.openclaw.env', errors);
+    } else if (config.supervisorDialogue.openclaw !== undefined) {
+      errors.push('supervisorDialogue.openclaw must be an object when provided.');
+    }
+  } else if (config.supervisorDialogue !== undefined) {
+    errors.push('supervisorDialogue must be an object when provided.');
+  }
+
   if (isPlainObject(config.tmux)) {
     validateBooleanIfPresent(config.tmux.enabled, 'tmux.enabled', errors);
     if (

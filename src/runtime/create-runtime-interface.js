@@ -2,6 +2,28 @@ import { summarizeRuntimeCapabilities } from './capability-registry.js';
 import { inspectWorkflowDoctor } from './doctor/workflow-doctor.js';
 import { recoverSessionState } from './recovery/session-recovery.js';
 
+function getSupervisorManagerHealth(supervisorDialogueManager) {
+  const description = supervisorDialogueManager?.describe?.() ?? null;
+  if (!description) {
+    return null;
+  }
+
+  const enabled = description.enabled === true;
+  const configured = description.adapter?.configured === true;
+  const availability = enabled && configured ? 'available' : 'not_configured';
+  const status = enabled ? (configured ? 'available' : 'unconfigured') : 'disabled';
+
+  return {
+    ...description,
+    validation_surface: 'runtime_tooling',
+    health: {
+      status,
+      availability,
+      attention_state: 'none',
+    },
+  };
+}
+
 export function createRuntimeInterface({
   projectRoot,
   configResult,
@@ -21,6 +43,7 @@ export function createRuntimeInterface({
   const capabilitySummary = summarizeRuntimeCapabilities(capabilities);
   const latestSession = managers.sessionStateManager?.latest?.() ?? null;
   const workflowDoctor = inspectWorkflowDoctor(managers.workflowKernel);
+  const supervisorDialogue = getSupervisorManagerHealth(managers.supervisorDialogueManager);
   const recovery = recoverSessionState(latestSession, {
     workflowRuntime: managers.workflowKernel,
     backgroundManager: managers.backgroundManager,
@@ -54,6 +77,7 @@ export function createRuntimeInterface({
       actionModelState: managers.actionModelStateManager?.list?.() ?? [],
       syntaxIndex: managers.syntaxIndexManager?.describe?.() ?? null,
       projectGraph: managers.projectGraphManager?.getGraphSummary?.() ?? null,
+      supervisorDialogue,
       skillMcpBindings: managers.skillMcpManager?.listBindings?.().length ?? 0,
       latestSession,
       recovery,

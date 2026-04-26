@@ -17,7 +17,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Read `README.md` for the top-level product and runtime boundary summary
 - Read `docs/operations/runbooks/openkit-daily-usage.md` for the detailed day-to-day usage path in this repository
 - Read `docs/operator/surface-contract.md` when you need a fast answer to "which OpenKit surface should I use right now?"
-- Install the CLI with `npm install -g @duypham93/openkit`, then run `openkit install` to provision all runtime tooling, then `openkit run` for first-time setup and `openkit doctor` to verify readiness
+- Install the CLI with `npm install -g @duypham93/openkit`, then use `openkit doctor` for a non-mutating readiness check and `openkit run` to launch OpenKit. The first `openkit run` materializes the managed kit when needed.
 - Once OpenCode is open, use `Ctrl+P` and choose `/task`, `/quick-task`, `/migrate`, or `/delivery` to enter the right workflow lane
 - If you want different providers or models per agent, run `/configure-agent-models`, `openkit configure-agent-models --interactive`, or `openkit configure-agent-models --models` before starting the session you care about
 - Use `/task` unless you already know the work must start in `Quick Task`, `Migration`, or `Full Delivery`
@@ -25,15 +25,21 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 
 ## Minimal First Session
 
-- `npm install -g @duypham93/openkit`
-- `openkit install`
-- `openkit doctor`
-- `openkit run`
+Preferred product path (`global_cli`):
+
+1. `npm install -g @duypham93/openkit`
+2. `openkit doctor`
+3. `openkit run`
+
+Lifecycle maintenance stays on the same product surface: use `openkit upgrade` to refresh the managed global kit and `openkit uninstall` to remove it.
+
+Then use the in-session path (`in_session`):
+
 - Wait for OpenCode to open with `master-orchestrator`
 - Press `Ctrl+P`
 - Run `/task <what you want to do>`
 - Fall back to `/quick-task`, `/migrate`, or `/delivery` only when the lane is obvious
-- If workflow context already exists and you need a plain-language resume snapshot, use `node .opencode/workflow-state.js resume-summary`
+- If workflow context already exists and you need a plain-language resume snapshot, use the compatibility runtime path (`compatibility_runtime`): `node .opencode/workflow-state.js resume-summary`
 
 ## Operator Routes
 
@@ -57,7 +63,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Slash commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`
 - Global diagnostics: `openkit doctor`
 - Global launcher: `openkit run`
-- Global lifecycle: `npm install -g @duypham93/openkit`, `openkit install`, `openkit upgrade`, `openkit uninstall`
+- Global lifecycle: `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, `openkit uninstall`
 - Onboarding helper: `openkit onboard`
 - Runtime foundation visibility: `openkit doctor`
 - Runtime foundation config template: `assets/openkit.runtime.jsonc.template`
@@ -72,13 +78,29 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - OpenKit does have validation for its own runtime and CLI surfaces through `tests/` and `.opencode/tests/`
 - This repository still does not define repo-native build, lint, or test commands for arbitrary generated application code
 - Treat `openkit doctor` and `node .opencode/workflow-state.js doctor` as OpenKit/runtime verification, not as substitutes for target-project app testing
+- Label evidence by validation surface: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, or `target_project_app`. Use `target_project_app` only when the target project actually declares the relevant build, lint, or test command.
 
 ## Boundary Notes
 
 - The preferred user path is the global OpenKit install in the OpenCode home directory
-- `openkit install-global` remains available as a manual or compatibility setup command, but it is no longer the preferred onboarding step
+- `openkit install` and `openkit install-global` remain available as manual or compatibility setup commands, but neither is the preferred onboarding step
+- Repository-local workflow-state commands are supported for state inspection and maintainer diagnostics; do not present them as the normal install or launch path
 - `.opencode/opencode.json` remains the checked-in repository-local OpenCode config in this repository
 - `src/runtime/` now adds a capability-runtime foundation without changing the canonical workflow path
 - `Quick Task+` remains the current semantics of the `quick` lane, not a third live mode
 - When role boundaries feel fuzzy, use `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form contract for who owns scope, solution, code review, and runtime verification
 - When AI reading scope or file priority feels fuzzy, use `docs/maintainer/2026-03-26-ai-surface-map.md` as the strict map for active versus historical surfaces
+
+## Lane And Artifact Expectations
+
+| Lane | Primary artifacts | Optional artifacts | Validation expectation |
+| --- | --- | --- | --- |
+| `Quick Task` / `quick` | workflow communication with confirmed understanding, selected option, plan, and verification evidence | `docs/tasks/YYYY-MM-DD-<task>.md` task card | closest real check; record missing app-native validation honestly |
+| `Migration` / `migration` | migration solution package in `docs/solution/`, baseline and parity context in workflow state | consolidated migration report in `docs/solution/*-report.md`; strategy-enabled migration slice board | baseline, parity, compatibility, rollback, and real project/tool evidence |
+| `Full Delivery` / `full` | Product Lead scope package in `docs/scope/` before Solution Lead package in `docs/solution/`; implementation evidence; QA report in `docs/qa/` after review | ADRs in `docs/adr/`; full-delivery execution task board when approved | approved solution validation plus OpenKit runtime/CLI evidence where relevant |
+
+Full-delivery `product_to_solution` is not optional: Solution Lead design depends on an approved Product Lead scope package. Full-delivery task boards are full-only; quick mode has no task board, and migration slice tracking remains migration-specific and parity-oriented.
+
+## Missing App-Native Validation
+
+If a target repository does not declare its own build, lint, test, smoke, or regression command, record that app-native validation is unavailable for `target_project_app`. Use `openkit doctor`, workflow-state `doctor`, governance tests, and runtime checks only as evidence for OpenKit surfaces (`global_cli`, `compatibility_runtime`, `runtime_tooling`, or `documentation`); they do not prove target application behavior.

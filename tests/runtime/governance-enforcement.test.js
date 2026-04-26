@@ -109,6 +109,83 @@ test('Fullstack and QA roles explicitly call the verification-before-completion 
   assert.match(qa, /verification-before-completion/);
 });
 
+test('scan evidence reporting requirements stay explicit in role prompts and QA template', () => {
+  const roleFiles = [
+    'agents/fullstack-agent.md',
+    'agents/code-reviewer.md',
+    'agents/qa-agent.md',
+  ];
+
+  for (const file of roleFiles) {
+    const contents = read(file);
+    assert.match(contents, /Scan\/Tool Evidence Reporting/);
+    assert.match(contents, /direct tool status/);
+    assert.match(contents, /substitute status/);
+    assert.match(contents, /manual override caveats/);
+    assert.match(contents, /classification summary/);
+    assert.match(contents, /false-positive rationale/);
+    assert.match(contents, /validation-surface labels/);
+    assert.match(contents, /artifact refs/);
+  }
+
+  const qaTemplate = read('docs/templates/qa-report-template.md');
+  assert.match(qaTemplate, /## Scan\/Tool Evidence/);
+  assert.match(qaTemplate, /Direct Tool Status/);
+  assert.match(qaTemplate, /Substitute\/Manual Evidence/);
+  assert.match(qaTemplate, /Classification Summary/);
+  assert.match(qaTemplate, /False-Positive Rationale/);
+  assert.match(qaTemplate, /Manual Override Caveats/);
+  assert.match(qaTemplate, /Validation Surface/);
+  assert.match(qaTemplate, /Artifact Refs/);
+});
+
+test('QA reporting contract requires FEATURE-940 supervisor dialogue evidence', () => {
+  const qaTemplate = read('docs/templates/qa-report-template.md');
+  const projectConfig = read('context/core/project-config.md');
+  const runtimeSurfaces = read('context/core/runtime-surfaces.md');
+  const supportedSurfaces = read('docs/operator/supported-surfaces.md');
+  const kitInternals = read('docs/kit-internals/04-tools-hooks-skills-and-mcps.md');
+  const docs = [qaTemplate, projectConfig, runtimeSurfaces, supportedSurfaces, kitInternals].join('\n');
+
+  assert.match(qaTemplate, /## Supervisor Dialogue Evidence/);
+  assert.match(qaTemplate, /supervisor health/i);
+  assert.match(qaTemplate, /outbound event statuses/i);
+  assert.match(qaTemplate, /inbound dispositions/i);
+  assert.match(qaTemplate, /authority[- ]boundary rejection/i);
+  assert.match(qaTemplate, /duplicate\/repeated proposal/i);
+  assert.match(qaTemplate, /degraded\/offline/i);
+  assert.match(qaTemplate, /proof.*no workflow mutation.*inbound/i);
+
+  assert.match(docs, /FEATURE-940/);
+  assert.match(docs, /FEATURE-937[^\n]*historical risk/i);
+  assert.match(docs, /FEATURE-939 scan\/tool evidence/i);
+  assert.match(docs, /target-project app validation.*unavailable/i);
+});
+
+test('operator and maintainer docs describe scan evidence states and triage policy', () => {
+  const docs = [
+    read('docs/operator/semgrep.md'),
+    read('docs/operator/supported-surfaces.md'),
+    read('docs/maintainer/test-matrix.md'),
+    read('docs/kit-internals/04-tools-hooks-skills-and-mcps.md'),
+    read('context/core/tool-substitution-rules.md'),
+    read('context/core/approval-gates.md'),
+  ].join('\n');
+
+  assert.match(docs, /bundled rule packs/);
+  assert.match(docs, /Availability states/);
+  assert.match(docs, /Result states/);
+  assert.match(docs, /Evidence types/);
+  assert.match(docs, /High-volume finding triage/);
+  assert.match(docs, /False-positive requirements/);
+  assert.match(docs, /Manual override limits/);
+  assert.match(docs, /direct_tool/);
+  assert.match(docs, /substitute_scan/);
+  assert.match(docs, /manual_override/);
+  assert.match(docs, /runtime_tooling/);
+  assert.match(docs, /target_project_app/);
+});
+
 test('package scripts expose governance and install-bundle verification gates', () => {
   const packageJson = JSON.parse(read('package.json'));
 
@@ -194,4 +271,42 @@ test('canonical docs keep the managed path model and environment anchors explici
 
   assert.match(supportedSurfaces, /separate layers and should not be treated as interchangeable paths/);
   assert.match(surfaceContract, /keep the path model explicit: global kit root for managed kit\/config, workspace state root for active runtime state, project `\.opencode\/` for compatibility shim behavior/);
+});
+
+test('operator and runtime docs expose command reality, validation surfaces, and orchestration boundaries', () => {
+  const readme = read('README.md');
+  const operator = read('docs/operator/README.md');
+  const surfaceContract = read('docs/operator/surface-contract.md');
+  const supportedSurfaces = read('docs/operator/supported-surfaces.md');
+  const runtimeSurfaces = read('context/core/runtime-surfaces.md');
+  const projectConfig = read('context/core/project-config.md');
+  const workflow = read('context/core/workflow.md');
+  const parallelMatrix = read('docs/maintainer/parallel-execution-matrix.md');
+
+  assert.match(readme, /npm install -g @duypham93\/openkit/);
+  assert.match(readme, /openkit doctor/);
+  assert.match(readme, /openkit run/);
+  assert.match(readme, /openkit upgrade/);
+  assert.match(readme, /openkit uninstall/);
+  assert.match(readme, /manual\/compatibility helper/);
+
+  assert.match(operator, /Lane And Artifact Expectations/);
+  assert.match(operator, /Product Lead scope package in `docs\/scope\/` before Solution Lead package/);
+  assert.match(surfaceContract, /global_cli/);
+  assert.match(surfaceContract, /target_project_app/);
+
+  for (const doc of [supportedSurfaces, runtimeSurfaces, projectConfig]) {
+    assert.match(doc, /available/);
+    assert.match(doc, /unavailable/);
+    assert.match(doc, /degraded/);
+    assert.match(doc, /preview/);
+    assert.match(doc, /compatibility_only/);
+    assert.match(doc, /not_configured/);
+    assert.match(doc, /target_project_app/);
+  }
+
+  assert.match(workflow, /parallel_mode = none/);
+  assert.match(workflow, /full-delivery task-board semantics are not applied to migration by default/);
+  assert.match(parallelMatrix, /parallel_mode: none/);
+  assert.match(parallelMatrix, /Master Orchestrator remains route\/state\/gate control only/);
 });

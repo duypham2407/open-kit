@@ -2,6 +2,12 @@
 
 ## Latest
 
+- [`0.3.29`](release-notes/0.3.29.md) - add OpenClaw supervisor dialogue and structured scan evidence gates
+- npm latest: `@duypham93/openkit@0.3.29`
+- git tag: `v0.3.29`
+
+## Previous
+
 - [`0.3.28`](release-notes/0.3.28.md) - add explicit retained worktree launch controls and fix verify/runtime status handling
 - npm latest: `@duypham93/openkit@0.3.28`
 - git tag: `v0.3.28`
@@ -10,6 +16,7 @@
 
 Historical release notes tracked in-repo:
 
+- [`0.3.29`](release-notes/0.3.29.md) - add OpenClaw supervisor dialogue and structured scan evidence gates
 - [`0.3.28`](release-notes/0.3.28.md) - add explicit retained worktree launch controls and fix verify/runtime status handling
 - [`0.3.27`](release-notes/0.3.27.md) - require quick-task alignment before option analysis and plan confirmation
 - [`0.3.26`](release-notes/0.3.26.md) - fix global MCP bridge startup and publish plugin runtime surfaces

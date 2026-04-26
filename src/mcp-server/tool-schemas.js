@@ -268,6 +268,31 @@ export const TOOL_SCHEMAS = {
     },
   },
 
+  // ── Audit tools ──────────────────────────────────────────────────────
+  'tool.rule-scan': {
+    description:
+      'Run the Semgrep-backed OpenKit quality/rule scan against the current project or a target path. Returns structured availability, findings, triage summary, and evidence hints.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Project-relative or in-project absolute target path (default: project root)' },
+        config: { type: 'string', description: 'Semgrep config alias or path (default: auto bundled quality pack)' },
+      },
+    },
+  },
+
+  'tool.security-scan': {
+    description:
+      'Run the Semgrep-backed OpenKit security scan against the current project or a target path. Returns structured availability, findings, triage summary, and evidence hints.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        path: { type: 'string', description: 'Project-relative or in-project absolute target path (default: project root)' },
+        config: { type: 'string', description: 'Semgrep config alias or path (default: bundled security-audit pack)' },
+      },
+    },
+  },
+
   // ── Workflow tools ───────────────────────────────────────────────────
   'tool.workflow-state': {
     description:

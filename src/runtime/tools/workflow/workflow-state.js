@@ -2,6 +2,11 @@ export function createWorkflowStateTool({ projectRoot, workflowKernel }) {
   return {
     id: 'tool.workflow-state',
     description: 'Reads governed workflow runtime state',
+    family: 'workflow',
+    stage: 'foundation',
+    status: 'active',
+    capabilityState: 'compatibility_only',
+    validationSurface: 'compatibility_runtime',
     execute(input = 'status') {
       const command = typeof input === 'string' ? input : input?.command ?? 'status';
       const customStatePath = typeof input === 'string' ? null : input?.customStatePath ?? null;

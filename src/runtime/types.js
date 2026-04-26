@@ -31,6 +31,7 @@ export const DEFAULT_RUNTIME_MANAGER_IDS = [
   'manager.config-handler',
   'manager.background',
   'manager.skill-mcp',
+  'manager.supervisor-dialogue',
   'manager.notifications',
   'manager.tmux',
 ];

@@ -35,7 +35,10 @@ When you are validating operator-facing behavior, treat this order as primary:
 1. `npm install -g @duypham93/openkit`
 2. `openkit doctor`
 3. `openkit run`
-4. `node .opencode/workflow-state.js ...` only when you need raw repository/runtime inspection
+4. `openkit upgrade` or `openkit uninstall` for lifecycle maintenance
+5. `node .opencode/workflow-state.js ...` only when you need raw repository/runtime inspection
+
+`openkit install` and `openkit install-global` remain manual/compatibility paths. Do not use them as the preferred operator onboarding sequence in new docs.
 
 ## Automated Checks
 
@@ -175,7 +178,7 @@ Expected outcome:
 
 - `status` prints the active runtime summary using the current state file, including the active profile plus registry and install-manifest paths
 - `resume-summary` prints the next safe action, linked artifacts, pending approvals, and open issues for quick operator or maintainer resume
-- `resume-summary --json` exposes the same resumable context for automation-friendly consumers
+- `resume-summary --json` exposes the same resumable context for automation-friendly consumers, including `validation_surfaces`, diagnostic surface labels, verification readiness, evidence lines, and issue telemetry
 - short views trade detail for speed while staying grounded in the same runtime state
 - `doctor` reports repository runtime checks instead of application-tooling health
 - `doctor` includes contract-consistency checks for declared runtime surfaces and schema alignment

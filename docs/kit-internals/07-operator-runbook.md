@@ -9,17 +9,26 @@ verifying the semantic search pipeline end to end.
 
 ```
 npm install -g @duypham93/openkit
+openkit doctor
+openkit run
+```
+
+This is the preferred operator path: global package install, non-mutating readiness check, then launch. The first `openkit run` materializes the managed kit into the OpenCode home directory when needed.
+
+Manual compatibility provisioning still exists when you intentionally need it:
+
+```
 openkit install --verify
 ```
 
-`openkit install --verify` checks:
+`openkit install --verify` is not the preferred onboarding step; it is a manual/compatibility helper that checks:
+
 - kit materialization into the OpenCode home directory
 - `better-sqlite3` native module availability
 - `web-tree-sitter` and tree-sitter grammar packages
 - node_modules provisioning for the managed kit
 
-If `better-sqlite3` is missing, the install step provisions it automatically.
-If it fails (e.g., missing build tools), you will see a clear error message.
+If `better-sqlite3` is missing, `openkit doctor` reports the global readiness issue and recovery guidance. If manual provisioning fails (e.g., missing build tools), you will see a clear error message.
 
 ### Verify with doctor
 
@@ -37,6 +46,10 @@ embedding         active     provider: ollama (nomic-embed-text)
 
 If `embedding` shows `degraded` or `unavailable`, see the configuration step
 below.
+
+Use the standard capability vocabulary in reports: `available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, and `not_configured`. Semantic search without embeddings may be degraded to keyword search; disabled embedding config is not configured.
+
+Keep validation surfaces separate while debugging this stack: `openkit doctor` is `global_cli`; graph, embedding, and semantic-search tools are `runtime_tooling`; workflow-state resume and evidence diagnostics are `compatibility_runtime`; target-project app validation remains `target_project_app` only when the project defines real build, lint, or test commands.
 
 ## 2. Configure Embedding Provider
 
@@ -133,6 +146,8 @@ Once indexed, semantic search is available through:
 | **hybrid** | Embedding provider available + indexed project | Merges vector similarity (70%) with keyword matching (30%) plus rerank boosts |
 | **embedding** | Provider available, no keyword hits | Pure vector similarity |
 | **keyword** | No embedding provider or no embeddings | Symbol name matching with normalized scoring |
+
+If semantic search returns keyword-only results because embeddings are absent, report the capability as `degraded`, not fully available. If the embedding provider is disabled or missing config, report `not_configured` until the provider is enabled.
 
 ### Example search from a session
 

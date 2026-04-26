@@ -41,7 +41,8 @@ Current repository facts:
 - The current workflow contract is the active Product Lead / Solution Lead design described in `context/core/workflow.md`
 - `context/core/workflow.md` is the canonical workflow-semantics document for lane behavior, stages, escalation, approvals, and quick-lane artifact expectations
 - Historical planning and example docs should live under `docs/archive/`; prefer current runtime docs and git history when older rationale is needed
-- `npm install -g @duypham93/openkit`, `openkit run`, `openkit doctor`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit
+- `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit
+- Operator command surfaces stay split: `global_cli` handles install, doctor, launch, upgrade, and uninstall; `in_session` slash commands handle lane selection and workflow execution; `compatibility_runtime` handles lower-level workflow-state inspection and maintainer diagnostics
 - `.opencode/opencode.json` is present as the repository-local OpenCode config for this kit
 - `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item
 - `.opencode/work-items/` is present as the internal per-item workflow backing store for managed runtime state
@@ -52,6 +53,7 @@ Current repository facts:
 - No repo-native build command is currently defined for application code
 - No repo-native lint command is currently defined for application code
 - No repo-native test command is currently defined for application code
+- Missing target-project application build, lint, or test commands must be reported as unavailable app-native validation, not replaced by OpenKit runtime, CLI, or workflow-state checks
 - No `.cursorrules` file was found
 - No `.cursor/rules/` directory was found
 - No `.github/copilot-instructions.md` file was found
@@ -75,6 +77,7 @@ Approved follow-on direction from FEATURE-002 also includes:
 The next product-layer direction is the global OpenKit kit layered over OpenCode while preserving the checked-in authoring and compatibility runtime. In this repository today:
 
 - the global install path is implemented for the `openkit` CLI and stores the managed kit inside the OpenCode home directory, materializing it automatically on first `openkit run`
+- `openkit install` and `openkit install-global` remain manual or compatibility setup helpers when the CLI exposes them, but they are not the preferred operator onboarding path
 - `.opencode/opencode.json` remains the checked-in repository-local OpenCode config for the authoring surface
 - `registry.json` remains checked-in local metadata describing repository surfaces and profiles
 - `.opencode/install-manifest.json` remains additive local install metadata for this repository

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,10 +14,10 @@ const mcpBin = path.join(projectRoot, 'bin', 'openkit-mcp.js');
 // Helpers: send JSON-RPC messages to the MCP server over stdio
 // ---------------------------------------------------------------------------
 
-function createMcpClient() {
+function createMcpClient({ env = {} } = {}) {
   const child = spawn(process.execPath, [mcpBin], {
     cwd: projectRoot,
-    env: { ...process.env, OPENKIT_PROJECT_ROOT: projectRoot },
+    env: { ...process.env, OPENKIT_PROJECT_ROOT: projectRoot, ...env },
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 
@@ -121,6 +122,8 @@ test('MCP server lists tools via tools/list', async () => {
     assert.ok(toolNames.includes('tool.semantic-search'), 'should have tool.semantic-search');
     assert.ok(toolNames.includes('tool.syntax-outline'), 'should have tool.syntax-outline');
     assert.ok(toolNames.includes('tool.import-graph'), 'should have tool.import-graph');
+    assert.ok(toolNames.includes('tool.rule-scan'), 'should have tool.rule-scan');
+    assert.ok(toolNames.includes('tool.security-scan'), 'should have tool.security-scan');
 
     // Check tool structure
     const findSymbol = result.tools.find((t) => t.name === 'tool.find-symbol');
@@ -128,6 +131,38 @@ test('MCP server lists tools via tools/list', async () => {
     assert.ok(findSymbol.inputSchema, 'tool should have inputSchema');
     assert.equal(findSymbol.inputSchema.type, 'object');
     assert.ok(findSymbol.inputSchema.properties.name, 'find-symbol should have name property');
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP scan tools return structured unavailable when Semgrep is missing', async () => {
+  const tempHome = path.join(os.tmpdir(), `openkit-mcp-semgrep-missing-${Date.now()}`);
+  const client = createMcpClient({ env: { OPENCODE_HOME: tempHome, PATH: '' } });
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.rule-scan',
+      arguments: { path: 'src/runtime/tools/audit/rule-scan.js' },
+    });
+
+    assert.equal(result.isError, true, 'unavailable scan should be an error-like MCP result');
+    const parsed = JSON.parse(result.content[0].text);
+    assert.equal(parsed.status, 'unavailable');
+    assert.equal(parsed.capabilityState, 'unavailable');
+    assert.equal(parsed.validationSurface, 'runtime_tooling');
+    assert.equal(parsed.toolId, 'tool.rule-scan');
+    assert.equal(parsed.resultState, 'unavailable');
+    assert.equal(parsed.availability.state, 'unavailable');
+    assert.match(parsed.availability.reason, /semgrep/i);
+    assert.match(parsed.availability.fallback, /substitute|manual/i);
+    assert.equal(parsed.evidenceHint.evidenceType, 'direct_tool');
   } finally {
     await client.close();
   }

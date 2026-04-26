@@ -45,6 +45,16 @@ function renderCapabilityGuidance(doctor) {
   return lines.join('\n');
 }
 
+function renderSurfaceGuidance() {
+  return [
+    'Surface boundaries:',
+    '- Preferred product path (global_cli): `npm install -g @duypham93/openkit` -> `openkit doctor` -> `openkit run`; maintain with `openkit upgrade` and `openkit uninstall`.',
+    '- In-session workflow path (in_session): use `/task`, `/quick-task`, `/migrate`, or `/delivery` after OpenCode launches.',
+    '- Compatibility runtime path (compatibility_runtime): use `node .opencode/workflow-state.js ...` for workflow-state inspection, resume, task-board, issue, and evidence diagnostics.',
+    '- Validation split: OpenKit runtime checks are not target-project app validation; use target-project app validation only when that project defines build, lint, or test commands.',
+  ].join('\n');
+}
+
 export const onboardCommand = {
   name: 'onboard',
   async run(args = [], io) {
@@ -86,6 +96,8 @@ export const onboardCommand = {
     lines.push('- Use `openkit configure-agent-models --interactive` if you want agent-specific models before launch.');
     lines.push('');
     lines.push(renderLaneGuidance());
+    lines.push('');
+    lines.push(renderSurfaceGuidance());
 
     if (doctor.runtimeDoctor) {
       lines.push('');

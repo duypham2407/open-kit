@@ -194,9 +194,20 @@ export function renderGlobalDoctorSummary(result) {
 
   if (result.runtimeFoundation?.runtimeInterface) {
     const runtimeInterface = result.runtimeFoundation.runtimeInterface;
-    lines.push(
-      `Runtime foundation: v${runtimeInterface.foundationVersion} | capabilities ${runtimeInterface.capabilitySummary.total} | managers ${runtimeInterface.managers.filter((entry) => entry.enabled).length} | tools ${runtimeInterface.tools.length} | hooks ${runtimeInterface.hooks.length}`
-    );
+      lines.push(
+        `Runtime foundation: v${runtimeInterface.foundationVersion} | capabilities ${runtimeInterface.capabilitySummary.total} | managers ${runtimeInterface.managers.filter((entry) => entry.enabled).length} | tools ${runtimeInterface.tools.length} | hooks ${runtimeInterface.hooks.length}`
+      );
+      if (runtimeInterface.capabilitySummary.capabilityStates) {
+        const capabilityStateSummary = Object.entries(runtimeInterface.capabilitySummary.capabilityStates)
+          .map(([state, count]) => `${state}:${count}`)
+          .join(', ');
+        lines.push(`Capability states: ${capabilityStateSummary}`);
+      }
+      if (Array.isArray(runtimeInterface.validationSurfaces)) {
+        lines.push(`Validation surfaces: ${runtimeInterface.validationSurfaces.join(', ')}`);
+      } else {
+        lines.push('Validation surfaces: runtime_tooling, workflow_state, project_files, external_tooling');
+      }
       lines.push(
         `Runtime sessions: ${runtimeInterface.runtimeState.persistedSessions} | background runs: ${runtimeInterface.runtimeState.backgroundRuns} | skill MCP bindings: ${runtimeInterface.runtimeState.skillMcpBindings}`
       );

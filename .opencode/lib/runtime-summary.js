@@ -4,6 +4,8 @@ import path from "node:path"
 import { listBackgroundRuns } from "./background-run-store.js"
 import { validateMigrationSliceBoard } from "./migration-slice-rules.js"
 import { readWorkItemIndex, readWorkItemWorktree, resolveWorkItemPaths } from "./work-item-store.js"
+import { summarizeScanEvidence, summarizeScanEvidenceLines } from "./scan-evidence-summary.js"
+import { readSupervisorDialogueStore, summarizeSupervisorDialogue } from "./supervisor-dialogue-store.js"
 import {
   getArtifactReadiness,
   getIssueTelemetry,
@@ -157,6 +159,165 @@ function readJsonIfExists(filePath) {
   }
 }
 
+function createEmptySupervisorDialogueReadModel({ workItemId = null, storePath = null, error = null } = {}) {
+  return {
+    validation_surface: "compatibility_runtime",
+    present: false,
+    store_path: storePath,
+    work_item_id: workItemId,
+    health: {
+      provider: "openclaw",
+      status: error ? "unavailable" : "absent",
+      availability: "unavailable",
+      transport_health: error ? "unavailable" : "absent",
+      degraded_mode: true,
+      attention_required: false,
+      attention_state: "none",
+      reason: error ?? "Supervisor dialogue store is absent for this work item.",
+    },
+    delivery_counts: {
+      total: 0,
+      pending: 0,
+      delivered: 0,
+      failed: 0,
+      skipped: 0,
+    },
+    inbound_counts: {
+      messages: 0,
+      adjudications: 0,
+      rejected: 0,
+      authority_boundary_rejected: 0,
+      invalid_rejected: 0,
+      duplicates: 0,
+      attention_required: 0,
+      acknowledgements: 0,
+      suggestions: 0,
+      concerns: 0,
+    },
+    duplicate_counts: {
+      total: 0,
+      message_duplicates: 0,
+      proposal_duplicates: 0,
+    },
+    rejection_counts: {
+      total: 0,
+      authority_boundary: 0,
+      invalid: 0,
+    },
+    last_adjudication: null,
+  }
+}
+
+function countByDisposition(adjudications = [], disposition) {
+  return adjudications.filter((entry) => entry?.disposition === disposition).length
+}
+
+function countDedupeRecordsByReason(dedupeRecords = [], reason) {
+  return dedupeRecords.filter((entry) => entry?.reason === reason).length
+}
+
+function buildSupervisorDialogueReadModel(projectRoot, state) {
+  if (!state?.work_item_id) {
+    return null
+  }
+
+  let summary
+  try {
+    summary = summarizeSupervisorDialogue(projectRoot, state.work_item_id)
+  } catch (error) {
+    return createEmptySupervisorDialogueReadModel({
+      workItemId: state.work_item_id,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+
+  if (!summary?.present) {
+    return createEmptySupervisorDialogueReadModel({
+      workItemId: state.work_item_id,
+      storePath: summary?.storePath ?? null,
+    })
+  }
+
+  let store
+  try {
+    store = readSupervisorDialogueStore(projectRoot, state.work_item_id)
+  } catch (error) {
+    return createEmptySupervisorDialogueReadModel({
+      workItemId: state.work_item_id,
+      storePath: summary?.storePath ?? null,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+
+  const adjudications = Array.isArray(store.adjudications) ? store.adjudications : []
+  const dedupeRecords = Array.isArray(store.dedupe_records) ? store.dedupe_records : []
+  const deliveryStatusCounts = summary.counts?.outbound_delivery_statuses ?? {}
+  const authorityBoundaryRejected = countByDisposition(adjudications, "rejected_authority_boundary")
+  const invalidRejected = countByDisposition(adjudications, "invalid_rejected")
+  const duplicateAdjudications = countByDisposition(adjudications, "duplicate_ignored")
+  const dedupeRecordCount = dedupeRecords.length
+  const duplicateCount = dedupeRecordCount > 0 ? dedupeRecordCount : duplicateAdjudications
+  const attentionCount = countByDisposition(adjudications, "attention_required")
+  const attentionRequired = Boolean(store.session?.attention_required) || attentionCount > 0
+  const transportHealth = store.session?.transport_health ?? "unavailable"
+  const healthStatus = store.session?.status === "detached"
+    ? "detached"
+    : transportHealth === "healthy"
+      ? "healthy"
+      : transportHealth === "disabled"
+        ? "disabled"
+        : transportHealth === "unconfigured"
+          ? "unconfigured"
+          : "degraded"
+  const lastAdjudication = adjudications[adjudications.length - 1] ?? null
+
+  return {
+    ...summary,
+    validation_surface: "compatibility_runtime",
+    store_path: summary.storePath ?? null,
+    health: {
+      provider: store.session?.provider ?? "openclaw",
+      status: healthStatus,
+      availability: "available",
+      transport_health: transportHealth,
+      degraded_mode: Boolean(store.session?.degraded_mode),
+      attention_required: attentionRequired,
+      attention_state: attentionRequired ? "attention_required" : "none",
+      reason: store.session?.last_detach_reason ?? store.session?.last_append_error ?? null,
+    },
+    delivery_counts: {
+      total: summary.counts?.outbound_events ?? 0,
+      pending: deliveryStatusCounts.pending ?? 0,
+      delivered: deliveryStatusCounts.delivered ?? 0,
+      failed: deliveryStatusCounts.failed ?? 0,
+      skipped: deliveryStatusCounts.skipped ?? 0,
+    },
+    inbound_counts: {
+      messages: summary.counts?.inbound_messages ?? 0,
+      adjudications: summary.counts?.adjudications ?? 0,
+      rejected: authorityBoundaryRejected + invalidRejected,
+      authority_boundary_rejected: authorityBoundaryRejected,
+      invalid_rejected: invalidRejected,
+      duplicates: duplicateCount,
+      attention_required: attentionCount,
+      acknowledgements: countByDisposition(adjudications, "acknowledged"),
+      suggestions: countByDisposition(adjudications, "recorded_suggestion"),
+      concerns: countByDisposition(adjudications, "concern_recorded"),
+    },
+    duplicate_counts: {
+      total: duplicateCount,
+      message_duplicates: countDedupeRecordsByReason(dedupeRecords, "duplicate_message_id"),
+      proposal_duplicates: countDedupeRecordsByReason(dedupeRecords, "duplicate_proposal_key"),
+    },
+    rejection_counts: {
+      total: authorityBoundaryRejected + invalidRejected,
+      authority_boundary: authorityBoundaryRejected,
+      invalid: invalidRejected,
+    },
+    last_adjudication: lastAdjudication,
+  }
+}
+
 function getWorkItemIndexIfExists(projectRoot) {
   const indexPath = path.join(projectRoot, ".opencode", "work-items", "index.json")
   if (!fs.existsSync(indexPath)) {
@@ -282,6 +443,160 @@ function getSharedArtifactConflicts(task, activeArtifactUsage) {
   return {
     conflictingTaskIds: [...conflictingTaskIds],
     conflictingArtifactRefs: uniqueValues(conflictingArtifactRefs),
+  }
+}
+
+function hasUnresolvedStatus(entry) {
+  return !["resolved", "closed"].includes(entry?.current_status)
+}
+
+function arraysOverlap(left = [], right = []) {
+  const leftValues = Array.isArray(left) ? left : []
+  const rightValues = new Set(Array.isArray(right) ? right : [])
+  return leftValues.some((value) => rightValues.has(value))
+}
+
+function issueLinksToTask(issue, task) {
+  if (issue?.task_id === task.task_id) {
+    return true
+  }
+
+  if (Array.isArray(issue?.affects_tasks) && issue.affects_tasks.includes(task.task_id)) {
+    return true
+  }
+
+  return arraysOverlap(issue?.artifact_refs ?? [], task.artifact_refs ?? [])
+}
+
+function evidenceLinksToTask(evidence, task) {
+  if (evidence?.scope === task.task_id) {
+    return true
+  }
+
+  return arraysOverlap(evidence?.artifact_refs ?? [], task.artifact_refs ?? [])
+}
+
+function buildTaskIntegrationReadiness(tasks = [], parallelization = {}) {
+  const incompleteTasks = tasks.filter((task) => {
+    return !["done", "cancelled", "qa_in_progress", "qa_ready", "dev_done"].includes(task.status)
+  })
+  const integrationReady =
+    incompleteTasks.length === 0 &&
+    (parallelization.integration_checkpoint === null || typeof parallelization.integration_checkpoint === "string")
+
+  return {
+    status: integrationReady ? "ready" : "blocked-incomplete-tasks",
+    integration_ready: integrationReady,
+    checkpoint: parallelization.integration_checkpoint ?? null,
+    incomplete_task_ids: incompleteTasks.map((task) => task.task_id),
+  }
+}
+
+function buildTaskCoordination(projectRoot, state, taskBoardDetails) {
+  if (!state || state.mode !== "full" || !state.work_item_id || !taskBoardDetails?.present) {
+    return null
+  }
+
+  const boardPath = path.join(resolveWorkItemPaths(projectRoot, state.work_item_id).workItemDir, "tasks.json")
+  const board = readJsonIfExists(boardPath)
+  if (!board) {
+    return null
+  }
+
+  let tasks = Array.isArray(board.tasks) ? board.tasks : []
+  try {
+    tasks = applySequentialConstraintsToTasks(tasks, state.parallelization)
+  } catch (_error) {
+    // Keep the read model inspectable; validation surfaces report malformed constraints separately.
+  }
+
+  const unresolvedIssues = (state.issues ?? []).filter(hasUnresolvedStatus)
+  const verificationEvidence = Array.isArray(state.verification_evidence) ? state.verification_evidence : []
+  const safeParallelZones = state.parallelization?.safe_parallel_zones ?? []
+
+  return {
+    mode: "full",
+    current_stage: board.current_stage ?? state.current_stage,
+    parallel_mode: state.parallelization?.parallel_mode ?? "none",
+    safe_parallel_zones: safeParallelZones,
+    sequential_constraints: state.parallelization?.sequential_constraints ?? [],
+    integration_checkpoint: state.parallelization?.integration_checkpoint ?? null,
+    max_active_execution_tracks: state.parallelization?.max_active_execution_tracks ?? null,
+    allocation: taskBoardDetails.summary?.allocation ?? null,
+    orchestration_health: taskBoardDetails.orchestrationHealth ?? null,
+    integration_readiness: buildTaskIntegrationReadiness(tasks, state.parallelization ?? {}),
+    unresolved_issues: unresolvedIssues,
+    verification_evidence: verificationEvidence,
+    tasks: tasks.map((task) => {
+      const coverage = getSafeParallelZoneCoverage(task, safeParallelZones)
+      const linkedIssues = unresolvedIssues.filter((issue) => issueLinksToTask(issue, task))
+      const linkedEvidence = verificationEvidence.filter((entry) => evidenceLinksToTask(entry, task))
+
+      return {
+        task_id: task.task_id,
+        title: task.title,
+        kind: task.kind,
+        status: task.status,
+        primary_owner: task.primary_owner ?? null,
+        qa_owner: task.qa_owner ?? null,
+        artifact_refs: task.artifact_refs ?? [],
+        plan_refs: task.plan_refs ?? [],
+        depends_on: task.depends_on ?? [],
+        blocked_by: task.blocked_by ?? [],
+        sequential_constraint_dependencies: task.sequential_constraint_dependencies ?? [],
+        concurrency_class: task.concurrency_class ?? "parallel_safe",
+        branch_or_worktree: task.branch_or_worktree ?? null,
+        safe_parallel_zone_coverage: {
+          safe_parallel_zones: coverage.normalizedZones,
+          uncovered_artifact_refs: coverage.uncoveredArtifactRefs,
+        },
+        linked_issues: linkedIssues,
+        linked_evidence: linkedEvidence,
+      }
+    }),
+  }
+}
+
+function buildMigrationSliceCoordination(projectRoot, state, migrationSliceBoardDetails) {
+  if (!state || state.mode !== "migration" || !state.work_item_id || !migrationSliceBoardDetails?.present) {
+    return null
+  }
+
+  const boardPath = path.join(resolveWorkItemPaths(projectRoot, state.work_item_id).workItemDir, "migration-slices.json")
+  const board = readJsonIfExists(boardPath)
+  if (!board) {
+    return null
+  }
+
+  const slices = Array.isArray(board.slices) ? board.slices : []
+  const sliceArtifactRefs = slices.flatMap((slice) => slice.artifact_refs ?? [])
+  const verificationEvidence = Array.isArray(state.verification_evidence) ? state.verification_evidence : []
+
+  return {
+    mode: "migration",
+    current_stage: board.current_stage ?? state.current_stage,
+    parallel_mode: state.parallelization?.parallel_mode ?? board.parallel_mode ?? "none",
+    readiness: migrationSliceBoardDetails.readiness ?? null,
+    migration_context: state.migration_context ?? null,
+    unresolved_issues: (state.issues ?? []).filter(hasUnresolvedStatus),
+    parity_evidence: verificationEvidence.filter((entry) => {
+      return entry.scope?.includes("migration") || arraysOverlap(entry.artifact_refs ?? [], sliceArtifactRefs)
+    }),
+    slices: slices.map((slice) => ({
+      slice_id: slice.slice_id,
+      title: slice.title,
+      kind: slice.kind,
+      status: slice.status,
+      primary_owner: slice.primary_owner ?? null,
+      qa_owner: slice.qa_owner ?? null,
+      depends_on: slice.depends_on ?? [],
+      blocked_by: slice.blocked_by ?? [],
+      artifact_refs: slice.artifact_refs ?? [],
+      preserved_invariants: slice.preserved_invariants ?? [],
+      compatibility_risks: slice.compatibility_risks ?? [],
+      verification_targets: slice.verification_targets ?? [],
+      rollback_notes: slice.rollback_notes ?? [],
+    })),
   }
 }
 
@@ -921,20 +1236,26 @@ function getRuntimeContext(projectRoot, state) {
   const relatedBackgroundRuns = backgroundRuns.filter((run) => !state?.work_item_id || run.work_item_id === state.work_item_id)
   const taskBoard = getTaskBoardDetails(projectRoot, state, relatedBackgroundRuns)
   const migrationSliceBoard = getMigrationSliceBoardDetails(projectRoot, state)
+  const taskCoordination = buildTaskCoordination(projectRoot, state, taskBoard)
+  const migrationSliceCoordination = buildMigrationSliceCoordination(projectRoot, state, migrationSliceBoard)
   const retainedWorktree = state?.work_item_id ? readWorkItemWorktree(projectRoot, state.work_item_id) : null
-
+  const activeWorkItemId = index?.active_work_item_id ?? state?.work_item_id ?? null
+  const supervisorDialogue = buildSupervisorDialogueReadModel(projectRoot, state)
   return {
-    activeWorkItemId: index?.active_work_item_id ?? state?.work_item_id ?? null,
+    activeWorkItemId,
     workItemCount: index?.work_items?.length ?? null,
     taskBoardPresent: taskBoard.present,
     taskBoardSummary: taskBoard.summary,
+    taskCoordination,
     migrationSliceBoardPresent: migrationSliceBoard.present,
     migrationSliceSummary: migrationSliceBoard.summary,
     migrationSliceReadiness: migrationSliceBoard.readiness ?? null,
+    migrationSliceCoordination,
     migrationSliceBoardValid: migrationSliceBoard.valid,
     migrationSliceBoardError: migrationSliceBoard.error,
     orchestrationHealth: taskBoard.orchestrationHealth,
     retainedWorktree,
+    supervisorDialogue,
     nextAction: getNextAction(state),
     lastAutoScaffold: state?.last_auto_scaffold ?? null,
     lastAutoScaffoldLine:
@@ -946,6 +1267,8 @@ function getRuntimeContext(projectRoot, state) {
     verificationReadiness,
     verificationReadinessLine: summarizeVerificationReadinessLine(state),
     verificationEvidenceLines: summarizeVerificationEvidence(state),
+    scanEvidence: summarizeScanEvidence(state),
+    scanEvidenceLines: summarizeScanEvidenceLines(state),
     issueTelemetry,
     parallelization: getParallelizationSummary(state),
     backgroundRuns: relatedBackgroundRuns,

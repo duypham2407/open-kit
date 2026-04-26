@@ -13,7 +13,9 @@ npm run verify:all
 | If you change... | Run at minimum | Why |
 | --- | --- | --- |
 | workflow-state CLI output or commands | `node --test ".opencode/tests/workflow-state-cli.test.js"` | validates runtime CLI behavior |
+| workflow-state resume, evidence, issue, readiness, or validation-surface labels | `node --test ".opencode/tests/workflow-state-cli.test.js"` | validates compatibility-runtime read-model output and surface labeling |
 | governance or anti-hallucination prompt contracts | `node --test tests/runtime/governance-enforcement.test.js` | validates prompt, docs, and evidence-discipline guardrails |
+| scan/tool evidence reporting prompts, QA templates, Semgrep docs, or manual override language | `npm run verify:governance` and `node --test ".opencode/tests/workflow-contract-consistency.test.js"` | validates that reporting surfaces preserve direct/substitute/manual distinctions, validation-surface labels, and workflow contract alignment |
 | registry metadata contracts | `node --test tests/runtime/registry-metadata.test.js` | validates machine-readable workflow metadata |
 | workflow-state controller logic | `node --test ".opencode/tests/workflow-state-controller.test.js"` | validates state transitions and controller rules |
 | release readiness, DoD, analytics, or ops summaries | `node --test ".opencode/tests/workflow-state-controller.test.js" && node --test ".opencode/tests/workflow-state-cli.test.js"` | validates management and closure runtime behavior |
@@ -40,6 +42,31 @@ node --test ".opencode/tests/workflow-state-cli.test.js"
 node --test tests/runtime/governance-enforcement.test.js
 node --test tests/runtime/registry-metadata.test.js
 ```
+
+### Scan Evidence Reporting Changes
+
+Run:
+
+```bash
+npm run sync:install-bundle
+npm run verify:install-bundle
+npm run verify:governance
+node --test ".opencode/tests/workflow-contract-consistency.test.js"
+node .opencode/workflow-state.js validate
+```
+
+This bundle applies when changing role prompts, QA report templates, Semgrep/operator docs, supported-surface docs, approval gates, or tool-substitution guidance for scan evidence.
+
+Maintainer assertions for this surface:
+
+- bundled rule packs under `assets/semgrep/packs/` remain enough for standard OpenKit scan gates without hosted or network-only configs
+- Availability states use `available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, and `not_configured`
+- Result states distinguish scan execution success/failure from gate success/failure
+- Evidence types remain distinct: `direct_tool`, `substitute_scan`, and `manual_override`
+- High-volume finding triage groups results by rule, severity/category, area, and relevance instead of dumping raw output into reports
+- False-positive requirements include rule/finding id, file or area, context, rationale, behavior/security impact, and follow-up decision
+- Manual override limits keep overrides exceptional, caveated, and unavailable as a shortcut around noisy but usable scan findings
+- OpenKit scan evidence remains `runtime_tooling` or stored `compatibility_runtime`; it does not replace `target_project_app` build/lint/test validation
 
 ### Product CLI Changes
 
@@ -78,3 +105,7 @@ npm run verify:install-bundle
 - `tests/` covers product CLI, global install, install policy, and release/runtime adapter behavior
 - `.opencode/tests/` covers the checked-in workflow runtime, compatibility mirror, and session-start behavior
 - this repository still does not define repo-native build/lint/test commands for arbitrary generated application code
+- `openkit doctor` and `node .opencode/workflow-state.js doctor` validate different OpenKit surfaces and are not target-project app test substitutes
+- use validation surface labels in reports: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, and `target_project_app`
+- `target_project_app` evidence is valid only when the target project defines the corresponding build, lint, or test command; otherwise record that app-native validation is unavailable
+- runtime bootstrap tests should cover tool metadata surface labels when a tool crosses surfaces, for example workflow-state tools as `compatibility_runtime` and external typecheck/lint/test probes as `target_project_app`

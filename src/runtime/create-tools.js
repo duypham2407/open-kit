@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module';
+import { STANDARD_CAPABILITY_STATES, VALIDATION_SURFACES } from './capability-registry.js';
 import { createToolRegistry } from './tools/index.js';
 
 const require = createRequire(import.meta.url);
@@ -33,6 +34,42 @@ function summarizeToolFamilies(toolList = []) {
   }
 
   return [...families.values()].sort((left, right) => left.family.localeCompare(right.family));
+}
+
+function normalizeToolCapabilityState(tool) {
+  if (STANDARD_CAPABILITY_STATES.includes(tool.capabilityState)) {
+    return tool.capabilityState;
+  }
+
+  if (tool.status === 'active' || tool.status === 'ok') {
+    return 'available';
+  }
+
+  if (tool.status === 'degraded') {
+    return 'degraded';
+  }
+
+  if (tool.status === 'unavailable' || tool.status === 'dependency-missing') {
+    return 'unavailable';
+  }
+
+  if (tool.status === 'not_configured' || tool.status === 'not-configured') {
+    return 'not_configured';
+  }
+
+  if (tool.status === 'preview' || tool.status === 'preview-only' || tool.status === 'preview-ready') {
+    return 'preview';
+  }
+
+  return tool.stage === 'foundation' ? 'preview' : 'degraded';
+}
+
+function normalizeToolValidationSurface(tool) {
+  if (VALIDATION_SURFACES.includes(tool.validationSurface)) {
+    return tool.validationSurface;
+  }
+
+  return 'runtime_tooling';
 }
 
 export function createTools({ config, capabilityIndex, projectRoot, managers, mcpPlatform, modelRuntime, hooks = null, env = process.env }) {
@@ -70,6 +107,8 @@ export function createTools({ config, capabilityIndex, projectRoot, managers, mc
     stage: tool.stage ?? 'foundation',
     status: tool.status ?? 'foundation',
     family: tool.family ?? 'misc',
+    capabilityState: normalizeToolCapabilityState(tool),
+    validationSurface: normalizeToolValidationSurface(tool),
     capabilityStatus: capabilityIndex['capability.tool-registry']?.status ?? 'missing',
   }));
 

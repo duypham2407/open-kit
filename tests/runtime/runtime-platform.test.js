@@ -327,6 +327,7 @@ test('runtime foundation exposes workflow-backed tools, supervisor, and persiste
       ...process.env,
       HOME: makeTempDir(),
       OPENKIT_KIT_ROOT: sourceRoot,
+      OPENKIT_WORKFLOW_STATE: statePath,
     },
   });
 
@@ -350,12 +351,107 @@ test('runtime foundation exposes workflow-backed tools, supervisor, and persiste
   const runtimeSummaryResult = runtimeSummaryTool.execute({ customStatePath: statePath });
   assert.equal(runtimeSummaryResult.status, 'ok');
   assert.ok(runtimeSummaryResult.runtimeContext);
+  const scanEvidenceDetails = {
+    validation_surface: 'runtime_tooling',
+    scan_evidence: {
+      evidence_type: 'direct_tool',
+      direct_tool: {
+        tool_id: 'tool.rule-scan',
+        availability_state: 'available',
+        result_state: 'succeeded',
+        reason: null,
+      },
+      substitute: null,
+      scan_kind: 'rule',
+      target_scope_summary: 'changed runtime workflow files',
+      rule_config_source: 'bundled',
+      finding_counts: {
+        total: 3,
+        blocking: 0,
+        non_blocking_noise: 2,
+        false_positive: 1,
+        unclassified: 0,
+      },
+      severity_summary: {
+        WARNING: 2,
+        INFO: 1,
+      },
+      triage_summary: {
+        groupCount: 2,
+        blockingCount: 0,
+        nonBlockingNoiseCount: 1,
+        falsePositiveCount: 1,
+        followUpCount: 0,
+        unclassifiedCount: 0,
+        groups: [
+          {
+            ruleId: 'openkit.noisy-quality-rule',
+            severity: 'WARNING',
+            classification: 'non_blocking_noise',
+            count: 2,
+            rationale: 'Fixture warning unrelated to changed workflow evidence capture.',
+          },
+          {
+            ruleId: 'openkit.fixture-token',
+            severity: 'INFO',
+            classification: 'false_positive',
+            count: 1,
+            rationale: 'Test-only placeholder with no production exposure.',
+          },
+        ],
+      },
+      false_positive_summary: {
+        count: 1,
+        items: [
+          {
+            rule_id: 'openkit.fixture-token',
+            file: 'tests/fixtures/token.js',
+            context: 'test fixture placeholder',
+            rationale: 'Not a real secret and not loaded by runtime code.',
+            impact: 'No production or runtime security impact.',
+            follow_up: 'none',
+          },
+        ],
+      },
+      manual_override: null,
+    },
+  };
   assert.equal(evidenceTool.execute({
     id: 'runtime-platform-test',
-    scope: 'full_qa',
-    summary: 'runtime platform evidence',
+    kind: 'automated',
+    scope: 'full_code_review',
+    summary: 'runtime platform scan evidence',
+    source: 'tool.rule-scan',
+    artifact_refs: ['artifacts/rule-scan.json'],
+    details: scanEvidenceDetails,
     customStatePath: statePath,
   }).recorded, true);
+
+  const persistedState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  const persistedEvidence = persistedState.verification_evidence.find((entry) => entry.id === 'runtime-platform-test');
+  assert.deepEqual(persistedEvidence.details.scan_evidence, scanEvidenceDetails.scan_evidence);
+  assert.equal(persistedEvidence.details.validation_surface, 'runtime_tooling');
+  assert.notEqual(persistedEvidence.details.validation_surface, 'target_project_app');
+
+  const scanRuntimeSummary = runtimeSummaryTool.execute({ customStatePath: statePath });
+  const compactScanEvidence = scanRuntimeSummary.runtimeContext.scanEvidence.find((entry) => entry.evidence_id === 'runtime-platform-test');
+  assert.equal(compactScanEvidence.validation_surface, 'runtime_tooling');
+  assert.equal(compactScanEvidence.evidence_type, 'direct_tool');
+  assert.equal(compactScanEvidence.direct_tool.tool_id, 'tool.rule-scan');
+  assert.equal(compactScanEvidence.direct_tool.availability_state, 'available');
+  assert.equal(compactScanEvidence.direct_tool.result_state, 'succeeded');
+  assert.equal(compactScanEvidence.finding_counts.total, 3);
+  assert.equal(compactScanEvidence.classification_summary.non_blocking_noise_count, 1);
+  assert.equal(compactScanEvidence.classification_summary.false_positive_count, 1);
+  assert.equal(compactScanEvidence.false_positive_summary.count, 1);
+  assert.deepEqual(compactScanEvidence.artifact_refs, ['artifacts/rule-scan.json']);
+  assert.ok(scanRuntimeSummary.runtimeContext.scanEvidenceLines.some((line) => (
+    line.includes('runtime-platform-test') &&
+    line.includes('direct tool.rule-scan available/succeeded') &&
+    line.includes('surface runtime_tooling') &&
+    line.includes('findings total=3') &&
+    line.includes('false-positive count=1')
+  )));
   assert.equal(Array.isArray(result.managers.skillMcpManager.listBindings()), true);
   assert.equal(result.runtimeInterface.runtimeState.skillMcpBindings >= 0, true);
   assert.equal(stageHook.run({ requiredStages: [status.state.current_stage] }).ready, true);
@@ -694,7 +790,7 @@ test('syntax tools return structured invalid-path and missing-file responses', a
   assert.equal(missingFile.status, 'missing-file');
 });
 
-test('wrapToolExecution records degraded and invalid statuses as failures', async () => {
+test('wrapToolExecution records degraded, unavailable, not_configured, and invalid statuses as failures', async () => {
   const calls = [];
   const wrapped = wrapToolExecution(
     {
@@ -717,13 +813,19 @@ test('wrapToolExecution records degraded and invalid statuses as failures', asyn
 
   wrapped.execute({ status: 'invalid-input' });
   wrapped.execute({ status: 'dependency-missing' });
+  wrapped.execute({ status: 'unavailable' });
+  wrapped.execute({ status: 'not_configured' });
   wrapped.execute({ status: 'ok' });
 
   assert.equal(calls[0].type, 'failure');
   assert.equal(calls[0].payload.detail, 'invalid-input');
   assert.equal(calls[1].type, 'failure');
   assert.equal(calls[1].payload.detail, 'dependency-missing');
-  assert.equal(calls[2].type, 'success');
+  assert.equal(calls[2].type, 'failure');
+  assert.equal(calls[2].payload.detail, 'unavailable');
+  assert.equal(calls[3].type, 'failure');
+  assert.equal(calls[3].payload.detail, 'not_configured');
+  assert.equal(calls[4].type, 'success');
 });
 
 test('delegated implementation runs round-trip task status through the workflow kernel', () => {

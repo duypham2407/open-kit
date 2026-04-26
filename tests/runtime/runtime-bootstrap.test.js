@@ -62,6 +62,27 @@ test('bootstrapRuntimeFoundation builds config, capabilities, managers, tools, h
   assert.equal(JSON.parse(result.runtimeInterface.environment.OPENKIT_RUNTIME_CONFIG_CONTENT).tmux.enabled, true);
 });
 
+test('bootstrapRuntimeFoundation exposes disabled unconfigured supervisor health as non-fatal runtime state', () => {
+  const projectRoot = makeTempDir();
+  const homeRoot = makeTempDir();
+
+  const result = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: {
+      HOME: homeRoot,
+    },
+  });
+
+  const supervisorManager = result.runtimeInterface.managers.find((manager) => manager.id === 'manager.supervisor-dialogue');
+  assert.equal(supervisorManager.enabled, false);
+  assert.equal(supervisorManager.availability, 'not_configured');
+  assert.equal(supervisorManager.validation_surface, 'runtime_tooling');
+  assert.equal(result.runtimeInterface.runtimeState.supervisorDialogue.health.status, 'disabled');
+  assert.equal(result.runtimeInterface.runtimeState.supervisorDialogue.health.availability, 'not_configured');
+  assert.equal(result.runtimeInterface.runtimeState.supervisorDialogue.adapter.transport, 'unconfigured');
+  assert.equal(result.runtimeInterface.runtimeState.supervisorDialogue.validation_surface, 'runtime_tooling');
+});
+
 test('bootstrapRuntimeFoundation read-only mode does not materialize background runtime state', () => {
   const projectRoot = makeTempDir();
   const homeRoot = makeTempDir();

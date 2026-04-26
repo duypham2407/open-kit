@@ -203,10 +203,41 @@ function parseGlobalFlags(argv) {
   return { args, statePath }
 }
 
+function parseRecordVerificationEvidenceArgs(rest) {
+  const positional = [...rest]
+  let details = null
+  const detailsFlagIndex = positional.indexOf("--details-json")
+
+  if (detailsFlagIndex !== -1) {
+    const rawDetails = positional[detailsFlagIndex + 1]
+    if (!rawDetails) {
+      throw new Error("record-verification-evidence requires a value for --details-json")
+    }
+
+    try {
+      details = JSON.parse(rawDetails)
+    } catch (error) {
+      throw new Error(`Invalid JSON for --details-json: ${error.message}`)
+    }
+
+    positional.splice(detailsFlagIndex, 2)
+  }
+
+  return {
+    positional,
+    details,
+  }
+}
+
 function printState(prefix, result) {
   console.log(prefix)
   console.log(`State file: ${result.statePath}`)
   printRuntimeTaskContext(result.runtimeContext)
+  if (Array.isArray(result.runtimeContext?.scanEvidenceLines) && result.runtimeContext.scanEvidenceLines.length > 0) {
+    for (const line of result.runtimeContext.scanEvidenceLines) {
+      console.log(line)
+    }
+  }
   console.log(JSON.stringify(result.state, null, 2))
 }
 
@@ -306,6 +337,28 @@ function printRuntimeTaskContext(context) {
       console.log(`long-running runs: ${context.backgroundRunSummary.longRunningRunIds.join(", ")}`)
     }
   }
+
+  if (context.supervisorDialogue) {
+    const supervisor = context.supervisorDialogue
+    const health = supervisor.health ?? {}
+    const deliveryCounts = supervisor.delivery_counts ?? {
+      pending: supervisor.counts?.pending_outbound_events ?? 0,
+      delivered: supervisor.counts?.outbound_delivery_statuses?.delivered ?? 0,
+      failed: supervisor.counts?.outbound_delivery_statuses?.failed ?? 0,
+      skipped: supervisor.counts?.outbound_delivery_statuses?.skipped ?? 0,
+    }
+    const rejectionCount = supervisor.rejection_counts?.total ?? 0
+    const duplicateCount = supervisor.duplicate_counts?.total ?? 0
+    const attentionState = health.attention_state ?? (supervisor.session?.attention_required ? "attention_required" : "none")
+    console.log(
+      `supervisor dialogue: ${health.provider ?? supervisor.session?.provider ?? "openclaw"} | health ${health.status ?? supervisor.session?.transport_health ?? "unknown"} | pending ${deliveryCounts.pending ?? 0} | delivered ${deliveryCounts.delivered ?? 0} | failed ${deliveryCounts.failed ?? 0} | skipped ${deliveryCounts.skipped ?? 0} | rejections ${rejectionCount} | duplicates ${duplicateCount} | attention ${attentionState === "attention_required" ? "required" : "none"}`,
+    )
+    if (supervisor.last_adjudication) {
+      console.log(
+        `supervisor last adjudication: ${supervisor.last_adjudication.disposition} | message ${supervisor.last_adjudication.message_id ?? "none"} | reason ${supervisor.last_adjudication.reason ?? "none"}`,
+      )
+    }
+  }
 }
 
 function printRuntimeStatus(runtime) {
@@ -327,6 +380,11 @@ function printRuntimeStatus(runtime) {
   printRuntimeTaskContext(runtime.runtimeContext)
   if (runtime.runtimeContext.verificationReadinessLine) {
     console.log(runtime.runtimeContext.verificationReadinessLine)
+  }
+  if (Array.isArray(runtime.runtimeContext.scanEvidenceLines) && runtime.runtimeContext.scanEvidenceLines.length > 0) {
+    for (const line of runtime.runtimeContext.scanEvidenceLines) {
+      console.log(line)
+    }
   }
   if (runtime.runtimeContext.issueTelemetry) {
     console.log(
@@ -378,6 +436,14 @@ function buildResumeSummary(runtime) {
   const approvals = summarizeApprovalStatuses(state)
   const artifacts = flattenArtifactRefs(state)
   const issues = Array.isArray(state?.issues) ? state.issues : []
+  const validationSurfaces = {
+    global_cli: "OpenKit product CLI install, launch, upgrade, uninstall, and doctor checks",
+    in_session: "Slash-command lane routing, workflow stage ownership, and handoff behavior",
+    compatibility_runtime: "Repository-local workflow-state inspection, resume, readiness, issue, and evidence diagnostics",
+    runtime_tooling: "OpenKit runtime tools including graph, semantic search, AST, syntax, codemod, MCP, browser, and background execution",
+    documentation: "Roadmap, operator, maintainer, governance, and runbook artifacts",
+    target_project_app: "Target-project build, lint, and test commands only when the project defines them",
+  }
 
   return {
     state_file: runtime.statePath,
@@ -394,10 +460,15 @@ function buildResumeSummary(runtime) {
     artifact_readiness: runtimeContext.artifactReadinessLines ?? [],
     verification_readiness: runtimeContext.verificationReadiness ?? null,
     verification_evidence: runtimeContext.verificationEvidenceLines ?? [],
+    scan_evidence: runtimeContext.scanEvidence ?? [],
+    scan_evidence_lines: runtimeContext.scanEvidenceLines ?? [],
+    supervisor_dialogue: runtimeContext.supervisorDialogue ?? null,
     issue_telemetry: runtimeContext.issueTelemetry ?? null,
     task_board: runtimeContext.taskBoardSummary ?? null,
+    task_coordination: runtimeContext.taskCoordination ?? null,
     migration_slice_board: runtimeContext.migrationSliceSummary ?? null,
     migration_slice_readiness: runtimeContext.migrationSliceReadiness ?? null,
+    migration_slice_coordination: runtimeContext.migrationSliceCoordination ?? null,
     parallelization: runtimeContext.parallelization ?? null,
     last_auto_scaffold: runtimeContext.lastAutoScaffold ?? null,
     escalated_from: state.escalated_from ?? null,
@@ -411,8 +482,11 @@ function buildResumeSummary(runtime) {
     ],
     diagnostics: {
       global: "openkit doctor",
+      global_surface: "global_cli",
       runtime: "node .opencode/workflow-state.js doctor",
+      runtime_surface: "compatibility_runtime",
     },
+    validation_surfaces: validationSurfaces,
   }
 }
 
@@ -469,6 +543,11 @@ function printResumeSummary(runtime) {
   if (Array.isArray(runtimeContext.verificationEvidenceLines) && runtimeContext.verificationEvidenceLines.length > 0) {
     console.log(`verification evidence: ${runtimeContext.verificationEvidenceLines.join(" | ")}`)
   }
+  if (Array.isArray(runtimeContext.scanEvidenceLines) && runtimeContext.scanEvidenceLines.length > 0) {
+    for (const line of runtimeContext.scanEvidenceLines) {
+      console.log(line)
+    }
+  }
   if (runtimeContext.taskBoardSummary) {
     console.log(
       `task board: ${runtimeContext.taskBoardSummary.total} tasks | ready ${runtimeContext.taskBoardSummary.ready} | active ${runtimeContext.taskBoardSummary.active}`,
@@ -522,7 +601,7 @@ function printResumeSummary(runtime) {
     "read next: AGENTS.md -> context/navigation.md -> context/core/workflow.md -> context/core/session-resume.md",
   )
   console.log(
-    "diagnostics: openkit doctor for global readiness | node .opencode/workflow-state.js doctor for runtime diagnostics",
+    "diagnostics: [global_cli] openkit doctor for global readiness | [compatibility_runtime] node .opencode/workflow-state.js doctor for runtime diagnostics",
   )
 }
 
@@ -667,6 +746,11 @@ function printCloseoutSummary(result) {
   }
   if (result.verificationReadiness?.status) {
     console.log(`verification readiness: ${result.verificationReadiness.status}`)
+  }
+  if (Array.isArray(result.scanEvidenceLines) && result.scanEvidenceLines.length > 0) {
+    for (const line of result.scanEvidenceLines) {
+      console.log(line)
+    }
   }
 }
 
@@ -848,6 +932,11 @@ function printPolicyStatus(result) {
   console.log(`manual override: ${result.hasManualOverride ? "yes" : "no"}`)
   if (result.toolEvidenceGate) {
     console.log(`tool evidence gate (Tier 2): ${result.toolEvidenceGate.passed ? "passed" : "blocked"}`)
+    if (Array.isArray(result.toolEvidenceGate.missingGroups) && result.toolEvidenceGate.missingGroups.length > 0) {
+      for (const group of result.toolEvidenceGate.missingGroups) {
+        console.log(`  missing: ${group.join(" or ")}`)
+      }
+    }
     if (result.toolEvidenceGate.blockers.length > 0) {
       for (const blocker of result.toolEvidenceGate.blockers) {
         console.log(`  ${blocker}`)
@@ -1380,7 +1469,7 @@ async function main() {
       result = getPolicyStatus(statePath)
       printPolicyStatus(result)
       process.exit(
-        (result.policy?.passed !== false && result.toolEvidenceGate?.passed !== false) || result.hasManualOverride ? 0 : 1,
+        result.policy?.passed !== false && result.toolEvidenceGate?.passed !== false ? 0 : 1,
       )
       return
     case "claim-task":
@@ -1494,23 +1583,28 @@ async function main() {
       printIssueAgingReport(result)
       return
     case "record-verification-evidence":
+      {
+      const parsed = parseRecordVerificationEvidenceArgs(rest)
+      const positional = parsed.positional
       result = recordVerificationEvidence(
         {
-          id: rest[0],
-          kind: rest[1],
-          scope: rest[2],
-          summary: rest[3],
-          source: rest[4],
-          command: rest[5] ?? null,
-          exit_status: rest[6] === undefined ? null : Number(rest[6]),
-          artifact_refs: rest[7] ? rest[7].split(",") : [],
+          id: positional[0],
+          kind: positional[1],
+          scope: positional[2],
+          summary: positional[3],
+          source: positional[4],
+          command: positional[5] ?? null,
+          exit_status: positional[6] === undefined ? null : Number(positional[6]),
+          artifact_refs: positional[7] ? positional[7].split(",") : [],
           recorded_at: new Date().toISOString(),
+          ...(parsed.details ? { details: parsed.details } : {}),
         },
         statePath,
       )
-      console.log(`Recorded verification evidence '${rest[0]}'`)
+      console.log(`Recorded verification evidence '${positional[0]}'`)
       console.log(`State file: ${result.statePath}`)
       return
+      }
     case "clear-verification-evidence":
       result = clearVerificationEvidence(statePath)
       console.log("Cleared verification evidence")

@@ -6,8 +6,13 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const repositoryRoot = path.resolve(__dirname, "..", "..")
 
 import { runDoctor, getContractConsistencyReport } from "../lib/workflow-state-controller.js"
+
+function readRepo(filePath) {
+  return fs.readFileSync(path.join(repositoryRoot, filePath), "utf8")
+}
 
 function makeTempProject() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "openkit-contract-check-"))
@@ -383,6 +388,29 @@ test("contract consistency accepts canonical full-delivery task-board ownership 
       (check) => check.label === "workflow contract states full delivery owns execution task boards" && check.ok === true,
     ),
   )
+})
+
+test("role and QA reporting artifacts preserve scan evidence contract wording", () => {
+  const requiredFiles = [
+    "agents/fullstack-agent.md",
+    "agents/code-reviewer.md",
+    "agents/qa-agent.md",
+    "docs/templates/qa-report-template.md",
+    "context/core/approval-gates.md",
+    "context/core/tool-substitution-rules.md",
+  ]
+
+  for (const file of requiredFiles) {
+    const contents = readRepo(file)
+    assert.match(contents, /Scan\/Tool Evidence/)
+    assert.match(contents, /direct tool status|Direct Tool Status/)
+    assert.match(contents, /substitute status|Substitute\/Manual Evidence/)
+    assert.match(contents, /classification summary|Classification Summary/)
+    assert.match(contents, /false-positive rationale|False-Positive Rationale/)
+    assert.match(contents, /manual override caveats|Manual Override Caveats/)
+    assert.match(contents, /validation-surface labels|Validation Surface/)
+    assert.match(contents, /artifact refs|Artifact Refs/)
+  }
 })
 
 test("contract consistency accepts equivalent compatibility mirror wording", () => {

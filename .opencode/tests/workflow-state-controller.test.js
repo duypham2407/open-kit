@@ -66,6 +66,7 @@ import {
   _resetWorkItemStore,
 } from "../lib/workflow-state-controller.js"
 import * as workItemStore from "../lib/work-item-store.js"
+import { readSupervisorDialogueStore } from "../lib/supervisor-dialogue-store.js"
 import { createInvocationLogger, resolveLogPath } from "../lib/invocation-log.js"
 import { checkPolicy, enforcePolicy, TOOL_INVOCATION_POLICIES } from "../lib/policy-engine.js"
 
@@ -227,12 +228,113 @@ function createTask(overrides = {}) {
   }
 }
 
+function countGroupsByClassification(groups, classification) {
+  return groups.filter((group) => group.classification === classification).length
+}
+
+function makeScanEvidenceDetails({
+  toolId = "tool.rule-scan",
+  scanKind = "rule",
+  evidenceType = "direct_tool",
+  availabilityState = "available",
+  resultState = "succeeded",
+  groups = [],
+  falsePositiveItems = [],
+  manualOverride = null,
+  substitute = null,
+} = {}) {
+  const total = groups.reduce((sum, group) => sum + (group.count ?? 0), 0)
+  return {
+    validation_surface: "runtime_tooling",
+    scan_evidence: {
+      evidence_type: evidenceType,
+      direct_tool: {
+        tool_id: toolId,
+        availability_state: availabilityState,
+        result_state: resultState,
+        reason: availabilityState === "available" ? null : "direct scan tool unavailable in this test",
+      },
+      substitute,
+      scan_kind: scanKind,
+      target_scope_summary: "changed runtime workflow files",
+      rule_config_source: "bundled",
+      finding_counts: {
+        total,
+        blocking: countGroupsByClassification(groups, "blocking") + countGroupsByClassification(groups, "true_positive"),
+        non_blocking_noise: countGroupsByClassification(groups, "non_blocking_noise"),
+        false_positive: countGroupsByClassification(groups, "false_positive"),
+        unclassified: countGroupsByClassification(groups, "unclassified"),
+      },
+      severity_summary: groups.reduce((summary, group) => {
+        const severity = group.severity ?? "WARNING"
+        summary[severity] = (summary[severity] ?? 0) + (group.count ?? 0)
+        return summary
+      }, {}),
+      triage_summary: {
+        groupCount: groups.length,
+        blockingCount: countGroupsByClassification(groups, "blocking") + countGroupsByClassification(groups, "true_positive"),
+        nonBlockingNoiseCount: countGroupsByClassification(groups, "non_blocking_noise"),
+        falsePositiveCount: countGroupsByClassification(groups, "false_positive"),
+        followUpCount: countGroupsByClassification(groups, "follow_up"),
+        unclassifiedCount: countGroupsByClassification(groups, "unclassified"),
+        groups,
+      },
+      false_positive_summary: {
+        count: falsePositiveItems.length,
+        items: falsePositiveItems,
+      },
+      manual_override: manualOverride,
+    },
+  }
+}
+
+function makeValidManualOverrideDetails({
+  targetStage = "full_code_review",
+  unavailableTool = "tool.rule-scan",
+  availabilityState = "unavailable",
+  resultState = "unavailable",
+} = {}) {
+  return makeScanEvidenceDetails({
+    toolId: unavailableTool,
+    evidenceType: "manual_override",
+    availabilityState,
+    resultState,
+    groups: [],
+    substitute: {
+      ran: false,
+      command_or_tool: null,
+      validation_surface: "runtime_tooling",
+      limitations: "no substitute scan output available in this environment",
+    },
+    manualOverride: {
+      target_stage: targetStage,
+      unavailable_tool: unavailableTool,
+      reason: "managed Semgrep executable unavailable",
+      substitute_evidence_ids: [],
+      substitute_limitations: "no substitute scan output available in this environment",
+      actor: "FullstackAgent",
+      caveat: "Manual override is exceptional and does not prove target-project app validation.",
+    },
+  })
+}
+
 function writeTaskBoard(statePath, workItemId, board) {
   const projectRoot = path.dirname(path.dirname(statePath))
   const boardPath = path.join(projectRoot, ".opencode", "work-items", workItemId, "tasks.json")
   fs.mkdirSync(path.dirname(boardPath), { recursive: true })
   fs.writeFileSync(boardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
   return boardPath
+}
+
+function readSupervisorEvents(statePath, workItemId) {
+  const projectRoot = path.dirname(path.dirname(statePath))
+  return readSupervisorDialogueStore(projectRoot, workItemId).outbound_events
+}
+
+function supervisorEventTypesSince(statePath, workItemId, offset) {
+  return readSupervisorEvents(statePath, workItemId)
+    .slice(offset)
+    .map((event) => event.event_type)
 }
 
 function writeMigrationSliceBoard(statePath, workItemId, board) {
@@ -721,6 +823,7 @@ test("migration mode advances through its canonical stage chain", () => {
       scope: "migration_upgrade",
       summary: "Rule scan on migrated files",
       source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -839,6 +942,7 @@ test("migration_done is blocked until migration slices are verified or cancelled
       scope: "migration_upgrade",
       summary: "Rule scan on migrated files",
       source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -1083,6 +1187,209 @@ test("listStaleIssues returns repeated or reopened open issues", () => {
   const result = listStaleIssues(statePath)
   assert.equal(result.issues.length, 1)
   assert.equal(result.issues[0].issue_id, "ISSUE-2")
+})
+
+test("authority writes append outbound supervisor events only after successful state writes", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-940-A", "authority-events", statePath)
+  advanceStage("full_product", statePath)
+  linkArtifact("scope_package", showState(statePath).state.artifacts.scope_package, statePath)
+
+  let baseline = readSupervisorEvents(statePath, "feature-940-a").length
+  setApproval("product_to_solution", "approved", "ProductLead", "2026-04-25", "Approved", statePath)
+  assert.deepEqual(supervisorEventTypesSince(statePath, "feature-940-a", baseline), ["approval_changed"])
+
+  baseline = readSupervisorEvents(statePath, "feature-940-a").length
+  advanceStage("full_solution", statePath)
+  assert.deepEqual(supervisorEventTypesSince(statePath, "feature-940-a", baseline), ["stage_changed"])
+
+  writeTaskBoard(statePath, "feature-940-a", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ task_id: "TASK-F940-A", title: "Authority event task", status: "ready" })],
+    issues: [],
+  })
+  linkArtifact("solution_package", showState(statePath).state.artifacts.solution_package, statePath)
+  setApproval("solution_to_fullstack", "approved", "SolutionLead", "2026-04-25", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+
+  baseline = readSupervisorEvents(statePath, "feature-940-a").length
+  recordVerificationEvidence(
+    {
+      id: "authority-evidence",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Authority event evidence recorded",
+      source: "test",
+      recorded_at: "2026-04-25T00:00:00.000Z",
+    },
+    statePath,
+  )
+  assert.deepEqual(supervisorEventTypesSince(statePath, "feature-940-a", baseline), ["verification_signal"])
+
+  baseline = readSupervisorEvents(statePath, "feature-940-a").length
+  recordIssue(
+    {
+      issue_id: "ISSUE-AUTHORITY",
+      title: "Authority blocker",
+      type: "bug",
+      severity: "high",
+      rooted_in: "implementation",
+      recommended_owner: "FullstackAgent",
+      evidence: "Blocking implementation evidence",
+      artifact_refs: [],
+    },
+    statePath,
+  )
+  assert.deepEqual(supervisorEventTypesSince(statePath, "feature-940-a", baseline), ["issue_or_blocker_signal", "work_item_blocked", "human_attention_needed"])
+})
+
+test("failed authority writes do not append success supervisor events", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-F940-FAIL", "authority-fail", "Failed writes should not emit success events", statePath)
+  advanceStage("quick_brainstorm", statePath)
+  const baseline = readSupervisorEvents(statePath, "task-f940-fail").length
+
+  assert.throws(
+    () => setApproval("product_to_solution", "approved", "user", "2026-04-25", "Wrong gate", statePath),
+    /mode 'quick'/,
+  )
+  assert.throws(() => advanceStage("quick_test", statePath), /immediate next stage 'quick_plan'/)
+  assert.throws(
+    () =>
+      recordVerificationEvidence(
+        {
+          id: "bad-evidence",
+          kind: "not-valid",
+          scope: "quick_test",
+          summary: "Invalid evidence should fail validation",
+          source: "test",
+          recorded_at: "2026-04-25T00:00:00.000Z",
+        },
+        statePath,
+      ),
+    /verification_evidence\[0\]\.kind/,
+  )
+  assert.throws(
+    () =>
+      recordIssue(
+        {
+          issue_id: "ISSUE-BAD",
+          title: "Bad issue",
+          type: "unknown",
+          severity: "high",
+          rooted_in: "implementation",
+          recommended_owner: "FullstackAgent",
+          evidence: "Invalid issue should fail validation",
+          artifact_refs: [],
+        },
+        statePath,
+      ),
+    /issues\[0\]\.type/,
+  )
+  assert.throws(() => updateIssueStatus("ISSUE-MISSING", "resolved", statePath), /Unknown issue/)
+
+  assert.equal(readSupervisorEvents(statePath, "task-f940-fail").length, baseline)
+})
+
+test("issue status changes append status and unblock supervisor events after the write", () => {
+  const statePath = createTempStateFile()
+
+  startTask("full", "FEATURE-940-I", "issue-status-events", "Issue status events", statePath)
+  recordIssue(
+    {
+      issue_id: "ISSUE-STATUS",
+      title: "Issue status signal",
+      type: "bug",
+      severity: "medium",
+      rooted_in: "implementation",
+      recommended_owner: "FullstackAgent",
+      evidence: "Open issue",
+      artifact_refs: [],
+    },
+    statePath,
+  )
+  const baseline = readSupervisorEvents(statePath, "feature-940-i").length
+
+  updateIssueStatus("ISSUE-STATUS", "resolved", statePath)
+
+  assert.deepEqual(supervisorEventTypesSince(statePath, "feature-940-i", baseline), ["issue_status_changed", "work_item_unblocked"])
+})
+
+test("task-board status and blocker changes append supervisor events only after board writes succeed", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-940-T", "task-status-events", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  createBoardTask(
+    "feature-940-t",
+    {
+      task_id: "TASK-F940-T",
+      title: "Task event coverage",
+      summary: "Emit task status events",
+      kind: "implementation",
+      created_by: "SolutionLead",
+    },
+    statePath,
+  )
+  createBoardTask(
+    "feature-940-t",
+    {
+      task_id: "TASK-F940-BLOCKER",
+      title: "Resolved blocker task",
+      summary: "Provides a valid blocker reference",
+      kind: "implementation",
+      status: "done",
+      qa_owner: "QA-Agent",
+      created_by: "SolutionLead",
+    },
+    statePath,
+  )
+  let baseline = readSupervisorEvents(statePath, "feature-940-t").length
+
+  claimTask("feature-940-t", "TASK-F940-T", "Dev-A", statePath, { requestedBy: "SolutionLead" })
+  assert.deepEqual(supervisorEventTypesSince(statePath, "feature-940-t", baseline), ["task_status_changed"])
+
+  baseline = readSupervisorEvents(statePath, "feature-940-t").length
+  assert.throws(() => setTaskStatus("feature-940-t", "TASK-F940-T", "dev_done", statePath), /Invalid task transition/)
+  assert.equal(readSupervisorEvents(statePath, "feature-940-t").length, baseline)
+
+  setTaskStatus("feature-940-t", "TASK-F940-T", "in_progress", statePath)
+  baseline = readSupervisorEvents(statePath, "feature-940-t").length
+  setTaskStatus("feature-940-t", "TASK-F940-T", "dev_done", statePath)
+  assert.deepEqual(supervisorEventTypesSince(statePath, "feature-940-t", baseline), ["task_status_changed"])
+
+  assignQaOwner("feature-940-t", "TASK-F940-T", "QA-Agent", statePath, { requestedBy: "SolutionLead" })
+  setTaskStatus("feature-940-t", "TASK-F940-T", "qa_ready", statePath)
+  setTaskStatus("feature-940-t", "TASK-F940-T", "qa_in_progress", statePath)
+  setTaskStatus("feature-940-t", "TASK-F940-T", "blocked", statePath)
+  baseline = readSupervisorEvents(statePath, "feature-940-t").length
+  setTaskStatus("feature-940-t", "TASK-F940-T", "claimed", statePath)
+  assert.deepEqual(supervisorEventTypesSince(statePath, "feature-940-t", baseline), ["task_status_changed", "task_unblocked"])
+})
+
+test("supervisor append failure degrades reporting without rolling back successful authority write", () => {
+  const statePath = createTempStateFile()
+
+  startTask("quick", "TASK-F940-DEGRADE", "append-degrade", "Append failure should degrade", statePath)
+  const projectRoot = path.dirname(path.dirname(statePath))
+  const storeDir = path.join(projectRoot, ".opencode", "work-items", "task-f940-degrade")
+  const storePath = path.join(storeDir, "supervisor-dialogue.json")
+  fs.mkdirSync(storeDir, { recursive: true })
+  fs.writeFileSync(storePath, "not json", "utf8")
+
+  const result = advanceStage("quick_brainstorm", statePath)
+
+  assert.equal(result.state.current_stage, "quick_brainstorm")
+  assert.equal(workItemStore.readWorkItemState(projectRoot, "task-f940-degrade").current_stage, "quick_brainstorm")
+
+  const repairedStore = readSupervisorDialogueStore(projectRoot, "task-f940-degrade")
+  assert.equal(repairedStore.session.degraded_mode, true)
+  assert.equal(repairedStore.session.attention_required, true)
+  assert.equal(repairedStore.session.transport_health, "degraded")
+  assert.match(repairedStore.session.last_detach_reason, /supervisor append failed/i)
 })
 
 test("workflow metrics and short runtime summary expose readiness state", () => {
@@ -1553,6 +1860,7 @@ test("advancing full_implementation to full_qa fails when task board has incompl
       scope: "full_implementation",
       summary: "Rule scan on changed files",
       source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -1570,6 +1878,7 @@ test("advancing full_implementation to full_qa fails when task board has incompl
       scope: "full_code_review",
       summary: "Security scan on changed files",
       source: "tool.security-scan",
+      details: makeScanEvidenceDetails({ toolId: "tool.security-scan", scanKind: "security", groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -1638,6 +1947,7 @@ test("valid full-delivery task board passes implementation and QA stage enforcem
       scope: "full_implementation",
       summary: "Rule scan on changed files",
       source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -1655,6 +1965,7 @@ test("valid full-delivery task board passes implementation and QA stage enforcem
       scope: "full_code_review",
       summary: "Security scan on changed files",
       source: "tool.security-scan",
+      details: makeScanEvidenceDetails({ toolId: "tool.security-scan", scanKind: "security", groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -2135,7 +2446,7 @@ test("full_code_review is blocked without rule-scan tool evidence", () => {
   )
 })
 
-test("full_code_review passes with rule-scan tool evidence", () => {
+test("full_code_review blocks legacy source-only rule-scan evidence without structured scan details", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-802", "tool-gate-cr-pass", statePath)
@@ -2164,8 +2475,213 @@ test("full_code_review passes with rule-scan tool evidence", () => {
   ])
   setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
 
+  assert.throws(
+    () => advanceStage("full_code_review", statePath),
+    /structured details\.scan_evidence/i,
+  )
+})
+
+test("full_code_review blocks scan evidence missing direct tool classification", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-802C", "tool-gate-cr-malformed-structured", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-802c", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "ready" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  const details = makeScanEvidenceDetails({ groups: [] })
+  delete details.scan_evidence.direct_tool.tool_id
+  recordVerificationEvidence(
+    {
+      id: "rule-scan-802c",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Malformed structured scan evidence",
+      source: "tool.rule-scan",
+      details,
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-802c", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+
+  assert.throws(
+    () => advanceStage("full_code_review", statePath),
+    /details\.scan_evidence\.direct_tool\.tool_id/i,
+  )
+})
+
+test("full_code_review passes with structured zero-finding rule-scan evidence", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-802B", "tool-gate-cr-pass-structured", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-802b", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "ready" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-scan-802b",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan on changed files",
+      source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-802b", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+
   const result = advanceStage("full_code_review", statePath)
   assert.equal(result.state.current_stage, "full_code_review")
+})
+
+test("full_code_review blocks rule-scan source with mismatched security direct tool evidence", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-939-8", "scan-gate-cr-tool-id-mismatch", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-939-8", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "ready" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-source-security-direct-mismatch",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan source incorrectly carries security scan structured identity",
+      source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ toolId: "tool.security-scan", scanKind: "security", groups: [] }),
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-939-8", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+    { tool_id: "tool.security-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+
+  assert.throws(
+    () => advanceStage("full_code_review", statePath),
+    /identifies tool\.security-scan.*requires tool\.rule-scan/i,
+  )
+})
+
+test("full_code_review is blocked when rule-scan evidence has unclassified findings", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-939-1", "scan-gate-unclassified", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-939-1", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "ready" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-scan-unclassified",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan has findings that were not triaged",
+      source: "tool.rule-scan",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({
+        groups: [
+          {
+            ruleId: "openkit.quality.noisy-rule",
+            severity: "WARNING",
+            classification: "unclassified",
+            count: 17,
+          },
+        ],
+      }),
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-939-1", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+
+  assert.throws(
+    () => advanceStage("full_code_review", statePath),
+    /unclassified scan findings remain/i,
+  )
+})
+
+test("full_code_review passes with classified non-blocking quality noise", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-939-2", "scan-gate-noise", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-939-2", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "ready" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-scan-noise",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan noise was classified and remains traceable",
+      source: "tool.rule-scan",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({
+        groups: [
+          {
+            ruleId: "openkit.quality.noisy-rule",
+            severity: "WARNING",
+            classification: "non_blocking_noise",
+            count: 2301,
+            rationale: "Legacy broad warning unrelated to changed runtime gate code; retained for rule tuning follow-up.",
+            trace_ref: "artifacts/rule-scan-noise.json",
+          },
+        ],
+      }),
+      artifact_refs: ["artifacts/rule-scan-noise.json"],
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-939-2", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+
+  const result = advanceStage("full_code_review", statePath)
+  assert.equal(result.state.current_stage, "full_code_review")
+  const evidence = result.state.verification_evidence.find((entry) => entry.id === "rule-scan-noise")
+  assert.equal(evidence.details.scan_evidence.triage_summary.groups[0].classification, "non_blocking_noise")
+  assert.deepEqual(evidence.artifact_refs, ["artifacts/rule-scan-noise.json"])
 })
 
 test("full_qa is blocked without security-scan tool evidence even if rule-scan exists", () => {
@@ -2188,6 +2704,7 @@ test("full_qa is blocked without security-scan tool evidence even if rule-scan e
       scope: "full_implementation",
       summary: "Rule scan on changed files",
       source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -2216,7 +2733,7 @@ test("full_qa is blocked without security-scan tool evidence even if rule-scan e
   )
 })
 
-test("full_qa passes with both rule-scan and security-scan tool evidence", () => {
+test("full_qa blocks legacy source-only rule/security scan evidence without structured scan details", () => {
   const statePath = createTempStateFile()
 
   startFeature("FEATURE-804", "tool-gate-qa-pass", statePath)
@@ -2236,6 +2753,7 @@ test("full_qa passes with both rule-scan and security-scan tool evidence", () =>
       scope: "full_implementation",
       summary: "Rule scan on changed files",
       source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -2270,8 +2788,409 @@ test("full_qa passes with both rule-scan and security-scan tool evidence", () =>
   )
   setApproval("code_review_to_qa", "approved", "QAAgent", "2026-03-21", "Ready for QA", statePath)
 
+  assert.throws(
+    () => advanceStage("full_qa", statePath),
+    /structured details\.scan_evidence/i,
+  )
+})
+
+test("full_qa passes with structured zero-finding rule-scan and security-scan evidence", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-804B", "tool-gate-qa-pass-structured", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-804b", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "qa_ready", primary_owner: "DevA", qa_owner: "QAAgent" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-scan-804b",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan on changed files",
+      source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-804b", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+    { tool_id: "tool.security-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+  advanceStage("full_code_review", statePath)
+  recordVerificationEvidence(
+    {
+      id: "security-scan-804b",
+      kind: "automated",
+      scope: "full_code_review",
+      summary: "Security scan on changed files",
+      source: "tool.security-scan",
+      details: makeScanEvidenceDetails({ toolId: "tool.security-scan", scanKind: "security", groups: [] }),
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "review-804b",
+      kind: "review",
+      scope: "full_code_review",
+      summary: "Code review completed",
+      source: "code-review",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  setApproval("code_review_to_qa", "approved", "QAAgent", "2026-03-21", "Ready for QA", statePath)
+
   const result = advanceStage("full_qa", statePath)
   assert.equal(result.state.current_stage, "full_qa")
+})
+
+test("full_qa blocks security-scan source with mismatched rule direct tool evidence", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-939-9", "scan-gate-qa-tool-id-mismatch", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-939-9", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "qa_ready", primary_owner: "DevA", qa_owner: "QAAgent" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-scan-qa-mismatch-setup",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan passed with no findings",
+      source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-939-9", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+    { tool_id: "tool.security-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+  advanceStage("full_code_review", statePath)
+  recordVerificationEvidence(
+    {
+      id: "security-source-rule-direct-mismatch",
+      kind: "automated",
+      scope: "full_code_review",
+      summary: "Security scan source incorrectly carries rule scan structured identity",
+      source: "tool.security-scan",
+      details: makeScanEvidenceDetails({ toolId: "tool.rule-scan", scanKind: "rule", groups: [] }),
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "review-qa-tool-id-mismatch",
+      kind: "review",
+      scope: "full_code_review",
+      summary: "Code review completed",
+      source: "code-review",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  setApproval("code_review_to_qa", "approved", "QAAgent", "2026-03-21", "Ready for QA", statePath)
+
+  assert.throws(
+    () => advanceStage("full_qa", statePath),
+    /identifies tool\.rule-scan.*requires tool\.security-scan/i,
+  )
+})
+
+test("full_code_review keeps mismatched scan evidence blocked despite required Tier 3 invocation", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-939-10", "scan-gate-mismatch-tier3", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-939-10", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "ready" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-source-security-direct-tier3-mismatch",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Mismatched structured scan identity should fail before Tier 3 can satisfy the gate",
+      source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ toolId: "tool.security-scan", scanKind: "security", groups: [] }),
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-939-10", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+
+  assert.throws(
+    () => advanceStage("full_code_review", statePath),
+    /identifies tool\.security-scan.*requires tool\.rule-scan/i,
+  )
+})
+
+test("full_qa requires false-positive details for test-fixture security placeholders", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-939-3", "scan-gate-fixture-details", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-939-3", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "qa_ready", primary_owner: "DevA", qa_owner: "QAAgent" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-scan-fixture-details",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan passed with no findings",
+      source: "tool.rule-scan",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({ groups: [] }),
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-939-3", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+    { tool_id: "tool.security-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+  advanceStage("full_code_review", statePath)
+  recordVerificationEvidence(
+    {
+      id: "security-scan-fixture-missing-details",
+      kind: "automated",
+      scope: "full_code_review",
+      summary: "Security scan fixture placeholder false positive lacks full rationale",
+      source: "tool.security-scan",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({
+        toolId: "tool.security-scan",
+        scanKind: "security",
+        groups: [
+          {
+            ruleId: "openkit.security.fixture-token",
+            severity: "WARNING",
+            classification: "false_positive",
+            count: 1,
+            rationale: "fixture placeholder only",
+          },
+        ],
+        falsePositiveItems: [
+          {
+            rule_id: "openkit.security.fixture-token",
+            file: "tests/fixtures/token.js",
+            context: "test fixture placeholder",
+            rationale: "Not a real secret.",
+          },
+        ],
+      }),
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "review-fixture-details",
+      kind: "review",
+      scope: "full_code_review",
+      summary: "Code review completed",
+      source: "code-review",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  setApproval("code_review_to_qa", "approved", "QAAgent", "2026-03-21", "Ready for QA", statePath)
+
+  assert.throws(
+    () => advanceStage("full_qa", statePath),
+    /false-positive scan finding.*security impact.*follow-up/i,
+  )
+})
+
+test("full_qa passes with fully documented test-fixture security false positive", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-939-4", "scan-gate-fixture-pass", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-939-4", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "qa_ready", primary_owner: "DevA", qa_owner: "QAAgent" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-scan-fixture-pass",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan passed with no findings",
+      source: "tool.rule-scan",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({ groups: [] }),
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-939-4", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+    { tool_id: "tool.security-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+  advanceStage("full_code_review", statePath)
+  recordVerificationEvidence(
+    {
+      id: "security-scan-fixture-pass",
+      kind: "automated",
+      scope: "full_code_review",
+      summary: "Security scan fixture placeholder is documented as a false positive",
+      source: "tool.security-scan",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({
+        toolId: "tool.security-scan",
+        scanKind: "security",
+        groups: [
+          {
+            ruleId: "openkit.security.fixture-token",
+            severity: "WARNING",
+            classification: "false_positive",
+            count: 1,
+            rationale: "Fixture-only token-looking placeholder; not loaded by production/runtime code.",
+          },
+        ],
+        falsePositiveItems: [
+          {
+            rule_id: "openkit.security.fixture-token",
+            file: "tests/fixtures/token.js",
+            context: "test fixture placeholder, not production/runtime code",
+            rationale: "Synthetic token-looking value used only in tests; not a real secret.",
+            impact: "No production/runtime security impact and no exploitable credential.",
+            follow_up: "none",
+          },
+        ],
+      }),
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "review-fixture-pass",
+      kind: "review",
+      scope: "full_code_review",
+      summary: "Code review completed",
+      source: "code-review",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  setApproval("code_review_to_qa", "approved", "QAAgent", "2026-03-21", "Ready for QA", statePath)
+
+  const result = advanceStage("full_qa", statePath)
+  assert.equal(result.state.current_stage, "full_qa")
+})
+
+test("full_qa blocks unresolved production true-positive security findings", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-939-5", "scan-gate-true-positive", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-939-5", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "qa_ready", primary_owner: "DevA", qa_owner: "QAAgent" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-scan-true-positive",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan passed with no findings",
+      source: "tool.rule-scan",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({ groups: [] }),
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-939-5", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+    { tool_id: "tool.security-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+  advanceStage("full_code_review", statePath)
+  recordVerificationEvidence(
+    {
+      id: "security-scan-true-positive",
+      kind: "automated",
+      scope: "full_code_review",
+      summary: "Security scan has unresolved production true positive",
+      source: "tool.security-scan",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({
+        toolId: "tool.security-scan",
+        scanKind: "security",
+        groups: [
+          {
+            ruleId: "openkit.security.hardcoded-secret",
+            severity: "ERROR",
+            classification: "true_positive",
+            count: 1,
+            file: "src/runtime/server.js",
+            context: "production runtime path",
+            resolution: "unresolved",
+            rationale: "Real secret-looking value remains in runtime code.",
+          },
+        ],
+      }),
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "review-true-positive",
+      kind: "review",
+      scope: "full_code_review",
+      summary: "Code review completed",
+      source: "code-review",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  setApproval("code_review_to_qa", "approved", "QAAgent", "2026-03-21", "Ready for QA", statePath)
+
+  assert.throws(
+    () => advanceStage("full_qa", statePath),
+    /true-positive.*security.*unresolved/i,
+  )
 })
 
 test("migration_code_review is blocked without rule-scan or codemod-preview evidence", () => {
@@ -2334,6 +3253,7 @@ test("tool evidence gate accepts manual override evidence", () => {
       scope: "tool-evidence-override:full_code_review",
       summary: "tool.rule-scan unavailable — semgrep not installed; manually reviewed changed files",
       source: "manual",
+      details: makeValidManualOverrideDetails({ targetStage: "full_code_review", unavailableTool: "tool.rule-scan" }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -2509,6 +3429,7 @@ test("Tier 3 policy blocks advanceStage to full_code_review without tool invocat
       scope: "full_implementation",
       summary: "Rule scan on changed files",
       source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -2544,6 +3465,7 @@ test("Tier 3 policy allows advanceStage to full_code_review with tool invocation
       scope: "full_implementation",
       summary: "Rule scan on changed files",
       source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -2581,6 +3503,7 @@ test("Tier 3 policy manual override bypasses policy check", () => {
       scope: "tool-evidence-override:full_code_review",
       summary: "tool.rule-scan unavailable — semgrep not installed; manually reviewed changed files",
       source: "manual",
+      details: makeValidManualOverrideDetails({ targetStage: "full_code_review", unavailableTool: "tool.rule-scan" }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -2590,6 +3513,100 @@ test("Tier 3 policy manual override bypasses policy check", () => {
   // No invocation log entries — the manual override should bypass both Tier 2 and Tier 3
   const result = advanceStage("full_code_review", statePath)
   assert.equal(result.state.current_stage, "full_code_review")
+})
+
+test("manual override without structured caveat details is rejected", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-939-6", "scan-gate-malformed-override", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-939-6", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "ready" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "manual-override-malformed",
+      kind: "manual",
+      scope: "tool-evidence-override:full_code_review",
+      summary: "Manual override lacks structured scan caveats",
+      source: "manual",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+    },
+    statePath,
+  )
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+
+  assert.throws(
+    () => advanceStage("full_code_review", statePath),
+    /manual override.*target stage.*unavailable tool.*reason.*substitute.*actor.*caveat/i,
+  )
+})
+
+test("manual override cannot bypass triage of noisy available scan output", () => {
+  const statePath = createTempStateFile()
+
+  startFeature("FEATURE-939-7", "scan-gate-override-noise", statePath)
+  advanceFullWorkItemToPlan(statePath)
+  writeTaskBoard(statePath, "feature-939-7", {
+    mode: "full",
+    current_stage: "full_solution",
+    tasks: [createTask({ status: "ready" })],
+    issues: [],
+  })
+  setApproval("solution_to_fullstack", "approved", "user", "2026-03-21", "Approved", statePath)
+  advanceStage("full_implementation", statePath)
+  recordVerificationEvidence(
+    {
+      id: "rule-scan-noisy-untriaged",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan succeeded but noisy findings were not triaged",
+      source: "tool.rule-scan",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({
+        groups: [
+          {
+            ruleId: "openkit.quality.noisy-rule",
+            severity: "WARNING",
+            classification: "unclassified",
+            count: 2301,
+          },
+        ],
+      }),
+    },
+    statePath,
+  )
+  recordVerificationEvidence(
+    {
+      id: "manual-override-noisy-output",
+      kind: "manual",
+      scope: "tool-evidence-override:full_code_review",
+      summary: "Attempted override after noisy scan output",
+      source: "manual",
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeValidManualOverrideDetails({
+        targetStage: "full_code_review",
+        unavailableTool: "tool.rule-scan",
+        availabilityState: "available",
+        resultState: "succeeded",
+      }),
+    },
+    statePath,
+  )
+  writeInvocationLogEntries(statePath, "feature-939-7", [
+    { tool_id: "tool.rule-scan", status: "success", duration_ms: 100, stage: null, owner: null, recorded_at: "2026-03-21T00:00:00.000Z" },
+  ])
+  setApproval("fullstack_to_code_review", "approved", "CodeReviewer", "2026-03-21", "Ready for review", statePath)
+
+  assert.throws(
+    () => advanceStage("full_code_review", statePath),
+    /manual override.*available scan output.*triag/i,
+  )
 })
 
 test("Tier 3 policy warn mode allows transition and records issue", () => {
@@ -2614,6 +3631,7 @@ test("Tier 3 policy warn mode allows transition and records issue", () => {
       scope: "full_implementation",
       summary: "Rule scan on changed files",
       source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,
@@ -2652,6 +3670,7 @@ test("Tier 3 policy off mode skips policy check entirely", () => {
       scope: "full_implementation",
       summary: "Rule scan on changed files",
       source: "tool.rule-scan",
+      details: makeScanEvidenceDetails({ groups: [] }),
       recorded_at: "2026-03-21T00:00:00.000Z",
     },
     statePath,

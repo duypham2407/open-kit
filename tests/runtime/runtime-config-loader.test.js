@@ -31,6 +31,37 @@ test('loadRuntimeConfig returns defaults when no runtime config files exist', ()
   assert.equal(result.config.runtime.enabled, true);
   assert.equal(result.config.browserAutomation.provider, 'playwright');
   assert.equal(result.config.backgroundTask.enabled, false);
+  assert.equal(result.config.supervisorDialogue.enabled, false);
+  assert.equal(result.config.supervisorDialogue.openclaw.transport, 'unconfigured');
+});
+
+test('loadRuntimeConfig accepts disabled unconfigured supervisor dialogue as valid non-fatal config', () => {
+  const projectRoot = makeTempDir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+
+  writeText(
+    projectConfigPath,
+    `{
+      "supervisorDialogue": {
+        "enabled": false,
+        "openclaw": {
+          "transport": "unconfigured",
+          "url": null,
+          "command": null,
+          "args": []
+        }
+      }
+    }`
+  );
+
+  const result = loadRuntimeConfig({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  assert.equal(result.config.supervisorDialogue.enabled, false);
+  assert.equal(result.config.supervisorDialogue.openclaw.transport, 'unconfigured');
+  assert.deepEqual(result.warnings.filter((warning) => warning.includes('supervisorDialogue')), []);
 });
 
 test('loadRuntimeConfig merges user and project JSONC with project precedence', () => {

@@ -15,8 +15,8 @@ Verify native module availability:
 node -e "require('better-sqlite3')"
 ```
 
-If that fails, install it in the kit's managed `node_modules` or run
-`openkit install --verify` which provisions it automatically.
+If that fails, run `openkit doctor` first and follow its recovery guidance.
+`openkit install --verify` remains available as a manual/compatibility provisioning helper, but the preferred operator path is `npm install -g @duypham93/openkit`, `openkit doctor`, then `openkit run`.
 
 ## Running Tests
 

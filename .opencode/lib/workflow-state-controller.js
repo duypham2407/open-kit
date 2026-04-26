@@ -102,6 +102,13 @@ import {
 import { checkPolicy, enforcePolicy, listPolicies, TOOL_INVOCATION_POLICIES } from "./policy-engine.js"
 import { readInvocationLog, resolveLogPath } from "./invocation-log.js"
 import { getRuntimeContext } from "./runtime-summary.js"
+import { summarizeScanEvidence, summarizeScanEvidenceLines } from "./scan-evidence-summary.js"
+import {
+  appendSupervisorEvents,
+  buildSupervisorEventsForStateChange,
+  buildSupervisorEventsForTaskBoardChange,
+  recordSupervisorAppendFailure,
+} from "./supervisor-dialogue-store.js"
 import {
   applySequentialConstraintsToTasks as applySequentialConstraintsToTasksBase,
   getSequentialConstraintChains as getSequentialConstraintChainsBase,
@@ -439,6 +446,7 @@ function persistManagedState(customStatePath, state, options = {}) {
       _store.writeWorkItemIndex(runtimeRoot, previousIndexSnapshot)
     } catch (_rollbackError) {
       // Preserve the original failure after best-effort rollback.
+      void _rollbackError
     }
     throw error
   }
@@ -483,6 +491,25 @@ function writeTaskBoard(projectRoot, workItemId, board) {
   fs.mkdirSync(path.dirname(taskBoardPath), { recursive: true })
   fs.writeFileSync(taskBoardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
   return board
+}
+
+function emitSupervisorEvents(runtimeRoot, workItemId, events) {
+  if (!Array.isArray(events) || events.length === 0) {
+    return []
+  }
+
+  try {
+    return appendSupervisorEvents(runtimeRoot, workItemId, events)
+  } catch (error) {
+    try {
+      recordSupervisorAppendFailure(runtimeRoot, workItemId, error, events)
+    } catch (_degradeError) {
+      // Supervisor dialogue is observational only. If even the degraded marker
+      // cannot be written, preserve the already-successful OpenKit authority write.
+      return []
+    }
+    return []
+  }
 }
 
 function getMigrationSliceBoardPath(projectRoot, workItemId) {
@@ -610,7 +637,9 @@ function withTaskBoard(workItemId, customStatePath, mutator) {
   requireFullModeWorkItem(state, workItemId)
   requireTaskBoardStage(state, workItemId)
 
+  const taskBoardPath = getTaskBoardPath(runtimeRoot, workItemId)
   const existingBoard = readTaskBoardIfExists(runtimeRoot, workItemId)
+  const previousBoardSnapshot = existingBoard ? JSON.parse(JSON.stringify(existingBoard)) : null
   const baseBoard = {
     mode: state.mode,
     current_stage: state.current_stage,
@@ -620,6 +649,16 @@ function withTaskBoard(workItemId, customStatePath, mutator) {
   const nextBoard = mutator(JSON.parse(JSON.stringify(baseBoard)), context)
   const validatedBoard = validateTaskBoard(buildBoardForValidation(state, buildBoardView(state, nextBoard)))
   writeTaskBoard(runtimeRoot, workItemId, nextBoard)
+  const persistedBoard = readJsonIfExists(taskBoardPath) ?? nextBoard
+  emitSupervisorEvents(
+    runtimeRoot,
+    workItemId,
+    buildSupervisorEventsForTaskBoardChange(
+      state,
+      buildBoardView(state, previousBoardSnapshot),
+      buildBoardView(state, persistedBoard),
+    ),
+  )
 
   return {
     ...context,
@@ -1103,6 +1142,10 @@ function ensureVerificationEvidenceEntry(entry, index) {
 
   if (entry.artifact_refs !== undefined) {
     ensureArray(entry.artifact_refs, `verification_evidence[${index}].artifact_refs`)
+  }
+
+  if (entry.details !== undefined) {
+    ensureObject(entry.details, `verification_evidence[${index}].details`)
   }
 }
 
@@ -1758,12 +1801,14 @@ function mutate(customStatePath, mutator) {
   const nextState = mutator(JSON.parse(JSON.stringify(state)), context)
   nextState.updated_at = timestamp()
   validateStateObject(nextState)
-  return persistManagedState(customStatePath, nextState, {
+  const result = persistManagedState(customStatePath, nextState, {
     expectedRevision,
     expectedMirrorRevision,
     workItemId,
     activateWorkItemId: index.active_work_item_id ?? workItemId,
   })
+  emitSupervisorEvents(runtimeRoot, workItemId, buildSupervisorEventsForStateChange(state, result.state))
+  return result
 }
 
 function mutateWorkItem(workItemId, customStatePath, mutator) {
@@ -1781,12 +1826,14 @@ function mutateWorkItem(workItemId, customStatePath, mutator) {
   nextState.updated_at = timestamp()
   validateStateObject(nextState)
 
-  return persistManagedState(customStatePath, nextState, {
+  const result = persistManagedState(customStatePath, nextState, {
     expectedRevision,
     expectedMirrorRevision,
     workItemId,
     activateWorkItemId: index.active_work_item_id ?? workItemId,
   })
+  emitSupervisorEvents(runtimeRoot, workItemId, buildSupervisorEventsForStateChange(state, result.state))
+  return result
 }
 
 function showState(customStatePath) {
@@ -1857,6 +1904,8 @@ function getWorkItemCloseoutSummary(workItemId, customStatePath) {
     activeTasks,
     migrationSliceBoardReadiness: migrationBoardReadiness,
     verificationReadiness: getVerificationReadiness(state),
+    scanEvidence: summarizeScanEvidence(state),
+    scanEvidenceLines: summarizeScanEvidenceLines(state),
     readyToClose:
       state.status === "done" &&
       missingRequiredArtifacts.length === 0 &&
@@ -2075,11 +2124,13 @@ function startBackgroundRun(title, payloadJson, workItemId, taskId, customStateP
     source: "workflow-state-cli",
   })
 
-  return {
+  const result = {
     projectRoot,
     runtimeRoot,
     run: recordBackgroundRun(runtimeRoot, run),
   }
+
+  return result
 }
 
 function completeBackgroundRun(runId, outputJson, customStatePath) {
@@ -2095,7 +2146,7 @@ function completeBackgroundRun(runId, outputJson, customStatePath) {
     }
   }
 
-  return {
+  const result = {
     projectRoot,
     runtimeRoot,
     run: updateBackgroundRun(runtimeRoot, runId, {
@@ -2103,18 +2154,22 @@ function completeBackgroundRun(runId, outputJson, customStatePath) {
       output,
     }),
   }
+
+  return result
 }
 
 function cancelBackgroundRun(runId, customStatePath) {
   ensureString(runId, "run_id")
   const { projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
-  return {
+  const result = {
     projectRoot,
     runtimeRoot,
     run: updateBackgroundRun(runtimeRoot, runId, {
       status: "cancelled",
     }),
   }
+
+  return result
 }
 
 function getBackgroundRun(runId, customStatePath) {
@@ -2183,6 +2238,7 @@ function getDefinitionOfDone(customStatePath) {
     if (!gateResult.passed) {
       toolEvidenceBlockers.push(
         ...gateResult.missingGroups.map((group) => `missing tool evidence for ${gatedStage}: ${group.join(" or ")}`),
+        ...gateResult.blockers.map((blocker) => `tool evidence for ${gatedStage}: ${blocker}`),
       )
     }
   }
@@ -2204,7 +2260,11 @@ function getDefinitionOfDone(customStatePath) {
       const hasManualOverride = Array.isArray(state.verification_evidence) && state.verification_evidence.some(
         (entry) => entry.source === "manual" && entry.scope === `tool-evidence-override:${policyStage}`,
       )
-      if (hasManualOverride) {
+      const toolGateResultForPolicy = checkToolEvidenceGate(state, policyStage)
+      if (hasManualOverride && !toolGateResultForPolicy.passed) {
+        policyBlockers.push(
+          ...toolGateResultForPolicy.blockers.map((blocker) => `tool evidence for ${policyStage}: ${blocker}`),
+        )
         continue
       }
       const policyResult = enforcePolicy({
@@ -2213,6 +2273,7 @@ function getDefinitionOfDone(customStatePath) {
         runtimeRoot,
         workItemId: state.work_item_id ?? workItemId,
         enforcementMode: policyEnforcementMode,
+        satisfiedToolIds: toolGateResultForPolicy.runtimePolicySatisfiedToolIds ?? [],
       })
       if (!policyResult.allowed) {
         policyBlockers.push(
@@ -3269,6 +3330,7 @@ function getRuntimeStatus(customStatePath, options = {}) {
     } catch (_error) {
       // Doctor/status surfaces should remain observable even when artifact linkage or
       // readiness contracts are temporarily unmet.
+      runtimeContext = null
     }
   } else {
     validateManagedState(runtimeState, projectRoot, workItemId, { storeRoot: runtimeRoot })
@@ -3464,8 +3526,8 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath, op
 
   const workItemId = deriveWorkItemId({ feature_id: featureId })
   const { statePath, projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
-  const workItemPaths = resolveWorkItemPaths(runtimeRoot, workItemId)
   const index = readWorkItemIndex(runtimeRoot)
+  const workItemPaths = resolveWorkItemPaths(runtimeRoot, workItemId)
   const existingState = fs.existsSync(workItemPaths.statePath) ? _store.readWorkItemState(runtimeRoot, workItemId) : null
   const expectedRevision = existingState ? captureRevision(existingState) : null
   const expectedMirrorRevision =
@@ -3686,59 +3748,58 @@ function advanceStage(targetStage, customStatePath) {
       const missingLabel = toolGateResult.missingGroups
         .map((group) => group.join(" or "))
         .join(", ")
+      const blockerLabel = Array.isArray(toolGateResult.blockers) && toolGateResult.blockers.length > 0
+        ? `${missingLabel ? "; " : ""}${toolGateResult.blockers.join("; ")}`
+        : ""
       const manualHint = toolGateResult.fallbackManualAllowed
         ? ` To override, record manual evidence with scope 'tool-evidence-override:${targetStage}'.`
         : ""
       fail(
-        `Tool evidence gate blocked advance to '${targetStage}': missing tool-sourced evidence for [${missingLabel}].${manualHint}`,
+        `Tool evidence gate blocked advance to '${targetStage}': missing tool-sourced evidence for [${missingLabel}]${blockerLabel}.${manualHint}`,
       )
     }
 
     // Tier 3: Runtime Policy Engine — check invocation log for required tool runs
     const policyEnforcementMode = state.policy_enforcement ?? "enforce"
-    const hasManualPolicyOverride = Array.isArray(state.verification_evidence) && state.verification_evidence.some(
-      (entry) => entry.source === "manual" && entry.scope === `tool-evidence-override:${targetStage}`,
-    )
-    if (!hasManualPolicyOverride) {
-      const policyResult = enforcePolicy({
-        mode: state.mode,
-        targetStage,
-        runtimeRoot,
-        workItemId: state.work_item_id ?? workItemId,
-        enforcementMode: policyEnforcementMode,
-      })
+    const policyResult = enforcePolicy({
+      mode: state.mode,
+      targetStage,
+      runtimeRoot,
+      workItemId: state.work_item_id ?? workItemId,
+      enforcementMode: policyEnforcementMode,
+      satisfiedToolIds: toolGateResult.runtimePolicySatisfiedToolIds ?? [],
+    })
 
-      if (!policyResult.allowed) {
-        const violationMessages = policyResult.violations.map((v) => v.message).join("; ")
-        fail(
-          `Runtime policy blocked advance to '${targetStage}': ${violationMessages}. ` +
-          `To override, record manual evidence with source 'manual' and scope 'tool-evidence-override:${targetStage}'.`,
-        )
+    if (!policyResult.allowed) {
+      const violationMessages = policyResult.violations.map((v) => v.message).join("; ")
+      fail(
+        `Runtime policy blocked advance to '${targetStage}': ${violationMessages}. ` +
+        `To override, record manual evidence with source 'manual' and scope 'tool-evidence-override:${targetStage}'.`,
+      )
+    }
+
+    if (policyResult.warnings.length > 0) {
+      const warningMessages = policyResult.warnings.map((w) => w.message)
+      if (!Array.isArray(state.issues)) {
+        state.issues = []
       }
-
-      if (policyResult.warnings.length > 0) {
-        const warningMessages = policyResult.warnings.map((w) => w.message)
-        if (!Array.isArray(state.issues)) {
-          state.issues = []
-        }
-        for (const warning of warningMessages) {
-          state.issues.push({
-            issue_id: `policy-warn-${targetStage}-${Date.now()}`,
-            title: `Policy warning for ${targetStage}`,
-            type: "bug",
-            severity: "low",
-            rooted_in: "implementation",
-            recommended_owner: "FullstackAgent",
-            evidence: warning,
-            artifact_refs: [],
-            current_status: "open",
-            opened_at: timestamp(),
-            last_updated_at: timestamp(),
-            reopen_count: 0,
-            repeat_count: 0,
-            blocked_since: null,
-          })
-        }
+      for (const warning of warningMessages) {
+        state.issues.push({
+          issue_id: `policy-warn-${targetStage}-${Date.now()}`,
+          title: `Policy warning for ${targetStage}`,
+          type: "bug",
+          severity: "low",
+          rooted_in: "implementation",
+          recommended_owner: "FullstackAgent",
+          evidence: warning,
+          artifact_refs: [],
+          current_status: "open",
+          opened_at: timestamp(),
+          last_updated_at: timestamp(),
+          reopen_count: 0,
+          repeat_count: 0,
+          blocked_since: null,
+        })
       }
     }
 
@@ -4026,6 +4087,7 @@ function getInvocationLog(workItemId, customStatePath) {
       effectiveWorkItemId = index?.active_work_item_id ?? null
     } catch {
       // no work item store — will use global log
+      effectiveWorkItemId = null
     }
   }
 
@@ -4054,27 +4116,25 @@ function getPolicyStatus(customStatePath) {
   // Determine the next stage to transition to
   const nextStage = getNextStage(mode, currentStage)
 
-  // Check if manual override exists for next stage
+  // Evaluate the policy for the next stage
+  let policyResult = null
+  let toolEvidenceGate = null
+  if (nextStage) {
+    toolEvidenceGate = checkToolEvidenceGate(state, nextStage)
+    policyResult = checkPolicy({
+      mode,
+      targetStage: nextStage,
+      runtimeRoot,
+      workItemId,
+      satisfiedToolIds: toolEvidenceGate.runtimePolicySatisfiedToolIds ?? [],
+    })
+  }
   const hasManualOverride = Array.isArray(state.verification_evidence) &&
     state.verification_evidence.some(
       (entry) =>
         entry.source === "manual" &&
         entry.scope === `tool-evidence-override:${nextStage}`,
     )
-
-  // Evaluate the policy for the next stage
-  let policyResult = null
-  if (nextStage) {
-    policyResult = checkPolicy({
-      mode,
-      targetStage: nextStage,
-      runtimeRoot,
-      workItemId,
-    })
-  }
-
-  // Also show the tool evidence gate status (Tier 2)
-  const toolEvidenceGate = nextStage ? checkToolEvidenceGate(state, nextStage) : null
 
   return {
     statePath,
@@ -4094,6 +4154,7 @@ function getPolicyStatus(customStatePath) {
       ? {
           passed: toolEvidenceGate.passed,
           blockers: toolEvidenceGate.blockers ?? [],
+          missingGroups: toolEvidenceGate.missingGroups ?? [],
         }
       : null,
   }

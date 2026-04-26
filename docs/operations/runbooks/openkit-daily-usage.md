@@ -17,8 +17,8 @@ For normal day-to-day use on a machine with OpenKit installed globally:
 
 ```bash
 npm install -g @duypham93/openkit
-openkit run
 openkit doctor
+openkit run
 ```
 
 Lifecycle commands:
@@ -36,6 +36,12 @@ Then start work from the chat surface with one of these:
 - `/delivery` when the work clearly needs the full multi-stage delivery flow
 - `/configure-agent-models` when you want to bind exact provider-qualified models to OpenKit agents
 - `/browser-verify` when acceptance depends on UI flows, browser evidence, or page behavior
+
+Keep the three surfaces separate:
+
+- `global_cli`: install, readiness, launch, upgrade, uninstall, and product lifecycle (`npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, `openkit uninstall`)
+- `in_session`: lane selection and workflow execution inside OpenCode (`/task`, `/quick-task`, `/migrate`, `/delivery`)
+- `compatibility_runtime`: lower-level workflow-state inspection, resume, diagnostics, issues, task boards, and evidence (`node .opencode/workflow-state.js ...`)
 
 If you need to inspect the current state more closely inside this repository's compatibility runtime:
 
@@ -172,7 +178,7 @@ If verbose discovery is unavailable, OpenKit falls back to plain provider/model 
 
 ### 3. Start or resume work
 
-If no work is active, start from chat with `/task`, `/quick-task`, or `/delivery`.
+If no work is active, start from chat with `/task`, `/quick-task`, `/migrate`, or `/delivery`.
 
 If work already exists, inspect it first:
 
@@ -212,6 +218,14 @@ Migration flow:
 - use `docs/templates/migration-baseline-checklist.md` and `docs/templates/migration-verify-checklist.md` as repeatable checklists for baseline and verification
 - use `docs/templates/migration-report-template.md` when you want one running artifact for baseline, strategy, execution, and verification
 
+At a glance:
+
+| Lane | Required artifact trail | Optional artifact or coordination |
+| --- | --- | --- |
+| Quick Task | confirmed understanding, chosen approach, execution plan, and verification evidence in workflow communication | `docs/tasks/YYYY-MM-DD-<task>.md` task card |
+| Migration | migration solution package in `docs/solution/`, baseline evidence, preserved invariants, compatibility and parity evidence | migration report or strategy-enabled migration slice board |
+| Full Delivery | Product Lead scope package in `docs/scope/` before Solution Lead solution package in `docs/solution/`, implementation evidence, code review, QA report in `docs/qa/` | ADRs and a full-only task board when the approved solution allows it |
+
 ### 4. Inspect work-item and task-board state when needed
 
 The task board belongs only to `Full Delivery` work items.
@@ -230,10 +244,24 @@ Guidance:
 - use `list-tasks` only for full-delivery items that actually use a task board
 - do not expect quick or migration mode to have task-level ownership or task-board commands
 - treat task-board support as bounded coordination, not as proof that arbitrary parallel execution is safe
+- if `parallel_mode` is `none`, execute tasks sequentially even when the raw board shows several tasks as ready
+- inspect owner, status, artifact refs, dependencies or sequential constraints, safe parallel zones, QA owner, integration readiness, unresolved issues, and verification evidence before resuming task-level work
+- if migration slice coordination exists, use migration-slice commands and preserve baseline, compatibility, rollback, and parity evidence instead of applying full-delivery task-board semantics
 
 ### 5. Validate honestly
 
 In this repository, the workflow-state utility helps you validate runtime state, not application behavior.
+
+Use these validation surface labels in handoffs and evidence:
+
+| Label | Evidence covers |
+| --- | --- |
+| `global_cli` | `openkit ...` install, doctor, launch, upgrade, uninstall, and configuration behavior |
+| `in_session` | slash-command workflow behavior and stage/handoff decisions |
+| `compatibility_runtime` | `.opencode/workflow-state.js` state, diagnostics, work-item, issue, and evidence behavior |
+| `runtime_tooling` | OpenKit tools such as graph, semantic search, AST, syntax, codemod, audit, browser, MCP, and background execution |
+| `documentation` | roadmap, operator, maintainer, governance, and runbook artifacts |
+| `target_project_app` | application build/lint/test commands only when the target project defines them |
 
 Use:
 
@@ -244,6 +272,10 @@ node .opencode/workflow-state.js validate
 for workflow-state consistency.
 
 Do not present `status`, `doctor`, `show`, or `validate` as substitutes for application build, lint, or test commands. If app-native tooling does not exist for the work, record the real manual or artifact-based verification path instead.
+
+If the target project has no declared app-native command, write the evidence plainly: `target_project_app` validation unavailable — no project build/lint/test command is defined. OpenKit checks can still validate `global_cli`, `compatibility_runtime`, `runtime_tooling`, or `documentation` surfaces, but they do not prove app behavior.
+
+Runtime/tooling status vocabulary should stay consistent: `available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, and `not_configured`. Treat stale command docs or unlabeled future examples as documentation defects.
 
 ## Command Reference For Operators
 
@@ -297,7 +329,7 @@ node .opencode/workflow-state.js doctor
 /delivery Add a clearer operator onboarding flow for OpenKit, including updated docs and runtime guidance.
 ```
 
-3. Expect the work to move through PM, BA, Architect, Tech Lead, Fullstack, and QA stages, with artifacts created as the full lane progresses.
+3. Expect the work to move through Product Lead, Solution Lead, Fullstack, Code Reviewer, and QA Agent stages, with artifacts created as the full lane progresses.
 
 ### Example: start migration work
 
@@ -352,13 +384,13 @@ The preferred top-level path is now:
 
 ```bash
 npm install -g @duypham93/openkit
-openkit run <args>
 openkit doctor
+openkit run <args>
 openkit upgrade
 openkit uninstall
 ```
 
-`openkit install-global` still exists as a manual or compatibility setup command, but it is no longer the preferred onboarding step.
+`openkit install` and `openkit install-global` still exist as manual or compatibility setup commands, but they are no longer the preferred onboarding step.
 
 Use the lower-level `.opencode/` runtime commands in this repository when you are validating or maintaining the checked-in compatibility runtime itself.
 

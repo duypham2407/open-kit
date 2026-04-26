@@ -43,11 +43,12 @@ In practice, the kit has two important identities at once:
 ### C. Operator entrypoints
 
 - `npm install -g @duypham93/openkit`
-- `openkit install`
-- `openkit run`
 - `openkit doctor`
+- `openkit run`
 - `openkit upgrade`
 - `openkit uninstall`
+
+`openkit install` remains a manual/compatibility setup helper, not the preferred operator onboarding step.
 
 ## 3. High-Level Architecture
 
@@ -59,7 +60,7 @@ Authoring repository
 npm package @duypham93/openkit
         |
         v
-openkit install / openkit run
+openkit doctor / openkit run
         |
         v
 Managed kit materialized under OPENCODE_HOME/kits/openkit
@@ -116,6 +117,10 @@ OpenKit currently prefers:
 - local-first runtime surfaces where possible
 - degradation instead of hard failure when optional capabilities are missing
 - documentation-first maintainability as the kit grows
+
+Runtime and docs should describe command/tool state with the shared vocabulary: `available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, and `not_configured`. Validation evidence should name the actual surface checked: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, or `target_project_app`.
+
+Execution orchestration stays conservative: full-delivery task boards are full-only, migration coordination remains parity-oriented, and `parallel_mode: none` means sequential work even when ready rows are visible.
 
 ## 6. Where To Go Next
 

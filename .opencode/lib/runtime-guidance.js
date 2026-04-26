@@ -154,40 +154,392 @@ const TOOL_EVIDENCE_GATES = {
   },
 }
 
+const SCAN_TOOL_IDS = new Set(["tool.rule-scan", "tool.security-scan"])
+
 function checkToolEvidenceGate(state, targetStage) {
   const gate = TOOL_EVIDENCE_GATES[state?.mode]?.[targetStage]
   if (!gate) {
-    return { passed: true, missingGroups: [], summary: null }
+    return { passed: true, missingGroups: [], blockers: [], summary: null, runtimePolicySatisfiedToolIds: [] }
   }
 
   const evidence = getVerificationEvidence(state)
-  const availableSources = new Set(evidence.map((entry) => entry.source))
+  const blockers = []
+  const runtimePolicySatisfiedToolIds = new Set()
+  const manualOverrideToolIds = new Set()
 
-  // Check for manual override
   if (gate.fallbackManualAllowed) {
-    const overrideScope = `tool-evidence-override:${targetStage}`
-    const hasOverride = evidence.some(
-      (entry) => entry.source === "manual" && entry.scope === overrideScope,
-    )
-    if (hasOverride) {
-      return { passed: true, missingGroups: [], summary: gate.summary }
+    const overrides = getManualOverrideEntries(evidence, targetStage)
+    for (const override of overrides) {
+      const validation = validateManualOverrideEntry(override, targetStage, evidence)
+      if (validation.valid) {
+        manualOverrideToolIds.add(validation.toolId)
+        runtimePolicySatisfiedToolIds.add(validation.toolId)
+      } else {
+        blockers.push(...validation.blockers)
+      }
     }
   }
 
   const missingGroups = []
   for (const sourceGroup of gate.requiredSources) {
-    const satisfied = sourceGroup.some((src) => availableSources.has(src))
-    if (!satisfied) {
+    const groupToolIds = sourceGroup.map(canonicalToolId).filter(Boolean)
+    const overrideSatisfied = groupToolIds.some((toolId) => manualOverrideToolIds.has(toolId))
+    if (overrideSatisfied) {
+      continue
+    }
+
+    const candidates = evidence.filter((entry) => entryMatchesSourceGroup(entry, sourceGroup))
+    if (candidates.length === 0) {
       missingGroups.push(sourceGroup)
+      continue
+    }
+
+    const latestStructuredScan = getLatestEvidenceEntry(candidates.filter((entry) => entryHasStructuredScanForSourceGroup(entry, sourceGroup)))
+    if (latestStructuredScan) {
+      const scanResult = evaluateStructuredScanEvidence(latestStructuredScan, targetStage, sourceGroup)
+      if (scanResult.runtimePolicySatisfiedToolId) {
+        runtimePolicySatisfiedToolIds.add(scanResult.runtimePolicySatisfiedToolId)
+      }
+      if (!scanResult.passed) {
+        blockers.push(...scanResult.blockers)
+      }
+      continue
+    }
+
+    const latestMalformedStructuredScan = getLatestEvidenceEntry(candidates.filter((entry) => readScanEvidence(entry) && !entryMatchesNonScanSource(entry, sourceGroup)))
+    if (latestMalformedStructuredScan) {
+      const scanResult = evaluateStructuredScanEvidence(latestMalformedStructuredScan, targetStage, sourceGroup)
+      blockers.push(...scanResult.blockers)
+      continue
+    }
+
+    const latestNonScan = getLatestEvidenceEntry(candidates.filter((entry) => entryMatchesNonScanSource(entry, sourceGroup)))
+    if (latestNonScan) {
+      continue
+    }
+
+    const latestSourceOnlyScan = getLatestEvidenceEntry(candidates.filter((entry) => entryMatchesSourceOnlyScan(entry, sourceGroup)))
+    if (latestSourceOnlyScan) {
+      const toolId = canonicalToolId(latestSourceOnlyScan.source) ?? sourceGroup.map(canonicalToolId).find(isScanToolId) ?? "required scan tool"
+      blockers.push(`required scan evidence for ${toolId} before ${targetStage} must include structured details.scan_evidence or a valid manual_override`)
+      continue
+    }
+
+    missingGroups.push(sourceGroup)
+  }
+
+  return {
+    passed: missingGroups.length === 0 && blockers.length === 0,
+    missingGroups,
+    blockers,
+    summary: gate.summary,
+    fallbackManualAllowed: gate.fallbackManualAllowed,
+    runtimePolicySatisfiedToolIds: [...runtimePolicySatisfiedToolIds],
+  }
+}
+
+function readObject(value) {
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {}
+}
+
+function readScanEvidence(entry) {
+  const details = readObject(entry?.details)
+  const scanEvidence = readObject(details.scan_evidence)
+  return Object.keys(scanEvidence).length > 0 ? { details, scanEvidence } : null
+}
+
+function canonicalToolId(source) {
+  switch (source) {
+    case "rule-scan":
+    case "tool.rule-scan":
+      return "tool.rule-scan"
+    case "security-scan":
+    case "tool.security-scan":
+      return "tool.security-scan"
+    case "codemod-preview":
+    case "tool.codemod-preview":
+      return "tool.codemod-preview"
+    default:
+      return typeof source === "string" && source.startsWith("tool.") ? source : null
+  }
+}
+
+function isScanToolId(toolId) {
+  return SCAN_TOOL_IDS.has(toolId)
+}
+
+function getScanEvidenceToolId(entry) {
+  const payload = readScanEvidence(entry)
+  const toolId = payload?.scanEvidence?.direct_tool?.tool_id
+  return typeof toolId === "string" ? toolId : null
+}
+
+function scanEvidenceTargetsSourceGroup(entry, sourceGroup) {
+  const scanToolId = getScanEvidenceToolId(entry)
+  return isScanToolId(scanToolId) && sourceGroupContainsToolId(sourceGroup, scanToolId)
+}
+
+function sourceGroupContainsToolId(sourceGroup, toolId) {
+  return sourceGroup.some((source) => canonicalToolId(source) === toolId)
+}
+
+function sourceGroupToolLabel(sourceGroup) {
+  return sourceGroup.map(canonicalToolId).filter(Boolean).join(" or ") || "required scan tool"
+}
+
+function readSubstituteToolId(substitute) {
+  const candidate = substitute?.tool_id ?? substitute?.toolId ?? substitute?.substitute_tool_id ?? substitute?.substituteToolId ?? substitute?.command_or_tool
+  return canonicalToolId(candidate)
+}
+
+function entryHasStructuredScanForSourceGroup(entry, sourceGroup) {
+  return readScanEvidence(entry) && scanEvidenceTargetsSourceGroup(entry, sourceGroup)
+}
+
+function entryMatchesSourceOnlyScan(entry, sourceGroup) {
+  const sourceToolId = canonicalToolId(entry?.source)
+  return isScanToolId(sourceToolId) && sourceGroupContainsToolId(sourceGroup, sourceToolId) && !readScanEvidence(entry)
+}
+
+function entryMatchesNonScanSource(entry, sourceGroup) {
+  if (!sourceGroup.includes(entry?.source)) {
+    return false
+  }
+
+  return !isScanToolId(canonicalToolId(entry.source))
+}
+
+function entryMatchesSourceGroup(entry, sourceGroup) {
+  if (sourceGroup.includes(entry.source)) {
+    return true
+  }
+
+  return scanEvidenceTargetsSourceGroup(entry, sourceGroup)
+}
+
+function getManualOverrideEntries(evidence, targetStage) {
+  const overrideScope = `tool-evidence-override:${targetStage}`
+  return evidence.filter((entry) => entry.source === "manual" && entry.scope === overrideScope)
+}
+
+function getLatestEvidenceEntry(entries) {
+  return [...entries].sort((left, right) => {
+    const leftTime = Date.parse(left.recorded_at ?? "")
+    const rightTime = Date.parse(right.recorded_at ?? "")
+    if (Number.isNaN(leftTime) && Number.isNaN(rightTime)) return 0
+    if (Number.isNaN(leftTime)) return 1
+    if (Number.isNaN(rightTime)) return -1
+    return rightTime - leftTime
+  })[0]
+}
+
+function normalizeClassificationSummary(scanEvidence) {
+  const triage = readObject(scanEvidence.triage_summary)
+  const groups = Array.isArray(triage.groups) ? triage.groups : []
+  return {
+    groupCount: triage.groupCount ?? triage.group_count ?? groups.length,
+    blockingCount: triage.blockingCount ?? triage.blocking_count ?? countGroupsByClassification(groups, "blocking") + countGroupsByClassification(groups, "true_positive"),
+    nonBlockingNoiseCount: triage.nonBlockingNoiseCount ?? triage.non_blocking_noise_count ?? countGroupsByClassification(groups, "non_blocking_noise"),
+    falsePositiveCount: triage.falsePositiveCount ?? triage.false_positive_count ?? countGroupsByClassification(groups, "false_positive"),
+    followUpCount: triage.followUpCount ?? triage.follow_up_count ?? countGroupsByClassification(groups, "follow_up"),
+    unclassifiedCount: triage.unclassifiedCount ?? triage.unclassified_count ?? countGroupsByClassification(groups, "unclassified"),
+    groups,
+  }
+}
+
+function countGroupsByClassification(groups, classification) {
+  return groups.filter((group) => group.classification === classification).length
+}
+
+function normalizeFindingCounts(scanEvidence) {
+  const counts = readObject(scanEvidence.finding_counts)
+  return {
+    ...counts,
+    total: scanEvidence.finding_count ?? scanEvidence.findingCount ?? counts.total ?? 0,
+  }
+}
+
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0
+}
+
+function isResolvedGroup(group) {
+  return ["resolved", "fixed", "closed", "remediated"].includes(String(group.resolution ?? group.status ?? "").toLowerCase())
+}
+
+function hasTraceability(group, entry) {
+  return isNonEmptyString(group.trace_ref) ||
+    isNonEmptyString(group.traceRef) ||
+    (Array.isArray(group.sampleLocations) && group.sampleLocations.length > 0) ||
+    (Array.isArray(entry.artifact_refs) && entry.artifact_refs.length > 0)
+}
+
+function findFalsePositiveItem(group, scanEvidence) {
+  const summary = readObject(scanEvidence.false_positive_summary)
+  const items = Array.isArray(summary.items)
+    ? summary.items
+    : Array.isArray(summary.false_positives)
+      ? summary.false_positives
+      : []
+  return items.find((item) => {
+    const rule = item.rule_id ?? item.ruleId ?? item.check_id ?? item.checkId
+    return rule === group.ruleId || rule === group.rule_id || rule === group.checkId
+  }) ?? null
+}
+
+function validateFalsePositiveItem(item) {
+  const hasRule = isNonEmptyString(item?.rule_id) || isNonEmptyString(item?.ruleId) || isNonEmptyString(item?.check_id) || isNonEmptyString(item?.checkId)
+  const hasFileOrArea = isNonEmptyString(item?.file) || isNonEmptyString(item?.area) || isNonEmptyString(item?.path)
+  const hasImpact = isNonEmptyString(item?.security_impact) || isNonEmptyString(item?.impact)
+  const hasFollowUp = isNonEmptyString(item?.follow_up) || isNonEmptyString(item?.followUp) || isNonEmptyString(item?.follow_up_decision) || isNonEmptyString(item?.followUpDecision)
+  return hasRule && hasFileOrArea && isNonEmptyString(item?.context) && isNonEmptyString(item?.rationale) && hasImpact && hasFollowUp
+}
+
+function evaluateStructuredScanEvidence(entry, targetStage, sourceGroup = null) {
+  const payload = readScanEvidence(entry)
+  if (!payload) {
+    const toolId = canonicalToolId(entry?.source) ?? entry?.source ?? "required scan tool"
+    return {
+      passed: false,
+      blockers: [`required scan evidence for ${toolId} before ${targetStage} must include structured details.scan_evidence`],
+      runtimePolicySatisfiedToolId: null,
+    }
+  }
+
+  const { scanEvidence } = payload
+  const blockers = []
+  const directTool = readObject(scanEvidence.direct_tool)
+  const substitute = scanEvidence.substitute === null ? null : readObject(scanEvidence.substitute)
+  const toolId = directTool.tool_id
+  const evidenceType = scanEvidence.evidence_type ?? "direct_tool"
+  if (!isNonEmptyString(toolId)) {
+    blockers.push(`scan evidence before ${targetStage} must identify tool.rule-scan or tool.security-scan in details.scan_evidence.direct_tool.tool_id`)
+  }
+  if (!["direct_tool", "substitute_scan", "manual_override"].includes(evidenceType)) {
+    blockers.push(`scan evidence for ${toolId ?? "required scan tool"} has unsupported evidence_type '${evidenceType}' before ${targetStage}`)
+  }
+  if (!isScanToolId(toolId)) {
+    blockers.push(`scan evidence before ${targetStage} must identify tool.rule-scan or tool.security-scan in details.scan_evidence.direct_tool.tool_id`)
+  }
+  const directAvailable = directTool.availability_state === "available"
+  const directSucceeded = ["succeeded", "degraded"].includes(directTool.result_state)
+  let runtimePolicySatisfiedToolId = null
+
+  if (sourceGroup && isNonEmptyString(toolId) && !sourceGroupContainsToolId(sourceGroup, toolId)) {
+    blockers.push(`scan evidence before ${targetStage} identifies ${toolId}, but the gate requires ${sourceGroupToolLabel(sourceGroup)}`)
+  }
+
+  if (evidenceType === "direct_tool" && (!directAvailable || !directSucceeded)) {
+    blockers.push(`required scan evidence for ${toolId} did not run successfully for ${targetStage}`)
+  }
+
+  if (evidenceType === "substitute_scan") {
+    const substituteToolId = readSubstituteToolId(substitute)
+    if (sourceGroup && substituteToolId && !sourceGroupContainsToolId(sourceGroup, substituteToolId)) {
+      blockers.push(`substitute scan evidence before ${targetStage} identifies ${substituteToolId}, but the gate requires ${sourceGroupToolLabel(sourceGroup)}`)
+    }
+    if (substitute?.ran !== true || !isNonEmptyString(substitute.command_or_tool) || !isNonEmptyString(substitute.limitations)) {
+      blockers.push(`substitute scan evidence for ${toolId} is missing command/status limitations for ${targetStage}`)
+    } else {
+      runtimePolicySatisfiedToolId = toolId
+    }
+  }
+
+  const findingCounts = normalizeFindingCounts(scanEvidence)
+  const triage = normalizeClassificationSummary(scanEvidence)
+  if (findingCounts.total > 0 && triage.groupCount === 0) {
+    blockers.push(`scan findings for ${toolId} are missing grouped triage before ${targetStage}`)
+  }
+  if (triage.unclassifiedCount > 0 || triage.groups.some((group) => !group.classification || group.classification === "unclassified")) {
+    blockers.push(`unclassified scan findings remain for ${toolId} before ${targetStage}`)
+  }
+
+  for (const group of triage.groups) {
+    if ((group.classification === "blocking" || group.classification === "true_positive") && !isResolvedGroup(group)) {
+      const securityLabel = scanEvidence.scan_kind === "security" || group.category === "security"
+        ? " security"
+        : ""
+      blockers.push(`${group.classification.replace("_", "-")}${securityLabel} scan finding remains unresolved for ${group.ruleId ?? "unknown-rule"}`)
+    }
+
+    if (group.classification === "non_blocking_noise") {
+      if (!isNonEmptyString(group.rationale)) {
+        blockers.push(`non-blocking noise scan group for ${group.ruleId ?? "unknown-rule"} requires rationale`)
+      }
+      if (!hasTraceability(group, entry)) {
+        blockers.push(`non-blocking noise scan group for ${group.ruleId ?? "unknown-rule"} requires traceability`)
+      }
+    }
+
+    if (group.classification === "false_positive") {
+      const item = findFalsePositiveItem(group, scanEvidence)
+      if (!validateFalsePositiveItem(item)) {
+        blockers.push(`false-positive scan finding for ${group.ruleId ?? "unknown-rule"} requires rule, file/area, context, rationale, security impact, and follow-up decision`)
+      }
     }
   }
 
   return {
-    passed: missingGroups.length === 0,
-    missingGroups,
-    summary: gate.summary,
-    fallbackManualAllowed: gate.fallbackManualAllowed,
+    passed: blockers.length === 0,
+    blockers,
+    runtimePolicySatisfiedToolId,
   }
+}
+
+function validateManualOverrideEntry(entry, targetStage, evidence) {
+  const payload = readScanEvidence(entry)
+  const baseMessage = `manual override for ${targetStage} must include target stage, unavailable tool, reason, substitute evidence/limitations, actor, and caveat`
+  if (!payload || payload.scanEvidence.evidence_type !== "manual_override") {
+    return { valid: false, toolId: null, blockers: [baseMessage] }
+  }
+
+  const { scanEvidence } = payload
+  const directTool = readObject(scanEvidence.direct_tool)
+  const manualOverride = readObject(scanEvidence.manual_override)
+  const substituteEvidenceIdsPresent = Array.isArray(manualOverride.substitute_evidence_ids)
+  const requiredFieldsPresent = manualOverride.target_stage === targetStage &&
+    isNonEmptyString(manualOverride.unavailable_tool) &&
+    isNonEmptyString(manualOverride.reason) &&
+    substituteEvidenceIdsPresent &&
+    isNonEmptyString(manualOverride.substitute_limitations) &&
+    isNonEmptyString(manualOverride.actor) &&
+    isNonEmptyString(manualOverride.caveat)
+
+  if (!requiredFieldsPresent) {
+    return { valid: false, toolId: manualOverride.unavailable_tool ?? directTool.tool_id ?? null, blockers: [baseMessage] }
+  }
+
+  const toolId = manualOverride.unavailable_tool
+  if (directTool.availability_state === "available" && ["succeeded", "degraded"].includes(directTool.result_state)) {
+    return {
+      valid: false,
+      toolId,
+      blockers: [`manual override for ${targetStage} cannot be used while ${toolId} has available scan output; triage the available scan output instead`],
+    }
+  }
+
+  const availableScanForSameTool = evidence.find((candidate) => {
+    if (candidate === entry) return false
+    const candidatePayload = readScanEvidence(candidate)
+    if (!candidatePayload || candidatePayload.scanEvidence.evidence_type === "manual_override") return false
+    const candidateDirectTool = readObject(candidatePayload.scanEvidence.direct_tool)
+    return candidateDirectTool.tool_id === toolId &&
+      candidateDirectTool.availability_state === "available" &&
+      ["succeeded", "degraded"].includes(candidateDirectTool.result_state)
+  })
+
+  if (availableScanForSameTool) {
+    const scanResult = evaluateStructuredScanEvidence(availableScanForSameTool, targetStage)
+    if (!scanResult.passed) {
+      return {
+        valid: false,
+        toolId,
+        blockers: [`manual override for ${targetStage} cannot bypass available scan output for ${toolId}; triage noisy or blocking scan findings instead`],
+      }
+    }
+  }
+
+  return { valid: true, toolId, blockers: [] }
 }
 
 const DOD_RULES = {

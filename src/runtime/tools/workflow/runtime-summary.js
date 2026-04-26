@@ -2,6 +2,10 @@ export function createRuntimeSummaryTool({ workflowKernel }) {
   return {
     id: 'tool.runtime-summary',
     description: 'Reads workflow-backed runtime summary',
+    family: 'workflow',
+    stage: 'foundation',
+    status: 'active',
+    validationSurface: 'compatibility_runtime',
     execute(input = {}) {
       const customStatePath = input?.customStatePath ?? null;
       const result = workflowKernel.showRuntimeStatus(customStatePath);

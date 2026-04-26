@@ -4,7 +4,7 @@ This directory stores architecture artifacts for OpenKit's workflow kernel and r
 
 - File naming: `YYYY-MM-DD-<feature-slug>.md`
 - Historical source template: `docs/archive/templates/architecture-template.md`
-- Approval gate: Architect -> Tech Lead
+- Current workflow gate: Product Lead scope -> Solution Lead solution. Older architecture artifacts may still describe the legacy Architect -> Tech Lead chain as historical context only.
 
 Current maintainer-critical architecture docs:
 

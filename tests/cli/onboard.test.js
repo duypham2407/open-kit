@@ -33,5 +33,11 @@ test('openkit onboard explains the default path and lane entry choices', () => {
   assert.match(result.stdout, /Primary entry commands/);
   assert.match(result.stdout, /\/migrate/);
   assert.match(result.stdout, /resume-summary/);
+  assert.match(result.stdout, /preferred product path/i);
+  assert.match(result.stdout, /npm install -g @duypham93\/openkit/);
+  assert.match(result.stdout, /openkit doctor/);
+  assert.match(result.stdout, /openkit run/);
+  assert.match(result.stdout, /Compatibility runtime/);
+  assert.match(result.stdout, /target-project app validation/i);
   assert.doesNotMatch(result.stdout, /Capability-guided next steps/);
 });

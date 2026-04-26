@@ -113,6 +113,8 @@ Readiness checklist for every full-delivery gate:
 - unresolved assumptions, risks, and open questions are called out in notes
 - the receiving role has enough detail to begin without reconstructing missing intent
 - the approver records approval notes or rejection notes in workflow state
+- validation evidence identifies the surface checked: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, or `target_project_app`
+- target-project app validation is required only when the target project defines the relevant command; otherwise the missing validation path is stated honestly
 
 Boundary-specific handoff focus:
 
@@ -121,6 +123,11 @@ Boundary-specific handoff focus:
 - `fullstack_to_code_review`: changed surfaces and implementation evidence are clear
 - `code_review_to_qa`: scope compliance passed, important code-quality concerns are resolved or recorded, and QA has enough context to verify behavior
 - `qa_to_done`: verification outcome, remaining issue status, and closure recommendation are clear
+
+Task-board handoff note:
+
+- task-level owner/status/artifact/dependency/QA/evidence details support full-delivery handoffs, but they do not replace the feature-level approval authorities above
+- when `parallel_mode` is `none`, approvals must treat the work as sequential even if task rows are ready
 
 ## Operational Rule
 
@@ -140,13 +147,39 @@ In addition to approval gates, certain stage transitions require **tool-sourced 
 | full | `full_qa` | `rule-scan` or `tool.rule-scan` AND `security-scan` or `tool.security-scan` | Code Reviewer must run both before QA |
 | migration | `migration_code_review` | `rule-scan` or `tool.rule-scan` or `codemod-preview` or `tool.codemod-preview` | Migration upgrade must run one of these before code review |
 
+### Scan/Tool Evidence Reporting And Classified Scan Outcomes
+
+When required scan evidence includes structured `details.scan_evidence`, the gate evaluates the classified outcome instead of only checking that a source string exists:
+
+- required scan evidence that is missing still blocks the transition
+- unclassified finding groups block required scan gates
+- `non_blocking_noise` groups can pass only when they include rationale and traceability through group metadata or artifact references
+- false positives can pass only with rule/finding identity, file or area, context, rationale, behavior/security impact, and follow-up decision
+- security findings classified as unresolved `true_positive` or `blocking` block the transition, especially for production/runtime areas
+- raw high-volume finding output may stay in artifacts, but the gate decision must be based on grouped and classified summary data
+
+Review, QA, runtime, and closeout reports that explain a scan-gate decision must include a dedicated scan/tool evidence section with direct tool status, substitute status, evidence type (`direct_tool`, `substitute_scan`, or `manual_override`), finding counts, classification summary, false-positive rationale, manual override caveats, validation-surface labels, and artifact refs. These reporting fields are part of gate inspectability: a gate should not be treated as auditable when the result hides whether evidence came from direct tool execution, substitute evidence, or manual override.
+
+Validation-surface labels are mandatory in scan-gate evidence. Direct OpenKit scans and allowed substitute scans validate `runtime_tooling`; workflow-state preservation and summaries validate `compatibility_runtime`; neither replaces `target_project_app` build/lint/test validation.
+
 ### Manual Override
 
 When a required tool is genuinely unavailable (e.g. semgrep not installed), operators can unblock the pipeline by recording a manual evidence entry with:
 - `source: "manual"`
 - `scope: "tool-evidence-override:<target_stage>"`
+- `details.scan_evidence.evidence_type: "manual_override"`
+- `details.scan_evidence.manual_override.target_stage`
+- `details.scan_evidence.manual_override.unavailable_tool`
+- `details.scan_evidence.manual_override.reason`
+- `details.scan_evidence.manual_override.substitute_evidence_ids` and `substitute_limitations`
+- `details.scan_evidence.manual_override.actor`
+- `details.scan_evidence.manual_override.caveat`
 
 Example: `scope: "tool-evidence-override:full_code_review"`
+
+Manual overrides are exceptional. They cannot be used merely to avoid triaging noisy but available scan output; if a required scan produced usable findings, those findings must be grouped and classified.
+
+Manual override caveats must remain visible downstream in Code Review, QA, closeout, and policy-readiness summaries. Overrides are limited to genuine tool unavailability, unusable direct scan output, or explicitly authorized operational exceptions.
 
 ### Quick Mode
 
@@ -165,7 +198,8 @@ Beyond Tier 2 evidence gates (which check agent-written `verification_evidence`)
 
 1. Every tool execution in the runtime is recorded to a file-backed invocation log at `.opencode/work-items/<work_item_id>/tool-invocations.json` (or `.opencode/tool-invocations.json` as a fallback).
 2. Before `advanceStage` allows a transition, the policy engine checks whether required tools were actually invoked with a `success` status in the invocation log.
-3. Both Tier 2 and Tier 3 must pass for a transition to proceed.
+3. Structured substitute or valid manual-override scan evidence may satisfy the corresponding runtime policy only when it passes the classified scan outcome rules above and remains visibly caveated.
+4. Both Tier 2 and Tier 3 must pass for a transition to proceed.
 
 ### Active Invocation Policies
 
@@ -191,7 +225,7 @@ The same manual override pattern from Tier 2 applies. If `state.verification_evi
 - `source: "manual"`
 - `scope: "tool-evidence-override:<target_stage>"`
 
-...then both Tier 2 and Tier 3 checks are bypassed for that target stage.
+...and complete structured manual-override details, then the corresponding Tier 2 and Tier 3 checks may pass for that target stage. Malformed overrides still block.
 
 ### Invocation Log Location
 
@@ -229,7 +263,7 @@ The output includes:
 - Tier 2 tool evidence gate status (passed or blocked with blockers)
 - Tier 3 runtime policy status (passed or blocked with violation details)
 
-The command exits with code 0 when all policies pass (or a manual override exists) and code 1 when blocked.
+The command exits with code 0 when all policies and tool evidence gates pass, including any valid structured manual override, and code 1 when blocked.
 
 ### Recording Manual Override Evidence
 
@@ -248,7 +282,7 @@ node .opencode/workflow-state.js record-verification-evidence \
   "semgrep not available in this environment" manual
 ```
 
-This bypasses both Tier 2 and Tier 3 checks for the specified target stage.
+This can satisfy both Tier 2 and Tier 3 checks for the specified target stage only when structured manual-override details are present and the override is not hiding available untriaged scan output.
 
 ### Setting Enforcement Mode
 

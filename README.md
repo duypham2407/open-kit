@@ -11,7 +11,7 @@ It helps OpenCode behave more like a real software team instead of a single chat
 - keep workflow state, approvals, issues, and evidence explicit
 - reduce hallucinated completion claims through runtime checks and verification gates
 
-If you remember one command after launch, remember this: start with `/task`.
+Preferred operator lifecycle outside OpenCode: `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, then maintain with `openkit upgrade` or `openkit uninstall` when needed. If you remember one command after launch, remember this: start with `/task`.
 
 ## 2. Why OpenKit
 
@@ -36,6 +36,8 @@ It is now also evolving a hybrid runtime foundation under `src/runtime/` that ad
 - additive runtime config loading for project and user scopes
 - a capability registry for runtime growth
 - manager, tool, and hook bootstrap pipelines
+- structured scan/tool evidence for review and QA gates
+- supervisor dialogue primitives for OpenClaw/OpenKit advisory exchange
 - a clean-room path toward MCP, background execution, categories, specialists, and recovery
 
 ## 3. Core Modes
@@ -48,6 +50,7 @@ OpenKit has 3 workflow modes.
 - keeps planning and verification lightweight
 - uses the `quick_*` stages
 - does not use a task board
+- expected artifact trail is workflow communication plus verification evidence; a `docs/tasks/YYYY-MM-DD-<task>.md` task card is optional traceability
 
 ### Migration
 
@@ -55,6 +58,7 @@ OpenKit has 3 workflow modes.
 - preserves behavior first, then migrates safely in stages
 - uses the `migration_*` stages
 - validates through baseline, parity, and compatibility evidence
+- expected artifact trail is a migration solution package in `docs/solution/`, baseline/parity context, and optionally a migration report or strategy-enabled migration slice board
 
 ### Full
 
@@ -62,6 +66,7 @@ OpenKit has 3 workflow modes.
 - uses scope, solution, implementation, QA, and review handoffs
 - uses the `full_*` stages
 - can use a task board when the approved solution package allows it
+- expected artifact trail is Product Lead scope in `docs/scope/` before Solution Lead design in `docs/solution/`, then implementation evidence, code review, and QA evidence in `docs/qa/`
 
 ## 4. How It Works
 
@@ -81,7 +86,7 @@ Master Orchestrator chooses mode
    +--> Full -------> Product Lead(scope package) -> Solution Lead(solution package) -> Fullstack -> Code Reviewer -> QA -> done
    |
    v
-Workflow state, approvals, issues, and evidence stored in .opencode/
+Workflow state, approvals, issues, and evidence stored in managed workspace state and mirrored through project `.opencode/` compatibility surfaces
 ```
 
 At runtime, OpenKit keeps the process explicit through:
@@ -115,13 +120,29 @@ OpenKit is distributed as an npm global package:
 npm install -g @duypham93/openkit
 ```
 
-After npm install, run:
+Preferred operator path after npm install:
+
+```bash
+openkit doctor
+openkit run
+```
+
+Use these lifecycle commands when maintaining the global kit:
+
+```bash
+openkit upgrade
+openkit uninstall
+```
+
+`openkit run` materializes the managed OpenKit kit under `OPENCODE_HOME` on first use when needed. `openkit doctor` is the non-mutating readiness check for the global install and current workspace. Do not treat repository-local `.opencode/` commands as the preferred end-user install path; they are compatibility and maintainer diagnostics.
+
+Optional manual provisioning remains available when you intentionally need it:
 
 ```bash
 openkit install --verify
 ```
 
-`openkit install --verify` will:
+`openkit install --verify` is a manual/compatibility helper that can:
 
 - materialize the managed OpenKit kit under `OPENCODE_HOME`
 - enable default MCP servers for OpenKit runtime tools and Chrome DevTools debugging
@@ -152,26 +173,27 @@ npm -v
 # 2) Install OpenKit globally
 npm install -g @duypham93/openkit
 
-# 3) Provision managed runtime and tooling
-openkit install --verify
-
-# 4) Doctor check
+# 3) Doctor check
 openkit doctor
+
+# 4) Launch OpenKit
+openkit run
 ```
 
-If `semgrep` is missing:
+If `semgrep` or another managed tool is missing, run the readiness check first and follow the printed recovery step:
 
 ```bash
-brew install python3
-openkit install --verify
+openkit doctor
+openkit upgrade
+openkit doctor
 ```
 
 If native module setup fails (`better-sqlite3`):
 
 ```bash
 npm install -g @duypham93/openkit
-openkit install --verify
 openkit doctor
+openkit run
 ```
 
 #### 6.2 Ubuntu / Debian setup
@@ -197,11 +219,11 @@ npm -v
 # 3) Install OpenKit globally
 npm install -g @duypham93/openkit
 
-# 4) Provision managed runtime and tooling
-openkit install --verify
-
-# 5) Doctor check
+# 4) Doctor check
 openkit doctor
+
+# 5) Launch OpenKit
+openkit run
 ```
 
 If `better-sqlite3` fails to build, reinstall after confirming build tools are installed:
@@ -209,8 +231,8 @@ If `better-sqlite3` fails to build, reinstall after confirming build tools are i
 ```bash
 sudo apt install -y build-essential python3
 npm install -g @duypham93/openkit
-openkit install --verify
 openkit doctor
+openkit run
 ```
 
 #### 6.3 Common post-install checks (both OSes)
@@ -366,9 +388,9 @@ node .opencode/workflow-state.js status --short
 
 `Master Orchestrator` is the delivery router.
 
-It chooses the mode, manages handoffs, tracks feedback loops, and keeps work moving through the right workflow.
+It chooses the mode when `/task` is used, records state, controls handoffs and gates, tracks feedback loops, and keeps work moving through the right workflow.
 
-It does not code. It acts as the boss: route, assign, approve, reroute, and close the loop, but never implement the solution itself.
+It does not code, define scope, design the solution, perform review, or make QA judgment. It is a procedural controller: route, dispatch, record, reroute, and close the loop only after the owning role has produced the required evidence.
 
 ### Agents
 
@@ -411,11 +433,13 @@ Approvals alone are not enough for closure-sensitive stages. Verification eviden
 
 OpenKit has 3 main surfaces:
 
-- product path: `openkit run`, `openkit doctor`, `openkit upgrade`, `openkit uninstall`
-- in-session path: `/task`, `/quick-task`, `/migrate`, `/delivery`
-- compatibility runtime path: `node .opencode/workflow-state.js ...`
+- product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, `openkit uninstall`
+- in-session path (`in_session`): `/task`, `/quick-task`, `/migrate`, `/delivery`
+- compatibility runtime path (`compatibility_runtime`): `node .opencode/workflow-state.js ...`
 
 Use the product path for daily use. Use the lower-level runtime CLI for inspection, diagnostics, and maintainer workflows.
+
+Validation evidence should name the surface it validates: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, or `target_project_app`. OpenKit runtime checks validate OpenKit surfaces; they do not prove target application build, lint, or test behavior unless the target project defines those commands.
 
 ### Hybrid Runtime Foundation
 
@@ -488,6 +512,22 @@ OpenKit now supports release-level governance through:
 - release gates
 - rollback plans
 - release-linked hotfixes
+
+### Supervisor Dialogue And Scan Evidence
+
+OpenKit now includes runtime support for a guarded OpenClaw supervisor dialogue path:
+
+- OpenKit emits audit-oriented supervisor events after successful workflow authority writes.
+- OpenClaw can acknowledge, propose, raise concerns, or request attention through advisory inbound records.
+- OpenClaw cannot execute code, mutate workflow state, approve gates, update tasks, record evidence, close issues, or mark QA done.
+- Supervisor dialogue defaults to disabled/unconfigured and degrades without blocking normal OpenKit workflow progress.
+- Status and resume surfaces expose supervisor health, delivery counts, inbound dispositions, rejected authority-boundary requests, duplicates, concerns, and attention signals.
+
+Review and QA flows also use structured scan/tool evidence:
+
+- `tool.rule-scan` and `tool.security-scan` results, substitutes, or manual caveats must be classified explicitly.
+- High-volume scan output is summarized with artifact references instead of being treated as silent success.
+- Target-project application validation remains separate from OpenKit runtime, compatibility runtime, documentation, and global CLI validation.
 
 ### Where To Go Next
 

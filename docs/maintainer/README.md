@@ -55,11 +55,14 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 
 ## Global Install Notes
 
-- The preferred end-user onboarding path is `npm install -g @duypham93/openkit` followed by `openkit run`.
+- The preferred end-user onboarding path is `npm install -g @duypham93/openkit`, `openkit doctor`, then `openkit run`.
 - The first `openkit run` materializes the managed kit into the OpenCode home directory automatically.
 - `openkit doctor` is a non-mutating check for the global install and current workspace readiness state.
-- `openkit install-global`, `openkit install`, and `openkit init` remain available as manual or compatibility commands.
+- `openkit upgrade` refreshes the managed global kit, and `openkit uninstall` removes it when an operator intentionally wants cleanup.
+- `openkit install-global`, `openkit install`, and `openkit init` remain available as manual or compatibility commands; do not describe them as the preferred operator onboarding path.
 - The package intentionally avoids npm `postinstall` side effects; setup happens inside the OpenKit CLI where failures and recovery steps are easier to explain.
+
+Surface split for maintainers: `global_cli` owns product lifecycle commands, `in_session` owns slash-command workflow routing and handoffs, and `compatibility_runtime` owns workflow-state inspection plus maintainer diagnostics.
 
 ## Tool Delivery Boundary
 
@@ -74,6 +77,18 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - OpenKit validates its own runtime, CLI, install, and launch behavior through `tests/` and `.opencode/tests/`
 - This repository still does not define repo-native build, lint, or test commands for arbitrary generated application code
 - Keep those stories separate in docs, prompts, and reports so operators do not confuse kit health with target-project app validation
+- If a target project has no declared app-native build, lint, or test command, record `target_project_app` validation as unavailable instead of substituting OpenKit runtime or governance checks
+- Use surface labels when recording validation: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, and `target_project_app`
+- Use the capability vocabulary consistently: `available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, and `not_configured`
+- Treat stale command references or unlabeled future example commands as documentation defects, not as permission to invent runtime behavior
+
+## Orchestration Visibility Boundary
+
+- Full-delivery task boards are full-only and never override the feature-level stage owner recorded in workflow state.
+- `parallel_mode: none` means sequential execution even when multiple task-board rows are ready.
+- Safe parallelism requires an approved solution package, explicit safe zones or constraints, and passing runtime allocation/integration checks.
+- Migration coordination remains baseline/parity/rollback oriented. Strategy-enabled migration slice boards are not full-delivery task boards by default.
+- Master Orchestrator remains procedural: it routes, records state, controls gates, and escalates; it does not define scope, design solutions, implement, review code, or make QA judgment.
 
 ## One-Command Verification
 
