@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { parseServerArgs } from '../../src/mcp-server/args.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..', '..');
@@ -39,8 +41,8 @@ function createMcpClient({ env = {} } = {}) {
           pending.get(msg.id)(msg);
           pending.delete(msg.id);
         }
-      } catch (error) {
-        // Ignore non-JSON lines (e.g. stderr redirected); `error` is intentionally unused because stderr noise is non-actionable for this client.
+      } catch {
+        buffer = ''; // Ignore non-JSON protocol noise from child stdout/stderr interleaving in this test client.
       }
     }
   });
@@ -100,6 +102,15 @@ test('MCP server starts and responds to initialize', async () => {
   } finally {
     await client.close();
   }
+});
+
+test('MCP server argument parsing preserves explicit project root for runtime normalization', () => {
+  const parsed = parseServerArgs(
+    ['--project-root', '/tmp/{cwd}'],
+    { OPENKIT_PROJECT_ROOT: '/wrong/root' }
+  );
+
+  assert.equal(parsed.projectRoot, '/tmp/{cwd}');
 });
 
 test('MCP server lists tools via tools/list', async () => {
@@ -218,6 +229,38 @@ test('MCP server executes tool.import-graph status', async () => {
     const parsed = JSON.parse(result.content[0].text);
     // status can be 'ok' or 'active' depending on graph state
     assert.ok(parsed.status, 'should have a status field');
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP server normalizes leaked cwd placeholder project root for syntax tools', async () => {
+  const client = createMcpClient({
+    env: {
+      OPENKIT_PROJECT_ROOT: path.join(path.dirname(projectRoot), '{cwd}'),
+      OPENKIT_REPOSITORY_ROOT: projectRoot,
+    },
+  });
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.syntax-outline',
+      arguments: { filePath: 'src/runtime/tools/syntax/syntax-outline.js' },
+    });
+
+    assert.ok(Array.isArray(result.content), 'should return content array');
+    const parsed = JSON.parse(result.content[0].text);
+    assert.equal(parsed.status, 'ok');
+    assert.equal(parsed.validationSurface, 'runtime_tooling');
+    assert.equal(parsed.relativePath, 'src/runtime/tools/syntax/syntax-outline.js');
+    assert.notEqual(parsed.status, 'missing-file');
+    assert.notEqual(parsed.status, 'invalid-path');
   } finally {
     await client.close();
   }

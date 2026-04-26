@@ -12,8 +12,12 @@ import { createCategoryRuntime } from './categories/index.js';
 import { createSkillRegistry } from './skills/index.js';
 import { createSpecialistRegistry } from './specialists/index.js';
 import { listBundledSkills } from '../capabilities/skill-catalog.js';
+import { normalizeRuntimeProjectRoot } from './project-root.js';
 
-export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = process.env, mode = 'read-write' } = {}) {
+export function bootstrapRuntimeFoundation({ projectRoot, env = process.env, mode = 'read-write' } = {}) {
+  const projectRootResolution = normalizeRuntimeProjectRoot({ projectRoot, env });
+  projectRoot = projectRootResolution.projectRoot;
+
   const configResult = createRuntimeConfig({ projectRoot, env });
   const capabilities = listRuntimeCapabilities({ config: configResult.config });
   const capabilityIndex = createCapabilityIndex({ config: configResult.config });
@@ -38,6 +42,7 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
         ...(configResult.config.__runtime ?? {}),
         actionModelStateManager: managers.actionModelStateManager,
         agentProfileSwitchManager: managers.agentProfileSwitchManager,
+        projectRootResolution,
       },
     },
   });
@@ -76,6 +81,7 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
   const contextInjection = createContextInjection({ projectRoot, hooks: hooks.hooks });
   const runtimeInterface = createRuntimeInterface({
     projectRoot,
+    projectRootResolution,
     configResult,
     capabilities,
     managers,
@@ -106,6 +112,7 @@ export function bootstrapRuntimeFoundation({ projectRoot = process.cwd(), env = 
     tools,
     hooks,
     runtimeInterface,
+    projectRootResolution,
   };
 }
 

@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 import { Language, Parser } from 'web-tree-sitter';
 
-import { isInsideProjectRoot, resolveProjectPath, listProjectFiles } from '../tools/shared/project-file-utils.js';
+import { listProjectFiles, resolveProjectFilePath } from '../tools/shared/project-file-utils.js';
 import { EXTENSION_TO_LANGUAGE, SOURCE_EXTENSIONS } from '../analysis/source-extensions.js';
 
 const require = createRequire(import.meta.url);
@@ -25,6 +25,14 @@ let tsxLanguage = null;
 
 function resolveLanguage(filePath) {
   return SUPPORTED_EXTENSIONS.get(path.extname(filePath).toLowerCase()) ?? null;
+}
+
+function withSyntaxMetadata(result, extra = {}) {
+  return {
+    ...result,
+    ...extra,
+    validationSurface: 'runtime_tooling',
+  };
 }
 
 function getLanguageInstance(languageId) {
@@ -184,36 +192,31 @@ export class SyntaxIndexManager {
   }
 
   async readFile(filePath) {
-    const resolvedPath = resolveProjectPath(this.projectRoot, filePath);
-    if (!resolvedPath || !isInsideProjectRoot(this.projectRoot, resolvedPath)) {
-      return {
-        status: 'invalid-path',
-        filePath,
+    const pathResolution = resolveProjectFilePath(this.projectRoot, filePath);
+    if (pathResolution.status !== 'ok') {
+      return withSyntaxMetadata(pathResolution, {
+        filePath: pathResolution.resolvedPath ?? filePath,
         language: null,
-      };
+      });
     }
 
-    if (!fs.existsSync(resolvedPath)) {
-      return {
-        status: 'missing-file',
-        filePath: resolvedPath,
-        language: null,
-      };
-    }
+    const resolvedPath = pathResolution.resolvedPath;
 
     const language = resolveLanguage(resolvedPath);
     if (!language) {
-      return {
+      return withSyntaxMetadata(pathResolution, {
         status: 'unsupported-language',
+        reason: 'unsupported-language',
         filePath: resolvedPath,
         language: null,
-      };
+      });
     }
 
     // Check cache first
     const cached = this._cache.get(resolvedPath);
     if (cached) {
       return {
+        ...pathResolution,
         status: 'parsed',
         filePath: resolvedPath,
         language: cached.language,
@@ -221,15 +224,48 @@ export class SyntaxIndexManager {
         tree: cached.tree,
         outline: cached.outline,
         fromCache: true,
+        validationSurface: 'runtime_tooling',
       };
     }
 
     // Parse fresh
-    await ensureParserRuntime();
-    const source = fs.readFileSync(resolvedPath, 'utf8');
-    const parser = new Parser();
-    parser.setLanguage(getLanguageInstance(language));
-    const tree = parser.parse(source);
+    try {
+      await ensureParserRuntime();
+    } catch (error) {
+      return withSyntaxMetadata(pathResolution, {
+        status: 'parser-unavailable',
+        reason: error instanceof Error ? error.message : 'parser-unavailable',
+        filePath: resolvedPath,
+        language,
+      });
+    }
+
+    let source;
+    try {
+      source = fs.readFileSync(resolvedPath, 'utf8');
+    } catch (error) {
+      return withSyntaxMetadata(pathResolution, {
+        status: error?.code === 'ENOENT' ? 'missing-file' : 'read-error',
+        reason: error?.code === 'ENOENT' ? 'file-disappeared' : (error?.code === 'EACCES' ? 'permission-denied' : 'read-error'),
+        filePath: resolvedPath,
+        language,
+      });
+    }
+
+    let tree;
+    try {
+      const parser = new Parser();
+      parser.setLanguage(getLanguageInstance(language));
+      tree = parser.parse(source);
+    } catch (error) {
+      return withSyntaxMetadata(pathResolution, {
+        status: 'parse-error',
+        reason: error instanceof Error ? error.message : 'parse-error',
+        filePath: resolvedPath,
+        language,
+      });
+    }
+
     const outline = collectOutline(tree.rootNode, source);
 
     // Cache result
@@ -243,10 +279,11 @@ export class SyntaxIndexManager {
         outline,
       });
     } catch {
-      // Non-critical — cache miss on next call
+      this._cache.delete(resolvedPath); // Parsing succeeded; failed cache population just means the next call reparses.
     }
 
     return {
+      ...pathResolution,
       status: 'parsed',
       filePath: resolvedPath,
       language,
@@ -254,6 +291,7 @@ export class SyntaxIndexManager {
       tree,
       outline,
       fromCache: false,
+      validationSurface: 'runtime_tooling',
     };
   }
 
@@ -266,6 +304,11 @@ export class SyntaxIndexManager {
     return {
       status: 'ok',
       filePath: parsed.filePath,
+      requestedPath: parsed.requestedPath,
+      resolvedPath: parsed.resolvedPath,
+      relativePath: parsed.relativePath,
+      pathResolution: parsed.pathResolution,
+      validationSurface: 'runtime_tooling',
       language: parsed.language,
       nodeCount: parsed.outline.length,
       outline: parsed.outline,
@@ -313,6 +356,7 @@ export class SyntaxIndexManager {
       status: 'ok',
       fileCount: results.length,
       files: results,
+      validationSurface: 'runtime_tooling',
     };
   }
 
@@ -327,6 +371,11 @@ export class SyntaxIndexManager {
       return {
         status: 'missing-node',
         filePath: parsed.filePath,
+        requestedPath: parsed.requestedPath,
+        resolvedPath: parsed.resolvedPath,
+        relativePath: parsed.relativePath,
+        pathResolution: parsed.pathResolution,
+        validationSurface: 'runtime_tooling',
         language: parsed.language,
       };
     }
@@ -335,6 +384,11 @@ export class SyntaxIndexManager {
     return {
       status: 'ok',
       filePath: parsed.filePath,
+      requestedPath: parsed.requestedPath,
+      resolvedPath: parsed.resolvedPath,
+      relativePath: parsed.relativePath,
+      pathResolution: parsed.pathResolution,
+      validationSurface: 'runtime_tooling',
       language: parsed.language,
       position: { line, column },
       node: {
@@ -384,6 +438,11 @@ export class SyntaxIndexManager {
     return {
       status: 'ok',
       filePath: parsed.filePath,
+      requestedPath: parsed.requestedPath,
+      resolvedPath: parsed.resolvedPath,
+      relativePath: parsed.relativePath,
+      pathResolution: parsed.pathResolution,
+      validationSurface: 'runtime_tooling',
       language: parsed.language,
       nodeType: type,
       matchCount: matches.length,

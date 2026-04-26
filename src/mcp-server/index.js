@@ -20,21 +20,11 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { bootstrapRuntimeFoundation } from '../runtime/index.js';
+import { parseServerArgs } from './args.js';
 import { TOOL_SCHEMAS, getMcpExposedToolIds } from './tool-schemas.js';
 
-function parseServerArgs(argv = process.argv.slice(2)) {
-  let projectRoot = process.env.OPENKIT_PROJECT_ROOT ?? process.cwd();
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--project-root' && argv[i + 1]) {
-      projectRoot = argv[i + 1];
-      i++;
-    }
-  }
-  return { projectRoot };
-}
-
 async function main() {
-  const { projectRoot } = parseServerArgs();
+  const { projectRoot } = parseServerArgs(process.argv.slice(2), process.env);
 
   const originalConsoleLog = console.log;
   console.log = (...args) => console.error('[openkit-mcp]', ...args);

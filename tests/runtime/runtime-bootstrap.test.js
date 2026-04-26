@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { bootstrapRuntimeFoundation } from '../../src/runtime/index.js';
+import { normalizeRuntimeProjectRoot } from '../../src/runtime/project-root.js';
 import { resolveAutoFallbackState } from '../../src/runtime/recovery/model-fallback.js';
 
 function makeTempDir() {
@@ -97,6 +98,30 @@ test('bootstrapRuntimeFoundation read-only mode does not materialize background 
 
   assert.equal(result.managers.managers['manager.background'].enabled, false);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode')), false);
+});
+
+test('runtime project-root normalization expands leaked cwd placeholders without using managed runtime roots', () => {
+  const projectRoot = fs.realpathSync.native(makeTempDir());
+  const managedRuntimeRoot = fs.realpathSync.native(makeTempDir());
+  const kitRoot = fs.realpathSync.native(makeTempDir());
+  writeText(path.join(projectRoot, 'package.json'), '{"name":"project-root-fixture"}\n');
+  writeText(path.join(managedRuntimeRoot, '.opencode', 'workflow-state.json'), '{}\n');
+
+  const result = normalizeRuntimeProjectRoot({
+    projectRoot: path.join(path.dirname(projectRoot), '{cwd}'),
+    env: {
+      OPENKIT_PROJECT_ROOT: path.join(path.dirname(projectRoot), '{cwd}'),
+      OPENKIT_REPOSITORY_ROOT: projectRoot,
+      OPENKIT_WORKFLOW_STATE: path.join(managedRuntimeRoot, '.opencode', 'workflow-state.json'),
+      OPENKIT_KIT_ROOT: kitRoot,
+    },
+    cwd: managedRuntimeRoot,
+  });
+
+  assert.equal(result.projectRoot, projectRoot);
+  assert.equal(result.source, 'env.OPENKIT_REPOSITORY_ROOT');
+  assert.notEqual(result.projectRoot, managedRuntimeRoot);
+  assert.notEqual(result.projectRoot, kitRoot);
 });
 
 test('bootstrapRuntimeFoundation applies category and specialist overrides with model-resolution trace', () => {

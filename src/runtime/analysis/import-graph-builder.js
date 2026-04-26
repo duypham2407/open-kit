@@ -26,21 +26,35 @@ function resolveSpecifier(specifier, fromFile, projectRoot) {
     return null; // bare specifier — external package
   }
 
+  const resolvedProjectRoot = path.resolve(projectRoot);
+  const canonicalProjectRoot = (() => {
+    try {
+      return fs.realpathSync.native(resolvedProjectRoot);
+    } catch {
+      return resolvedProjectRoot;
+    }
+  })();
   const dir = path.dirname(fromFile);
+  const preserveProjectRootAlias = (candidate) => {
+    const relative = path.relative(canonicalProjectRoot, candidate);
+    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
+      ? path.resolve(resolvedProjectRoot, relative)
+      : candidate;
+  };
   const base = specifier.startsWith('/')
-    ? path.resolve(projectRoot, specifier.slice(1))
+    ? path.resolve(resolvedProjectRoot, specifier.slice(1))
     : path.resolve(dir, specifier);
 
   // Try exact path first
   if (fs.existsSync(base) && fs.statSync(base).isFile()) {
-    return base;
+    return preserveProjectRootAlias(base);
   }
 
   // Try adding extensions
   for (const ext of JS_EXTENSIONS) {
     const candidate = `${base}${ext}`;
     if (fs.existsSync(candidate)) {
-      return candidate;
+      return preserveProjectRootAlias(candidate);
     }
   }
 
@@ -49,13 +63,13 @@ function resolveSpecifier(specifier, fromFile, projectRoot) {
     for (const ext of JS_EXTENSIONS) {
       const indexCandidate = path.join(base, `index${ext}`);
       if (fs.existsSync(indexCandidate)) {
-        return indexCandidate;
+        return preserveProjectRootAlias(indexCandidate);
       }
     }
   }
 
   // Fallback: return the base with .js extension for graph edges even if file is missing
-  return `${base}${path.extname(base) ? '' : '.js'}`;
+  return preserveProjectRootAlias(`${base}${path.extname(base) ? '' : '.js'}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -625,7 +639,7 @@ export async function buildFileGraph({ syntaxIndexManager, filePath, projectRoot
   try {
     mtime = fs.statSync(parsed.filePath).mtimeMs;
   } catch {
-    // non-critical
+    mtime = 0; // Parsed source is still usable; mtime 0 forces future freshness checks to re-evaluate.
   }
 
   const { imports, exports, symbols } = extractFromTree(
@@ -644,7 +658,7 @@ export async function buildFileGraph({ syntaxIndexManager, filePath, projectRoot
   }
 
   return {
-    filePath: parsed.filePath,
+    filePath,
     mtime,
     imports,
     exports,

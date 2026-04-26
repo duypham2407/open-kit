@@ -26,6 +26,237 @@ export function isInsideProjectRoot(projectRoot, targetPath) {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
+function realpathOrResolved(inputPath) {
+  try {
+    return fs.realpathSync.native(inputPath);
+  } catch {
+    return path.resolve(inputPath);
+  }
+}
+
+function isInsideCanonicalRoot(canonicalProjectRoot, targetPath) {
+  const relative = path.relative(canonicalProjectRoot, targetPath);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
+
+function compactPathResolution(result) {
+  return {
+    status: result.status,
+    reason: result.reason,
+    requestedPath: result.requestedPath,
+    normalizedInput: result.normalizedInput,
+    projectRoot: result.projectRoot,
+    canonicalProjectRoot: result.canonicalProjectRoot,
+    resolvedPath: result.resolvedPath,
+    canonicalPath: result.canonicalPath,
+    relativePath: result.relativePath,
+    kind: result.kind,
+  };
+}
+
+function createProjectFilePathResult({
+  status,
+  reason = null,
+  requestedPath,
+  normalizedInput = null,
+  projectRoot,
+  canonicalProjectRoot,
+  resolvedPath = null,
+  canonicalPath = null,
+  relativePath = null,
+  kind = null,
+}) {
+  const result = {
+    status,
+    reason,
+    requestedPath,
+    normalizedInput,
+    projectRoot,
+    canonicalProjectRoot,
+    resolvedPath,
+    canonicalPath,
+    relativePath,
+    kind,
+  };
+  result.pathResolution = compactPathResolution(result);
+  return result;
+}
+
+export function resolveProjectFilePath(projectRoot, requestedPath) {
+  const resolvedProjectRoot = path.resolve(projectRoot ?? process.cwd());
+  const canonicalProjectRoot = realpathOrResolved(resolvedProjectRoot);
+
+  if (typeof requestedPath !== 'string') {
+    return createProjectFilePathResult({
+      status: 'invalid-path',
+      reason: 'empty-path',
+      requestedPath,
+      normalizedInput: null,
+      projectRoot: resolvedProjectRoot,
+      canonicalProjectRoot,
+    });
+  }
+
+  const normalizedInput = requestedPath.trim();
+  if (normalizedInput.length === 0) {
+    return createProjectFilePathResult({
+      status: 'invalid-path',
+      reason: 'empty-path',
+      requestedPath,
+      normalizedInput,
+      projectRoot: resolvedProjectRoot,
+      canonicalProjectRoot,
+    });
+  }
+
+  const resolvedPath = path.isAbsolute(normalizedInput)
+    ? realpathOrResolved(normalizedInput)
+    : path.resolve(canonicalProjectRoot, normalizedInput);
+
+  if (!isInsideCanonicalRoot(canonicalProjectRoot, resolvedPath)) {
+    return createProjectFilePathResult({
+      status: 'invalid-path',
+      reason: 'outside-root',
+      requestedPath,
+      normalizedInput,
+      projectRoot: resolvedProjectRoot,
+      canonicalProjectRoot,
+      resolvedPath,
+    });
+  }
+
+  let lstat;
+  try {
+    lstat = fs.lstatSync(resolvedPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') {
+      return createProjectFilePathResult({
+        status: 'missing-file',
+        reason: 'missing-file',
+        requestedPath,
+        normalizedInput,
+        projectRoot: resolvedProjectRoot,
+        canonicalProjectRoot,
+        resolvedPath,
+        relativePath: path.relative(canonicalProjectRoot, resolvedPath).split(path.sep).join('/'),
+        kind: 'missing',
+      });
+    }
+
+    return createProjectFilePathResult({
+      status: 'read-error',
+      reason: error?.code === 'EACCES' ? 'permission-denied' : 'stat-error',
+      requestedPath,
+      normalizedInput,
+      projectRoot: resolvedProjectRoot,
+      canonicalProjectRoot,
+      resolvedPath,
+    });
+  }
+
+  let canonicalPath;
+  try {
+    canonicalPath = fs.realpathSync.native(resolvedPath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return createProjectFilePathResult({
+        status: 'missing-file',
+        reason: 'file-disappeared',
+        requestedPath,
+        normalizedInput,
+        projectRoot: resolvedProjectRoot,
+        canonicalProjectRoot,
+        resolvedPath,
+        relativePath: path.relative(canonicalProjectRoot, resolvedPath).split(path.sep).join('/'),
+        kind: 'missing',
+      });
+    }
+
+    return createProjectFilePathResult({
+      status: 'read-error',
+      reason: error?.code === 'EACCES' ? 'permission-denied' : 'realpath-error',
+      requestedPath,
+      normalizedInput,
+      projectRoot: resolvedProjectRoot,
+      canonicalProjectRoot,
+      resolvedPath,
+    });
+  }
+
+  if (!isInsideCanonicalRoot(canonicalProjectRoot, canonicalPath)) {
+    return createProjectFilePathResult({
+      status: 'invalid-path',
+      reason: 'symlink-outside-root',
+      requestedPath,
+      normalizedInput,
+      projectRoot: resolvedProjectRoot,
+      canonicalProjectRoot,
+      resolvedPath,
+      canonicalPath,
+    });
+  }
+
+  let stat;
+  try {
+    stat = fs.statSync(canonicalPath);
+  } catch (error) {
+    return createProjectFilePathResult({
+      status: error?.code === 'ENOENT' ? 'missing-file' : 'read-error',
+      reason: error?.code === 'ENOENT' ? 'file-disappeared' : 'stat-error',
+      requestedPath,
+      normalizedInput,
+      projectRoot: resolvedProjectRoot,
+      canonicalProjectRoot,
+      resolvedPath,
+      canonicalPath,
+      relativePath: path.relative(canonicalProjectRoot, canonicalPath).split(path.sep).join('/'),
+      kind: error?.code === 'ENOENT' ? 'missing' : null,
+    });
+  }
+
+  if (stat.isDirectory()) {
+    return createProjectFilePathResult({
+      status: 'not-file',
+      reason: 'directory',
+      requestedPath,
+      normalizedInput,
+      projectRoot: resolvedProjectRoot,
+      canonicalProjectRoot,
+      resolvedPath,
+      canonicalPath,
+      relativePath: path.relative(canonicalProjectRoot, canonicalPath).split(path.sep).join('/'),
+      kind: 'directory',
+    });
+  }
+
+  if (!stat.isFile()) {
+    return createProjectFilePathResult({
+      status: 'not-file',
+      reason: 'non-regular-file',
+      requestedPath,
+      normalizedInput,
+      projectRoot: resolvedProjectRoot,
+      canonicalProjectRoot,
+      resolvedPath,
+      canonicalPath,
+      relativePath: path.relative(canonicalProjectRoot, canonicalPath).split(path.sep).join('/'),
+      kind: lstat.isSymbolicLink() ? 'symlink' : 'other',
+    });
+  }
+
+  return createProjectFilePathResult({
+    status: 'ok',
+    requestedPath,
+    normalizedInput,
+    projectRoot: resolvedProjectRoot,
+    canonicalProjectRoot,
+    resolvedPath: canonicalPath,
+    canonicalPath,
+    relativePath: path.relative(canonicalProjectRoot, canonicalPath).split(path.sep).join('/'),
+    kind: 'file',
+  });
+}
+
 export function readTextFile(filePath) {
   try {
     return fs.readFileSync(filePath, 'utf8');

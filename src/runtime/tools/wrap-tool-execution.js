@@ -30,7 +30,7 @@ function shouldRecordSuccess(result) {
     return true;
   }
 
-  return !/failed|error|missing|invalid|unsupported|degraded|unavailable|not[_-]?configured/i.test(result.status);
+  return !/failed|error|missing|invalid|unsupported|degraded|unavailable|not[_-]?configured|not[_-]?file/i.test(result.status);
 }
 
 /**

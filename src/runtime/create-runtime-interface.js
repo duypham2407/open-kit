@@ -26,6 +26,7 @@ function getSupervisorManagerHealth(supervisorDialogueManager) {
 
 export function createRuntimeInterface({
   projectRoot,
+  projectRootResolution = null,
   configResult,
   capabilities,
   managers,
@@ -91,6 +92,7 @@ export function createRuntimeInterface({
       recovery,
       continuation: managers.continuationStateManager?.summary?.() ?? null,
       workflowDoctor,
+      projectRootResolution,
     },
     environment: {
       OPENKIT_RUNTIME_FOUNDATION: '1',
