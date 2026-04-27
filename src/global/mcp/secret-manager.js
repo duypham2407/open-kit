@@ -4,6 +4,9 @@ import path from 'node:path';
 
 import { getGlobalPaths } from '../paths.js';
 import { redactedKeyState } from './redaction.js';
+import { createKeychainAdapter, keychainRef } from './secret-stores/keychain-adapter.js';
+
+export const SECRET_STORES = Object.freeze({ LOCAL_ENV_FILE: 'local_env_file', KEYCHAIN: 'keychain' });
 
 const ENV_NAME_PATTERN = /^[A-Z][A-Z0-9_]*$/;
 
@@ -12,6 +15,18 @@ function validateEnvVarName(envVar) {
     throw new Error(`Invalid secret env var '${envVar}'.`);
   }
   return envVar;
+}
+
+export function validateSecretStore(store = SECRET_STORES.LOCAL_ENV_FILE) {
+  if (!Object.values(SECRET_STORES).includes(store)) {
+    throw new Error(`Unsupported secret store '${store}'. Expected local_env_file or keychain.`);
+  }
+  return store;
+}
+
+export function buildSecretBindingRef({ mcpId, envVar, scope = 'openkit', kind = 'bundled' }) {
+  validateEnvVarName(envVar);
+  return { mcpId, envVar, scope, kind, ...keychainRef({ mcpId, envVar, scope, kind }) };
 }
 
 function ensureSecureParent(directory) {
@@ -125,8 +140,18 @@ function mutateSecretFile(envVar, mutator, options = {}) {
 }
 
 export function setSecretValue(envVar, value, options = {}) {
+  const store = validateSecretStore(options.store ?? SECRET_STORES.LOCAL_ENV_FILE);
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`Secret value for '${envVar}' must be a non-empty string.`);
+  }
+
+  if (store === SECRET_STORES.KEYCHAIN) {
+    const bindingRef = options.bindingRef ?? buildSecretBindingRef({ mcpId: options.mcpId ?? 'unknown', envVar, scope: options.scope, kind: options.kind });
+    const result = (options.keychainAdapter ?? createKeychainAdapter(options)).set({ bindingRef, value, env: options.env });
+    if (result.status !== 'stored') {
+      throw new Error(`Keychain secret store unavailable: ${result.reason ?? result.remediation ?? result.status}`);
+    }
+    return { status: 'stored', envVar, store, keyState: 'present_redacted', ref: result.ref };
   }
 
   const { paths } = mutateSecretFile(envVar, (parsed) => {
@@ -151,12 +176,22 @@ export function setSecretValue(envVar, value, options = {}) {
   return {
     status: 'stored',
     envVar,
+    store,
     keyState: 'present_redacted',
     secretPath: paths.secretsEnvPath,
   };
 }
 
 export function unsetSecretValue(envVar, options = {}) {
+  const store = validateSecretStore(options.store ?? SECRET_STORES.LOCAL_ENV_FILE);
+  if (store === SECRET_STORES.KEYCHAIN) {
+    const bindingRef = options.bindingRef ?? buildSecretBindingRef({ mcpId: options.mcpId ?? 'unknown', envVar, scope: options.scope, kind: options.kind });
+    const result = (options.keychainAdapter ?? createKeychainAdapter(options)).unset({ bindingRef, env: options.env });
+    if (result.status === 'unavailable') {
+      throw new Error(`Keychain secret store unavailable: ${result.reason ?? result.remediation ?? result.status}`);
+    }
+    return { status: result.removed ? 'removed' : 'already_missing', envVar, store, keyState: 'missing', ref: result.ref };
+  }
   let removed = false;
   const { paths } = mutateSecretFile(envVar, (parsed) => {
     return parsed.entries.filter((entry) => {
@@ -171,9 +206,38 @@ export function unsetSecretValue(envVar, options = {}) {
   return {
     status: removed ? 'removed' : 'already_missing',
     envVar,
+    store,
     keyState: 'missing',
     secretPath: paths.secretsEnvPath,
   };
+}
+
+export function getSecretValue(envVar, options = {}) {
+  const store = validateSecretStore(options.store ?? SECRET_STORES.LOCAL_ENV_FILE);
+  validateEnvVarName(envVar);
+  if (store === SECRET_STORES.KEYCHAIN) {
+    const bindingRef = options.bindingRef ?? buildSecretBindingRef({ mcpId: options.mcpId ?? 'unknown', envVar, scope: options.scope, kind: options.kind });
+    return (options.keychainAdapter ?? createKeychainAdapter(options)).get({ bindingRef, env: options.env });
+  }
+  const loaded = loadSecretsEnv(options);
+  const value = loaded.values?.[envVar];
+  return value ? { status: 'loaded', value, store, envVar } : { status: 'missing', store, envVar };
+}
+
+export function inspectSecretStore(options = {}) {
+  const store = validateSecretStore(options.store ?? SECRET_STORES.LOCAL_ENV_FILE);
+  if (store === SECRET_STORES.KEYCHAIN) {
+    return (options.keychainAdapter ?? createKeychainAdapter(options)).doctor({ env: options.env });
+  }
+  return { store, ...inspectSecretFile(options) };
+}
+
+export function repairSecretStore(options = {}) {
+  const store = validateSecretStore(options.store ?? SECRET_STORES.LOCAL_ENV_FILE);
+  if (store === SECRET_STORES.KEYCHAIN) {
+    return (options.keychainAdapter ?? createKeychainAdapter(options)).repair({ env: options.env });
+  }
+  return { store, ...repairSecretStorePermissions(options) };
 }
 
 export function loadSecretsEnv(options = {}) {

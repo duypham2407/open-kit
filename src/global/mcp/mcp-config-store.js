@@ -87,9 +87,26 @@ export function setMcpEnabled(mcpId, enabled, options = {}) {
 export function recordSecretBinding(mcpId, envVars, options = {}) {
   requireMcpCatalogEntry(mcpId);
   const config = readMcpConfig(options);
+  const previous = config.secretBindings[mcpId] ?? {};
+  const now = timestamp();
+  const stores = { ...(previous.stores ?? {}) };
+  if (options.store && options.envVar) {
+    stores[options.envVar] = {
+      ...(stores[options.envVar] ?? {}),
+      [options.store]: {
+        configured: options.configured !== false,
+        updatedAt: now,
+        ...(options.ref?.service ? { service: options.ref.service } : {}),
+        ...(options.ref?.account ? { account: options.ref.account } : {}),
+        source: options.source ?? 'openkit',
+      },
+    };
+  }
   config.secretBindings[mcpId] = {
+    ...previous,
     envVars: [...new Set(envVars)],
-    updatedAt: timestamp(),
+    ...(Object.keys(stores).length > 0 ? { stores } : {}),
+    updatedAt: now,
   };
   return writeMcpConfig(config, options);
 }

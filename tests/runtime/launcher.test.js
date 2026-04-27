@@ -12,6 +12,8 @@ import { getWorkspacePaths } from '../../src/global/paths.js';
 import { launchManagedOpenCode } from '../../src/runtime/launcher.js';
 import { launchGlobalOpenKit } from '../../src/global/launcher.js';
 import { writeWorkItemIndex, writeWorkItemState, writeWorkItemWorktree } from '../../.opencode/lib/work-item-store.js';
+import { buildSecretBindingRef, setSecretValue } from '../../src/global/mcp/secret-manager.js';
+import { recordSecretBinding } from '../../src/global/mcp/mcp-config-store.js';
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-launcher-'));
@@ -328,6 +330,110 @@ test('launchGlobalOpenKit injects saved per-agent model overrides into inline co
     { model: 'openai/gpt-5', variant: 'high' },
     { model: 'azure/gpt-5', variant: 'high' },
   ]);
+});
+
+test('launchGlobalOpenKit preserves shell env over saved local secrets', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let spawnCall = null;
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+  setSecretValue('CONTEXT7_API_KEY', 'local-secret', { env: { OPENCODE_HOME: openCodeHome } });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome, CONTEXT7_API_KEY: 'shell-secret' },
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      spawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(spawnCall.options.env.CONTEXT7_API_KEY, 'shell-secret');
+});
+
+test('launchGlobalOpenKit ignores unrecorded keychain items and falls back to local env file', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let spawnCall = null;
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+  const env = { OPENCODE_HOME: openCodeHome };
+  const ref = buildSecretBindingRef({ mcpId: 'context7', envVar: 'CONTEXT7_API_KEY', scope: 'openkit', kind: 'bundled' });
+  setSecretValue('CONTEXT7_API_KEY', 'stale-keychain-secret', { env, store: 'keychain', mcpId: 'context7', bindingRef: ref, keychainAdapter: { set: () => ({ status: 'stored', ref }) } });
+  setSecretValue('CONTEXT7_API_KEY', 'local-fallback-secret', { env });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env,
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      spawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(spawnCall.options.env.CONTEXT7_API_KEY, 'local-fallback-secret');
+});
+
+test('launchGlobalOpenKit loads keychain only when matching metadata is recorded', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let spawnCall = null;
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+  const env = { OPENCODE_HOME: openCodeHome };
+  const ref = buildSecretBindingRef({ mcpId: 'context7', envVar: 'CONTEXT7_API_KEY', scope: 'openkit', kind: 'bundled' });
+  recordSecretBinding('context7', ['CONTEXT7_API_KEY'], { env, store: 'keychain', envVar: 'CONTEXT7_API_KEY', ref });
+  setSecretValue('CONTEXT7_API_KEY', 'local-fallback-secret', { env });
+  const originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+  Object.defineProperty(process, 'platform', { value: 'darwin' });
+  const originalExecPath = process.env.PATH;
+  try {
+    const fakeBinDir = path.join(projectRoot, 'bin');
+    writeExecutable(path.join(fakeBinDir, 'security'), '#!/bin/sh\nif [ "$1" = "list-keychains" ]; then exit 0; fi\nif [ "$1" = "find-generic-password" ]; then printf keychain-secret; exit 0; fi\nexit 0\n');
+    process.env.PATH = `${fakeBinDir}${path.delimiter}${originalExecPath ?? ''}`;
+    const securityPath = path.join(fakeBinDir, 'security');
+    const result = launchGlobalOpenKit(['status'], {
+      projectRoot,
+      env: { ...env, PATH: process.env.PATH, OPENKIT_SECURITY_CLI: securityPath },
+      stdio: 'pipe',
+      spawn: (command, args, options) => {
+        spawnCall = { command, args, options };
+        return { status: 0, stdout: '', stderr: '' };
+      },
+    });
+
+    assert.equal(result.exitCode, 0);
+    assert.equal(spawnCall.options.env.CONTEXT7_API_KEY, 'keychain-secret');
+  } finally {
+    if (originalPlatform) Object.defineProperty(process, 'platform', originalPlatform);
+    process.env.PATH = originalExecPath;
+  }
+});
+
+test('launchGlobalOpenKit falls back to local env when recorded keychain is unavailable', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let spawnCall = null;
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+  const env = { OPENCODE_HOME: openCodeHome };
+  const ref = buildSecretBindingRef({ mcpId: 'context7', envVar: 'CONTEXT7_API_KEY', scope: 'openkit', kind: 'bundled' });
+  recordSecretBinding('context7', ['CONTEXT7_API_KEY'], { env, store: 'keychain', envVar: 'CONTEXT7_API_KEY', ref });
+  setSecretValue('CONTEXT7_API_KEY', 'local-fallback-secret', { env });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env,
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      spawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(spawnCall.options.env.CONTEXT7_API_KEY, 'local-fallback-secret');
 });
 
 test('launchGlobalOpenKit records runtime sessions in the managed workspace root', () => {

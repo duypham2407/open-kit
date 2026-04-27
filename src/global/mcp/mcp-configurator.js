@@ -35,13 +35,14 @@ function readStdin(stdin) {
 
 export function configureMcpHelp() {
   return [
-    'Usage: openkit configure mcp [--interactive] <list|doctor|enable|disable|set-key|unset-key|test|custom> [options]',
+    'Usage: openkit configure mcp [--interactive] <list|doctor|enable|disable|set-key|unset-key|list-key|copy-key|repair|test|custom> [options]',
     '',
     'Options:',
     '  --interactive                 Start the guided, TTY-only MCP setup wizard',
     '  --scope openkit|global|both   Select materialization scope (default: openkit)',
     '  --json                        Emit redacted JSON for list, doctor, or test',
     '  --stdin                       Read set-key value from stdin without echoing it',
+    '  --store <local_env_file|keychain>  Select secret backend for set/unset/repair',
     '  --value <value>               Compatibility input path; shell history may retain the value',
     '',
     'Global scope writes placeholder-only entries for direct OpenCode; direct OpenCode launches may need exported env vars.',
@@ -57,6 +58,10 @@ export function configureMcpHelp() {
     '  openkit configure mcp custom doctor [<custom-id>] [--scope openkit|global|both] [--json]',
     '  openkit configure mcp custom test <custom-id> [--scope openkit|global|both] [--yes] [--json]',
   ].join('\n');
+}
+
+function parseStore(args, defaultStore = 'local_env_file') {
+  return readFlagValue(args, '--store') ?? defaultStore;
 }
 
 function writeJsonOrText(io, json, text, args) {
@@ -320,6 +325,8 @@ export async function runConfigureMcpWithOptions(args = [], io, { env = process.
 
   if (action === 'set-key') {
     const envVarIndex = args.indexOf('--env-var');
+    const store = parseStore(args);
+    service.inspectSecretStore({ store });
     let value = null;
     const valueIndex = args.indexOf('--value');
     if (valueIndex !== -1) {
@@ -331,15 +338,35 @@ export async function runConfigureMcpWithOptions(args = [], io, { env = process.
     if (!value) {
       throw new Error('set-key requires --stdin or --value for non-interactive use.');
     }
-    const result = service.setKey(mcpId, value, { scope, envVar: envVarIndex === -1 ? null : args[envVarIndex + 1] });
+    const result = service.setKey(mcpId, value, { scope, envVar: envVarIndex === -1 ? null : args[envVarIndex + 1], store });
     io.stdout.write(`${result.envVar}: present (redacted)\n`);
     return 0;
   }
 
   if (action === 'unset-key') {
     const envVarIndex = args.indexOf('--env-var');
-    const result = service.unsetKey(mcpId, { scope, envVar: envVarIndex === -1 ? null : args[envVarIndex + 1] });
+    const result = service.unsetKey(mcpId, { scope, envVar: envVarIndex === -1 ? null : args[envVarIndex + 1], store: parseStore(args), allStores: hasFlag(args, '--all-stores') });
     io.stdout.write(`${result.envVar}: missing\n`);
+    return 0;
+  }
+
+  if (action === 'list-key') {
+    const envVarIndex = args.indexOf('--env-var');
+    const result = service.listKey(mcpId, { scope, envVar: envVarIndex === -1 ? null : args[envVarIndex + 1] });
+    writeJsonOrText(io, result, `${result.envVar}: ${result.keyState}; effective=${result.effectiveStore ?? 'missing'}; local_env_file=${result.stores.local_env_file}; keychain=${result.stores.keychain}\n`, args);
+    return 0;
+  }
+
+  if (action === 'copy-key') {
+    const envVarIndex = args.indexOf('--env-var');
+    const result = service.copyKey(mcpId, { scope, envVar: envVarIndex === -1 ? null : args[envVarIndex + 1], from: readFlagValue(args, '--from', { required: true }), to: readFlagValue(args, '--to', { required: true }) });
+    writeJsonOrText(io, result, `${result.envVar}: copied (redacted) ${result.from} -> ${result.to}\n`, args);
+    return 0;
+  }
+
+  if (action === 'repair') {
+    const result = service.repairSecrets({ store: parseStore(args) });
+    writeJsonOrText(io, result, `repair ${result.store}: ${result.status}\n`, args);
     return 0;
   }
 

@@ -28,9 +28,14 @@ import { readMcpConfig, recordSecretBinding, setMcpEnabled } from './mcp-config-
 import { materializeMcpProfiles } from './profile-materializer.js';
 import {
   inspectSecretFile,
-  repairSecretStorePermissions,
+  inspectSecretStore,
+  repairSecretStore,
+  SECRET_STORES,
+  getSecretValue,
   setSecretValue,
   unsetSecretValue,
+  validateSecretStore,
+  buildSecretBindingRef,
 } from './secret-manager.js';
 
 const GLOBAL_CAVEAT = 'Direct OpenCode launches do not load OpenKit secrets.env; export needed env vars or use openkit run.';
@@ -364,15 +369,18 @@ export class McpConfigService {
     };
   }
 
-  setKey(mcpId, value, { scope = 'openkit', envVar = null } = {}) {
+  setKey(mcpId, value, { scope = 'openkit', envVar = null, store = SECRET_STORES.LOCAL_ENV_FILE } = {}) {
+    validateSecretStore(store);
     const entry = getMcpCatalogEntry(mcpId) ?? getCustomMcpEntry(mcpId, { env: this.env });
     if (!entry) {
       throw new Error(`Unknown MCP '${mcpId}'.`);
     }
     const binding = firstSecretBinding(entry, envVar);
-    setSecretValue(binding.envVar, value, { env: this.env });
+    const kind = getMcpCatalogEntry(mcpId) ? 'bundled' : 'custom';
+    const ref = buildSecretBindingRef({ mcpId, envVar: binding.envVar, scope: scope === 'both' ? 'openkit' : scope, kind });
+    setSecretValue(binding.envVar, value, { env: this.env, store, mcpId, scope: ref.scope, kind, bindingRef: ref });
     if (getMcpCatalogEntry(mcpId)) {
-      recordSecretBinding(mcpId, [binding.envVar], { env: this.env });
+      recordSecretBinding(mcpId, [binding.envVar], { env: this.env, store, envVar: binding.envVar, ref });
       setMcpEnabled(mcpId, true, { scope, env: this.env });
     } else {
       setCustomMcpEnabled(mcpId, true, { scope, env: this.env });
@@ -383,6 +391,7 @@ export class McpConfigService {
       mcpId,
       requestedScope: scope,
       envVar: binding.envVar,
+      store,
       scopeResults: normalizeScopeResults(materialized),
       conflicts: summarizeConflicts(materialized),
       keyState: 'present_redacted',
@@ -390,21 +399,59 @@ export class McpConfigService {
     };
   }
 
-  unsetKey(mcpId, { scope = 'openkit', envVar = null } = {}) {
-    const entry = this.requireMcp(mcpId);
+  unsetKey(mcpId, { scope = 'openkit', envVar = null, store = SECRET_STORES.LOCAL_ENV_FILE, allStores = false } = {}) {
+    if (!allStores) validateSecretStore(store);
+    const entry = getMcpCatalogEntry(mcpId) ?? getCustomMcpEntry(mcpId, { env: this.env });
+    if (!entry) throw new Error(`Unknown MCP '${mcpId}'.`);
     const binding = firstSecretBinding(entry, envVar);
-    unsetSecretValue(binding.envVar, { env: this.env });
+    const kind = getMcpCatalogEntry(mcpId) ? 'bundled' : 'custom';
+    const stores = allStores ? Object.values(SECRET_STORES) : [store];
+    for (const targetStore of stores) {
+      const ref = buildSecretBindingRef({ mcpId, envVar: binding.envVar, scope: scope === 'both' ? 'openkit' : scope, kind });
+      unsetSecretValue(binding.envVar, { env: this.env, store: targetStore, mcpId, scope: ref.scope, kind, bindingRef: ref });
+    }
     const materialized = materializeMcpProfiles({ scope, env: this.env });
     return {
       action: 'unset-key',
       mcpId,
       requestedScope: scope,
       envVar: binding.envVar,
+      store: allStores ? 'all' : store,
       scopeResults: normalizeScopeResults(materialized),
       conflicts: summarizeConflicts(materialized),
       keyState: 'missing',
       message: `${binding.envVar}: missing`,
     };
+  }
+
+  listKey(mcpId, { scope = 'openkit', envVar = null } = {}) {
+    const entry = getMcpCatalogEntry(mcpId) ?? getCustomMcpEntry(mcpId, { env: this.env });
+    if (!entry) throw new Error(`Unknown MCP '${mcpId}'.`);
+    const binding = firstSecretBinding(entry, envVar);
+    const kind = getMcpCatalogEntry(mcpId) ? 'bundled' : 'custom';
+    const states = {};
+    for (const store of Object.values(SECRET_STORES)) {
+      const ref = buildSecretBindingRef({ mcpId, envVar: binding.envVar, scope: scope === 'both' ? 'openkit' : scope, kind });
+      const value = getSecretValue(binding.envVar, { env: this.env, store, mcpId, scope: ref.scope, kind, bindingRef: ref });
+      states[store] = value.status === 'loaded' ? 'present_redacted' : 'missing';
+    }
+    const effectiveStore = this.env[binding.envVar] !== undefined ? 'shell_env' : (states.keychain === 'present_redacted' ? 'keychain' : (states.local_env_file === 'present_redacted' ? 'local_env_file' : null));
+    return { action: 'list-key', mcpId, requestedScope: scope, envVar: binding.envVar, stores: states, effectiveStore, keyState: effectiveStore ? 'present_redacted' : 'missing' };
+  }
+
+  copyKey(mcpId, { scope = 'openkit', envVar = null, from = SECRET_STORES.LOCAL_ENV_FILE, to = SECRET_STORES.KEYCHAIN } = {}) {
+    validateSecretStore(from); validateSecretStore(to);
+    if (from === to) throw new Error('--from and --to stores must differ.');
+    const entry = getMcpCatalogEntry(mcpId) ?? getCustomMcpEntry(mcpId, { env: this.env });
+    if (!entry) throw new Error(`Unknown MCP '${mcpId}'.`);
+    const binding = firstSecretBinding(entry, envVar);
+    const kind = getMcpCatalogEntry(mcpId) ? 'bundled' : 'custom';
+    const ref = buildSecretBindingRef({ mcpId, envVar: binding.envVar, scope: scope === 'both' ? 'openkit' : scope, kind });
+    const loaded = getSecretValue(binding.envVar, { env: this.env, store: from, mcpId, scope: ref.scope, kind, bindingRef: ref });
+    if (loaded.status !== 'loaded') throw new Error(`Source store '${from}' does not contain ${binding.envVar}.`);
+    setSecretValue(binding.envVar, loaded.value, { env: this.env, store: to, mcpId, scope: ref.scope, kind, bindingRef: ref });
+    if (getMcpCatalogEntry(mcpId)) recordSecretBinding(mcpId, [binding.envVar], { env: this.env, store: to, envVar: binding.envVar, ref });
+    return { action: 'copy-key', mcpId, requestedScope: scope, envVar: binding.envVar, from, to, keyState: 'present_redacted', message: `${binding.envVar}: copied (redacted)` };
   }
 
   test(mcpId, { scope = 'openkit' } = {}) {
@@ -431,8 +478,12 @@ export class McpConfigService {
     return inspectSecretFile({ env: this.env });
   }
 
-  repairSecrets() {
-    return repairSecretStorePermissions({ env: this.env });
+  repairSecrets({ store = SECRET_STORES.LOCAL_ENV_FILE } = {}) {
+    return repairSecretStore({ env: this.env, store });
+  }
+
+  inspectSecretStore({ store = SECRET_STORES.LOCAL_ENV_FILE } = {}) {
+    return inspectSecretStore({ env: this.env, store });
   }
 }
 

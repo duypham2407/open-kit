@@ -185,3 +185,17 @@ test('custom MCP set-key rejects undeclared env bindings without writing secrets
   assert.throws(() => service.setKey('custom-local', SENTINEL, { envVar: 'CUSTOM_MCP_TOKEN', scope: 'openkit' }), /does not define/);
   assert.equal(fs.existsSync(path.join(tempHome, 'openkit', 'secrets.env')), false);
 });
+
+test('service list-key reports shell env precedence over local env file without leaking values', () => {
+  const tempHome = makeTempHome();
+  const env = { OPENCODE_HOME: tempHome, CONTEXT7_API_KEY: 'shell-secret' };
+  setSecretValue('CONTEXT7_API_KEY', SENTINEL, { env: { OPENCODE_HOME: tempHome } });
+  const service = new McpConfigService({ env });
+
+  const result = service.listKey('context7', { scope: 'openkit' });
+
+  assert.equal(result.effectiveStore, 'shell_env');
+  assert.equal(result.stores.local_env_file, 'present_redacted');
+  assert.equal(JSON.stringify(result).includes(SENTINEL), false);
+  assert.equal(JSON.stringify(result).includes('shell-secret'), false);
+});

@@ -6,7 +6,10 @@ import { buildAgentModelConfigOverrides } from './agent-models.js';
 import { deepMergeConfig, parseInlineConfig } from './config-merge.js';
 import { ensureWorkspaceBootstrap } from './workspace-state.js';
 import { getToolingEnv } from './tooling.js';
-import { loadSecretsEnv } from './mcp/secret-manager.js';
+import { loadSecretsEnv, getSecretValue, buildSecretBindingRef } from './mcp/secret-manager.js';
+import { readMcpConfig } from './mcp/mcp-config-store.js';
+import { listMcpCatalogEntries } from '../capabilities/mcp-catalog.js';
+import { listCustomMcpEntries } from './mcp/custom-mcp-store.js';
 import { createManagedWorktree, getManagedWorktree, updateManagedWorktreeMetadata } from './worktree-manager.js';
 import { COPY_ENV_WARNING, propagateWorktreeEnvFiles, resolveEnvPropagationMode } from './worktree-env.js';
 import { parseRunOptions } from '../cli/commands/run-options.js';
@@ -343,6 +346,47 @@ function buildRetainedContextLines({ workItemId, launchSelection }) {
   ];
 }
 
+function getRecordedKeychainRef(config, entry, binding, scope = 'openkit') {
+  const metadata = config.secretBindings?.[entry.id]?.stores?.[binding.envVar]?.keychain;
+  if (metadata?.configured !== true || !metadata.service || !metadata.account) {
+    return null;
+  }
+  const expected = buildSecretBindingRef({ mcpId: entry.id, envVar: binding.envVar, scope, kind: entry.kind });
+  if (metadata.service !== expected.service || metadata.account !== expected.account) {
+    return null;
+  }
+  return { ...expected, service: metadata.service, account: metadata.account };
+}
+
+function resolveDeclaredSecretEnv({ env, loadedSecrets }) {
+  const values = {};
+  const mcpConfig = readMcpConfig({ env });
+  const entries = [
+    ...listMcpCatalogEntries().map((entry) => ({ ...entry, kind: 'bundled' })),
+    ...listCustomMcpEntries({ env }).map((entry) => ({ ...entry, kind: 'custom' })),
+  ];
+  for (const entry of entries) {
+    for (const binding of entry.secretBindings ?? []) {
+      if (env[binding.envVar] !== undefined || values[binding.envVar] !== undefined) continue;
+      const ref = getRecordedKeychainRef(mcpConfig, entry, binding);
+      if (ref) {
+        const keychain = getSecretValue(binding.envVar, { env, store: 'keychain', mcpId: entry.id, kind: entry.kind, bindingRef: ref });
+        if (keychain.status === 'loaded') {
+          values[binding.envVar] = keychain.value;
+          continue;
+        }
+      }
+      if (loadedSecrets.values?.[binding.envVar] !== undefined) {
+        values[binding.envVar] = loadedSecrets.values[binding.envVar];
+      }
+    }
+  }
+  for (const [key, value] of Object.entries(loadedSecrets.values ?? {})) {
+    if (env[key] === undefined && values[key] === undefined) values[key] = value;
+  }
+  return values;
+}
+
 export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), env = process.env, spawn = spawnSync, stdio = 'inherit' } = {}) {
   let parsedArgs;
   try {
@@ -410,9 +454,7 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
   } catch (error) {
     appendUniqueNotices(launcherNotices, `OpenKit secrets.env was not loaded: ${error.message}`);
   }
-  const secretEnv = Object.fromEntries(
-    Object.entries(loadedSecrets.values ?? {}).filter(([key]) => env[key] === undefined)
-  );
+  const secretEnv = resolveDeclaredSecretEnv({ env, loadedSecrets });
   const runtimeBootstrapEnv = {
     ...env,
     ...secretEnv,

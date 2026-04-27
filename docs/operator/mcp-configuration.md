@@ -13,9 +13,10 @@ Keep two rules in mind:
 - `openkit configure mcp --interactive` starts the guided setup wizard for TTY sessions and wraps the same bundled catalog/control plane as the non-interactive commands.
 - `openkit configure mcp list` and `doctor` are safe discovery commands and show redacted key state only.
 - `openkit configure mcp custom ...` manages OpenKit-managed custom MCP definitions in a separate custom registry, with explicit ownership/origin labels and placeholder-only auth metadata.
-- `set-key` stores raw secrets only in the local OpenKit secret file and automatically enables the MCP for the selected scope after a successful write.
+- `set-key` stores raw secrets in the selected backend: `local_env_file` by default, or macOS `keychain` when explicitly requested with `--store keychain`.
+- `set-key` automatically enables the selected MCP for the requested scope while keeping generated profiles placeholder-only and redacted.
 - `disable` keeps any stored key; `unset-key` removes a key but does not silently disable the MCP.
-- `openkit run` loads OpenKit's local secret file into the launched OpenCode process. Direct OpenCode launches do **not** use that loader.
+- `openkit run` resolves secrets with precedence `shell environment > keychain > local_env_file`. Direct OpenCode launches do **not** use that loader.
 
 ## Default Bundled MCP Catalog
 
@@ -70,6 +71,7 @@ Use `openkit configure mcp --help` on your installed version for exact flag supp
 ```text
 openkit configure mcp --interactive [--scope openkit|global|both]
 openkit configure mcp <list|doctor|enable|disable|set-key|unset-key|test> [options]
+openkit configure mcp <list|doctor|enable|disable|set-key|unset-key|list-key|copy-key|repair|test> [options]
 openkit configure mcp custom <list|add-local|add-remote|import-global|disable|remove|doctor|test> [options]
 ```
 
@@ -135,6 +137,7 @@ Prefer `--stdin` so the raw value is not part of the command line:
 
 ```sh
 openkit configure mcp set-key context7 --stdin
+openkit configure mcp set-key context7 --store keychain --stdin
 openkit configure mcp set-key grep_app --stdin
 openkit configure mcp set-key websearch --scope openkit --stdin
 ```
@@ -144,7 +147,8 @@ When stdin is waiting, provide the secret from a secure local source. Do not pas
 Current behavior:
 
 - `set-key` accepts only catalog-defined secret bindings unless a future approved extension adds more.
-- The raw value is written only to `<OPENCODE_HOME>/openkit/secrets.env`.
+- The raw value is written only to the selected backend. `local_env_file` writes `<OPENCODE_HOME>/openkit/secrets.env`; `keychain` writes a macOS Keychain generic-password item through `/usr/bin/security`.
+- `keychain` is unavailable on Linux and Windows and never silently falls back to `local_env_file`; omit `--store` or use `--store local_env_file` to choose the default backend.
 - After a successful write, OpenKit records the secret binding, enables the MCP for the selected scope, and materializes placeholder-only profile entries.
 - Success output shows only redacted state, for example `CONTEXT7_API_KEY: present (redacted)`.
 - `--value` is a compatibility path only. It can leave a real secret in shell history or process lists, so do not use it in shared examples or normal operator runbooks.
@@ -153,13 +157,27 @@ Current behavior:
 
 ```sh
 openkit configure mcp unset-key context7
+openkit configure mcp unset-key context7 --store keychain
 openkit configure mcp unset-key grep_app --scope both
 ```
 
-- `unset-key` removes the catalog-bound env var from the local secret file.
+- `unset-key` removes the catalog-bound env var from `local_env_file` by default or the selected `--store` only. Use `--all-stores` only when both backends should be cleared.
 - It does not print the removed value.
 - It does **not** disable the MCP. If the MCP remains enabled, `list` and `doctor` report it as `not_configured` until you store a new key or explicitly disable it.
 - Missing keys are treated idempotently unless the secret file itself is unsafe or unreadable.
+
+### Inspect Or Copy A Key Between Stores
+
+```sh
+openkit configure mcp list-key context7 --json
+openkit configure mcp copy-key context7 --from local_env_file --to keychain
+openkit configure mcp repair --store local_env_file
+openkit configure mcp repair --store keychain
+```
+
+- `list-key` reports per-store presence and the effective store without printing raw values.
+- `copy-key` is explicit and non-destructive by default; it copies a redacted binding from one backend to another and does not remove the source.
+- Keychain repair is availability-only and reports sanitized remediation; it does not mutate login keychain settings.
 
 ### Test A Specific MCP
 

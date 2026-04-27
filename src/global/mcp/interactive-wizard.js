@@ -200,6 +200,16 @@ export async function runMcpInteractiveWizard({ scope = 'openkit', io, env = pro
       service.requireMcp(mcpId);
       context.selectedMcpId = mcpId;
       const mcpAction = normalizePromptAnswer(await prompts.promptLine('MCP action (enable/disable/set-key/unset-key/test/back): ')).toLowerCase();
+      let selectedStore = 'local_env_file';
+      if (mcpAction === 'set-key' || mcpAction === 'unset-key') {
+        const storeAnswer = normalizePromptAnswer(await prompts.promptLine('Secret store (local_env_file/keychain, default local_env_file): ')).toLowerCase();
+        selectedStore = storeAnswer || 'local_env_file';
+        const storeState = service.inspectSecretStore({ store: selectedStore });
+        if (selectedStore === 'keychain' && storeState.status !== 'available') {
+          context.skipped.push({ action: mcpAction, mcpId, reason: `keychain unavailable; rerun with local_env_file or choose local_env_file (${storeState.reason ?? storeState.status})` });
+          continue;
+        }
+      }
       if (mcpAction === 'back') {
         continue;
       }
@@ -225,7 +235,7 @@ export async function runMcpInteractiveWizard({ scope = 'openkit', io, env = pro
         } else if (mcpAction === 'disable') {
           addActionResult(context, service.disable(mcpId, { scope: context.scope }));
         } else if (mcpAction === 'unset-key') {
-          addActionResult(context, service.unsetKey(mcpId, { scope: context.scope }));
+          addActionResult(context, service.unsetKey(mcpId, { scope: context.scope, store: selectedStore }));
         } else if (mcpAction === 'set-key') {
           if (!hasSecretBinding(mcpId)) {
             context.skipped.push({ action: 'set-key', mcpId, reason: 'no catalog-defined secret binding' });
@@ -250,7 +260,7 @@ export async function runMcpInteractiveWizard({ scope = 'openkit', io, env = pro
             continue;
           }
           try {
-            const result = service.setKey(mcpId, secret, { scope: context.scope });
+            const result = service.setKey(mcpId, secret, { scope: context.scope, store: selectedStore });
             addActionResult(context, result);
             io.stdout.write(`${result.envVar}: present (redacted)\n`);
           } catch (error) {
