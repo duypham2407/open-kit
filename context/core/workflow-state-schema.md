@@ -264,7 +264,10 @@ Validation evidence should identify the surface it proves:
 - `compatibility_runtime`
 - `runtime_tooling`
 - `documentation`
+- `package`
 - `target_project_app`
+
+`package` applies to install-bundle/source synchronization checks such as generated bundled skill metadata.
 
 `target_project_app` applies only to app build/lint/test commands declared by the target project. If those commands do not exist, record the validation path as unavailable rather than substituting OpenKit runtime checks.
 
@@ -276,7 +279,7 @@ Validation evidence should identify the surface it proves:
 
 Optional scan evidence uses this additive shape:
 
-- `details.validation_surface`: one of `runtime_tooling`, `compatibility_runtime`, `documentation`, or `target_project_app`; OpenKit rule/security scan evidence should normally use `runtime_tooling`, or `compatibility_runtime` when the workflow-state/runtime read model itself is the validated surface.
+- `details.validation_surface`: one of `runtime_tooling`, `compatibility_runtime`, `documentation`, `package`, or `target_project_app`; OpenKit rule/security scan evidence should normally use `runtime_tooling`, or `compatibility_runtime` when the workflow-state/runtime read model itself is the validated surface.
 - `details.scan_evidence.evidence_type`: `direct_tool`, `substitute_scan`, or `manual_override`.
 - `details.scan_evidence.direct_tool`: direct tool metadata such as `tool_id`, `availability_state`, `result_state`, and unavailable/degraded `reason`.
 - `details.scan_evidence.substitute`: optional substitute metadata, including what command/tool ran, its own `validation_surface`, and limitations.

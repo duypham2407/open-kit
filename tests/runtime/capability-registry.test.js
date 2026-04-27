@@ -104,6 +104,7 @@ test('runtime capabilities expose standardized capability states and validation 
   ]);
   assert.ok(VALIDATION_SURFACES.includes('global_cli'));
   assert.ok(VALIDATION_SURFACES.includes('runtime_tooling'));
+  assert.ok(VALIDATION_SURFACES.includes('package'));
   assert.ok(VALIDATION_SURFACES.includes('target_project_app'));
   assert.ok(capabilities.length > 0);
 
@@ -137,6 +138,15 @@ test('runtime capability registry exposes bundled MCP and skill catalog capabili
   assert.deepEqual(context7.secretEnvVars, ['CONTEXT7_API_KEY']);
 
   const rustRouter = skills.find((entry) => entry.id === 'skill.rust-router');
+  assert.equal(rustRouter.status, 'foundation');
+  assert.equal(rustRouter.skillStatus, 'preview');
   assert.equal(rustRouter.capabilityState, 'unavailable');
-  assert.match(rustRouter.limitations.join('\n'), /not currently packaged/i);
+  assert.equal(rustRouter.support_level, 'stub');
+  assert.match(rustRouter.limitations.join('\n'), /no bundled skill file/i);
+  assert.ok(Array.isArray(rustRouter.recommended_mcps));
+
+  const verification = skills.find((entry) => entry.id === 'skill.verification-before-completion');
+  assert.equal(verification.skillStatus, 'stable');
+  assert.equal(verification.capabilityState, 'available');
+  assert.deepEqual(verification.roles.includes('FullstackAgent'), true);
 });

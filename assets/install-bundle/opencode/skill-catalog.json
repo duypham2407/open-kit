@@ -1,0 +1,1340 @@
+{
+  "schema": "openkit/skill-install-bundle-catalog@1",
+  "catalogVersion": 1,
+  "generatedFrom": "src/capabilities/skill-catalog.js",
+  "validationSurface": "package",
+  "skills": [
+    {
+      "id": "skill.using-skills",
+      "name": "using-skills",
+      "displayName": "Using Skills",
+      "description": "Session-start meta-skill that teaches agents how to discover, evaluate, and invoke skills.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "all"
+      ],
+      "stages": [
+        "quick_intake",
+        "quick_brainstorm",
+        "quick_plan",
+        "quick_implement",
+        "quick_test",
+        "quick_done",
+        "migration_intake",
+        "migration_baseline",
+        "migration_strategy",
+        "migration_upgrade",
+        "migration_code_review",
+        "migration_verify",
+        "migration_done",
+        "full_intake",
+        "full_product",
+        "full_solution",
+        "full_implementation",
+        "full_code_review",
+        "full_qa",
+        "full_done"
+      ],
+      "tags": [
+        "workflow",
+        "meta-skill",
+        "skill-selection"
+      ],
+      "triggers": [
+        {
+          "kind": "phrase",
+          "value": "session start"
+        },
+        {
+          "kind": "keyword",
+          "value": "skill"
+        },
+        {
+          "kind": "phrase",
+          "value": "how to use skills"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "openkit",
+          "relationship": "primary",
+          "reason": "Exposes bundled skill metadata and runtime inventory for skill discovery."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/using-skills/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/using-skills/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.brainstorming",
+      "name": "brainstorming",
+      "displayName": "Brainstorming",
+      "description": "Socratic design refinement process for clarifying intent before writing specs or code.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "ProductLead",
+        "SolutionLead",
+        "QuickAgent",
+        "in_session_agent"
+      ],
+      "stages": [
+        "quick_brainstorm",
+        "migration_baseline",
+        "migration_strategy",
+        "full_product",
+        "full_solution"
+      ],
+      "tags": [
+        "workflow",
+        "planning",
+        "clarification"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "brainstorm"
+        },
+        {
+          "kind": "phrase",
+          "value": "clarify intent"
+        },
+        {
+          "kind": "phrase",
+          "value": "explore options"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "sequential-thinking",
+          "relationship": "optional",
+          "reason": "Can support structured multi-step ideation when available."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/brainstorming/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/brainstorming/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.writing-scope",
+      "name": "writing-scope",
+      "displayName": "Writing Scope",
+      "description": "Converts requirements into structured scope packages with concrete acceptance criteria.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "ProductLead"
+      ],
+      "stages": [
+        "full_product"
+      ],
+      "tags": [
+        "workflow",
+        "scope",
+        "product"
+      ],
+      "triggers": [
+        {
+          "kind": "phrase",
+          "value": "write scope"
+        },
+        {
+          "kind": "keyword",
+          "value": "scope package"
+        },
+        {
+          "kind": "phrase",
+          "value": "acceptance criteria"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "openkit",
+          "relationship": "primary",
+          "reason": "Links Product Lead scope artifacts to workflow state."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/writing-scope/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/writing-scope/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.writing-solution",
+      "name": "writing-solution",
+      "displayName": "Writing Solution",
+      "description": "Converts approved scope into execution-ready solution packages and validation plans.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "SolutionLead"
+      ],
+      "stages": [
+        "migration_strategy",
+        "full_solution"
+      ],
+      "tags": [
+        "workflow",
+        "solution",
+        "planning"
+      ],
+      "triggers": [
+        {
+          "kind": "phrase",
+          "value": "write solution"
+        },
+        {
+          "kind": "keyword",
+          "value": "solution package"
+        },
+        {
+          "kind": "phrase",
+          "value": "validation plan"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "openkit",
+          "relationship": "primary",
+          "reason": "Links solution artifacts and validation evidence to workflow state."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/writing-solution/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/writing-solution/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.subagent-driven-development",
+      "name": "subagent-driven-development",
+      "displayName": "Subagent Driven Development",
+      "description": "Dispatches focused subagents while preserving OpenKit delivery and review discipline.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "FullstackAgent",
+        "SolutionLead"
+      ],
+      "stages": [
+        "full_implementation"
+      ],
+      "tags": [
+        "workflow",
+        "delegation",
+        "full-delivery"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "subagent"
+        },
+        {
+          "kind": "phrase",
+          "value": "parallel task"
+        },
+        {
+          "kind": "phrase",
+          "value": "delegate implementation"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "openkit",
+          "relationship": "primary",
+          "reason": "Provides task-board and runtime state tools for bounded delegation."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/subagent-driven-development/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/subagent-driven-development/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.test-driven-development",
+      "name": "test-driven-development",
+      "displayName": "Test Driven Development",
+      "description": "Applies a RED-GREEN-REFACTOR loop for implementation slices with working test tooling.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "FullstackAgent"
+      ],
+      "stages": [
+        "full_implementation"
+      ],
+      "tags": [
+        "workflow",
+        "testing",
+        "implementation"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "TDD"
+        },
+        {
+          "kind": "phrase",
+          "value": "test first"
+        },
+        {
+          "kind": "phrase",
+          "value": "red green refactor"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "openkit",
+          "relationship": "supporting",
+          "reason": "Records verification evidence after focused test runs."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/test-driven-development/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/test-driven-development/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.systematic-debugging",
+      "name": "systematic-debugging",
+      "displayName": "Systematic Debugging",
+      "description": "Uses a four-phase root-cause process for bugs and failures instead of blind guessing.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "FullstackAgent",
+        "QAAgent",
+        "QuickAgent"
+      ],
+      "stages": [
+        "quick_implement",
+        "quick_test",
+        "migration_upgrade",
+        "migration_verify",
+        "full_implementation",
+        "full_qa"
+      ],
+      "tags": [
+        "workflow",
+        "debugging",
+        "root-cause"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "debug"
+        },
+        {
+          "kind": "phrase",
+          "value": "root cause"
+        },
+        {
+          "kind": "phrase",
+          "value": "test failure"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "openkit",
+          "relationship": "supporting",
+          "reason": "Provides graph, syntax, and evidence tools for debugging."
+        },
+        {
+          "id": "sequential-thinking",
+          "relationship": "optional",
+          "reason": "Can support structured debugging reasoning."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/systematic-debugging/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/systematic-debugging/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.code-review",
+      "name": "code-review",
+      "displayName": "Code Review",
+      "description": "Guides two-stage review: scope compliance first, then code quality.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "CodeReviewer",
+        "FullstackAgent"
+      ],
+      "stages": [
+        "migration_code_review",
+        "full_code_review"
+      ],
+      "tags": [
+        "workflow",
+        "review",
+        "quality"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "review"
+        },
+        {
+          "kind": "phrase",
+          "value": "code quality"
+        },
+        {
+          "kind": "phrase",
+          "value": "scope compliance"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "openkit",
+          "relationship": "primary",
+          "reason": "Provides rule scan, dependency, and workflow evidence tooling for review."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/code-review/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/code-review/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.verification-before-completion",
+      "name": "verification-before-completion",
+      "displayName": "Verification Before Completion",
+      "description": "Requires fresh verification evidence before completion, fix, or passing claims.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "FullstackAgent",
+        "QAAgent",
+        "QuickAgent",
+        "CodeReviewer"
+      ],
+      "stages": [
+        "quick_test",
+        "migration_upgrade",
+        "migration_verify",
+        "full_implementation",
+        "full_qa"
+      ],
+      "tags": [
+        "workflow",
+        "verification",
+        "evidence"
+      ],
+      "triggers": [
+        {
+          "kind": "phrase",
+          "value": "before claiming work is complete"
+        },
+        {
+          "kind": "keyword",
+          "value": "verification evidence"
+        },
+        {
+          "kind": "phrase",
+          "value": "tests pass"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "openkit",
+          "relationship": "primary",
+          "reason": "Records workflow verification evidence through OpenKit runtime tools."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/verification-before-completion/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/verification-before-completion/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.find-skills",
+      "name": "find-skills",
+      "displayName": "Find Skills",
+      "description": "Helps users discover installable skills when a requested capability is not bundled or obvious.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "best_effort",
+      "roles": [
+        "all",
+        "operator",
+        "maintainer"
+      ],
+      "stages": [
+        "all"
+      ],
+      "tags": [
+        "workflow",
+        "discovery",
+        "skills"
+      ],
+      "triggers": [
+        {
+          "kind": "phrase",
+          "value": "find a skill"
+        },
+        {
+          "kind": "phrase",
+          "value": "is there a skill"
+        },
+        {
+          "kind": "phrase",
+          "value": "how do I do"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "websearch",
+          "relationship": "optional",
+          "reason": "Can search external skill ecosystems when configured."
+        }
+      ],
+      "source": {
+        "kind": "adapted",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled metadata for an adapted skill-discovery workflow."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/find-skills/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/find-skills/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.codebase-exploration",
+      "name": "codebase-exploration",
+      "displayName": "Codebase Exploration",
+      "description": "Locates code, traces behavior, and maps repository structure using OpenKit intelligence tools.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "MasterOrchestrator",
+        "SolutionLead",
+        "FullstackAgent",
+        "CodeReviewer",
+        "QuickAgent"
+      ],
+      "stages": [
+        "quick_brainstorm",
+        "quick_plan",
+        "migration_baseline",
+        "migration_strategy",
+        "migration_upgrade",
+        "full_solution",
+        "full_implementation",
+        "full_code_review"
+      ],
+      "tags": [
+        "code-intelligence",
+        "navigation",
+        "repository"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "explore"
+        },
+        {
+          "kind": "phrase",
+          "value": "locate code"
+        },
+        {
+          "kind": "phrase",
+          "value": "trace behavior"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "openkit",
+          "relationship": "primary",
+          "reason": "Provides graph, semantic search, syntax, and AST tools."
+        },
+        {
+          "id": "augment_context_engine",
+          "relationship": "optional",
+          "reason": "Optional dependency-aware context engine when locally available."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/codebase-exploration/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/codebase-exploration/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.deep-research",
+      "name": "deep-research",
+      "displayName": "Deep Research",
+      "description": "Gathers evidence across repository context, documentation, and external references.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "ProductLead",
+        "SolutionLead",
+        "FullstackAgent",
+        "QAAgent"
+      ],
+      "stages": [
+        "quick_brainstorm",
+        "migration_baseline",
+        "migration_strategy",
+        "full_product",
+        "full_solution",
+        "full_qa"
+      ],
+      "tags": [
+        "research",
+        "documentation",
+        "evidence"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "research"
+        },
+        {
+          "kind": "phrase",
+          "value": "external references"
+        },
+        {
+          "kind": "phrase",
+          "value": "evidence-based"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "context7",
+          "relationship": "supporting",
+          "reason": "Retrieves library docs and code examples when configured."
+        },
+        {
+          "id": "grep_app",
+          "relationship": "optional",
+          "reason": "Searches public code examples when configured."
+        },
+        {
+          "id": "websearch",
+          "relationship": "optional",
+          "reason": "Finds current external references when configured."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/deep-research/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/deep-research/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.refactoring",
+      "name": "refactoring",
+      "displayName": "Refactoring",
+      "description": "Guides behavior-preserving structure changes with dependency tracing and preview-first edits.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "SolutionLead",
+        "FullstackAgent",
+        "CodeReviewer"
+      ],
+      "stages": [
+        "quick_plan",
+        "quick_implement",
+        "migration_strategy",
+        "migration_upgrade",
+        "full_solution",
+        "full_implementation",
+        "full_code_review"
+      ],
+      "tags": [
+        "code-intelligence",
+        "refactoring",
+        "safe-editing"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "refactor"
+        },
+        {
+          "kind": "phrase",
+          "value": "rename symbol"
+        },
+        {
+          "kind": "phrase",
+          "value": "change structure"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "openkit",
+          "relationship": "primary",
+          "reason": "Provides graph, syntax, and codemod preview/apply tools."
+        },
+        {
+          "id": "augment_context_engine",
+          "relationship": "optional",
+          "reason": "Optional dependency-aware context engine when locally available."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/refactoring/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/refactoring/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.frontend-ui-ux",
+      "name": "frontend-ui-ux",
+      "displayName": "Frontend Ui Ux",
+      "description": "Guides UI composition, styling, layout quality, and frontend UX polish.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "SolutionLead",
+        "FullstackAgent",
+        "CodeReviewer",
+        "QAAgent"
+      ],
+      "stages": [
+        "quick_plan",
+        "quick_implement",
+        "quick_test",
+        "full_solution",
+        "full_implementation",
+        "full_code_review",
+        "full_qa"
+      ],
+      "tags": [
+        "frontend",
+        "ui",
+        "ux"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "UI"
+        },
+        {
+          "kind": "keyword",
+          "value": "UX"
+        },
+        {
+          "kind": "phrase",
+          "value": "frontend polish"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "chrome-devtools",
+          "relationship": "supporting",
+          "reason": "Supports browser inspection and visual debugging."
+        },
+        {
+          "id": "playwright",
+          "relationship": "optional",
+          "reason": "Supports browser automation and smoke checks."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/frontend-ui-ux/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/frontend-ui-ux/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.dev-browser",
+      "name": "dev-browser",
+      "displayName": "Dev Browser",
+      "description": "Guides local browser-assisted debugging, preview inspection, and dev-browser workflows.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "FullstackAgent",
+        "QAAgent",
+        "QuickAgent"
+      ],
+      "stages": [
+        "quick_implement",
+        "quick_test",
+        "full_implementation",
+        "full_qa",
+        "migration_verify"
+      ],
+      "tags": [
+        "browser",
+        "debugging",
+        "frontend"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "browser"
+        },
+        {
+          "kind": "phrase",
+          "value": "dev browser"
+        },
+        {
+          "kind": "phrase",
+          "value": "preview inspection"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "chrome-devtools",
+          "relationship": "primary",
+          "reason": "Primary browser debugging and inspection MCP."
+        },
+        {
+          "id": "playwright",
+          "relationship": "optional",
+          "reason": "Useful for browser automation where scripted checks help."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/dev-browser/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/dev-browser/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.browser-automation",
+      "name": "browser-automation",
+      "displayName": "Browser Automation",
+      "description": "Guides browser automation, page inspection, and UI flows that need a browser runtime.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "maintained",
+      "roles": [
+        "FullstackAgent",
+        "QAAgent",
+        "QuickAgent"
+      ],
+      "stages": [
+        "quick_test",
+        "full_implementation",
+        "full_qa",
+        "migration_verify"
+      ],
+      "tags": [
+        "browser",
+        "automation",
+        "testing"
+      ],
+      "triggers": [
+        {
+          "kind": "phrase",
+          "value": "browser automation"
+        },
+        {
+          "kind": "keyword",
+          "value": "Playwright"
+        },
+        {
+          "kind": "phrase",
+          "value": "UI flow"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "playwright",
+          "relationship": "primary",
+          "reason": "Primary browser automation MCP."
+        },
+        {
+          "id": "chrome-devtools",
+          "relationship": "supporting",
+          "reason": "Useful for inspection and debugging during browser verification."
+        }
+      ],
+      "source": {
+        "kind": "openkit_authored",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit skill metadata."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/browser-automation/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/browser-automation/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.git-master",
+      "name": "git-master",
+      "displayName": "Git Master",
+      "description": "Guides safe git hygiene, atomic commits, and structured repository operations.",
+      "status": "preview",
+      "capabilityState": "compatibility_only",
+      "support_level": "compatibility_only",
+      "roles": [
+        "FullstackAgent",
+        "CodeReviewer",
+        "maintainer"
+      ],
+      "stages": [
+        "quick_implement",
+        "migration_upgrade",
+        "full_implementation",
+        "full_code_review"
+      ],
+      "tags": [
+        "source-control",
+        "git",
+        "safety"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "git"
+        },
+        {
+          "kind": "keyword",
+          "value": "commit"
+        },
+        {
+          "kind": "phrase",
+          "value": "branch hygiene"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "git",
+          "relationship": "optional",
+          "reason": "Policy-gated git MCP may help inspect repository state when explicitly enabled."
+        }
+      ],
+      "source": {
+        "kind": "compatibility",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Small compatibility skill retained for safe git workflow reminders."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/git-master/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [
+        "Git MCP support is policy-gated; destructive git operations remain confirmation-gated and are never silently allowed."
+      ],
+      "docs": {
+        "source": "skills/git-master/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.vercel-react-best-practices",
+      "name": "vercel-react-best-practices",
+      "displayName": "Vercel React Best Practices",
+      "description": "React and Next.js performance optimization guidance from Vercel Engineering patterns.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "best_effort",
+      "roles": [
+        "SolutionLead",
+        "FullstackAgent",
+        "CodeReviewer",
+        "QAAgent"
+      ],
+      "stages": [
+        "quick_plan",
+        "quick_implement",
+        "quick_test",
+        "full_solution",
+        "full_implementation",
+        "full_code_review",
+        "full_qa"
+      ],
+      "tags": [
+        "frontend",
+        "react",
+        "performance",
+        "nextjs"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "React"
+        },
+        {
+          "kind": "keyword",
+          "value": "Next.js"
+        },
+        {
+          "kind": "keyword",
+          "value": "performance"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "chrome-devtools",
+          "relationship": "supporting",
+          "reason": "Supports browser performance inspection."
+        },
+        {
+          "id": "playwright",
+          "relationship": "optional",
+          "reason": "Supports UI smoke and interaction checks."
+        },
+        {
+          "id": "context7",
+          "relationship": "optional",
+          "reason": "Can retrieve current React/Next.js docs when configured."
+        }
+      ],
+      "source": {
+        "kind": "adapted",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit adaptation of Vercel Engineering React guidance."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/vercel-react-best-practices/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/vercel-react-best-practices/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.vercel-composition-patterns",
+      "name": "vercel-composition-patterns",
+      "displayName": "Vercel Composition Patterns",
+      "description": "React composition pattern guidance for scalable reusable component APIs.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "best_effort",
+      "roles": [
+        "SolutionLead",
+        "FullstackAgent",
+        "CodeReviewer"
+      ],
+      "stages": [
+        "full_solution",
+        "full_implementation",
+        "full_code_review"
+      ],
+      "tags": [
+        "frontend",
+        "react",
+        "composition"
+      ],
+      "triggers": [
+        {
+          "kind": "phrase",
+          "value": "compound components"
+        },
+        {
+          "kind": "phrase",
+          "value": "render props"
+        },
+        {
+          "kind": "phrase",
+          "value": "component architecture"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "context7",
+          "relationship": "optional",
+          "reason": "Can retrieve current React API references when configured."
+        }
+      ],
+      "source": {
+        "kind": "adapted",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit adaptation of React composition guidance."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/vercel-composition-patterns/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/vercel-composition-patterns/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    },
+    {
+      "id": "skill.vercel-react-native-skills",
+      "name": "vercel-react-native-skills",
+      "displayName": "Vercel React Native Skills",
+      "description": "React Native and Expo guidance for performant mobile app work.",
+      "status": "stable",
+      "capabilityState": "available",
+      "support_level": "best_effort",
+      "roles": [
+        "SolutionLead",
+        "FullstackAgent",
+        "CodeReviewer",
+        "QAAgent"
+      ],
+      "stages": [
+        "quick_plan",
+        "quick_implement",
+        "full_solution",
+        "full_implementation",
+        "full_code_review",
+        "full_qa"
+      ],
+      "tags": [
+        "frontend",
+        "react-native",
+        "mobile"
+      ],
+      "triggers": [
+        {
+          "kind": "keyword",
+          "value": "React Native"
+        },
+        {
+          "kind": "keyword",
+          "value": "Expo"
+        },
+        {
+          "kind": "keyword",
+          "value": "mobile"
+        }
+      ],
+      "recommended_mcps": [
+        {
+          "id": "context7",
+          "relationship": "optional",
+          "reason": "Can retrieve current React Native or Expo docs when configured."
+        }
+      ],
+      "source": {
+        "kind": "adapted",
+        "origin": "openkit",
+        "license": null,
+        "notes": "Bundled OpenKit adaptation of React Native and Expo guidance."
+      },
+      "packaging": {
+        "source": "repo",
+        "installBundle": true,
+        "bundledPath": "assets/install-bundle/opencode/skills/vercel-react-native-skills/SKILL.md",
+        "exclusionReason": null
+      },
+      "limitations": [],
+      "docs": {
+        "source": "skills/vercel-react-native-skills/SKILL.md",
+        "governance": "docs/governance/skill-metadata.md"
+      }
+    }
+  ]
+}

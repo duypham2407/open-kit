@@ -4,10 +4,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { listCanonicalSkillMetadata } from '../../src/capabilities/skill-catalog.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..', '..');
 const registry = JSON.parse(fs.readFileSync(path.join(projectRoot, 'registry.json'), 'utf8'));
+const installManifest = JSON.parse(fs.readFileSync(path.join(projectRoot, '.opencode/install-manifest.json'), 'utf8'));
 
 test('registry agents include audience and mode metadata', () => {
   for (const agent of registry.components.agents ?? []) {
@@ -35,11 +38,37 @@ test('registry skills include role and mode metadata', () => {
   }
 });
 
+test('registry skill metadata stays aligned with canonical skill catalog', () => {
+  const canonical = listCanonicalSkillMetadata();
+  const registrySkills = registry.components.skills ?? [];
+  const registryById = new Map(registrySkills.map((skill) => [skill.id, skill]));
+
+  for (const skill of canonical.filter((entry) => entry.packaging.source === 'repo')) {
+    const registrySkill = registryById.get(skill.id);
+    assert.ok(registrySkill, `registry missing ${skill.id}`);
+    assert.equal(registrySkill.name, skill.name);
+    assert.equal(registrySkill.path, skill.path);
+    assert.equal(registrySkill.status, skill.status);
+    assert.equal(registrySkill.support_level, skill.support_level);
+    assert.deepEqual(registrySkill.tags, skill.tags);
+    assert.deepEqual(registrySkill.typicalRoles, skill.roles);
+    assert.deepEqual(registrySkill.stages, skill.stages);
+    assert.deepEqual(registrySkill.recommended_mcps, skill.recommended_mcps.map((ref) => ref.id));
+  }
+
+  assert.ok((registry.components.docs ?? []).some((entry) => entry.id === 'doc.skill-metadata'));
+});
+
 test('registry docs include runtime surfaces reference', () => {
   const docs = registry.components.docs ?? [];
   const runtimeSurfaces = docs.find((entry) => entry.id === 'doc.runtime-surfaces');
   assert.ok(runtimeSurfaces);
   assert.equal(runtimeSurfaces.path, 'context/core/runtime-surfaces.md');
+});
+
+test('install manifest advertises generated bundled skill catalog metadata', () => {
+  assert.ok(installManifest.installation.wrapperFacingMetadata.includes('assets/install-bundle/opencode/skill-catalog.json'));
+  assert.equal(installManifest.components.skillCatalog, 'generated-package-metadata');
 });
 
 test('registry includes runtime capability, manager, tool, and hook metadata', () => {

@@ -28,6 +28,7 @@ npm run verify:all
 | global doctor behavior | `node --test tests/global/doctor.test.js` | validates install/workspace readiness checks |
 | global install materialization or launch wiring | `node --test tests/global/*.test.js` | validates managed-kit bootstrap and launch path |
 | install merge policy or discovery | `node --test tests/install/*.test.js` | validates install safety and detection rules |
+| bundled skill metadata, skill router/index output, or skill package sync | `node --test tests/runtime/skill-catalog.test.js && node --test tests/runtime/capability-tools.test.js && node --test tests/install/skill-bundle-sync.test.js && npm run verify:install-bundle` | validates canonical metadata, runtime exposure, advisory MCP bindings, stable/preview/experimental status, and package sync |
 | CommonJS/runtime module boundary | `node --test tests/runtime/module-boundary.test.js` | validates legacy runtime boundary expectations |
 
 ## Recommended Bundles
@@ -109,5 +110,6 @@ npm run verify:install-bundle
 - this repository still does not define repo-native build/lint/test commands for arbitrary generated application code
 - `openkit doctor` and `node .opencode/workflow-state.js doctor` validate different OpenKit surfaces and are not target-project app test substitutes
 - use validation surface labels in reports: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, and `target_project_app`
+- use `package` for install-bundle/source synchronization checks such as generated bundled skill metadata; keep it separate from `runtime_tooling`, `documentation`, and `target_project_app`
 - `target_project_app` evidence is valid only when the target project defines the corresponding build, lint, or test command; otherwise record that app-native validation is unavailable
 - runtime bootstrap tests should cover tool metadata surface labels when a tool crosses surfaces, for example workflow-state tools as `compatibility_runtime` and external typecheck/lint/test probes as `target_project_app`

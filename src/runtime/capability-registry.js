@@ -3,7 +3,7 @@ import {
   VALIDATION_SURFACES,
 } from '../capabilities/status.js';
 import { listMcpCatalogEntries } from '../capabilities/mcp-catalog.js';
-import { listBundledSkills } from '../capabilities/skill-catalog.js';
+import { listBundledSkills, summarizeSkillCatalog } from '../capabilities/skill-catalog.js';
 
 const DEFAULT_RUNTIME_CAPABILITIES = [
   {
@@ -183,14 +183,25 @@ export function listBundledSkillCapabilities() {
   return listBundledSkills().map((entry) => ({
     id: entry.id,
     skillName: entry.name,
+    name: entry.name,
+    displayName: entry.displayName,
     category: entry.category,
-    description: `${entry.name} skill`,
-    status: entry.status === 'available' ? 'active' : 'foundation',
-    capabilityState: entry.status,
+    description: entry.description,
+    status: entry.capabilityState === 'available' ? 'active' : 'foundation',
+    skillStatus: entry.status,
+    capabilityState: entry.capabilityState,
     validationSurface: 'runtime_tooling',
-    enabledByDefault: entry.status !== 'unavailable',
+    enabledByDefault: entry.capabilityState !== 'unavailable',
     lifecycle: entry.lifecycle,
     bundled: entry.bundled,
+    support_level: entry.support_level,
+    source: entry.source,
+    roles: entry.roles,
+    stages: entry.stages,
+    tags: entry.tags,
+    triggers: entry.triggers,
+    recommended_mcps: entry.recommended_mcps,
+    packaging: entry.packaging,
     mcpRefs: entry.mcpRefs,
     optionalMcpRefs: entry.optionalMcpRefs,
     limitations: entry.limitations,
@@ -288,3 +299,5 @@ export function summarizeRuntimeCapabilities(capabilities) {
 
   return summary;
 }
+
+export { summarizeSkillCatalog };

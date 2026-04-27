@@ -244,6 +244,7 @@ Validation surface labels:
 - `compatibility_runtime`: `.opencode/workflow-state.js` state and diagnostic commands.
 - `runtime_tooling`: OpenKit runtime tools, graph, semantic search, AST, syntax, codemod, audit, browser, MCP, background execution, and external-tool probes.
 - `documentation`: roadmap, operator, maintainer, governance, and runbook artifacts.
+- `package`: install-bundle/source synchronization checks, including generated bundled skill metadata such as `assets/install-bundle/opencode/skill-catalog.json`.
 - `target_project_app`: application build/lint/test commands only when the target project actually defines them.
 
 ## Validation Reality By Mode

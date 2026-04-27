@@ -1,4 +1,4 @@
-import { summarizeRuntimeCapabilities } from './capability-registry.js';
+import { summarizeRuntimeCapabilities, summarizeSkillCatalog } from './capability-registry.js';
 import { inspectWorkflowDoctor } from './doctor/workflow-doctor.js';
 import { recoverSessionState } from './recovery/session-recovery.js';
 
@@ -46,7 +46,7 @@ export function createRuntimeInterface({
   const capabilityPack = {
     catalogVersion: 1,
     mcpSummary: summarizePackEntries(capabilityPackInventory.mcps, 'capabilityState'),
-    skillSummary: summarizePackEntries(capabilityPackInventory.skills, 'status'),
+    skillSummary: summarizeSkillCatalog(capabilityPackInventory.skills),
     keySummary: summarizeKeyState(capabilityPackInventory.mcps),
   };
   const latestSession = managers.sessionStateManager?.latest?.() ?? null;

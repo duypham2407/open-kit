@@ -195,6 +195,9 @@ test('operator docs describe MCP configuration and secret-safe boundaries', () =
 
   assert.match(mcpDocs, /Default Bundled MCP Catalog/);
   assert.match(mcpDocs, /Default Bundled Skill Catalog Overview/);
+  assert.match(mcpDocs, /skill maturity status/i);
+  assert.match(mcpDocs, /stable.*preview.*experimental/is);
+  assert.match(mcpDocs, /recommended_mcps/);
   assert.match(mcpDocs, /openkit configure mcp <list\|doctor\|enable\|disable\|set-key\|unset-key\|test>/);
   assert.match(mcpDocs, /openkit configure mcp custom <list\|add-local\|add-remote\|import-global\|disable\|remove\|doctor\|test>/);
   assert.match(mcpDocs, /<OPENCODE_HOME>\/openkit\/custom-mcp-config\.json/);
@@ -232,6 +235,32 @@ test('operator docs describe MCP configuration and secret-safe boundaries', () =
   assert.doesNotMatch(mcpDocs, /sk-[A-Za-z0-9_-]{8,}/);
 });
 
+test('governance docs define canonical bundled skill metadata and package sync contract', () => {
+  const skillMetadata = read('docs/governance/skill-metadata.md');
+  const governance = read('docs/governance/README.md');
+  const roleMatrix = read('docs/maintainer/role-skill-matrix.md');
+  const supportedSurfaces = read('docs/operator/supported-surfaces.md');
+  const projectConfig = read('context/core/project-config.md');
+  const runtimeSurfaces = read('context/core/runtime-surfaces.md');
+  const workflowSchema = read('context/core/workflow-state-schema.md');
+  const testMatrix = read('docs/maintainer/test-matrix.md');
+  const kitInternals = read('docs/kit-internals/04-tools-hooks-skills-and-mcps.md');
+  const docs = [skillMetadata, governance, roleMatrix, supportedSurfaces, projectConfig, runtimeSurfaces, workflowSchema, testMatrix, kitInternals].join('\n');
+
+  assert.match(skillMetadata, /src\/capabilities\/skill-catalog\.js/);
+  assert.match(skillMetadata, /openkit\/skill-catalog-entry@2/);
+  assert.match(skillMetadata, /status.*stable.*preview.*experimental/is);
+  assert.match(skillMetadata, /support_level.*maintained.*best_effort.*compatibility_only.*stub/is);
+  assert.match(skillMetadata, /recommended_mcps/);
+  assert.match(skillMetadata, /roles.*MasterOrchestrator.*ProductLead.*SolutionLead.*FullstackAgent.*CodeReviewer.*QAAgent.*QuickAgent/is);
+  assert.match(skillMetadata, /stages.*quick_intake.*migration_strategy.*full_implementation/is);
+  assert.match(skillMetadata, /provenance/i);
+  assert.match(skillMetadata, /package sync/i);
+  assert.match(roleMatrix, /canonical metadata/i);
+  assert.match(docs, /`package`/);
+  assert.match(docs, /target_project_app/);
+});
+
 test('package scripts expose governance and install-bundle verification gates', () => {
   const packageJson = JSON.parse(read('package.json'));
 
@@ -241,6 +270,7 @@ test('package scripts expose governance and install-bundle verification gates', 
   assert.equal(typeof packageJson.scripts['verify:semgrep-quality'], 'string');
   assert.equal(typeof packageJson.scripts['verify:all'], 'string');
   assert.match(packageJson.scripts['verify:all'], /verify:semgrep-quality/);
+  assert.match(packageJson.scripts['verify:install-bundle'], /verify-install-bundle/);
 });
 
 test('repository defines CI workflow for verification gates', () => {

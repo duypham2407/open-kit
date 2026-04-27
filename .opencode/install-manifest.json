@@ -21,7 +21,8 @@
     "repositoryInternalRuntime": ".opencode/opencode.json",
     "wrapperFacingMetadata": [
       "registry.json",
-      ".opencode/install-manifest.json"
+      ".opencode/install-manifest.json",
+      "assets/install-bundle/opencode/skill-catalog.json"
     ]
   },
   "migration": {
@@ -32,6 +33,7 @@
   "components": {
     "agents": "present",
     "skills": "present",
+    "skillCatalog": "generated-package-metadata",
     "commands": "present",
     "artifacts": "present",
     "runtime": "present",

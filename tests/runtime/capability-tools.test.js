@@ -30,6 +30,11 @@ test('runtime capability inventory tool lists MCPs and skills with redacted key 
   assert.equal(result.validationSurface, 'runtime_tooling');
   assert.ok(result.mcps.some((entry) => entry.mcpId === 'context7'));
   assert.ok(result.skills.some((entry) => entry.name === 'verification-before-completion'));
+  const verification = result.skills.find((entry) => entry.name === 'verification-before-completion');
+  assert.equal(verification.status, 'stable');
+  assert.equal(verification.capabilityState, 'available');
+  assert.equal(verification.support_level, 'maintained');
+  assert.ok(Array.isArray(verification.recommended_mcps));
   assert.equal(JSON.stringify(result).includes(SENTINEL), false);
   assert.equal(result.mcps.find((entry) => entry.mcpId === 'context7').keyState.CONTEXT7_API_KEY, 'present_redacted');
 });
@@ -106,11 +111,72 @@ test('skill index and skill MCP bindings tools expose catalog relationships', as
   const projectRoot = makeTempDir('openkit-skill-index-project-');
   const runtime = bootstrapRuntimeFoundation({ projectRoot, env: { OPENCODE_HOME: makeTempDir('openkit-skill-index-home-') } });
 
-  const skillIndex = await getTool(runtime, 'tool.skill-index').execute({ category: 'frontend' });
+  const skillIndex = await getTool(runtime, 'tool.skill-index').execute({ tag: 'frontend', role: 'FullstackAgent', stage: 'full_implementation', status: 'stable' });
   const bindings = await getTool(runtime, 'tool.skill-mcp-bindings').execute({});
 
   assert.equal(skillIndex.status, 'ok');
   assert.ok(skillIndex.skills.some((entry) => entry.name === 'vercel-react-best-practices'));
+  assert.ok(skillIndex.skills.every((entry) => entry.status === 'stable'));
+  assert.ok(skillIndex.skills.every((entry) => entry.roles.includes('FullstackAgent') || entry.roles.includes('all')));
+  assert.ok(skillIndex.skills.every((entry) => entry.stages.includes('full_implementation') || entry.stages.includes('all')));
   assert.equal(bindings.status, 'ok');
-  assert.ok(bindings.bindings.some((entry) => entry.mcpId === 'chrome-devtools' || entry.mcpId === 'playwright'));
+  const browserBinding = bindings.bindings.find((entry) => entry.mcpId === 'chrome-devtools' || entry.mcpId === 'playwright');
+  assert.ok(browserBinding);
+  assert.ok(['primary', 'supporting', 'optional'].includes(browserBinding.relationship));
+  assert.ok(['stable', 'preview', 'experimental'].includes(browserBinding.skillStatus));
+  assert.equal(typeof browserBinding.mcpKnown, 'boolean');
+});
+
+test('capability router recommends metadata-backed skills with explainable stable-first output', async () => {
+  const projectRoot = makeTempDir('openkit-skill-router-project-');
+  const runtime = bootstrapRuntimeFoundation({ projectRoot, env: { OPENCODE_HOME: makeTempDir('openkit-skill-router-home-'), PATH: '' } });
+
+  const result = await getTool(runtime, 'tool.capability-router').execute({
+    intent: 'debug a React render performance issue',
+    role: 'FullstackAgent',
+    stage: 'full_implementation',
+    tags: ['frontend', 'performance'],
+  });
+
+  assert.equal(result.validationSurface, 'runtime_tooling');
+  assert.equal(result.matchStatus, 'matched');
+  assert.equal(result.selectedSkill.name, 'vercel-react-best-practices');
+  assert.equal(result.selectedSkill.status, 'stable');
+  assert.ok(result.selectionReasons.some((reason) => reason.field === 'trigger' || reason.field === 'tag'));
+  assert.ok(Array.isArray(result.suppressedCandidates));
+  assert.ok(Array.isArray(result.recommendedMcps));
+  assert.match(result.guidance, /Load the selected skill explicitly/i);
+});
+
+test('capability router reports no metadata-backed match instead of silent fallback', async () => {
+  const projectRoot = makeTempDir('openkit-skill-router-nomatch-project-');
+  const runtime = bootstrapRuntimeFoundation({ projectRoot, env: { OPENCODE_HOME: makeTempDir('openkit-skill-router-nomatch-home-'), PATH: '' } });
+
+  const result = await getTool(runtime, 'tool.capability-router').execute({
+    intent: 'quantum toaster calibration',
+    role: 'FullstackAgent',
+    stage: 'full_implementation',
+    tags: ['nonexistent-skill-domain'],
+    includePreview: false,
+    includeExperimental: false,
+  });
+
+  assert.equal(result.validationSurface, 'runtime_tooling');
+  assert.equal(result.status, 'unavailable');
+  assert.equal(result.matchStatus, 'no_match');
+  assert.match(result.guidance, /No metadata-backed skill match/i);
+});
+
+test('runtime interface summarizes skill maturity separately from capability state', async () => {
+  const projectRoot = makeTempDir('openkit-runtime-interface-skill-summary-project-');
+  const runtime = bootstrapRuntimeFoundation({ projectRoot, env: { OPENCODE_HOME: makeTempDir('openkit-runtime-interface-skill-summary-home-'), PATH: '' } });
+
+  const summary = runtime.runtimeInterface.capabilityPack.skillSummary;
+  assert.ok(summary.total > 0);
+  assert.ok(summary.maturity.stable > 0);
+  assert.ok(summary.maturity.preview > 0);
+  assert.ok(summary.capabilityStates.available > 0);
+  assert.ok(summary.capabilityStates.unavailable > 0);
+  assert.ok(summary.supportLevels.maintained > 0);
+  assert.ok(summary.supportLevels.stub > 0);
 });

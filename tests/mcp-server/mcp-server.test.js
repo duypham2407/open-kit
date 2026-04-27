@@ -149,6 +149,16 @@ test('MCP server lists tools via tools/list', async () => {
     assert.ok(findSymbol.inputSchema, 'tool should have inputSchema');
     assert.equal(findSymbol.inputSchema.type, 'object');
     assert.ok(findSymbol.inputSchema.properties.name, 'find-symbol should have name property');
+
+    const skillIndex = result.tools.find((t) => t.name === 'tool.skill-index');
+    assert.ok(skillIndex.inputSchema.properties.status.enum.includes('stable'));
+    assert.ok(skillIndex.inputSchema.properties.support_level.enum.includes('stub'));
+    assert.ok(skillIndex.inputSchema.properties.stage);
+
+    const router = result.tools.find((t) => t.name === 'tool.capability-router');
+    assert.ok(router.inputSchema.properties.includePreview);
+    assert.ok(router.inputSchema.properties.includeExperimental);
+    assert.ok(router.description.includes('metadata-backed skill selection'));
   } finally {
     await client.close();
   }

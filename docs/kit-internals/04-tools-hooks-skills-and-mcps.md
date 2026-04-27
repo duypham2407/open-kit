@@ -59,6 +59,7 @@ Read-model labeling rules:
 - typecheck, lint, and test-run tools are `target_project_app` surfaces only when the target project provides the relevant config or framework; otherwise their `unavailable` status records a missing app-native validation path
 - graph, semantic search, syntax, AST, codemod, MCP, and background execution tools stay `runtime_tooling` unless a narrower implemented surface label is explicitly provided
 - supervisor dialogue manager configuration and adapter health are `runtime_tooling`; persisted supervisor dialogue read models surfaced through workflow-state `status` or `resume-summary --json` are `compatibility_runtime`
+- bundled skill metadata is canonical in `src/capabilities/skill-catalog.js`; `tool.skill-index`, `tool.skill-mcp-bindings`, and skill routing expose it as `runtime_tooling`, while generated install-bundle skill metadata is validated on the `package` surface
 
 ### Workflow tools
 
@@ -120,6 +121,16 @@ Examples:
 Examples:
 - `tool.semantic-search`
 - `tool.embedding-index`
+
+### Skill capability tools
+
+Examples:
+
+- `tool.skill-index`
+- `tool.skill-mcp-bindings`
+- skill-aware `tool.capability-router`
+
+These read from canonical bundled skill metadata and expose skill maturity `status` (`stable`, `preview`, `experimental`) separately from runtime `capabilityState`. They also surface support level, provenance/source, roles, stages, triggers, limitations, packaging, docs refs, and advisory `recommended_mcps` with MCP status caveats. Router output is explainable and advisory; it recommends explicit skill loading and must not silently activate a skill.
 
 ### External tooling tools
 

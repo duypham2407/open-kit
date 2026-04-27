@@ -1,6 +1,11 @@
 import fs from "node:fs"
 import path from "node:path"
 
+import {
+  listCanonicalSkillMetadata,
+  listInstallBundleSkillMetadata,
+} from "../capabilities/skill-catalog.js"
+
 const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
   {
     id: "opencode.bundle.readme",
@@ -118,6 +123,54 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     bundledPath: "assets/install-bundle/opencode/context/core/lane-selection.md",
   },
   {
+    id: "opencode.skill-catalog",
+    assetClass: "skill-catalog",
+    sourcePath: "assets/install-bundle/opencode/skill-catalog.json",
+    bundledPath: "assets/install-bundle/opencode/skill-catalog.json",
+  },
+  {
+    id: "opencode.skill.codebase-exploration",
+    assetClass: "skills",
+    sourcePath: "skills/codebase-exploration/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/codebase-exploration/SKILL.md",
+  },
+  {
+    id: "opencode.skill.deep-research",
+    assetClass: "skills",
+    sourcePath: "skills/deep-research/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/deep-research/SKILL.md",
+  },
+  {
+    id: "opencode.skill.refactoring",
+    assetClass: "skills",
+    sourcePath: "skills/refactoring/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/refactoring/SKILL.md",
+  },
+  {
+    id: "opencode.skill.frontend-ui-ux",
+    assetClass: "skills",
+    sourcePath: "skills/frontend-ui-ux/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/frontend-ui-ux/SKILL.md",
+  },
+  {
+    id: "opencode.skill.dev-browser",
+    assetClass: "skills",
+    sourcePath: "skills/dev-browser/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/dev-browser/SKILL.md",
+  },
+  {
+    id: "opencode.skill.browser-automation",
+    assetClass: "skills",
+    sourcePath: "skills/browser-automation/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/browser-automation/SKILL.md",
+  },
+  {
+    id: "opencode.skill.git-master",
+    assetClass: "skills",
+    sourcePath: "skills/git-master/SKILL.md",
+    bundledPath: "assets/install-bundle/opencode/skills/git-master/SKILL.md",
+  },
+  {
     id: "opencode.skill.brainstorming",
     assetClass: "skills",
     sourcePath: "skills/brainstorming/SKILL.md",
@@ -205,7 +258,7 @@ export const OPENKIT_ASSET_MANIFEST = {
     profile: "openkit-global-install",
     phase: 1,
     derivedFrom: ["agents/", "commands/", "skills/"],
-    includedAssetClasses: ["agents", "commands", "context", "skills"],
+    includedAssetClasses: ["agents", "commands", "context", "skills", "skill-catalog"],
     deferredAssetClasses: ["plugins", "package.json"],
     collisionPolicy: {
       installNamespace: "openkit",
@@ -252,10 +305,44 @@ export function getManagedAsset(assetId) {
   return OPENKIT_ASSET_MANIFEST.assets.find((asset) => asset.id === assetId) ?? null
 }
 
+function listSourceSkillFiles(projectRoot) {
+  const skillsRoot = path.join(projectRoot, "skills")
+
+  if (!fs.existsSync(skillsRoot)) {
+    return []
+  }
+
+  return fs.readdirSync(skillsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => {
+      const sourcePath = ["skills", entry.name, "SKILL.md"].join("/")
+      const absolutePath = path.join(projectRoot, sourcePath)
+
+      if (!fs.existsSync(absolutePath)) {
+        return null
+      }
+
+      return {
+        name: entry.name,
+        path: sourcePath,
+      }
+    })
+    .filter(Boolean)
+    .sort((left, right) => left.path.localeCompare(right.path))
+}
+
+function hasExplicitInstallBundleExclusion(entry) {
+  return entry?.packaging?.source === "repo" &&
+    entry.packaging.installBundle === false &&
+    typeof entry.packaging.exclusionReason === "string" &&
+    entry.packaging.exclusionReason.trim().length > 0
+}
+
 export function validateBundledAssetFiles(projectRoot) {
   const bundleRoot = path.join(projectRoot, "assets", "install-bundle", "opencode")
   const missingFiles = []
   const mismatchedFiles = []
+  const skillCatalogMismatches = []
 
   for (const asset of OPENKIT_ASSET_MANIFEST.bundle.assets) {
     const sourcePath = path.join(projectRoot, asset.sourcePath)
@@ -282,6 +369,71 @@ export function validateBundledAssetFiles(projectRoot) {
           bundledPath: asset.bundledPath,
         })
       }
+    }
+  }
+
+  const manifestSkillAssets = OPENKIT_ASSET_MANIFEST.bundle.assets
+    .filter((asset) => asset.assetClass === "skills")
+  const manifestSkillNames = new Set(manifestSkillAssets.map((asset) => asset.id.replace(/^opencode\.skill\./, "")))
+  const canonicalSkillMetadata = listCanonicalSkillMetadata()
+  const installBundleSkillMetadata = listInstallBundleSkillMetadata()
+  const installBundleSkillNames = new Set(installBundleSkillMetadata.map((entry) => entry.name))
+  const sourceSkillFiles = listSourceSkillFiles(projectRoot)
+  const sourceSkillPaths = new Set(sourceSkillFiles.map((entry) => entry.path))
+  const repoBackedSkillMetadata = canonicalSkillMetadata
+    .filter((entry) => entry.packaging?.source === "repo")
+  const repoBackedSkillsBySourcePath = new Map(repoBackedSkillMetadata.map((entry) => [entry.path, entry]))
+  const missingSourceSkillCatalogEntries = sourceSkillFiles
+    .filter((sourceSkill) => !repoBackedSkillsBySourcePath.has(sourceSkill.path))
+    .map((sourceSkill) => sourceSkill.path)
+  const repoBackedSkillCatalogEntriesMissingSourceFiles = repoBackedSkillMetadata
+    .filter((entry) => !sourceSkillPaths.has(entry.path))
+    .map((entry) => entry.path)
+  const sourceSkillsMissingInstallBundleDecision = sourceSkillFiles
+    .filter((sourceSkill) => {
+      const catalogEntry = repoBackedSkillsBySourcePath.get(sourceSkill.path)
+
+      if (!catalogEntry) {
+        return true
+      }
+
+      if (catalogEntry.packaging?.installBundle === true) {
+        return false
+      }
+
+      return !hasExplicitInstallBundleExclusion(catalogEntry)
+    })
+    .map((sourceSkill) => sourceSkill.path)
+  const bundleCatalogPath = path.join(projectRoot, "assets", "install-bundle", "opencode", "skill-catalog.json")
+  let derivedSkillCatalog = null
+
+  if (fs.existsSync(bundleCatalogPath)) {
+    try {
+      derivedSkillCatalog = JSON.parse(fs.readFileSync(bundleCatalogPath, "utf8"))
+    } catch (error) {
+      skillCatalogMismatches.push({
+        id: "opencode.skill-catalog",
+        reason: `derived skill catalog is not valid JSON: ${error.message}`,
+      })
+    }
+  }
+
+  const derivedSkillNames = new Set((derivedSkillCatalog?.skills ?? []).map((entry) => entry.name))
+  const missingSkillCatalogEntries = [...installBundleSkillNames].filter((skillName) => !derivedSkillNames.has(skillName))
+  const extraSkillCatalogEntries = [...derivedSkillNames].filter((skillName) => !installBundleSkillNames.has(skillName))
+  const missingSkillManifestEntries = [...installBundleSkillNames].filter((skillName) => !manifestSkillNames.has(skillName))
+  const extraSkillManifestEntries = [...manifestSkillNames].filter((skillName) => !installBundleSkillNames.has(skillName))
+  const missingSkillBundleFiles = installBundleSkillMetadata
+    .filter((entry) => entry.packaging.installBundle === true && !fs.existsSync(path.join(projectRoot, entry.packaging.bundledPath)))
+    .map((entry) => entry.packaging.bundledPath)
+
+  if (derivedSkillCatalog) {
+    const expectedCatalog = createDerivedSkillCatalog(installBundleSkillMetadata)
+    if (JSON.stringify(derivedSkillCatalog) !== JSON.stringify(expectedCatalog)) {
+      skillCatalogMismatches.push({
+        id: "opencode.skill-catalog",
+        reason: "derived skill-catalog.json does not match canonical skill metadata",
+      })
     }
   }
 
@@ -313,9 +465,47 @@ export function validateBundledAssetFiles(projectRoot) {
   return {
     missingFiles,
     mismatchedFiles,
+    missingSourceSkillCatalogEntries,
+    repoBackedSkillCatalogEntriesMissingSourceFiles,
+    sourceSkillsMissingInstallBundleDecision,
+    missingSkillCatalogEntries,
+    extraSkillCatalogEntries,
+    missingSkillManifestEntries,
+    extraSkillManifestEntries,
+    missingSkillBundleFiles,
+    skillCatalogMismatches,
+    sourceSkillFileCount: sourceSkillFiles.length,
+    repoBackedSkillCatalogEntryCount: repoBackedSkillMetadata.length,
     bundleFileCount: OPENKIT_ASSET_MANIFEST.bundle.assets.length,
     expectedBundledFiles: [...expectedBundledFiles],
     actualBundledFiles: bundledFiles,
     extraBundledFiles,
+  }
+}
+
+export function createDerivedSkillCatalog(skills = listInstallBundleSkillMetadata()) {
+  return {
+    schema: "openkit/skill-install-bundle-catalog@1",
+    catalogVersion: 1,
+    generatedFrom: "src/capabilities/skill-catalog.js",
+    validationSurface: "package",
+    skills: skills.map((skill) => ({
+      id: skill.id,
+      name: skill.name,
+      displayName: skill.displayName,
+      description: skill.description,
+      status: skill.status,
+      capabilityState: skill.capabilityState,
+      support_level: skill.support_level,
+      roles: skill.roles,
+      stages: skill.stages,
+      tags: skill.tags,
+      triggers: skill.triggers,
+      recommended_mcps: skill.recommended_mcps,
+      source: skill.source,
+      packaging: skill.packaging,
+      limitations: skill.limitations,
+      docs: skill.docs,
+    })),
   }
 }

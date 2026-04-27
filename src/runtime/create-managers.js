@@ -196,8 +196,8 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     enabled: config?.tmux?.enabled === true,
     layout: config?.tmux?.layout,
   });
-  const skillMcpManager = new SkillMcpManager();
   const mcpHealthManager = new McpHealthManager({ env });
+  const skillMcpManager = new SkillMcpManager({ mcpHealthManager });
   const capabilityRegistryManager = new CapabilityRegistryManager({ mcpHealthManager, skillMcpManager });
   const syntaxIndexManager = new SyntaxIndexManager({ projectRoot });
   const projectGraphManager = new ProjectGraphManager({ projectRoot, runtimeRoot, syntaxIndexManager, mode });

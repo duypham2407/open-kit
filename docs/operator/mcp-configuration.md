@@ -51,7 +51,9 @@ The skill catalog is bundled with the kit and joined with MCP availability at ru
 - frontend, UI, browser, and deployment skills: component building, web design, React/Next.js, React Native/Expo, MUI, Vercel patterns, browser automation, and Vercel deployment guidance
 - Rust skills: `rust-router`, `rust-learner`, coding guidelines, unsafe/FFI review, ownership, smart pointers, mutability, generics/traits, type-driven design, error handling, concurrency, domain modeling, performance, ecosystem, lifecycle, domain-error, mental-model, and anti-pattern skills
 
-Inside an OpenKit session, capability inventory, routing, health, MCP doctor, and skill/MCP binding tools report which MCP-backed skills are available, degraded, unavailable, or not configured. If a backing MCP is absent or missing a key, OpenKit should return a visible next-action reason instead of silently pretending the skill has full MCP support.
+Every bundled skill has canonical metadata in `src/capabilities/skill-catalog.js`. Skill maturity status is `stable`, `preview`, or `experimental`; runtime `capabilityState` remains separate and uses `available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, and `not_configured`. Metadata also exposes `roles`, `stages`, `tags`, structured `triggers`, `recommended_mcps`, provenance/source, support level, docs refs, packaging, and visible limitations.
+
+Inside an OpenKit session, capability inventory, routing, health, MCP doctor, and skill/MCP binding tools report which MCP-backed skills are available, degraded, unavailable, or not configured. If a backing MCP is absent or missing a key, OpenKit should return a visible next-action reason instead of silently pretending the skill has full MCP support. `recommended_mcps` are advisory and secret-free; missing or disabled MCPs are caveats, not hidden skill activation failures.
 
 ## Command Reference
 

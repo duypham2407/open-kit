@@ -70,6 +70,7 @@ Do not invent alternate labels for the same states. If a command or tool is docu
 - Supervisor dialogue QA evidence for FEATURE-940 must cover health, outbound statuses, inbound dispositions, authority-boundary rejection, duplicate/repeated proposal outcomes, degraded/offline scenarios, and proof that inbound OpenClaw messages caused no workflow mutation beyond supervisor dialogue records.
 - FEATURE-939 scan/tool evidence remains required where applicable and must stay distinct from FEATURE-940 supervisor dialogue behavior evidence.
 - Documentation checks and governance tests validate the `documentation` surface.
+- Install-bundle/source synchronization, including derived bundled skill metadata, validates the `package` surface.
 - Target-project build/lint/test validation belongs to `target_project_app` only when the target project defines those commands.
 - If target-project app-native commands are absent, record that validation path as unavailable. Do not replace it with OpenKit runtime checks.
 

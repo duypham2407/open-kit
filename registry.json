@@ -113,166 +113,26 @@
       }
     ],
     "skills": [
-      {
-        "id": "skill.brainstorming",
-        "name": "brainstorming",
-        "path": "skills/brainstorming/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Master Orchestrator", "Product Lead", "Solution Lead"],
-        "modes": ["migration", "full"]
-      },
-      {
-        "id": "skill.find-skills",
-        "name": "find-skills",
-        "path": "skills/find-skills/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Master Orchestrator", "Product Lead", "Solution Lead", "Fullstack Agent"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.code-review",
-        "name": "code-review",
-        "path": "skills/code-review/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Code Reviewer"],
-        "modes": ["migration", "full"]
-      },
-      {
-        "id": "skill.subagent-driven-development",
-        "name": "subagent-driven-development",
-        "path": "skills/subagent-driven-development/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Fullstack Agent"],
-        "modes": ["full"]
-      },
-      {
-        "id": "skill.systematic-debugging",
-        "name": "systematic-debugging",
-        "path": "skills/systematic-debugging/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Fullstack Agent"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.test-driven-development",
-        "name": "test-driven-development",
-        "path": "skills/test-driven-development/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Fullstack Agent"],
-        "modes": ["full"]
-      },
-      {
-        "id": "skill.vercel-composition-patterns",
-        "name": "vercel-composition-patterns",
-        "path": "skills/vercel-composition-patterns/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Solution Lead", "Fullstack Agent", "Code Reviewer"],
-        "modes": ["full"]
-      },
-      {
-        "id": "skill.vercel-react-best-practices",
-        "name": "vercel-react-best-practices",
-        "path": "skills/vercel-react-best-practices/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Solution Lead", "Fullstack Agent", "Code Reviewer", "QA Agent"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.vercel-react-native-skills",
-        "name": "vercel-react-native-skills",
-        "path": "skills/vercel-react-native-skills/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Solution Lead", "Fullstack Agent", "Code Reviewer", "QA Agent"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.verification-before-completion",
-        "name": "verification-before-completion",
-        "path": "skills/verification-before-completion/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Fullstack Agent", "QA Agent"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.using-skills",
-        "name": "using-skills",
-        "path": "skills/using-skills/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["all"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.writing-solution",
-        "name": "writing-solution",
-        "path": "skills/writing-solution/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Solution Lead"],
-        "modes": ["migration", "full"]
-      },
-      {
-        "id": "skill.writing-scope",
-        "name": "writing-scope",
-        "path": "skills/writing-scope/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Product Lead"],
-        "modes": ["full"]
-      },
-      {
-        "id": "skill.browser-automation",
-        "name": "browser-automation",
-        "path": "skills/browser-automation/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Fullstack Agent", "QA Agent"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.codebase-exploration",
-        "name": "codebase-exploration",
-        "path": "skills/codebase-exploration/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Master Orchestrator", "Solution Lead", "Fullstack Agent"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.deep-research",
-        "name": "deep-research",
-        "path": "skills/deep-research/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Product Lead", "Solution Lead"],
-        "modes": ["migration", "full"]
-      },
-      {
-        "id": "skill.dev-browser",
-        "name": "dev-browser",
-        "path": "skills/dev-browser/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Fullstack Agent", "QA Agent"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.frontend-ui-ux",
-        "name": "frontend-ui-ux",
-        "path": "skills/frontend-ui-ux/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Solution Lead", "Fullstack Agent", "Code Reviewer"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.git-master",
-        "name": "git-master",
-        "path": "skills/git-master/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Master Orchestrator", "Fullstack Agent"],
-        "modes": ["quick", "migration", "full"]
-      },
-      {
-        "id": "skill.refactoring",
-        "name": "refactoring",
-        "path": "skills/refactoring/SKILL.md",
-        "audience": "runtime",
-        "typicalRoles": ["Solution Lead", "Fullstack Agent", "Code Reviewer"],
-        "modes": ["quick", "migration", "full"]
-      }
+      { "id": "skill.using-skills", "name": "using-skills", "path": "skills/using-skills/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["workflow", "meta-skill", "skill-selection"], "typicalRoles": ["all"], "stages": ["quick_intake", "quick_brainstorm", "quick_plan", "quick_implement", "quick_test", "quick_done", "migration_intake", "migration_baseline", "migration_strategy", "migration_upgrade", "migration_code_review", "migration_verify", "migration_done", "full_intake", "full_product", "full_solution", "full_implementation", "full_code_review", "full_qa", "full_done"], "modes": ["quick", "migration", "full"], "recommended_mcps": ["openkit"] },
+      { "id": "skill.brainstorming", "name": "brainstorming", "path": "skills/brainstorming/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["workflow", "planning", "clarification"], "typicalRoles": ["ProductLead", "SolutionLead", "QuickAgent", "in_session_agent"], "stages": ["quick_brainstorm", "migration_baseline", "migration_strategy", "full_product", "full_solution"], "modes": ["quick", "migration", "full"], "recommended_mcps": ["sequential-thinking"] },
+      { "id": "skill.writing-scope", "name": "writing-scope", "path": "skills/writing-scope/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["workflow", "scope", "product"], "typicalRoles": ["ProductLead"], "stages": ["full_product"], "modes": ["full"], "recommended_mcps": ["openkit"] },
+      { "id": "skill.writing-solution", "name": "writing-solution", "path": "skills/writing-solution/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["workflow", "solution", "planning"], "typicalRoles": ["SolutionLead"], "stages": ["migration_strategy", "full_solution"], "modes": ["migration", "full"], "recommended_mcps": ["openkit"] },
+      { "id": "skill.subagent-driven-development", "name": "subagent-driven-development", "path": "skills/subagent-driven-development/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["workflow", "delegation", "full-delivery"], "typicalRoles": ["FullstackAgent", "SolutionLead"], "stages": ["full_implementation"], "modes": ["full"], "recommended_mcps": ["openkit"] },
+      { "id": "skill.test-driven-development", "name": "test-driven-development", "path": "skills/test-driven-development/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["workflow", "testing", "implementation"], "typicalRoles": ["FullstackAgent"], "stages": ["full_implementation"], "modes": ["full"], "recommended_mcps": ["openkit"] },
+      { "id": "skill.systematic-debugging", "name": "systematic-debugging", "path": "skills/systematic-debugging/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["workflow", "debugging", "root-cause"], "typicalRoles": ["FullstackAgent", "QAAgent", "QuickAgent"], "stages": ["quick_implement", "quick_test", "migration_upgrade", "migration_verify", "full_implementation", "full_qa"], "modes": ["quick", "migration", "full"], "recommended_mcps": ["openkit", "sequential-thinking"] },
+      { "id": "skill.code-review", "name": "code-review", "path": "skills/code-review/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["workflow", "review", "quality"], "typicalRoles": ["CodeReviewer", "FullstackAgent"], "stages": ["migration_code_review", "full_code_review"], "modes": ["migration", "full"], "recommended_mcps": ["openkit"] },
+      { "id": "skill.verification-before-completion", "name": "verification-before-completion", "path": "skills/verification-before-completion/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["workflow", "verification", "evidence"], "typicalRoles": ["FullstackAgent", "QAAgent", "QuickAgent", "CodeReviewer"], "stages": ["quick_test", "migration_upgrade", "migration_verify", "full_implementation", "full_qa"], "modes": ["quick", "migration", "full"], "recommended_mcps": ["openkit"] },
+      { "id": "skill.find-skills", "name": "find-skills", "path": "skills/find-skills/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "best_effort", "tags": ["workflow", "discovery", "skills"], "typicalRoles": ["all", "operator", "maintainer"], "stages": ["all"], "modes": ["quick", "migration", "full"], "recommended_mcps": ["websearch"] },
+      { "id": "skill.codebase-exploration", "name": "codebase-exploration", "path": "skills/codebase-exploration/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["code-intelligence", "navigation", "repository"], "typicalRoles": ["MasterOrchestrator", "SolutionLead", "FullstackAgent", "CodeReviewer", "QuickAgent"], "stages": ["quick_brainstorm", "quick_plan", "migration_baseline", "migration_strategy", "migration_upgrade", "full_solution", "full_implementation", "full_code_review"], "modes": ["quick", "migration", "full"], "recommended_mcps": ["openkit", "augment_context_engine"] },
+      { "id": "skill.deep-research", "name": "deep-research", "path": "skills/deep-research/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["research", "documentation", "evidence"], "typicalRoles": ["ProductLead", "SolutionLead", "FullstackAgent", "QAAgent"], "stages": ["quick_brainstorm", "migration_baseline", "migration_strategy", "full_product", "full_solution", "full_qa"], "modes": ["quick", "migration", "full"], "recommended_mcps": ["context7", "grep_app", "websearch"] },
+      { "id": "skill.refactoring", "name": "refactoring", "path": "skills/refactoring/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["code-intelligence", "refactoring", "safe-editing"], "typicalRoles": ["SolutionLead", "FullstackAgent", "CodeReviewer"], "stages": ["quick_plan", "quick_implement", "migration_strategy", "migration_upgrade", "full_solution", "full_implementation", "full_code_review"], "modes": ["quick", "migration", "full"], "recommended_mcps": ["openkit", "augment_context_engine"] },
+      { "id": "skill.frontend-ui-ux", "name": "frontend-ui-ux", "path": "skills/frontend-ui-ux/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["frontend", "ui", "ux"], "typicalRoles": ["SolutionLead", "FullstackAgent", "CodeReviewer", "QAAgent"], "stages": ["quick_plan", "quick_implement", "quick_test", "full_solution", "full_implementation", "full_code_review", "full_qa"], "modes": ["quick", "full"], "recommended_mcps": ["chrome-devtools", "playwright"] },
+      { "id": "skill.dev-browser", "name": "dev-browser", "path": "skills/dev-browser/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["browser", "debugging", "frontend"], "typicalRoles": ["FullstackAgent", "QAAgent", "QuickAgent"], "stages": ["quick_implement", "quick_test", "full_implementation", "full_qa", "migration_verify"], "modes": ["quick", "full", "migration"], "recommended_mcps": ["chrome-devtools", "playwright"] },
+      { "id": "skill.browser-automation", "name": "browser-automation", "path": "skills/browser-automation/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "maintained", "tags": ["browser", "automation", "testing"], "typicalRoles": ["FullstackAgent", "QAAgent", "QuickAgent"], "stages": ["quick_test", "full_implementation", "full_qa", "migration_verify"], "modes": ["quick", "full", "migration"], "recommended_mcps": ["playwright", "chrome-devtools"] },
+      { "id": "skill.git-master", "name": "git-master", "path": "skills/git-master/SKILL.md", "audience": "runtime", "status": "preview", "support_level": "compatibility_only", "tags": ["source-control", "git", "safety"], "typicalRoles": ["FullstackAgent", "CodeReviewer", "maintainer"], "stages": ["quick_implement", "migration_upgrade", "full_implementation", "full_code_review"], "modes": ["quick", "migration", "full"], "recommended_mcps": ["git"] },
+      { "id": "skill.vercel-react-best-practices", "name": "vercel-react-best-practices", "path": "skills/vercel-react-best-practices/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "best_effort", "tags": ["frontend", "react", "performance", "nextjs"], "typicalRoles": ["SolutionLead", "FullstackAgent", "CodeReviewer", "QAAgent"], "stages": ["quick_plan", "quick_implement", "quick_test", "full_solution", "full_implementation", "full_code_review", "full_qa"], "modes": ["quick", "full"], "recommended_mcps": ["chrome-devtools", "playwright", "context7"] },
+      { "id": "skill.vercel-composition-patterns", "name": "vercel-composition-patterns", "path": "skills/vercel-composition-patterns/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "best_effort", "tags": ["frontend", "react", "composition"], "typicalRoles": ["SolutionLead", "FullstackAgent", "CodeReviewer"], "stages": ["full_solution", "full_implementation", "full_code_review"], "modes": ["full"], "recommended_mcps": ["context7"] },
+      { "id": "skill.vercel-react-native-skills", "name": "vercel-react-native-skills", "path": "skills/vercel-react-native-skills/SKILL.md", "audience": "runtime", "status": "stable", "support_level": "best_effort", "tags": ["frontend", "react-native", "mobile"], "typicalRoles": ["SolutionLead", "FullstackAgent", "CodeReviewer", "QAAgent"], "stages": ["quick_plan", "quick_implement", "full_solution", "full_implementation", "full_code_review", "full_qa"], "modes": ["quick", "full"], "recommended_mcps": ["context7"] }
     ],
     "commands": [
       {
@@ -936,6 +796,12 @@
         "id": "doc.governance",
         "name": "Governance",
         "path": "docs/governance/README.md",
+        "surface": "repository-internal"
+      },
+      {
+        "id": "doc.skill-metadata",
+        "name": "Skill Metadata Governance",
+        "path": "docs/governance/skill-metadata.md",
         "surface": "repository-internal"
       },
       {

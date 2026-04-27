@@ -2,6 +2,8 @@
 
 Use this matrix when deciding which skills each OpenKit role should invoke.
 
+Canonical metadata for bundled skills lives in `src/capabilities/skill-catalog.js` and is governed by `docs/governance/skill-metadata.md`. This page is a human-oriented role view, not a duplicate catalog; keep role recommendations aligned with canonical metadata.
+
 ## Matrix
 
 | Role | Typical skills | Use them when | Expected output |
@@ -20,3 +22,4 @@ Use this matrix when deciding which skills each OpenKit role should invoke.
 - `verification-before-completion` is a closure gate skill, not a replacement for QA ownership
 - `using-skills` is the session-start meta-skill that teaches every agent how to discover and invoke the right skill at the right time
 - the Vercel React skills are bundled by default with OpenKit; they are not auto-loaded at session start, but agents should load them proactively when the task domain matches
+- stable/preview/experimental skill maturity, support level, provenance, stage tags, triggers, and `recommended_mcps` come from the canonical metadata contract; runtime outputs should expose caveats instead of silently activating skills

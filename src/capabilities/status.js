@@ -13,6 +13,7 @@ export const VALIDATION_SURFACES = [
   'compatibility_runtime',
   'runtime_tooling',
   'documentation',
+  'package',
   'target_project_app',
 ];
 

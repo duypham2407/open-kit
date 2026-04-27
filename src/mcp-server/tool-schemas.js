@@ -349,7 +349,7 @@ export const TOOL_SCHEMAS = {
   },
 
   'tool.capability-router': {
-    description: 'Route a requested skill, MCP, or intent to an available capability, or return unavailable/not_configured/degraded guidance.',
+    description: 'Route a requested skill, MCP, or intent to an available capability with metadata-backed skill selection reasons, or return unavailable/not_configured/degraded guidance.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -359,6 +359,10 @@ export const TOOL_SCHEMAS = {
         scope: { type: 'string', enum: ['openkit', 'global'], description: 'Scope to inspect (default: openkit)' },
         mode: { type: 'string', description: 'Workflow mode hint' },
         role: { type: 'string', description: 'Role hint' },
+        stage: { type: 'string', description: 'Workflow stage hint' },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Skill tag filters' },
+        includePreview: { type: 'boolean', description: 'Allow preview skills in intent-based recommendations' },
+        includeExperimental: { type: 'boolean', description: 'Allow experimental skills in intent-based recommendations' },
       },
     },
   },
@@ -386,11 +390,17 @@ export const TOOL_SCHEMAS = {
   },
 
   'tool.skill-index': {
-    description: 'List bundled skills with status, triggers, limitations, and backing MCP refs.',
+    description: 'List bundled skills with canonical metadata, maturity status, capability state, triggers, limitations, and recommended MCP refs.',
     inputSchema: {
       type: 'object',
       properties: {
-        category: { type: 'string', description: 'Optional skill category filter' },
+        category: { type: 'string', description: 'Optional legacy skill category/tag filter' },
+        tag: { type: 'string', description: 'Optional skill tag filter' },
+        role: { type: 'string', description: 'Optional OpenKit role/audience filter' },
+        stage: { type: 'string', description: 'Optional workflow stage filter' },
+        status: { type: 'string', enum: ['stable', 'preview', 'experimental'], description: 'Optional skill maturity filter' },
+        support_level: { type: 'string', enum: ['maintained', 'best_effort', 'compatibility_only', 'stub'], description: 'Optional support-level filter' },
+        includeUnavailable: { type: 'boolean', description: 'Include metadata-only or unavailable skill records' },
       },
     },
   },
