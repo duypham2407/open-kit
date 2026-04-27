@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
@@ -99,6 +99,81 @@ function resolveRuntimeContext(runtimeSummaryModulePath, runtimeRoot, state) {
       return null;
     }
   }
+}
+
+function resolveExistingPath(candidates = []) {
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null;
+}
+
+async function resolveCapabilityGuidance(kitRoot, state) {
+  const candidateRoots = [...new Set([kitRoot, DEFAULT_KIT_ROOT])];
+  const builderPath = resolveExistingPath(candidateRoots.map((root) => path.join(root, 'src', 'runtime', 'tools', 'capability', 'capability-router-summary.js')));
+  const skillCatalogPath = resolveExistingPath(candidateRoots.map((root) => path.join(root, 'src', 'capabilities', 'skill-catalog.js')));
+  const mcpInventoryPath = resolveExistingPath(candidateRoots.map((root) => path.join(root, 'src', 'global', 'mcp', 'mcp-inventory.js')));
+
+  if (!builderPath || !skillCatalogPath || !mcpInventoryPath) {
+    return {
+      renderedLines: [
+        'capability guidance: startup snapshot; advisory only; no skill or MCP was auto-activated.',
+        'freshness: startup_snapshot; capability metadata unavailable at startup. Refresh with tool.runtime-summary, tool.capability-router, tool.skill-index, or tool.mcp-doctor.',
+        'workflow context: unknown or degraded; use workflow-state/runtime-summary before role-specific work.',
+        'target app validation: unavailable; OpenKit capability checks are not target-project app build/lint/test evidence.',
+      ],
+    };
+  }
+
+  try {
+    const [builderModule, skillCatalogModule, mcpInventoryModule] = await Promise.all([
+      import(pathToFileUrl(builderPath)),
+      import(pathToFileUrl(skillCatalogPath)),
+      import(pathToFileUrl(mcpInventoryPath)),
+    ]);
+    return builderModule.buildCapabilityGuidance({
+      workflowState: state,
+      source: 'startup_snapshot',
+      capabilities: {
+        skills: skillCatalogModule.listBundledSkills(),
+        mcps: mcpInventoryModule.listMcpInventory({ scope: 'openkit', env: process.env }),
+      },
+    });
+  } catch (error) {
+    try {
+      const builderModule = await import(pathToFileUrl(builderPath));
+      return builderModule.buildUnavailableCapabilityGuidance({
+        workflowState: state,
+        source: 'startup_snapshot',
+        reason: error instanceof Error ? error.message : 'Capability guidance helper failed.',
+      });
+    } catch {
+      return {
+        renderedLines: [
+          'capability guidance: startup snapshot; advisory only; no skill or MCP was auto-activated.',
+          'freshness: startup_snapshot; capability helper failed. Refresh with tool.runtime-summary, tool.capability-router, tool.skill-index, or tool.mcp-doctor.',
+          'target app validation: unavailable; OpenKit capability checks are not target-project app build/lint/test evidence.',
+        ],
+      };
+    }
+  }
+}
+
+function pathToFileUrl(filePath) {
+  return pathToFileURL(path.resolve(filePath)).href;
+}
+
+function renderCapabilityGuidance(guidance) {
+  const lines = Array.isArray(guidance?.renderedLines)
+    ? guidance.renderedLines
+    : Array.isArray(guidance?.lines)
+      ? guidance.lines
+      : [];
+  if (lines.length === 0) {
+    return;
+  }
+  print('<openkit_capability_guidance>');
+  for (const line of lines) {
+    print(line);
+  }
+  print('</openkit_capability_guidance>');
 }
 
 function renderResumeHint(state, runtimeSummaryModulePath, statePath) {
@@ -209,6 +284,10 @@ print('show: node .opencode/workflow-state.js show');
 print('resume: node .opencode/workflow-state.js resume-summary');
 print('</openkit_runtime_status>');
 
+if (!process.env.OPENKIT_SESSION_START_NO_CAPABILITY_GUIDANCE) {
+  renderCapabilityGuidance(await resolveCapabilityGuidance(kitRoot, stateResult.value));
+}
+
 if (!process.env.OPENKIT_SESSION_START_NO_SKILL && fs.existsSync(metaSkillPath)) {
   const metaSkill = fs.readFileSync(metaSkillPath, 'utf8');
   print('<skill_system_instruction>');
@@ -257,7 +336,9 @@ if (!process.env.OPENKIT_SESSION_START_NO_GRAPH_INDEX && fs.existsSync(graphInde
       detached: true,
     });
     child.unref();
-  } catch {
-    // Non-critical: indexing failure should not block session startup
+  } catch (error) {
+    if (process.env.OPENKIT_SESSION_START_DEBUG) {
+      print(`graph index: skipped (${error instanceof Error ? error.message : String(error)})`);
+    }
   }
 }

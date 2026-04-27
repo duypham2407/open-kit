@@ -1,4 +1,5 @@
 import { listBundledSkills } from '../../capabilities/skill-catalog.js';
+import { buildCapabilityGuidance } from '../tools/capability/capability-router-summary.js';
 
 const STATUS_WEIGHT = {
   stable: 30,
@@ -45,7 +46,30 @@ export class CapabilityRegistryManager {
     return { mcps, skills };
   }
 
-  routeCapability({ scope = 'openkit', mcpId = null, skillName = null, intent = '', role = null, stage = null, tags = [], includePreview = false, includeExperimental = false } = {}) {
+  summarizeGuidance({ scope = 'openkit', workflowState = null, source = 'explicit_runtime_tool', limits = undefined } = {}) {
+    const capabilities = this.listCapabilities({ scope });
+    return buildCapabilityGuidance({
+      workflowState,
+      capabilities,
+      source,
+      limits,
+    });
+  }
+
+  routeCapability({ scope = 'openkit', mcpId = null, skillName = null, intent = '', mode = null, role = null, stage = null, status = null, summary = false, tags = [], includePreview = false, includeExperimental = false } = {}) {
+    if (summary === true) {
+      return this.summarizeGuidance({
+        scope,
+        workflowState: {
+          mode,
+          current_stage: stage,
+          current_owner: role,
+          status,
+        },
+        source: 'explicit_runtime_tool',
+      });
+    }
+
     const capabilities = this.listCapabilities({ scope });
     if (mcpId) {
       return this.routeMcpCapability({ capabilities, scope, mcpId, intent });

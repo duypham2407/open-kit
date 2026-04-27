@@ -21,5 +21,6 @@ Canonical metadata for bundled skills lives in `src/capabilities/skill-catalog.j
 - migration work uses preserved-baseline and compatibility validation instead of forcing TDD-first behavior broadly
 - `verification-before-completion` is a closure gate skill, not a replacement for QA ownership
 - `using-skills` is the session-start meta-skill that teaches every agent how to discover and invoke the right skill at the right time
+- `<openkit_capability_guidance>` is also emitted at session start as compact advisory routing: it may recommend `tool.capability-router`, `tool.skill-index`, `tool.mcp-doctor`, or explicit skill loading, but it must not load skill bodies, execute MCPs, or change role ownership on its own
 - the Vercel React skills are bundled by default with OpenKit; they are not auto-loaded at session start, but agents should load them proactively when the task domain matches
 - stable/preview/experimental skill maturity, support level, provenance, stage tags, triggers, and `recommended_mcps` come from the canonical metadata contract; runtime outputs should expose caveats instead of silently activating skills

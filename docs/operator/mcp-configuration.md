@@ -55,6 +55,14 @@ Every bundled skill has canonical metadata in `src/capabilities/skill-catalog.js
 
 Inside an OpenKit session, capability inventory, routing, health, MCP doctor, and skill/MCP binding tools report which MCP-backed skills are available, degraded, unavailable, or not configured. If a backing MCP is absent or missing a key, OpenKit should return a visible next-action reason instead of silently pretending the skill has full MCP support. `recommended_mcps` are advisory and secret-free; missing or disabled MCPs are caveats, not hidden skill activation failures.
 
+## Session-Start Capability Guidance
+
+`openkit run` sessions include a compact `<openkit_capability_guidance>` startup snapshot after the runtime status block. The block is advisory only: it does not load skill bodies, call the `skill` tool, execute MCP-backed tools, run provider/network health checks, mutate workflow state, or approve gates. It summarizes a bounded set of role/stage-aware routes and points agents to explicit follow-up calls such as `tool.runtime-summary`, `tool.capability-router`, `tool.skill-index`, `tool.capability-inventory`, `tool.mcp-doctor`, and `tool.capability-health`.
+
+The startup snapshot uses standard capability states (`available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, `not_configured`) plus human caveats such as `needs-key` over `not_configured`. Custom MCPs, when relevant, are shown as `kind=custom` with origin/ownership labels and are not presented as bundled defaults. Startup output is intentionally bounded and must not print a full skill catalog, full bundled MCP catalog, or full custom MCP registry.
+
+Capability guidance is a snapshot and can become stale after the session starts. Refresh explicitly with in-session runtime tools or, for operator MCP setup questions, `openkit configure mcp list` / `openkit configure mcp doctor`. Guidance, runtime summaries, doctor output, workflow evidence, and docs examples must keep key state redacted (`missing`, `present_redacted`, `not_configured`, or `needs-key`) and must not print raw secrets, token-like query values, auth headers, provider payloads, or command env maps. These checks validate `global_cli`, `runtime_tooling`, or `compatibility_runtime` surfaces only; they are never target-project application build/lint/test evidence.
+
 ## Command Reference
 
 Use `openkit configure mcp --help` on your installed version for exact flag support. The current product surface is:

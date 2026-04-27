@@ -70,6 +70,8 @@ Examples:
 
 Workflow-state runtime summaries also expose supervisor dialogue read models for the active work item when relevant. The compact read model includes supervisor health, outbound delivery counts (`pending`, `delivered`, `failed`, `skipped`), inbound rejection counts, duplicate counts, last adjudication, and attention state. Missing supervisor stores are reported as absent/unavailable so reviewer and QA surfaces stay inspectable without requiring OpenClaw to be configured.
 
+Workflow-state runtime summaries also expose compact capability guidance through `capabilityGuidance` / `capabilityGuidanceLines`. This read model is a `runtime_tooling` guidance summary rendered through `compatibility_runtime` CLI/status surfaces; it is not target-project app validation and does not prove any recommended tool or skill has run.
+
 For FEATURE-940 and later supervisor dialogue work, QA evidence must be explicit about supervisor health, outbound event statuses, inbound dispositions, authority-boundary rejection, duplicate/repeated proposal handling, degraded/offline behavior, and proof that inbound OpenClaw messages did not mutate workflow state beyond supervisor dialogue records. Reports must cite FEATURE-940 artifacts as the active delivery proof; FEATURE-937 is historical risk context only. FEATURE-939 scan/tool evidence remains a separate required reporting section with direct tool status, substitute/manual evidence, classification, false-positive, manual-override, validation-surface, and artifact-ref fields.
 
 ### Session and continuation tools
@@ -131,6 +133,8 @@ Examples:
 - skill-aware `tool.capability-router`
 
 These read from canonical bundled skill metadata and expose skill maturity `status` (`stable`, `preview`, `experimental`) separately from runtime `capabilityState`. They also surface support level, provenance/source, roles, stages, triggers, limitations, packaging, docs refs, and advisory `recommended_mcps` with MCP status caveats. Router output is explainable and advisory; it recommends explicit skill loading and must not silently activate a skill.
+
+`src/runtime/tools/capability/capability-router-summary.js` builds the compact capability guidance model used by the session-start hook, runtime summaries, and explicit `tool.capability-router` summary calls. The builder is pure and bounded: it reads local workflow state, skill metadata, and MCP inventory/read models; it must not load skill bodies, call MCP-backed tools, perform provider/network health checks, mutate workflow state, or print raw secrets. Rendered guidance must keep startup snapshot/stale caveats, refresh routes, custom MCP origin labels, and unavailable `target_project_app` validation visible.
 
 ### External tooling tools
 

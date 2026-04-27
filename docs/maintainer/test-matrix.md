@@ -21,7 +21,9 @@ npm run verify:all
 | workflow-state controller logic | `node --test ".opencode/tests/workflow-state-controller.test.js"` | validates state transitions and controller rules |
 | release readiness, DoD, analytics, or ops summaries | `node --test ".opencode/tests/workflow-state-controller.test.js" && node --test ".opencode/tests/workflow-state-cli.test.js"` | validates management and closure runtime behavior |
 | release candidate workflow, rollback planning, or hotfix flow | `node --test ".opencode/tests/workflow-state-controller.test.js" && node --test ".opencode/tests/workflow-state-cli.test.js"` | validates release-level governance behavior |
-| session-start hook or resume hint behavior | `node --test ".opencode/tests/session-start-hook.test.js"` | validates runtime status and resume hint output |
+| session-start hook, resume hint behavior, or startup capability guidance | `node --test ".opencode/tests/session-start-hook.test.js"` | validates runtime status, resume hint output, compact capability guidance, stale snapshot wording, and no hidden skill/MCP activation |
+| capability router guidance builder, role/stage routes, skill-index/MCP caveats, or custom MCP labeling | `node --test tests/runtime/capability-tools.test.js` | validates compact advisory routing, status vocabulary, redaction, custom/origin labeling, and explicit detail paths |
+| runtime summary or workflow-state capability guidance read models | `node --test ".opencode/tests/workflow-state-cli.test.js" && node --test tests/runtime/runtime-platform.test.js` | validates `capability_guidance`, rendered lines, validation-surface labels, and unavailable `target_project_app` wording |
 | workflow contract/schema alignment checks | `node --test ".opencode/tests/workflow-contract-consistency.test.js"` | validates docs/runtime consistency guardrails |
 | top-level CLI help, run, install, or doctor behavior | `node --test tests/cli/openkit-cli.test.js` | validates product CLI behavior |
 | onboarding flow text or defaults | `node --test tests/cli/onboard.test.js` | validates onboarding guidance |
@@ -44,6 +46,22 @@ node --test ".opencode/tests/workflow-state-cli.test.js"
 node --test tests/runtime/governance-enforcement.test.js
 node --test tests/runtime/registry-metadata.test.js
 ```
+
+When the guidance change touches capability-router/session-start integration, also run:
+
+```bash
+node --test tests/runtime/capability-tools.test.js
+node --test tests/runtime/runtime-platform.test.js
+```
+
+Maintainer assertions for this surface:
+
+- session-start/runtime guidance stays under compact caps and does not dump full skill, bundled MCP, or custom MCP catalogs
+- wording remains advisory and says no skill or MCP was auto-activated
+- role/stage guardrails preserve Master, Product, Solution, Fullstack, Code Reviewer, QA, Quick, and migration ownership boundaries
+- custom MCP entries remain `kind=custom`, origin/ownership-labeled, and not bundled defaults
+- stale snapshot/refresh paths and unavailable `target_project_app` validation stay visible
+- raw secrets, env maps, auth headers, provider payloads, and token-like values never appear in output or docs examples
 
 ### Scan Evidence Reporting Changes
 

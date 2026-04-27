@@ -2235,6 +2235,7 @@ function getRuntimeShortSummary(customStatePath) {
     owner: runtime.state.current_owner,
     nextAction: getNextAction(runtime.state),
     lastAutoScaffold: runtime.state.last_auto_scaffold ?? null,
+    capabilityGuidanceLines: runtime.runtimeContext?.capabilityGuidanceLines ?? [],
     backgroundRunSummary: runtime.runtimeContext?.backgroundRunSummary ?? null,
     readiness: readiness.ready ? "ready" : `blocked: ${readiness.blockers.join("; ")}`,
   }

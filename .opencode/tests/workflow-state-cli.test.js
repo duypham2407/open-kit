@@ -808,6 +808,12 @@ test("resume-summary supports machine-readable JSON output", () => {
   assert.equal(typeof payload.verification_readiness, "object")
   assert.ok(Array.isArray(payload.verification_evidence))
   assert.equal(typeof payload.issue_telemetry, "object")
+  assert.equal(typeof payload.capability_guidance, "object")
+  assert.equal(payload.capability_guidance.validationSurface, "runtime_tooling")
+  assert.equal(payload.capability_guidance.targetProjectValidation.status, "unavailable")
+  assert.ok(Array.isArray(payload.capability_guidance_lines))
+  assert.ok(payload.capability_guidance_lines.some((line) => /advisory only; no skill or MCP was auto-activated/i.test(line)))
+  assert.ok(payload.capability_guidance_lines.join("\n").length <= payload.capability_guidance.limits.maxChars)
 })
 
 test("record-verification-evidence preserves scan evidence details and compact resume/read models", () => {
@@ -1245,6 +1251,25 @@ test("status --short prints compact runtime summary", () => {
   assert.equal(result.status, 0)
   assert.match(result.stdout, /full \| full_done \| MasterOrchestrator/)
   assert.match(result.stdout, /next:/)
+  assert.match(result.stdout, /capability: capability guidance:/)
+  assert.doesNotMatch(result.stdout, /full skill catalog|full MCP catalog/i)
+})
+
+test("status and resume-summary print compact capability guidance lines", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+
+  let result = runCli(projectRoot, ["status"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /capability guidance: capability guidance: .*advisory only; no skill or MCP was auto-activated/i)
+  assert.match(result.stdout, /capability guidance: role guardrail: Master Orchestrator controls routing/i)
+  assert.match(result.stdout, /target app validation: unavailable/i)
+
+  result = runCli(projectRoot, ["resume-summary"])
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /capability guidance: capability guidance: .*advisory only; no skill or MCP was auto-activated/i)
+  assert.match(result.stdout, /capability guidance: .*Refresh: tool\.runtime-summary, tool\.capability-router/i)
+  assert.doesNotMatch(result.stdout, /sk-openkit-session-start-sentinel|Bearer\s+[A-Za-z0-9._~+/=-]+|API_KEY=|TOKEN=|SECRET=/i)
 })
 
 test("doctor --short prints compact doctor summary", () => {

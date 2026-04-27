@@ -312,6 +312,12 @@ function printRuntimeTaskContext(context) {
     console.log(`artifact readiness: ${context.artifactReadinessLines.join(" | ")}`)
   }
 
+  if (Array.isArray(context.capabilityGuidanceLines) && context.capabilityGuidanceLines.length > 0) {
+    for (const line of context.capabilityGuidanceLines) {
+      console.log(`capability guidance: ${line}`)
+    }
+  }
+
   if (context.parallelization?.parallel_mode) {
     console.log(`parallel mode: ${context.parallelization.parallel_mode}`)
   }
@@ -398,6 +404,9 @@ function printRuntimeStatusShort(summary) {
   if (summary.nextAction) {
     console.log(`next: ${summary.nextAction}`)
   }
+  if (Array.isArray(summary.capabilityGuidanceLines) && summary.capabilityGuidanceLines.length > 0) {
+    console.log(`capability: ${summary.capabilityGuidanceLines[0]}`)
+  }
   if (summary.lastAutoScaffold?.path) {
     console.log(`auto-scaffold: ${summary.lastAutoScaffold.artifact} -> ${summary.lastAutoScaffold.path}`)
   }
@@ -458,6 +467,8 @@ function buildResumeSummary(runtime) {
     approvals,
     linked_artifacts: artifacts,
     artifact_readiness: runtimeContext.artifactReadinessLines ?? [],
+    capability_guidance: runtimeContext.capabilityGuidance ?? null,
+    capability_guidance_lines: runtimeContext.capabilityGuidanceLines ?? [],
     verification_readiness: runtimeContext.verificationReadiness ?? null,
     verification_evidence: runtimeContext.verificationEvidenceLines ?? [],
     scan_evidence: runtimeContext.scanEvidence ?? [],
@@ -537,6 +548,11 @@ function printResumeSummary(runtime) {
   if (Array.isArray(runtimeContext.artifactReadinessLines) && runtimeContext.artifactReadinessLines.length > 0) {
     console.log(`artifact readiness: ${runtimeContext.artifactReadinessLines.join(" | ")}`)
   }
+  if (Array.isArray(runtimeContext.capabilityGuidanceLines) && runtimeContext.capabilityGuidanceLines.length > 0) {
+    for (const line of runtimeContext.capabilityGuidanceLines) {
+      console.log(`capability guidance: ${line}`)
+    }
+  }
   if (runtimeContext.verificationReadinessLine) {
     console.log(runtimeContext.verificationReadinessLine)
   }
@@ -610,6 +626,10 @@ function printResumeSummaryShort(runtime) {
   console.log(`${summary.mode} | ${summary.stage} | ${summary.owner}`)
   if (summary.next_safe_action) {
     console.log(`next: ${summary.next_safe_action}`)
+  }
+  const capabilityGuidanceLines = summary.capability_guidance_lines ?? summary.capabilityGuidanceLines ?? []
+  if (Array.isArray(capabilityGuidanceLines) && capabilityGuidanceLines.length > 0) {
+    console.log(`capability: ${capabilityGuidanceLines[0]}`)
   }
   console.log(
     `approvals pending: ${summary.approvals.pending.length > 0 ? summary.approvals.pending.join(", ") : "none"}`,

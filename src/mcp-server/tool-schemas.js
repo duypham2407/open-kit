@@ -360,6 +360,8 @@ export const TOOL_SCHEMAS = {
         mode: { type: 'string', description: 'Workflow mode hint' },
         role: { type: 'string', description: 'Role hint' },
         stage: { type: 'string', description: 'Workflow stage hint' },
+        status: { type: 'string', description: 'Workflow status hint used only for explicit compact summaries' },
+        summary: { type: 'boolean', description: 'Return compact advisory capability guidance instead of a single route (default false)' },
         tags: { type: 'array', items: { type: 'string' }, description: 'Skill tag filters' },
         includePreview: { type: 'boolean', description: 'Allow preview skills in intent-based recommendations' },
         includeExperimental: { type: 'boolean', description: 'Allow experimental skills in intent-based recommendations' },

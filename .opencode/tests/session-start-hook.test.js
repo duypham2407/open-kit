@@ -5,8 +5,10 @@ import os from "node:os"
 import path from "node:path"
 import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
+import { addCustomMcpEntry } from "../../src/global/mcp/custom-mcp-store.js"
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+const SENTINEL = "sk-openkit-session-start-sentinel-949"
 
 function makeTempProject() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "openkit-session-hook-"))
@@ -145,6 +147,11 @@ function makeHookEnv(projectRoot, overrides = {}) {
   }
 }
 
+function extractCapabilityGuidanceBlock(output) {
+  const match = output.match(/<openkit_capability_guidance>\n([\s\S]*?)\n<\/openkit_capability_guidance>/)
+  return match?.[1] ?? ""
+}
+
 test("session-start emits mode-aware resume hint for quick tasks", () => {
   const projectRoot = makeTempProject()
 
@@ -230,6 +237,101 @@ test("session-start reports loaded startup skill when meta-skill exists", () => 
   assert.equal(result.status, 0)
   assert.match(result.stdout, /startup skill: loaded/)
   assert.match(result.stdout, /<skill_system_instruction>/)
+})
+
+test("session-start emits compact role-aware capability guidance without secrets or hidden activation", () => {
+  const projectRoot = makeTempProject()
+  const opencodeHome = fs.mkdtempSync(path.join(os.tmpdir(), "openkit-session-hook-home-"))
+  const env = { OPENCODE_HOME: opencodeHome, CUSTOM_MCP_TOKEN: SENTINEL, PATH: process.env.PATH ?? "" }
+
+  addCustomMcpEntry({
+    id: "custom-session-guidance",
+    displayName: "Custom Session Guidance",
+    origin: "local",
+    ownership: "openkit-managed-custom",
+    enabled: { openkit: true, global: false },
+    definition: { type: "local", command: ["node", "/tmp/custom-session-guidance.js"], environment: { CUSTOM_MCP_TOKEN: "${CUSTOM_MCP_TOKEN}" } },
+    secretBindings: [{ id: "custom-token", envVar: "CUSTOM_MCP_TOKEN", required: true, placeholder: "${CUSTOM_MCP_TOKEN}", source: "custom" }],
+  }, { env })
+
+  writeManifest(projectRoot)
+  writeState(projectRoot, makeFullState({ current_stage: "full_implementation", current_owner: "FullstackAgent" }))
+
+  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+    cwd: projectRoot,
+    encoding: "utf8",
+    env: makeHookEnv(projectRoot, {
+      ...env,
+      OPENKIT_SESSION_START_NO_SKILL: "1",
+      OPENKIT_SESSION_START_NO_GRAPH_INDEX: "1",
+    }),
+  })
+  const block = extractCapabilityGuidanceBlock(result.stdout)
+
+  assert.equal(result.status, 0)
+  assert.match(result.stdout, /<openkit_runtime_status>[\s\S]*<\/openkit_runtime_status>\n<openkit_capability_guidance>/)
+  assert.ok(block.length > 0)
+  assert.ok(block.split("\n").length <= 25)
+  assert.ok(block.length <= 2400)
+  assert.match(block, /advisory only; no skill or MCP was auto-activated/i)
+  assert.match(block, /Capability readiness can change after this startup snapshot/i)
+  assert.match(block, /workflow context: full \/ full_implementation \/ FullstackAgent/i)
+  assert.match(block, /Fullstack Agent implements approved solution-package work/i)
+  assert.match(block, /custom-session-guidance \(custom_mcp/i)
+  assert.match(block, /origin=local/)
+  assert.match(block, /not bundled defaults/i)
+  assert.match(block, /target app validation: unavailable/i)
+  assert.equal(result.stdout.includes(SENTINEL), false)
+  assert.doesNotMatch(block, /# using-skills|RED-GREEN-REFACTOR|full catalog/i)
+  assert.doesNotMatch(block, /\b(loaded|ran|verified|healthy now)\b/i)
+})
+
+test("session-start capability guidance preserves quick and migration guardrails", () => {
+  const quickProjectRoot = makeTempProject()
+  writeManifest(quickProjectRoot)
+  writeState(quickProjectRoot, makeQuickState({ current_stage: "quick_plan", current_owner: "QuickAgent" }))
+
+  const quick = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+    cwd: quickProjectRoot,
+    encoding: "utf8",
+    env: makeHookEnv(quickProjectRoot, {
+      OPENKIT_SESSION_START_NO_SKILL: "1",
+      OPENKIT_SESSION_START_NO_GRAPH_INDEX: "1",
+    }),
+  })
+  const quickBlock = extractCapabilityGuidanceBlock(quick.stdout)
+
+  assert.equal(quick.status, 0)
+  assert.match(quickBlock, /single quick-lane owner/i)
+  assert.match(quickBlock, /do not introduce full-delivery handoffs or task-board assumptions/i)
+
+  const migrationProjectRoot = makeTempProject()
+  writeManifest(migrationProjectRoot)
+  writeState(migrationProjectRoot, {
+    ...makeQuickState(),
+    feature_id: "MIGRATE-949",
+    feature_slug: "migration-guidance",
+    mode: "migration",
+    current_stage: "migration_upgrade",
+    current_owner: "FullstackAgent",
+    approvals: {
+      strategy_to_upgrade: { status: "approved", approved_by: "SolutionLead", approved_at: "2026-04-27", notes: "ok" },
+    },
+  })
+
+  const migration = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+    cwd: migrationProjectRoot,
+    encoding: "utf8",
+    env: makeHookEnv(migrationProjectRoot, {
+      OPENKIT_SESSION_START_NO_SKILL: "1",
+      OPENKIT_SESSION_START_NO_GRAPH_INDEX: "1",
+    }),
+  })
+  const migrationBlock = extractCapabilityGuidanceBlock(migration.stdout)
+
+  assert.equal(migration.status, 0)
+  assert.match(migrationBlock, /preserves baseline, compatibility, parity, staged upgrade, rollback, review, and verification semantics/i)
+  assert.match(migrationBlock, /do not assume full-delivery task-board behavior/i)
 })
 
 test("session-start prints canonical resume guidance and inspection commands", () => {

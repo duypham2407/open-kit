@@ -1,6 +1,7 @@
 import { summarizeRuntimeCapabilities, summarizeSkillCatalog } from './capability-registry.js';
 import { inspectWorkflowDoctor } from './doctor/workflow-doctor.js';
 import { recoverSessionState } from './recovery/session-recovery.js';
+import { buildCapabilityGuidance } from './tools/capability/capability-router-summary.js';
 
 function getSupervisorManagerHealth(supervisorDialogueManager) {
   const description = supervisorDialogueManager?.describe?.() ?? null;
@@ -43,11 +44,17 @@ export function createRuntimeInterface({
   const capabilityIds = capabilities.map((capability) => capability.id);
   const capabilitySummary = summarizeRuntimeCapabilities(capabilities);
   const capabilityPackInventory = managers.capabilityRegistryManager?.listCapabilities?.({ scope: 'openkit' }) ?? { mcps: [], skills: [] };
+  const capabilityGuidance = buildCapabilityGuidance({
+    workflowState: managers.workflowKernel?.showState?.()?.state ?? managers.workflowKernel?.showRuntimeStatusRelaxed?.()?.state ?? null,
+    capabilities: capabilityPackInventory,
+    source: 'runtime_summary',
+  });
   const capabilityPack = {
     catalogVersion: 1,
     mcpSummary: summarizePackEntries(capabilityPackInventory.mcps, 'capabilityState'),
     skillSummary: summarizeSkillCatalog(capabilityPackInventory.skills),
     keySummary: summarizeKeyState(capabilityPackInventory.mcps),
+    guidance: capabilityGuidance,
   };
   const latestSession = managers.sessionStateManager?.latest?.() ?? null;
   const workflowDoctor = inspectWorkflowDoctor(managers.workflowKernel);

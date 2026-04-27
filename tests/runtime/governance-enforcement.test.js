@@ -261,6 +261,35 @@ test('governance docs define canonical bundled skill metadata and package sync c
   assert.match(docs, /target_project_app/);
 });
 
+test('operator and maintainer docs describe session-start capability guidance boundaries', () => {
+  const mcpDocs = read('docs/operator/mcp-configuration.md');
+  const operatorIndex = read('docs/operator/README.md');
+  const supportedSurfaces = read('docs/operator/supported-surfaces.md');
+  const testMatrix = read('docs/maintainer/test-matrix.md');
+  const roleSkillMatrix = read('docs/maintainer/role-skill-matrix.md');
+  const kitInternals = read('docs/kit-internals/04-tools-hooks-skills-and-mcps.md');
+  const projectConfig = read('context/core/project-config.md');
+  const runtimeSurfaces = read('context/core/runtime-surfaces.md');
+  const skillMetadata = read('docs/governance/skill-metadata.md');
+  const docs = [mcpDocs, operatorIndex, supportedSurfaces, testMatrix, roleSkillMatrix, kitInternals, projectConfig, runtimeSurfaces, skillMetadata].join('\n');
+
+  assert.match(docs, /<openkit_capability_guidance>/);
+  assert.match(docs, /startup snapshot/i);
+  assert.match(docs, /advisory/i);
+  assert.match(docs, /no skill .*MCP .*auto-activated|does not load skills or execute MCP-backed tools/is);
+  assert.match(docs, /tool\.capability-router/);
+  assert.match(docs, /tool\.skill-index/);
+  assert.match(docs, /tool\.mcp-doctor|tool\.capability-health/);
+  assert.match(docs, /role\/stage/i);
+  assert.match(docs, /custom MCP.*origin|origin\/ownership-labeled/is);
+  assert.match(docs, /not bundled defaults/i);
+  assert.match(docs, /stale|can become stale/i);
+  assert.match(docs, /redacted/i);
+  assert.match(docs, /target_project_app/);
+  assert.match(docs, /must not load `SKILL\.md` bodies|must not load skill bodies/i);
+  assert.doesNotMatch(mcpDocs, /sk-[A-Za-z0-9_-]{8,}/);
+});
+
 test('package scripts expose governance and install-bundle verification gates', () => {
   const packageJson = JSON.parse(read('package.json'));
 

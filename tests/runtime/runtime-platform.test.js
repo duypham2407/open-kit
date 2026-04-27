@@ -165,7 +165,7 @@ test('mcp platform loads builtin mcps and optional config file', async () => {
   const platform = createMcpPlatform({
     projectRoot,
     env: {
-      TEST_TOKEN: 'secret',
+      TEST_TOKEN: 'fixture-placeholder-value',
     },
     config: {
       mcps: {
@@ -178,7 +178,7 @@ test('mcp platform loads builtin mcps and optional config file', async () => {
   });
 
   assert.equal(platform.builtin.length, 3);
-  assert.equal(platform.loaded.config.token, 'secret');
+  assert.equal(platform.loaded.config.token, 'fixture-placeholder-value');
   assert.equal(platform.loaded.source, '.mcp.json');
   assert.equal(platform.loadedServers.length, 1);
   assert.equal(platform.loadedServers[0].name, 'custom');
@@ -351,6 +351,9 @@ test('runtime foundation exposes workflow-backed tools, supervisor, and persiste
   const runtimeSummaryResult = runtimeSummaryTool.execute({ customStatePath: statePath });
   assert.equal(runtimeSummaryResult.status, 'ok');
   assert.ok(runtimeSummaryResult.runtimeContext);
+  assert.equal(runtimeSummaryResult.runtimeContext.capabilityGuidance.validationSurface, 'runtime_tooling');
+  assert.ok(runtimeSummaryResult.runtimeContext.capabilityGuidanceLines.some((line) => /advisory only; no skill or MCP was auto-activated/i.test(line)));
+  assert.equal(runtimeSummaryResult.runtimeContext.capabilityGuidance.targetProjectValidation.status, 'unavailable');
   const scanEvidenceDetails = {
     validation_surface: 'runtime_tooling',
     scan_evidence: {
@@ -454,6 +457,8 @@ test('runtime foundation exposes workflow-backed tools, supervisor, and persiste
   )));
   assert.equal(Array.isArray(result.managers.skillMcpManager.listBindings()), true);
   assert.equal(result.runtimeInterface.runtimeState.skillMcpBindings >= 0, true);
+  assert.equal(result.runtimeInterface.capabilityPack.guidance.validationSurface, 'runtime_tooling');
+  assert.ok(result.runtimeInterface.capabilityPack.guidance.renderedLines.length <= result.runtimeInterface.capabilityPack.guidance.limits.maxLines);
   assert.equal(stageHook.run({ requiredStages: [status.state.current_stage] }).ready, true);
   assert.equal(stageHook.run({ requiredStages: ['quick_implement'] }).blocked, true);
   assert.match(stageHook.run({ requiredStages: ['quick_implement'] }).reason, /allowed stage set/);

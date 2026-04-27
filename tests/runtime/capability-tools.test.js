@@ -107,6 +107,86 @@ test('runtime capability inventory and MCP doctor include custom MCP ownership m
   assert.equal(JSON.stringify(doctor).includes(SENTINEL), false);
 });
 
+test('capability guidance summary is compact, advisory, role-aware, and redacted', async () => {
+  const projectRoot = makeTempDir('openkit-capability-guidance-project-');
+  const opencodeHome = makeTempDir('openkit-capability-guidance-home-');
+  const env = { OPENCODE_HOME: opencodeHome, CUSTOM_MCP_TOKEN: SENTINEL, PATH: '' };
+  addCustomMcpEntry({
+    id: 'custom-guidance',
+    displayName: 'Custom Guidance',
+    origin: 'local',
+    ownership: 'openkit-managed-custom',
+    enabled: { openkit: true, global: false },
+    definition: { type: 'local', command: ['node', '/tmp/custom-guidance.js'], environment: { CUSTOM_MCP_TOKEN: '${CUSTOM_MCP_TOKEN}' } },
+    secretBindings: [{ id: 'custom-token', envVar: 'CUSTOM_MCP_TOKEN', required: true, placeholder: '${CUSTOM_MCP_TOKEN}', source: 'custom' }],
+  }, { env });
+  const runtime = bootstrapRuntimeFoundation({ projectRoot, env });
+
+  const result = await getTool(runtime, 'tool.capability-router').execute({
+    summary: true,
+    mode: 'full',
+    stage: 'full_implementation',
+    role: 'FullstackAgent',
+    status: 'in_progress',
+  });
+  const rendered = result.renderedLines.join('\n');
+
+  assert.equal(result.status, 'ok');
+  assert.equal(result.validationSurface, 'runtime_tooling');
+  assert.equal(result.workflowContext.mode, 'full');
+  assert.equal(result.workflowContext.stage, 'full_implementation');
+  assert.equal(result.workflowContext.owner, 'FullstackAgent');
+  assert.ok(result.renderedLines.length <= result.limits.maxLines);
+  assert.ok(rendered.length <= result.limits.maxChars);
+  assert.match(rendered, /advisory only; no skill or MCP was auto-activated/i);
+  assert.match(rendered, /Fullstack Agent implements approved solution-package work/i);
+  assert.match(rendered, /custom-guidance \(custom_mcp/);
+  assert.match(rendered, /origin=local/);
+  assert.match(rendered, /not bundled defaults/i);
+  assert.match(rendered, /target app validation: unavailable/i);
+  assert.equal(rendered.includes(SENTINEL), false);
+  assert.doesNotMatch(rendered, /# using-skills|RED-GREEN-REFACTOR|You are running within/i);
+  assert.doesNotMatch(rendered, /\b(loaded|ran|verified|healthy now)\b/i);
+});
+
+test('capability guidance guardrails cover workflow roles and migration/quick semantics', async () => {
+  const projectRoot = makeTempDir('openkit-capability-guardrails-project-');
+  const runtime = bootstrapRuntimeFoundation({ projectRoot, env: { OPENCODE_HOME: makeTempDir('openkit-capability-guardrails-home-'), PATH: '' } });
+  const router = getTool(runtime, 'tool.capability-router');
+  const scenarios = [
+    ['MasterOrchestrator', 'full_intake', 'full', /controls routing, state, dispatch, approvals, and readiness only/i, /do not implement, review, QA, or author scope\/solution content/i],
+    ['ProductLead', 'full_product', 'full', /defines problem, business rules, scope, and acceptance criteria/i, /do not take implementation or architecture ownership/i],
+    ['SolutionLead', 'full_solution', 'full', /plans technical direction, sequencing, validation, and capability discovery/i, /do not rewrite product scope or implement/i],
+    ['FullstackAgent', 'full_implementation', 'full', /implements approved solution-package work/i, /QA ownership, review approval, and product\/scope changes stay separate/i],
+    ['CodeReviewer', 'full_code_review', 'full', /checks scope\/solution compliance first/i, /do not implement fixes or claim QA closure/i],
+    ['QAAgent', 'full_qa', 'full', /verifies behavior, evidence, runtime health, and issue classification/i, /do not implement, bypass review, or approve closure/i],
+    ['QuickAgent', 'quick_plan', 'quick', /single quick-lane owner/i, /do not introduce full-delivery handoffs or task-board assumptions/i],
+    ['FullstackAgent', 'migration_upgrade', 'migration', /preserves baseline, compatibility, parity, staged upgrade, rollback, review, and verification semantics/i, /do not assume full-delivery task-board behavior/i],
+  ];
+
+  for (const [role, stage, mode, mustInclude, mustAlsoInclude] of scenarios) {
+    const result = await router.execute({ summary: true, mode, stage, role, status: 'in_progress' });
+    const rendered = result.renderedLines.join('\n');
+    assert.match(rendered, mustInclude, `${role}/${stage} missing expected guardrail`);
+    assert.match(rendered, mustAlsoInclude, `${role}/${stage} missing boundary caveat`);
+    assert.match(rendered, /advisory only/i);
+  }
+});
+
+test('capability guidance reports unknown workflow state without guessing role ownership', async () => {
+  const projectRoot = makeTempDir('openkit-capability-unknown-project-');
+  const runtime = bootstrapRuntimeFoundation({ projectRoot, env: { OPENCODE_HOME: makeTempDir('openkit-capability-unknown-home-'), PATH: '' } });
+
+  const result = await getTool(runtime, 'tool.capability-router').execute({ summary: true });
+  const rendered = result.renderedLines.join('\n');
+
+  assert.equal(result.status, 'degraded');
+  assert.equal(result.workflowContext.mode, 'unknown');
+  assert.match(rendered, /Unknown workflow state/);
+  assert.match(rendered, /generic capability discovery/);
+  assert.match(rendered, /Do not guess lane, stage, owner, or approval authority/);
+});
+
 test('skill index and skill MCP bindings tools expose catalog relationships', async () => {
   const projectRoot = makeTempDir('openkit-skill-index-project-');
   const runtime = bootstrapRuntimeFoundation({ projectRoot, env: { OPENCODE_HOME: makeTempDir('openkit-skill-index-home-') } });

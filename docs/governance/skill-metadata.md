@@ -42,6 +42,12 @@ Stages must use current workflow stage labels such as `quick_intake`, `quick_bra
 - `source` records provenance: `openkit_authored`, `upstream_imported`, `adapted`, `compatibility`, or `stub`.
 - `limitations` must make preview, experimental, compatibility-only, metadata-only, or stub caveats visible in inventory and routing output.
 
+## Consumption By Capability Guidance
+
+Session-start and runtime capability guidance may consume this metadata for compact role/stage-aware recommendations, but the summary must remain bounded and advisory. It may mention a small relevant subset of skills or grouped counts, and it must point to explicit detail tools such as `tool.capability-router`, `tool.skill-index`, and `tool.skill-mcp-bindings` instead of dumping full catalogs.
+
+Metadata consumption must not load `SKILL.md` bodies, call the `skill` tool, execute MCP-backed tools, mutate workflow state, approve gates, or treat `recommended_mcps` as configured secrets. MCP-backed caveats remain redacted capability states such as `not_configured` / `needs-key`, and custom MCP references must be origin/ownership-labeled instead of folded into bundled defaults.
+
 ## Package Sync
 
 Package sync is validated on the `package` surface. `npm run sync:install-bundle` derives install-bundle skill files and `assets/install-bundle/opencode/skill-catalog.json` from repository source and canonical metadata. `npm run verify:install-bundle` must fail on missing, extra, stale, or divergent skill assets or derived skill metadata.

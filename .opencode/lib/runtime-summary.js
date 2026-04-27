@@ -6,6 +6,9 @@ import { validateMigrationSliceBoard } from "./migration-slice-rules.js"
 import { readWorkItemIndex, readWorkItemWorktree, resolveWorkItemPaths } from "./work-item-store.js"
 import { summarizeScanEvidence, summarizeScanEvidenceLines } from "./scan-evidence-summary.js"
 import { readSupervisorDialogueStore, summarizeSupervisorDialogue } from "./supervisor-dialogue-store.js"
+import { listBundledSkills } from "../../src/capabilities/skill-catalog.js"
+import { listMcpInventory } from "../../src/global/mcp/mcp-inventory.js"
+import { buildCapabilityGuidance, buildUnavailableCapabilityGuidance } from "../../src/runtime/tools/capability/capability-router-summary.js"
 import {
   getArtifactReadiness,
   getIssueTelemetry,
@@ -156,6 +159,25 @@ function readJsonIfExists(filePath) {
     return JSON.parse(fs.readFileSync(filePath, "utf8"))
   } catch {
     return null
+  }
+}
+
+function buildCapabilityGuidanceReadModel(state, { source = "runtime_summary" } = {}) {
+  try {
+    return buildCapabilityGuidance({
+      workflowState: state,
+      source,
+      capabilities: {
+        skills: listBundledSkills(),
+        mcps: listMcpInventory({ scope: "openkit", env: process.env }),
+      },
+    })
+  } catch (error) {
+    return buildUnavailableCapabilityGuidance({
+      workflowState: state,
+      source,
+      reason: error instanceof Error ? error.message : "Capability guidance builder failed.",
+    })
   }
 }
 
@@ -506,8 +528,12 @@ function buildTaskCoordination(projectRoot, state, taskBoardDetails) {
   let tasks = Array.isArray(board.tasks) ? board.tasks : []
   try {
     tasks = applySequentialConstraintsToTasks(tasks, state.parallelization)
-  } catch (_error) {
-    // Keep the read model inspectable; validation surfaces report malformed constraints separately.
+  } catch (error) {
+    tasks = tasks.map((task) => ({
+      ...task,
+      dependency_overlay_error:
+        error instanceof Error ? error.message : "Sequential constraint overlay failed.",
+    }))
   }
 
   const unresolvedIssues = (state.issues ?? []).filter(hasUnresolvedStatus)
@@ -1128,8 +1154,12 @@ function getTaskBoardDetails(projectRoot, state, relatedBackgroundRuns = []) {
   let tasks = Array.isArray(board.tasks) ? board.tasks : []
   try {
     tasks = applySequentialConstraintsToTasks(tasks, state.parallelization)
-  } catch (_error) {
-    // Keep doctor/status observable even when sequential_constraints are malformed.
+  } catch (error) {
+    tasks = tasks.map((task) => ({
+      ...task,
+      dependency_overlay_error:
+        error instanceof Error ? error.message : "Sequential constraint overlay failed.",
+    }))
   }
   const boardStage = board.current_stage ?? state.current_stage ?? null
   const taskIndex = new Map(tasks.map((task) => [task.task_id, task]))
@@ -1241,6 +1271,7 @@ function getRuntimeContext(projectRoot, state) {
   const retainedWorktree = state?.work_item_id ? readWorkItemWorktree(projectRoot, state.work_item_id) : null
   const activeWorkItemId = index?.active_work_item_id ?? state?.work_item_id ?? null
   const supervisorDialogue = buildSupervisorDialogueReadModel(projectRoot, state)
+  const capabilityGuidance = buildCapabilityGuidanceReadModel(state)
   return {
     activeWorkItemId,
     workItemCount: index?.work_items?.length ?? null,
@@ -1256,6 +1287,8 @@ function getRuntimeContext(projectRoot, state) {
     orchestrationHealth: taskBoard.orchestrationHealth,
     retainedWorktree,
     supervisorDialogue,
+    capabilityGuidance,
+    capabilityGuidanceLines: capabilityGuidance.renderedLines ?? capabilityGuidance.lines ?? [],
     nextAction: getNextAction(state),
     lastAutoScaffold: state?.last_auto_scaffold ?? null,
     lastAutoScaffoldLine:

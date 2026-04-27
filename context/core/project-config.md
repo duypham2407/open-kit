@@ -216,6 +216,7 @@ Current workflow-state behavior:
 - Runtime config also includes `supervisorDialogue`, disabled by default with OpenClaw transport `unconfigured`; this state is valid and non-fatal, and runtime manager summaries label it `not_configured` on the `runtime_tooling` surface.
 - `file://` prompt references are supported in runtime config for agent `prompt`, agent `prompt_append`, and category `prompt_append` values.
 - Runtime doctor now exposes model-resolution trace data so maintainers can inspect where a resolved model came from and which fallback entries are available.
+- Session-start now renders a compact `<openkit_capability_guidance>` startup snapshot when capability metadata is available, with guarded degraded fallback when it is not. The same bounded guidance model is exposed through runtime summary read models and explicit capability-router summary calls. The guidance is advisory only, does not load skills or execute MCP-backed tools, and must keep stale snapshot, role/stage guardrail, custom MCP, redaction, and unavailable `target_project_app` caveats visible.
 
 ## Global Kit Contract
 
@@ -257,6 +258,7 @@ Validation split to keep explicit:
 - missing target-project commands should be reported as an unavailable validation path, not replaced by illustrative examples
 - `tool.typecheck`, `tool.lint`, and `tool.test-run` validate `target_project_app` only when their corresponding project-local config or framework is detected; an `unavailable` result means the target project did not provide that validation surface
 - workflow-state and evidence runtime tools validate `compatibility_runtime`; they can prove OpenKit workflow state, readiness, issues, and evidence records, not application behavior
+- session-start capability guidance and capability-router summary checks validate OpenKit `global_cli` / `runtime_tooling` / stored `compatibility_runtime` surfaces only; they do not prove target-project build, lint, test, smoke, or regression behavior
 
 ### Quick Task
 
