@@ -2,7 +2,7 @@ export function createCapabilityInventoryTool({ capabilityRegistryManager }) {
   return {
     id: 'tool.capability-inventory',
     name: 'Capability Inventory',
-    description: 'Lists bundled MCP and skill capabilities with redacted key state.',
+    description: 'Lists bundled/custom MCP and skill capabilities with redacted key state.',
     family: 'capability',
     status: 'active',
     async execute(input = {}) {

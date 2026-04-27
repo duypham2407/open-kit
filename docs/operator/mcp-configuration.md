@@ -12,6 +12,7 @@ Keep two rules in mind:
 - Default scope for `openkit configure mcp` is `openkit`.
 - `openkit configure mcp --interactive` starts the guided setup wizard for TTY sessions and wraps the same bundled catalog/control plane as the non-interactive commands.
 - `openkit configure mcp list` and `doctor` are safe discovery commands and show redacted key state only.
+- `openkit configure mcp custom ...` manages OpenKit-managed custom MCP definitions in a separate custom registry, with explicit ownership/origin labels and placeholder-only auth metadata.
 - `set-key` stores raw secrets only in the local OpenKit secret file and automatically enables the MCP for the selected scope after a successful write.
 - `disable` keeps any stored key; `unset-key` removes a key but does not silently disable the MCP.
 - `openkit run` loads OpenKit's local secret file into the launched OpenCode process. Direct OpenCode launches do **not** use that loader.
@@ -59,6 +60,7 @@ Use `openkit configure mcp --help` on your installed version for exact flag supp
 ```text
 openkit configure mcp --interactive [--scope openkit|global|both]
 openkit configure mcp <list|doctor|enable|disable|set-key|unset-key|test> [options]
+openkit configure mcp custom <list|add-local|add-remote|import-global|disable|remove|doctor|test> [options]
 ```
 
 ### Guided Interactive Setup
@@ -71,6 +73,8 @@ openkit configure mcp --interactive --scope both
 - Shows the bundled MCP inventory, selected scope, enablement, capability state, lifecycle/policy labels, optional labels, and key state as `missing` or `present (redacted)`.
 - Lets you choose `openkit`, `global`, or `both`; default remains `openkit`.
 - Supports enable, disable, set/update key, unset key, secret-store permission repair, health checks, refresh, finish, and cancel flows over existing bundled MCP ids only.
+- Lists custom MCPs separately when they exist, can run custom doctor/test paths, and points custom creation/import requests to non-interactive commands such as `openkit configure mcp custom add-local`, `add-remote`, and `import-global`.
+- It is not a full custom MCP creation wizard.
 - Uses hidden key entry in an interactive terminal. Raw key values are not echoed, masked, logged, summarized, or written to generated profiles.
 - The wizard can repair secret-store permissions, limited to the OpenKit secret-store directory/file: POSIX directory `0700` and secret file `0600`; Windows reports local-user-only limitations without printing values.
 - The final summary is redacted and lists changed, skipped, failed, conflict, caveat, and next-command items by scope. `both` scope reports `openkit` and `global` results separately.
@@ -159,6 +163,59 @@ openkit configure mcp test context7 --scope openkit --json
 - It must sanitize stdout, stderr, and provider payloads before displaying them.
 - It does not silently enable disabled MCPs.
 
+## Custom MCP Definitions
+
+Custom MCPs are OpenKit-managed entries stored separately from the bundled catalog:
+
+```text
+<OPENCODE_HOME>/openkit/custom-mcp-config.json
+```
+
+Every custom entry carries `kind=custom`, an `origin` (`local`, `remote`, or `imported-global`), and `ownership=openkit-managed-custom`. Custom entries are merged with bundled entries only at inventory, materialization, health, and runtime read-model boundaries. They must not shadow bundled ids, and bundled `list`, `doctor`, `enable`, `disable`, `set-key`, `unset-key`, and `test` behavior remains unchanged.
+
+### Custom Command Reference
+
+```sh
+openkit configure mcp custom list --scope both --json
+openkit configure mcp custom add-local custom-local --cmd node --arg /path/to/server.js --env CUSTOM_MCP_TOKEN='${CUSTOM_MCP_TOKEN}' --scope openkit --enable --yes
+openkit configure mcp custom add-remote custom-remote --url https://mcp.example.invalid/mcp --transport streamable-http --header Authorization='${CUSTOM_MCP_AUTHORIZATION}' --yes
+openkit configure mcp custom import-global legacy-mcp --as legacy-custom --scope openkit --yes
+openkit configure mcp custom import-global --select legacy-one,legacy-two --scope openkit --yes --json
+openkit configure mcp custom disable custom-local --scope global
+openkit configure mcp custom remove custom-local --scope all --yes
+openkit configure mcp custom doctor custom-local --json
+openkit configure mcp custom test custom-local --yes --json
+```
+
+Use placeholders in examples and shared command text. The single quotes above prevent your shell from expanding the placeholder locally.
+
+### Local Custom MCP Validation
+
+Local custom MCPs use argv-array style input: `--cmd <executable>` plus repeated `--arg <arg>`. OpenKit rejects shell command strings, shell operators (`&&`, `||`, `;`, pipes, redirects, backticks, command substitution, and backgrounding), and shell launchers such as `bash -c`, `sh -c`, `zsh -c`, `cmd /c`, `powershell -Command`, or `pwsh -Command`.
+
+Local commands can execute code on your machine. OpenKit reports this as a risk warning, checks whether the executable appears available where possible, and stores placeholder-only environment bindings such as `CUSTOM_MCP_TOKEN=${CUSTOM_MCP_TOKEN}`. Raw token-looking args, env values, labels, metadata, or command strings are rejected before mutation.
+
+### Remote Custom MCP Validation
+
+Remote custom MCPs accept web transports only: `http`, `sse`, and `streamable-http`. Non-localhost URLs must use `https`. localhost HTTP is accepted only for `localhost`, `127.0.0.1`, or `::1` local-development URLs and always reports a warning.
+
+OpenKit rejects unsupported schemes such as `file:`, `javascript:`, `data:`, and `ftp:`, embedded credentials, token-like query parameters, blocked metadata-service hosts such as `169.254.169.254` and `metadata.google.internal`, and raw header values. Headers and env values must be placeholders, for example `Authorization=${CUSTOM_MCP_AUTHORIZATION}`. Placeholder values are not treated as configured secrets; doctor/test reports missing bindings as `not_configured` until the backing env var is present in the environment or secret store.
+
+### Import-Global Safety
+
+`openkit configure mcp custom import-global <global-id>` reads the user's global OpenCode config at `<OPENCODE_HOME>/opencode.json` and creates an OpenKit-managed custom entry. It does not mutate the source global entry by default.
+
+Import validation uses the same local and remote rules as direct add flows. If a source entry contains raw env/header values or token-looking fields, OpenKit does not copy the raw value. Where the field can be represented safely, it is converted to a placeholder and the outcome is reported as `needs_secret_setup`; unsupported or unsafe shapes are reported as skipped, invalid, or unsupported with redacted reasons.
+
+### Disable, Remove, Doctor, And Test
+
+- `custom disable` changes enablement for the selected scope and preserves the custom definition and any stored local secrets.
+- `custom remove --scope all --yes` removes the OpenKit-managed custom definition and OpenKit-managed profile materialization. `custom remove --scope openkit|global|both` preserves the definition and disables the selected scope so the entry remains inspectable. Neither form deletes bundled entries, unmanaged global entries, or raw local secret values.
+- `custom doctor` checks custom status with standard states such as `available`, `unavailable`, `degraded`, and `not_configured`.
+- `custom test` never launches through a shell. Phase-1 testing is dependency/shape oriented; remote providers may report `degraded` / `provider_unverified` rather than pretending a full protocol handshake ran.
+
+Global-scope custom entries follow the same Direct OpenCode Caveat as bundled entries: direct OpenCode launches must provide any needed env vars outside OpenKit.
+
 ## Scope Semantics
 
 | Scope | Meaning | Primary config target | Secret loading behavior |
@@ -202,6 +259,7 @@ Permission expectations:
 Related local state files are not secret stores:
 
 - `<OPENCODE_HOME>/openkit/mcp-config.json` stores enablement and secret-binding metadata only.
+- `<OPENCODE_HOME>/openkit/custom-mcp-config.json` stores OpenKit-managed custom MCP definitions, origin/ownership metadata, enablement, placeholders, and secret-binding metadata only.
 - `<OPENCODE_HOME>/openkit/mcp-profile-state.json` stores OpenKit materialization ownership and conflict metadata only.
 - Generated OpenKit/OpenCode profiles store environment placeholders such as `${CONTEXT7_API_KEY}`, never raw values.
 
@@ -219,6 +277,7 @@ Raw secrets must not appear in:
 - docs, tickets, scope/solution/QA artifacts, or workflow evidence
 - generated OpenKit or OpenCode profile JSON
 - `mcp-config.json` or `mcp-profile-state.json`
+- `custom-mcp-config.json`
 - command output, logs, doctor output, test output, runtime summaries, or provider error payloads
 
 Use placeholder-only profile examples:

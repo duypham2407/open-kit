@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { getGlobalPaths } from '../../src/global/paths.js';
+import { addCustomMcpEntry } from '../../src/global/mcp/custom-mcp-store.js';
+import { McpConfigService } from '../../src/global/mcp/mcp-config-service.js';
 import {
   inspectSecretFile,
   loadSecretsEnv,
@@ -137,4 +139,49 @@ test('inspectSecretFile is read-only and repairSecretStorePermissions scopes POS
     assert.equal(fileMode(paths.settingsRoot), 0o700);
     assert.equal(fileMode(paths.secretsEnvPath), 0o600);
   }
+});
+
+test('custom MCP set-key requires declared env binding and preserves placeholder-only generated profiles', () => {
+  const tempHome = makeTempHome();
+  const env = { OPENCODE_HOME: tempHome };
+  const paths = getGlobalPaths({ env });
+  addCustomMcpEntry({
+    id: 'custom-local',
+    displayName: 'Custom Local',
+    origin: 'local',
+    ownership: 'openkit-managed-custom',
+    enabled: { openkit: false, global: false },
+    definition: { type: 'local', command: ['node', '/tmp/custom.js'], environment: { CUSTOM_MCP_TOKEN: '${CUSTOM_MCP_TOKEN}' } },
+    secretBindings: [{ id: 'custom-token', envVar: 'CUSTOM_MCP_TOKEN', required: true, placeholder: '${CUSTOM_MCP_TOKEN}', source: 'custom' }],
+    riskWarnings: ['Local custom MCP execution can run code on this machine.'],
+  }, { env });
+  const service = new McpConfigService({ env });
+
+  const result = service.setKey('custom-local', SENTINEL, { envVar: 'CUSTOM_MCP_TOKEN', scope: 'openkit' });
+
+  assert.equal(result.keyState, 'present_redacted');
+  assert.equal(JSON.stringify(result).includes(SENTINEL), false);
+  assert.match(fs.readFileSync(paths.secretsEnvPath, 'utf8'), new RegExp(SENTINEL));
+  const profile = JSON.parse(fs.readFileSync(paths.profileManifestPath, 'utf8'));
+  assert.equal(profile.mcp['custom-local'].environment.CUSTOM_MCP_TOKEN, '${CUSTOM_MCP_TOKEN}');
+  assert.equal(JSON.stringify(profile).includes(SENTINEL), false);
+});
+
+test('custom MCP set-key rejects undeclared env bindings without writing secrets', () => {
+  const tempHome = makeTempHome();
+  const env = { OPENCODE_HOME: tempHome };
+  addCustomMcpEntry({
+    id: 'custom-local',
+    displayName: 'Custom Local',
+    origin: 'local',
+    ownership: 'openkit-managed-custom',
+    enabled: { openkit: false, global: false },
+    definition: { type: 'local', command: ['node', '/tmp/custom.js'], environment: {} },
+    secretBindings: [],
+    riskWarnings: [],
+  }, { env });
+  const service = new McpConfigService({ env });
+
+  assert.throws(() => service.setKey('custom-local', SENTINEL, { envVar: 'CUSTOM_MCP_TOKEN', scope: 'openkit' }), /does not define/);
+  assert.equal(fs.existsSync(path.join(tempHome, 'openkit', 'secrets.env')), false);
 });

@@ -240,7 +240,9 @@ Built-in MCPs are currently:
 
 The platform also loads configured external MCP servers via runtime config.
 
-Operator-facing MCP setup is handled outside this runtime MCP dispatch layer by the `global_cli` command surface. `openkit configure mcp --interactive` is a thin TTY-only wizard over the bundled catalog, local MCP config store, secret manager, profile materializer, and health checks. It does not create wizard-specific runtime state, add arbitrary MCP definitions, or change MCP dispatch semantics; runtime tools simply reflect the resulting catalog/config/secret/profile state with redacted key status.
+Operator-facing MCP setup is handled outside this runtime MCP dispatch layer by the `global_cli` command surface. `openkit configure mcp --interactive` is a thin TTY-only wizard over the bundled catalog, custom MCP registry, local MCP config store, secret manager, profile materializer, and health checks. The wizard can list/doctor/test custom MCPs and route creation/import requests to non-interactive commands, but it does not implement a full custom creation wizard or create wizard-specific runtime state.
+
+Custom MCP definitions live in `<OPENCODE_HOME>/openkit/custom-mcp-config.json`, separate from the bundled catalog and bundled `mcp-config.json`. Custom entries carry `kind=custom`, `origin=local|remote|imported-global`, and `ownership=openkit-managed-custom`; runtime capability inventory and `tool.mcp-doctor` merge them with bundled entries only as read models and keep bundled skill-to-MCP routing catalog-owned. Generated profiles and runtime summaries must keep placeholders/redacted key state only.
 
 ### MCP dispatch behavior
 

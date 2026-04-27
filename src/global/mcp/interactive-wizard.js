@@ -21,9 +21,17 @@ function renderHealthResult(io, result) {
 
 function renderInventory(io, inventory) {
   io.stdout.write('\nBundled MCP inventory (redacted):\n');
-  for (const status of inventory.statuses) {
+  for (const status of inventory.statuses.filter((entry) => (entry.kind ?? 'bundled') !== 'custom')) {
     const labels = [status.lifecycle, status.optional ? 'optional' : null].filter(Boolean).join(', ');
     io.stdout.write(`- ${status.mcpId} (${status.displayName}) | scope=${status.scope} | enabled=${status.enabled ? 'yes' : 'no'} | state=${status.capabilityState} | labels=${labels || 'none'} | keys=${keyStateLabel(status.keyState)}\n`);
+  }
+  const customStatuses = inventory.statuses.filter((entry) => entry.kind === 'custom');
+  if (customStatuses.length > 0) {
+    io.stdout.write('\nCustom MCP inventory (redacted):\n');
+    for (const status of customStatuses) {
+      io.stdout.write(`- ${status.mcpId} (${status.displayName}) | origin=${status.origin} | ownership=${status.ownership} | scope=${status.scope} | enabled=${status.enabled ? 'yes' : 'no'} | state=${status.capabilityState} | keys=${keyStateLabel(status.keyState)}\n`);
+    }
+    io.stdout.write('Custom creation/import is available through non-interactive commands such as openkit configure mcp custom add-local, add-remote, or import-global.\n');
   }
 }
 
@@ -117,7 +125,9 @@ export async function runMcpInteractiveWizard({ scope = 'openkit', io, env = pro
     let running = true;
     while (running) {
       renderInventory(io, service.list({ scope: context.scope }));
-      const answer = normalizePromptAnswer(await prompts.promptLine('\nChoose action: change-scope, select, test, repair, refresh, finish, cancel: ')).toLowerCase();
+      const customInventory = service.listCustom({ scope: context.scope });
+      renderInventory(io, { statuses: customInventory.statuses });
+      const answer = normalizePromptAnswer(await prompts.promptLine('\nChoose action: change-scope, select, custom, test, repair, refresh, finish, cancel: ')).toLowerCase();
 
       if (answer === 'finish' || answer === '') {
         break;
@@ -148,10 +158,37 @@ export async function runMcpInteractiveWizard({ scope = 'openkit', io, env = pro
         continue;
       }
       if (answer === 'test') {
-        const results = service.testAll({ scope: context.scope });
+        const results = [...service.testAll({ scope: context.scope }), ...service.testAllCustom({ scope: context.scope })];
         for (const result of results) {
           renderHealthResult(io, result);
         }
+        continue;
+      }
+      if (answer === 'custom') {
+        const customAction = normalizePromptAnswer(await prompts.promptLine('Custom MCP action (list/test/doctor/create/back): ')).toLowerCase();
+        if (customAction === 'back') {
+          continue;
+        }
+        if (customAction === 'create' || customAction === 'import') {
+          io.stdout.write('Use non-interactive commands for custom MCP creation/import: openkit configure mcp custom add-local ..., add-remote ..., or import-global ...\n');
+          continue;
+        }
+        if (customAction === 'list' || customAction === 'doctor') {
+          const statuses = service.listCustom({ scope: context.scope }).statuses;
+          for (const status of statuses) {
+            io.stdout.write(`custom ${status.mcpId} [${status.scope}]: ${status.capabilityState}${status.reason ? ` (${status.reason})` : ''}\n`);
+          }
+          continue;
+        }
+        if (customAction === 'test') {
+          const customId = normalizePromptAnswer(await prompts.promptLine('Custom MCP id: '));
+          const results = [service.testCustom(customId, { scope: context.scope })].flat();
+          for (const result of results) {
+            renderHealthResult(io, result);
+          }
+          continue;
+        }
+        context.skipped.push({ action: `custom-${customAction}`, reason: 'unknown custom MCP action' });
         continue;
       }
       if (answer !== 'select') {

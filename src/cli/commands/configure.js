@@ -5,7 +5,7 @@ function configureHelp() {
     'Usage: openkit configure <surface> [options]',
     '',
     'Surfaces:',
-    '  mcp   Configure bundled MCP capability pack safely',
+    '  mcp   Configure bundled and OpenKit-managed custom MCP capability pack safely',
     '',
     configureMcpHelp(),
   ].join('\n');

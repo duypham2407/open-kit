@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { getGlobalPaths } from '../../src/global/paths.js';
+import { addCustomMcpEntry } from '../../src/global/mcp/custom-mcp-store.js';
 import { setSecretValue } from '../../src/global/mcp/secret-manager.js';
 import { setMcpEnabled } from '../../src/global/mcp/mcp-config-store.js';
 import { materializeMcpProfiles } from '../../src/global/mcp/profile-materializer.js';
@@ -83,4 +84,83 @@ test('disabled MCP remains materialized as disabled and discoverable', () => {
 
   assert.equal(profile.mcp.context7.enabled, false);
   assert.equal(profile.mcp.context7.environment.CONTEXT7_API_KEY, '${CONTEXT7_API_KEY}');
+});
+
+test('materializeMcpProfiles writes custom entries with ownership metadata and placeholders only', () => {
+  const tempHome = makeTempHome();
+  const env = { OPENCODE_HOME: tempHome };
+  const paths = getGlobalPaths({ env });
+  setSecretValue('CUSTOM_MCP_TOKEN', SENTINEL, { env });
+  addCustomMcpEntry({
+    id: 'custom-local',
+    displayName: 'Custom Local',
+    origin: 'local',
+    ownership: 'openkit-managed-custom',
+    enabled: { openkit: true, global: false },
+    definition: {
+      type: 'local',
+      command: ['node', '/tmp/custom-server.js'],
+      environment: { CUSTOM_MCP_TOKEN: '${CUSTOM_MCP_TOKEN}' },
+    },
+    secretBindings: [{ id: 'custom-token', envVar: 'CUSTOM_MCP_TOKEN', required: true, placeholder: '${CUSTOM_MCP_TOKEN}', source: 'custom' }],
+    riskWarnings: ['Local custom MCP execution can run code on this machine.'],
+  }, { env });
+
+  materializeMcpProfiles({ scope: 'openkit', env });
+  const profile = readJson(paths.profileManifestPath);
+  const state = readJson(paths.mcpProfileStatePath);
+
+  assert.equal(profile.mcp['custom-local'].environment.CUSTOM_MCP_TOKEN, '${CUSTOM_MCP_TOKEN}');
+  assert.equal(JSON.stringify(profile).includes(SENTINEL), false);
+  assert.equal(state.profiles.openkit.managedEntries['custom-local'].kind, 'custom');
+  assert.equal(state.profiles.openkit.managedEntries['custom-local'].ownership, 'openkit-managed-custom');
+});
+
+test('materializeMcpProfiles preserves unmanaged global custom conflicts', () => {
+  const tempHome = makeTempHome();
+  const env = { OPENCODE_HOME: tempHome };
+  writeJson(path.join(tempHome, 'opencode.json'), {
+    mcp: {
+      'custom-local': { type: 'local', command: ['user-owned'], enabled: true },
+    },
+  });
+  addCustomMcpEntry({
+    id: 'custom-local',
+    displayName: 'Custom Local',
+    origin: 'local',
+    ownership: 'openkit-managed-custom',
+    enabled: { openkit: false, global: true },
+    definition: { type: 'local', command: ['node', '/tmp/custom-server.js'], environment: {} },
+    secretBindings: [],
+    riskWarnings: [],
+  }, { env });
+
+  const result = materializeMcpProfiles({ scope: 'global', env });
+  const globalConfig = readJson(path.join(tempHome, 'opencode.json'));
+
+  assert.equal(result.results.global.status, 'conflict');
+  assert.equal(globalConfig.mcp['custom-local'].command[0], 'user-owned');
+});
+
+test('materializeMcpProfiles removes stale custom managed entries after custom definition removal', () => {
+  const tempHome = makeTempHome();
+  const env = { OPENCODE_HOME: tempHome };
+  const paths = getGlobalPaths({ env });
+  addCustomMcpEntry({
+    id: 'custom-local',
+    displayName: 'Custom Local',
+    origin: 'local',
+    ownership: 'openkit-managed-custom',
+    enabled: { openkit: true, global: false },
+    definition: { type: 'local', command: ['node', '/tmp/custom-server.js'], environment: {} },
+    secretBindings: [],
+    riskWarnings: [],
+  }, { env });
+
+  materializeMcpProfiles({ scope: 'openkit', env });
+  fs.unlinkSync(paths.customMcpConfigPath);
+  materializeMcpProfiles({ scope: 'openkit', env });
+
+  assert.equal(readJson(paths.profileManifestPath).mcp['custom-local'], undefined);
+  assert.equal(readJson(paths.mcpProfileStatePath).profiles.openkit.managedEntries['custom-local'], undefined);
 });

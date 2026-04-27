@@ -75,7 +75,7 @@ function createManagerList({
     {
       id: 'manager.capability-registry',
       name: 'Capability Registry Manager',
-      description: 'Joins bundled MCP and skill catalogs with local configuration, key presence, and health status.',
+      description: 'Joins bundled/custom MCP and skill catalogs with local configuration, key presence, and health status.',
       enabled: capabilityRegistryManager !== null,
       lifecycle: 'active',
       dispose() {},
@@ -83,7 +83,7 @@ function createManagerList({
     {
       id: 'manager.mcp-health',
       name: 'MCP Health Manager',
-      description: 'Read-only health checker for bundled MCP catalog entries.',
+      description: 'Read-only health checker for bundled and OpenKit-managed custom MCP entries.',
       enabled: mcpHealthManager !== null,
       lifecycle: 'active',
       dispose() {},

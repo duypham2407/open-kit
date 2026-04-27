@@ -16,3 +16,4 @@ Current-state notes:
 - In `Full Delivery`, this means the required stage artifacts, handoff readiness, and approvals exist for the live full-delivery contract.
 - If the repository has no build, lint, or test tooling for the work, done status requires explicit reporting of the real verification path rather than invented automation claims.
 - Runtime or workflow maintenance work should leave the repository documentation aligned with any newly introduced commands or bootstrap behavior.
+- MCP configuration changes are not done until bundled and custom ownership boundaries are verified, generated profiles contain placeholders only, raw secrets appear only in the approved local secret/process paths, unsafe custom local command or remote URL shapes fail closed, and import/global conflict behavior preserves user-managed OpenCode entries.

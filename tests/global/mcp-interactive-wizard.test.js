@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { transitionWizardState } from '../../src/global/mcp/wizard-state-machine.js';
+import { addCustomMcpEntry } from '../../src/global/mcp/custom-mcp-store.js';
 import { McpConfigService } from '../../src/global/mcp/mcp-config-service.js';
 import { runMcpInteractiveWizard } from '../../src/global/mcp/interactive-wizard.js';
 
@@ -173,4 +174,60 @@ test('McpConfigService rejects key mutation for MCPs without catalog secret bind
 
   assert.throws(() => service.setKey('openkit', SENTINEL, { scope: 'openkit' }), /does not define/);
   assert.equal(fs.existsSync(path.join(tempHome, 'openkit', 'secrets.env')), false);
+});
+
+test('interactive wizard lists custom MCPs separately and routes creation to non-interactive commands', async () => {
+  const tempHome = makeTempHome();
+  const env = { OPENCODE_HOME: tempHome, PATH: '' };
+  addCustomMcpEntry({
+    id: 'custom-local',
+    displayName: 'Custom Local',
+    origin: 'local',
+    ownership: 'openkit-managed-custom',
+    enabled: { openkit: true, global: false },
+    definition: { type: 'local', command: ['node', '/tmp/custom.js'], environment: {} },
+    secretBindings: [],
+    riskWarnings: ['Local custom MCP execution can run code on this machine.'],
+  }, { env });
+  const { io, output } = createIo();
+
+  const exitCode = await runMcpInteractiveWizard({
+    scope: 'openkit',
+    io,
+    env,
+    promptAdapter: scriptedPrompts(['custom', 'create', 'finish']),
+  });
+
+  assert.equal(exitCode, 0);
+  assert.match(output.stdout, /Custom MCP inventory/);
+  assert.match(output.stdout, /custom-local/);
+  assert.match(output.stdout, /openkit configure mcp custom add-local/);
+  assert.doesNotMatch(output.stdout, new RegExp(SENTINEL));
+});
+
+test('interactive wizard custom path tests custom MCPs with standard status output', async () => {
+  const tempHome = makeTempHome();
+  const env = { OPENCODE_HOME: tempHome, PATH: '' };
+  addCustomMcpEntry({
+    id: 'custom-local',
+    displayName: 'Custom Local',
+    origin: 'local',
+    ownership: 'openkit-managed-custom',
+    enabled: { openkit: true, global: false },
+    definition: { type: 'local', command: ['node', '/tmp/custom.js'], environment: { CUSTOM_MCP_TOKEN: '${CUSTOM_MCP_TOKEN}' } },
+    secretBindings: [{ id: 'custom-token', envVar: 'CUSTOM_MCP_TOKEN', required: true, placeholder: '${CUSTOM_MCP_TOKEN}', source: 'custom' }],
+    riskWarnings: ['Local custom MCP execution can run code on this machine.'],
+  }, { env });
+  const { io, output } = createIo();
+
+  const exitCode = await runMcpInteractiveWizard({
+    scope: 'openkit',
+    io,
+    env,
+    promptAdapter: scriptedPrompts(['custom', 'test', 'custom-local', 'finish']),
+  });
+
+  assert.equal(exitCode, 0);
+  assert.match(output.stdout, /custom-local \[openkit\]: not_configured \(missing_key\)/);
+  assert.doesNotMatch(output.stdout, new RegExp(SENTINEL));
 });

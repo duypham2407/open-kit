@@ -33,7 +33,7 @@ export class CapabilityRegistryManager {
       return {
         status: 'unavailable',
         validationSurface: 'runtime_tooling',
-        guidance: 'No matching MCP capability is present in the bundled catalog.',
+        guidance: 'No matching MCP capability is present in the bundled catalog or OpenKit-managed custom registry.',
       };
     }
     if (!candidate.enabled) {

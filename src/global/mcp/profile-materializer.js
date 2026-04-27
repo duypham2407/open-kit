@@ -5,6 +5,7 @@ import path from 'node:path';
 import { expandMcpScope } from '../../capabilities/status.js';
 import { getGlobalPaths } from '../paths.js';
 import { loadMcpCatalog } from './catalog-loader.js';
+import { listCustomMcpEntries } from './custom-mcp-store.js';
 import { readMcpConfig } from './mcp-config-store.js';
 
 function readJsonIfPresent(filePath) {
@@ -33,6 +34,29 @@ function cloneProfileEntry(entry, enabled, paths) {
     cloned.command = cloned.command.map((part) => String(part).replace('{OPENKIT_KIT_ROOT}', paths.kitRoot));
   }
   return cloned;
+}
+
+function cloneCustomProfileEntry(entry, enabled) {
+  if (entry.definition?.type === 'local') {
+    return {
+      type: 'local',
+      command: [...(entry.definition.command ?? [])],
+      enabled: Boolean(enabled),
+      ...(entry.definition.cwd ? { cwd: entry.definition.cwd } : {}),
+      ...(Object.keys(entry.definition.environment ?? {}).length > 0 ? { environment: { ...entry.definition.environment } } : {}),
+    };
+  }
+  if (entry.definition?.type === 'remote') {
+    return {
+      type: 'remote',
+      transport: entry.definition.transport,
+      url: entry.definition.url,
+      enabled: Boolean(enabled),
+      ...(Object.keys(entry.definition.headers ?? {}).length > 0 ? { headers: { ...entry.definition.headers } } : {}),
+      ...(Object.keys(entry.definition.environment ?? {}).length > 0 ? { environment: { ...entry.definition.environment } } : {}),
+    };
+  }
+  return null;
 }
 
 function createDefaultProfileConfig(existing = {}) {
@@ -69,12 +93,27 @@ function writeProfileState(paths, state) {
   writeJson(paths.mcpProfileStatePath, { ...state, updatedAt: new Date().toISOString() });
 }
 
-function materializeScope(scope, { paths, config, catalog, profileState }) {
+function removeManagedEntries(currentConfig, managedEntries, predicate) {
+  let changed = false;
+  for (const [mcpId, metadata] of Object.entries({ ...managedEntries })) {
+    if (!predicate(metadata)) {
+      continue;
+    }
+    if (currentConfig.mcp?.[mcpId]) {
+      delete currentConfig.mcp[mcpId];
+      changed = true;
+    }
+    delete managedEntries[mcpId];
+  }
+  return changed;
+}
+
+function materializeScope(scope, { paths, config, catalog, customEntries, profileState }) {
   const configPath = scope === 'openkit' ? paths.profileManifestPath : path.join(paths.openCodeHome, 'opencode.json');
   const currentConfig = createDefaultProfileConfig(readJsonIfPresent(configPath));
   const managedEntries = profileState.profiles[scope].managedEntries ?? {};
   const conflicts = {};
-  let changed = false;
+  let changed = removeManagedEntries(currentConfig, managedEntries, (metadata) => metadata.kind === 'custom' && !customEntries.some((entry) => entry.id === metadata.customId || entry.id === metadata.id));
 
   for (const entry of catalog) {
     const scopeState = config.scopes?.[scope]?.[entry.id];
@@ -99,6 +138,34 @@ function materializeScope(scope, { paths, config, catalog, profileState }) {
 
     currentConfig.mcp[entry.id] = profileEntry;
     managedEntries[entry.id] = {
+      kind: 'bundled',
+      ownership: 'openkit-bundled',
+      entryHash: stableHash(profileEntry),
+      lastMaterializedAt: new Date().toISOString(),
+    };
+    changed = true;
+  }
+
+  for (const entry of customEntries) {
+    const profileEntry = cloneCustomProfileEntry(entry, entry.enabled?.[scope] === true);
+    if (!profileEntry) {
+      continue;
+    }
+    const existingEntry = currentConfig.mcp?.[entry.id];
+    const existingManaged = managedEntries[entry.id];
+    if (scope === 'global' && existingEntry && !existingManaged) {
+      conflicts[entry.id] = {
+        reason: 'existing-unmanaged-entry',
+        detectedAt: new Date().toISOString(),
+        kind: 'custom',
+      };
+      continue;
+    }
+    currentConfig.mcp[entry.id] = profileEntry;
+    managedEntries[entry.id] = {
+      kind: 'custom',
+      ownership: 'openkit-managed-custom',
+      customId: entry.id,
       entryHash: stableHash(profileEntry),
       lastMaterializedAt: new Date().toISOString(),
     };
@@ -119,7 +186,7 @@ function materializeScope(scope, { paths, config, catalog, profileState }) {
   };
 
   return {
-    status: Object.keys(conflicts).length > 0 && !changed ? 'conflict' : 'materialized',
+    status: Object.keys(conflicts).length > 0 ? 'conflict' : 'materialized',
     configPath,
     managedCount: Object.keys(managedEntries).length,
     conflicts,
@@ -131,11 +198,12 @@ export function materializeMcpProfiles({ scope = 'openkit', env = process.env } 
   const scopes = expandMcpScope(scope);
   const config = readMcpConfig({ env });
   const catalog = loadMcpCatalog();
+  const customEntries = listCustomMcpEntries({ env });
   const profileState = readProfileState(paths);
   const results = {};
 
   for (const targetScope of scopes) {
-    results[targetScope] = materializeScope(targetScope, { paths, config, catalog, profileState });
+    results[targetScope] = materializeScope(targetScope, { paths, config, catalog, customEntries, profileState });
   }
 
   writeProfileState(paths, profileState);

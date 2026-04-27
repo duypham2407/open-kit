@@ -19,6 +19,7 @@ Current-state guardrails:
 - Keep artifact names aligned with the directories and examples that actually exist in the repository.
 - Do not require build, lint, or test evidence that the repository has not adopted yet; when tooling is absent, require honest verification notes instead.
 - When runtime commands, workflow-state fields, or checked-in templates change, update the related smoke tests and operator docs in the same change.
+- Custom MCP governance is secret-safe by default: OpenKit-managed custom MCP definitions must stay separate from the bundled catalog, carry explicit origin/ownership metadata, use placeholder-only env/header values in config/profiles/docs/output, reject unsafe local command strings or unsafe remote URLs before mutation, and preserve unmanaged global OpenCode entries on conflict.
 
 Maintainer note:
 

@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { bootstrapRuntimeFoundation } from '../../src/runtime/index.js';
+import { addCustomMcpEntry } from '../../src/global/mcp/custom-mcp-store.js';
 
 const SENTINEL = 'sk-openkit-runtime-sentinel-941';
 
@@ -71,6 +72,34 @@ test('runtime MCP doctor tool reports read-only redacted capability readiness', 
   assert.ok(['ok', 'degraded'].includes(result.status));
   assert.ok(result.mcps.some((entry) => entry.mcpId === 'context7'));
   assert.equal(JSON.stringify(result).includes(SENTINEL), false);
+});
+
+test('runtime capability inventory and MCP doctor include custom MCP ownership metadata', async () => {
+  const projectRoot = makeTempDir('openkit-custom-capability-project-');
+  const opencodeHome = makeTempDir('openkit-custom-capability-home-');
+  const env = { OPENCODE_HOME: opencodeHome, PATH: '' };
+  addCustomMcpEntry({
+    id: 'custom-local',
+    displayName: 'Custom Local',
+    origin: 'local',
+    ownership: 'openkit-managed-custom',
+    enabled: { openkit: true, global: false },
+    definition: { type: 'local', command: ['node', '/tmp/custom-server.js'], environment: { CUSTOM_MCP_TOKEN: '${CUSTOM_MCP_TOKEN}' } },
+    secretBindings: [{ id: 'custom-token', envVar: 'CUSTOM_MCP_TOKEN', required: true, placeholder: '${CUSTOM_MCP_TOKEN}', source: 'custom' }],
+    riskWarnings: ['Local custom MCP execution can run code on this machine.'],
+  }, { env });
+
+  const runtime = bootstrapRuntimeFoundation({ projectRoot, env });
+  const inventory = await getTool(runtime, 'tool.capability-inventory').execute({ scope: 'openkit' });
+  const doctor = await getTool(runtime, 'tool.mcp-doctor').execute({ scope: 'openkit' });
+  const custom = inventory.mcps.find((entry) => entry.mcpId === 'custom-local');
+
+  assert.equal(custom.kind, 'custom');
+  assert.equal(custom.origin, 'local');
+  assert.equal(custom.ownership, 'openkit-managed-custom');
+  assert.equal(custom.keyState.CUSTOM_MCP_TOKEN, 'missing');
+  assert.ok(doctor.issues.some((issue) => issue.mcpId === 'custom-local' && issue.state === 'not_configured'));
+  assert.equal(JSON.stringify(doctor).includes(SENTINEL), false);
 });
 
 test('skill index and skill MCP bindings tools expose catalog relationships', async () => {

@@ -1,5 +1,6 @@
 import { isSupportedMcpScope } from '../../capabilities/status.js';
 import { getMcpCatalogEntry } from '../../capabilities/mcp-catalog.js';
+import { getCustomMcpEntry } from './custom-mcp-store.js';
 
 export function createWizardState(overrides = {}) {
   return {
@@ -34,10 +35,10 @@ export function transitionWizardState(currentState, event) {
   }
 
   if (event.type === 'choose_mcp') {
-    if (!getMcpCatalogEntry(event.mcpId)) {
+    if (!getMcpCatalogEntry(event.mcpId) && !getCustomMcpEntry(event.mcpId, event.options ?? {})) {
       return state;
     }
-    return { ...state, state: 'action_selection', selectedMcpId: event.mcpId };
+    return { ...state, state: 'action_selection', selectedMcpId: event.mcpId, selectedKind: getMcpCatalogEntry(event.mcpId) ? 'bundled' : 'custom' };
   }
 
   if (event.type === 'choose_action') {

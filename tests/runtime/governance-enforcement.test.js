@@ -196,6 +196,12 @@ test('operator docs describe MCP configuration and secret-safe boundaries', () =
   assert.match(mcpDocs, /Default Bundled MCP Catalog/);
   assert.match(mcpDocs, /Default Bundled Skill Catalog Overview/);
   assert.match(mcpDocs, /openkit configure mcp <list\|doctor\|enable\|disable\|set-key\|unset-key\|test>/);
+  assert.match(mcpDocs, /openkit configure mcp custom <list\|add-local\|add-remote\|import-global\|disable\|remove\|doctor\|test>/);
+  assert.match(mcpDocs, /<OPENCODE_HOME>\/openkit\/custom-mcp-config\.json/);
+  assert.match(mcpDocs, /argv-array style/);
+  assert.match(mcpDocs, /import-global/);
+  assert.match(mcpDocs, /openkit-managed-custom/);
+  assert.match(mcpDocs, /localhost HTTP/);
   assert.match(mcpDocs, /openkit configure mcp --interactive/);
   assert.match(mcpDocs, /requires an interactive terminal/);
   assert.match(mcpDocs, /openkit configure mcp set-key <mcp-id> --scope <scope> --stdin/);
@@ -216,6 +222,11 @@ test('operator docs describe MCP configuration and secret-safe boundaries', () =
   assert.match(mcpDocs, /openkit configure mcp test/);
   assert.match(mcpDocs, /target_project_app/);
   assert.match(mcpDocs, /Target-project application validation is `target_project_app` only when the target project declares real app/);
+
+  const governance = read('docs/governance/README.md');
+  const dod = read('docs/governance/definition-of-done.md');
+  assert.match(governance, /Custom MCP governance is secret-safe by default/);
+  assert.match(dod, /MCP configuration changes are not done/);
 
   assert.match(docs, /docs\/operator\/mcp-configuration\.md/);
   assert.doesNotMatch(mcpDocs, /sk-[A-Za-z0-9_-]{8,}/);

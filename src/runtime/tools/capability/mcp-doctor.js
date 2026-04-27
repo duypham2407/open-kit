@@ -2,7 +2,7 @@ export function createMcpDoctorTool({ capabilityRegistryManager }) {
   return {
     id: 'tool.mcp-doctor',
     name: 'MCP Doctor',
-    description: 'Read-only doctor report for bundled MCP capability pack readiness.',
+    description: 'Read-only doctor report for bundled and OpenKit-managed custom MCP capability readiness.',
     family: 'capability',
     status: 'active',
     async execute(input = {}) {

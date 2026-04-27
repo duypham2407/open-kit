@@ -62,6 +62,7 @@ export function getGlobalPaths(options = {}) {
     workspacesRoot,
     settingsRoot,
     mcpConfigPath: path.join(settingsRoot, 'mcp-config.json'),
+    customMcpConfigPath: path.join(settingsRoot, 'custom-mcp-config.json'),
     mcpProfileStatePath: path.join(settingsRoot, 'mcp-profile-state.json'),
     secretsEnvPath: path.join(settingsRoot, 'secrets.env'),
     agentModelSettingsPath: path.join(settingsRoot, 'agent-models.json'),
