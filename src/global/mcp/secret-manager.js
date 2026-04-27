@@ -38,6 +38,14 @@ function ensureSecureFile(filePath) {
   }
 }
 
+function getModeIssue(filePath, expectedMode, label) {
+  if (process.platform === 'win32' || !fs.existsSync(filePath)) {
+    return null;
+  }
+  const mode = fs.statSync(filePath).mode & 0o777;
+  return (mode & ~expectedMode) === 0 ? null : `${label} permissions are unsafe: expected ${expectedMode.toString(8).padStart(4, '0')}, got ${mode.toString(8).padStart(4, '0')}.`;
+}
+
 function parseSecretContent(content) {
   const entries = [];
   const values = {};
@@ -197,9 +205,32 @@ export function inspectSecretFile(options = {}) {
   }
 
   try {
-    ensureSecureParent(paths.settingsRoot);
-    ensureSecureFile(paths.secretsEnvPath);
+    const permissionIssues = [
+      getModeIssue(paths.settingsRoot, 0o700, 'Secret directory'),
+      getModeIssue(paths.secretsEnvPath, 0o600, 'Secret file'),
+    ].filter(Boolean);
     const parsed = readParsedSecretFile(paths.secretsEnvPath);
+    if (permissionIssues.length > 0) {
+      if (options.tolerateDirectoryOwnerPermissions === true && permissionIssues.every((issue) => issue.startsWith('Secret directory'))) {
+        return {
+          status: 'ok',
+          secretPath: paths.secretsEnvPath,
+          platform: os.platform(),
+          envVars: Object.fromEntries(Object.keys(parsed.values).map((key) => [key, 'present_redacted'])),
+          duplicateEnvVars: parsed.duplicates,
+          directoryIssue: permissionIssues.join(' '),
+        };
+      }
+      return {
+        status: options.mutate === true ? 'ok' : 'unsafe',
+        secretPath: paths.secretsEnvPath,
+        platform: os.platform(),
+        issue: permissionIssues.join(' '),
+        envVars: Object.fromEntries(Object.keys(parsed.values).map((key) => [key, 'present_redacted'])),
+        duplicateEnvVars: parsed.duplicates,
+        guidance: 'Run the interactive wizard repair action or repair secrets.env permissions before storing keys.',
+      };
+    }
     return {
       status: 'ok',
       secretPath: paths.secretsEnvPath,
@@ -216,4 +247,42 @@ export function inspectSecretFile(options = {}) {
       guidance: 'Repair secrets.env permissions or malformed content before storing keys.',
     };
   }
+}
+
+export function repairSecretStorePermissions(options = {}) {
+  const paths = getGlobalPaths(options);
+  fs.mkdirSync(paths.settingsRoot, { recursive: true, mode: 0o700 });
+
+  if (process.platform === 'win32') {
+    return {
+      status: 'limited',
+      secretPath: paths.secretsEnvPath,
+      platform: os.platform(),
+      guidance: 'Windows ACL repair is limited; ensure only the local user can read the OpenKit secret store.',
+    };
+  }
+
+  fs.chmodSync(paths.settingsRoot, 0o700);
+  if (fs.existsSync(paths.secretsEnvPath)) {
+    fs.chmodSync(paths.secretsEnvPath, 0o600);
+  }
+
+  const inspected = inspectSecretFile(options);
+  if (inspected.status === 'missing' || inspected.status === 'ok') {
+    return {
+      status: 'ok',
+      secretPath: paths.secretsEnvPath,
+      platform: os.platform(),
+      directoryMode: '0700',
+      fileMode: fs.existsSync(paths.secretsEnvPath) ? '0600' : null,
+    };
+  }
+
+  return {
+    status: 'failed',
+    secretPath: paths.secretsEnvPath,
+    platform: os.platform(),
+    issue: inspected.issue,
+    guidance: inspected.guidance,
+  };
 }

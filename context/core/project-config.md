@@ -56,6 +56,7 @@ Command reality rule: mark a command as current only when it exists in `package.
 - Use the `tool.embedding-index` in-session tool to trigger indexing manually or inspect indexer status: actions are `"status"`, `"index-file"` (requires `filePath`), and `"index-project"` (accepts `maxFiles` and `force`).
 - `tool.semantic-search` automatically uses embedding-based vector search when an embedding provider is configured and the DB contains indexed embeddings. When both embeddings and keyword matches are available it can return hybrid results; when no embeddings are available it falls back to keyword search. The response includes a `searchMode` field (`"embedding"`, `"keyword"`, or `"hybrid"`).
 - `npm run verify:semgrep-quality` runs the bundled Semgrep rule-pack regression suite against controlled OpenKit fixtures. It validates OpenKit `runtime_tooling` rule behavior and security-pack sanity, not target-project application build, lint, or test behavior. Semgrep unavailability fails this gate by default, including in CI; `OPENKIT_ALLOW_SEMGREP_QUALITY_SKIP=1` may skip only local non-CI convenience runs and skipped runs are not valid gate evidence.
+- `openkit configure mcp --interactive` starts the TTY-only guided MCP setup wizard. It is a `global_cli` wrapper over the existing bundled MCP catalog/config/secret/materialization/test control plane; non-TTY invocations fail with no mutation and automation should use existing non-interactive commands such as `set-key <mcp-id> --stdin`.
 
 ## Permission Policy
 
@@ -79,6 +80,7 @@ These are repository workflow commands, not application build/lint/test commands
 - `openkit run [args]`
 - `openkit upgrade`
 - `openkit uninstall [--remove-workspaces]`
+- `openkit configure mcp --interactive [--scope openkit|global|both]`
 
 - `node .opencode/workflow-state.js status`
 - `node .opencode/workflow-state.js status --short`

@@ -10,6 +10,7 @@ Keep two rules in mind:
 ## Current State At A Glance
 
 - Default scope for `openkit configure mcp` is `openkit`.
+- `openkit configure mcp --interactive` starts the guided setup wizard for TTY sessions and wraps the same bundled catalog/control plane as the non-interactive commands.
 - `openkit configure mcp list` and `doctor` are safe discovery commands and show redacted key state only.
 - `set-key` stores raw secrets only in the local OpenKit secret file and automatically enables the MCP for the selected scope after a successful write.
 - `disable` keeps any stored key; `unset-key` removes a key but does not silently disable the MCP.
@@ -56,8 +57,26 @@ Inside an OpenKit session, capability inventory, routing, health, MCP doctor, an
 Use `openkit configure mcp --help` on your installed version for exact flag support. The current product surface is:
 
 ```text
+openkit configure mcp --interactive [--scope openkit|global|both]
 openkit configure mcp <list|doctor|enable|disable|set-key|unset-key|test> [options]
 ```
+
+### Guided Interactive Setup
+
+```sh
+openkit configure mcp --interactive
+openkit configure mcp --interactive --scope both
+```
+
+- Shows the bundled MCP inventory, selected scope, enablement, capability state, lifecycle/policy labels, optional labels, and key state as `missing` or `present (redacted)`.
+- Lets you choose `openkit`, `global`, or `both`; default remains `openkit`.
+- Supports enable, disable, set/update key, unset key, secret-store permission repair, health checks, refresh, finish, and cancel flows over existing bundled MCP ids only.
+- Uses hidden key entry in an interactive terminal. Raw key values are not echoed, masked, logged, summarized, or written to generated profiles.
+- The wizard can repair secret-store permissions, limited to the OpenKit secret-store directory/file: POSIX directory `0700` and secret file `0600`; Windows reports local-user-only limitations without printing values.
+- The final summary is redacted and lists changed, skipped, failed, conflict, caveat, and next-command items by scope. `both` scope reports `openkit` and `global` results separately.
+- Global or both scope repeats the Direct OpenCode Caveat because direct OpenCode launches do not load OpenKit's local secret file.
+- `--interactive` cannot be combined with `--json`; use non-interactive `list`, `doctor`, or `test` when JSON output is needed.
+- `--interactive` requires an interactive terminal. In non-TTY scripts or CI it fails fast with no mutation and points to safe alternatives such as `openkit configure mcp set-key <mcp-id> --scope <scope> --stdin`.
 
 ### Discover MCPs
 

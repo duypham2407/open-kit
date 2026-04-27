@@ -21,6 +21,14 @@ openkit doctor
 openkit run
 ```
 
+If you want MCP-backed capabilities before launch, insert the guided TTY setup step after `openkit doctor` and before `openkit run`:
+
+```bash
+openkit configure mcp --interactive
+```
+
+The wizard is a `global_cli` wrapper over the bundled MCP catalog and existing configure control plane. It never adds arbitrary MCP definitions, stores raw keys only in the local OpenKit secret file, shows redacted summaries, and fails fast with no mutation in non-TTY scripts. For automation, keep using non-interactive commands such as `openkit configure mcp set-key <mcp-id> --scope <scope> --stdin` rather than passing raw keys as arguments.
+
 Lifecycle commands:
 
 ```bash

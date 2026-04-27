@@ -196,6 +196,10 @@ test('operator docs describe MCP configuration and secret-safe boundaries', () =
   assert.match(mcpDocs, /Default Bundled MCP Catalog/);
   assert.match(mcpDocs, /Default Bundled Skill Catalog Overview/);
   assert.match(mcpDocs, /openkit configure mcp <list\|doctor\|enable\|disable\|set-key\|unset-key\|test>/);
+  assert.match(mcpDocs, /openkit configure mcp --interactive/);
+  assert.match(mcpDocs, /requires an interactive terminal/);
+  assert.match(mcpDocs, /openkit configure mcp set-key <mcp-id> --scope <scope> --stdin/);
+  assert.match(mcpDocs, /repair.*secret-store permissions/is);
   assert.match(mcpDocs, /set-key.*automatically enables/s);
   assert.match(mcpDocs, /Scope Semantics/);
   assert.match(mcpDocs, /`openkit`/);

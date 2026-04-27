@@ -118,6 +118,23 @@ test('doctor and test output are redacted and distinguish disabled state', () =>
   assert.doesNotMatch(testResult.stdout, new RegExp(SENTINEL));
 });
 
+test('test command with both scope reports partial per-scope status', () => {
+  const tempHome = makeTempHome();
+  runCli(['configure', 'mcp', 'enable', 'context7', '--scope', 'global'], { env: { OPENCODE_HOME: tempHome, PATH: '' } });
+
+  const result = runCli(['configure', 'mcp', 'test', 'context7', '--scope', 'both'], { env: { OPENCODE_HOME: tempHome, PATH: '' } });
+  const jsonResult = runCli(['configure', 'mcp', 'test', 'context7', '--scope', 'both', '--json'], { env: { OPENCODE_HOME: tempHome, PATH: '' } });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /context7 \[openkit\]: skipped \(disabled\)/);
+  assert.match(result.stdout, /context7 \[global\]: not_configured \(missing_key\)/);
+  assert.equal(jsonResult.status, 0);
+  const payload = JSON.parse(jsonResult.stdout);
+  assert.deepEqual(payload.map((item) => item.scope), ['openkit', 'global']);
+  assert.equal(payload.find((item) => item.scope === 'openkit').status, 'skipped');
+  assert.equal(payload.find((item) => item.scope === 'global').status, 'not_configured');
+});
+
 test('configure help includes safe key input guidance', () => {
   const result = runCli(['configure', 'mcp', '--help']);
   assert.equal(result.status, 0);

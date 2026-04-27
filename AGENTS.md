@@ -42,6 +42,7 @@ Current repository facts:
 - `context/core/workflow.md` is the canonical workflow-semantics document for lane behavior, stages, escalation, approvals, and quick-lane artifact expectations
 - Historical planning and example docs should live under `docs/archive/`; prefer current runtime docs and git history when older rationale is needed
 - `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit
+- `openkit configure mcp --interactive` is the current guided TTY setup path for bundled MCPs; it wraps existing MCP configure service logic and fails closed without mutation in non-TTY contexts
 - Operator command surfaces stay split: `global_cli` handles install, doctor, launch, upgrade, and uninstall; `in_session` slash commands handle lane selection and workflow execution; `compatibility_runtime` handles lower-level workflow-state inspection and maintainer diagnostics
 - `.opencode/opencode.json` is present as the repository-local OpenCode config for this kit
 - `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item

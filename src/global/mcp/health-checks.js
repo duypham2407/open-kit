@@ -63,7 +63,12 @@ export function buildMcpStatus(entry, { scope = 'openkit', config = readMcpConfi
 
 export function listMcpStatuses({ scope = 'openkit', env = process.env } = {}) {
   const config = readMcpConfig({ env });
-  const loadedSecrets = loadSecretsEnv({ env });
+  let loadedSecrets = { values: {} };
+  try {
+    loadedSecrets = loadSecretsEnv({ env });
+  } catch {
+    loadedSecrets = { values: {} };
+  }
   return listMcpCatalogEntries().map((entry) => buildMcpStatus(entry, { scope, config, loadedSecrets, env }));
 }
 
@@ -75,7 +80,13 @@ export function testMcpCapability(mcpId, { scope = 'openkit', env = process.env 
   const status = buildMcpStatus(entry, {
     scope,
     config: readMcpConfig({ env }),
-    loadedSecrets: loadSecretsEnv({ env }),
+    loadedSecrets: (() => {
+      try {
+        return loadSecretsEnv({ env });
+      } catch {
+        return { values: {} };
+      }
+    })(),
     env,
   });
   if (!status.enabled) {

@@ -240,6 +240,8 @@ Built-in MCPs are currently:
 
 The platform also loads configured external MCP servers via runtime config.
 
+Operator-facing MCP setup is handled outside this runtime MCP dispatch layer by the `global_cli` command surface. `openkit configure mcp --interactive` is a thin TTY-only wizard over the bundled catalog, local MCP config store, secret manager, profile materializer, and health checks. It does not create wizard-specific runtime state, add arbitrary MCP definitions, or change MCP dispatch semantics; runtime tools simply reflect the resulting catalog/config/secret/profile state with redacted key status.
+
 ### MCP dispatch behavior
 
 Dispatch entry:

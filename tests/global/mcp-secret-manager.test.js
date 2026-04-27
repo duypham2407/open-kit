@@ -8,6 +8,7 @@ import { getGlobalPaths } from '../../src/global/paths.js';
 import {
   inspectSecretFile,
   loadSecretsEnv,
+  repairSecretStorePermissions,
   setSecretValue,
   unsetSecretValue,
 } from '../../src/global/mcp/secret-manager.js';
@@ -112,4 +113,28 @@ test('inspectSecretFile reports missing and unsafe states without raw values', (
   const present = inspectSecretFile({ env: { OPENCODE_HOME: tempHome } });
   assert.equal(present.status, 'ok');
   assert.equal(JSON.stringify(present).includes(SENTINEL), false);
+});
+
+test('inspectSecretFile is read-only and repairSecretStorePermissions scopes POSIX permission repair', () => {
+  const tempHome = makeTempHome();
+  const env = { OPENCODE_HOME: tempHome };
+  const paths = getGlobalPaths({ env });
+  fs.mkdirSync(paths.settingsRoot, { recursive: true, mode: 0o755 });
+  fs.writeFileSync(paths.secretsEnvPath, `CONTEXT7_API_KEY=${SENTINEL}\n`, { mode: 0o644 });
+
+  const inspected = inspectSecretFile({ env });
+  assert.equal(inspected.status, process.platform === 'win32' ? 'ok' : 'unsafe');
+  if (process.platform !== 'win32') {
+    assert.equal(fileMode(paths.settingsRoot), 0o755);
+    assert.equal(fileMode(paths.secretsEnvPath), 0o644);
+  }
+  assert.equal(JSON.stringify(inspected).includes(SENTINEL), false);
+
+  const repaired = repairSecretStorePermissions({ env });
+  assert.ok(['ok', 'limited'].includes(repaired.status));
+  assert.equal(JSON.stringify(repaired).includes(SENTINEL), false);
+  if (process.platform !== 'win32') {
+    assert.equal(fileMode(paths.settingsRoot), 0o700);
+    assert.equal(fileMode(paths.secretsEnvPath), 0o600);
+  }
 });

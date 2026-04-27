@@ -122,7 +122,7 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
   }
 
   const workspace = inspectWorkspaceMeta({ projectRoot, env });
-  const mcpSecretFile = inspectSecretFile({ env });
+  const mcpSecretFile = inspectSecretFile({ env, tolerateDirectoryOwnerPermissions: true });
   const mcpStatuses = listMcpStatuses({ scope: 'openkit', env });
   const runtimeBootstrapEnv = {
     ...env,
