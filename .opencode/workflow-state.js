@@ -732,18 +732,47 @@ function printMigrationSlices(result) {
 function printCloseoutSummary(result) {
   console.log(`Work item: ${result.workItemId}`)
   console.log(`ready to close: ${result.readyToClose ? "yes" : "no"}`)
-  if (result.missingRequiredArtifacts.length > 0) {
-    console.log(`missing required artifacts: ${result.missingRequiredArtifacts.map((entry) => entry.artifact).join(", ")}`)
+
+  if (Array.isArray(result.blockers) && result.blockers.length > 0) {
+    console.log("blockers:")
+    for (const blocker of result.blockers) {
+      console.log(`- ${blocker.reason ?? blocker}`)
+    }
+  } else {
+    console.log("blockers: none")
   }
-  if (result.recommendedArtifacts.length > 0) {
-    console.log(`recommended artifacts now: ${result.recommendedArtifacts.map((entry) => entry.artifact).join(", ")}`)
+
+  if (Array.isArray(result.recommendations) && result.recommendations.length > 0) {
+    console.log("recommendations:")
+    for (const recommendation of result.recommendations) {
+      if (recommendation.type === "optional_artifact") {
+        console.log(`- optional artifact: ${recommendation.artifact}`)
+      } else {
+        console.log(`- ${recommendation.reason ?? recommendation}`)
+      }
+    }
+  } else {
+    console.log("recommendations: none")
   }
-  if (result.unresolvedIssues.length > 0) {
-    console.log(`unresolved issues: ${result.unresolvedIssues.length}`)
+
+  console.log(`open issues: ${result.unresolvedIssues.length > 0 ? result.unresolvedIssues.length : "none"}`)
+  if (Array.isArray(result.resolvedIssueHistory)) {
+    console.log(`resolved issue history: ${result.resolvedIssueHistory.length}`)
   }
-  if (result.activeTasks.length > 0) {
+
+  if (result.taskBoardCloseoutReadiness?.present) {
+    const taskBoard = result.taskBoardCloseoutReadiness
+    console.log(`task board: ${taskBoard.valid ? "valid for closeout" : "not ready for closeout"}`)
+    if (taskBoard.activeTaskIds.length > 0) {
+      console.log(`active tasks: ${taskBoard.activeTaskIds.join(", ")}`)
+    }
+    if (taskBoard.incompleteTaskIds.length > 0) {
+      console.log(`incomplete tasks: ${taskBoard.incompleteTaskIds.join(", ")}`)
+    }
+  } else if (Array.isArray(result.activeTasks) && result.activeTasks.length > 0) {
     console.log(`active tasks: ${result.activeTasks.map((task) => task.task_id).join(", ")}`)
   }
+
   if (result.verificationReadiness?.status) {
     console.log(`verification readiness: ${result.verificationReadiness.status}`)
   }

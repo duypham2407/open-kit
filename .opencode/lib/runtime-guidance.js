@@ -1,4 +1,5 @@
 import { FULL_STAGE_SEQUENCE, MIGRATION_STAGE_SEQUENCE, QUICK_STAGE_SEQUENCE } from "./workflow-state-rules.js"
+import { getOpenIssues } from "./issue-readiness.js"
 
 const EVIDENCE_RULES = {
   quick: {
@@ -755,7 +756,7 @@ function summarizeVerificationReadinessLine(state) {
 
 function getIssueTelemetry(state) {
   const issues = Array.isArray(state?.issues) ? state.issues : []
-  const openIssues = issues.filter((issue) => issue.current_status !== "closed" && issue.current_status !== "resolved")
+  const openIssues = getOpenIssues(issues)
   const repeatedIssues = issues.filter((issue) => (issue.repeat_count ?? 0) > 0)
   const staleIssues = issues.filter((issue) => typeof issue.blocked_since === "string" || (issue.reopen_count ?? 0) > 0)
 

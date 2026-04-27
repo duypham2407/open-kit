@@ -99,6 +99,7 @@ import {
   getVerificationReadiness,
   TOOL_EVIDENCE_GATES,
 } from "./runtime-guidance.js"
+import { getOpenIssues, getResolvedIssueHistory } from "./issue-readiness.js"
 import { checkPolicy, enforcePolicy, listPolicies, TOOL_INVOCATION_POLICIES } from "./policy-engine.js"
 import { readInvocationLog, resolveLogPath } from "./invocation-log.js"
 import { getRuntimeContext } from "./runtime-summary.js"
@@ -557,12 +558,12 @@ function buildMigrationSliceBoardView(state, board) {
   }
 }
 
-function readWorkItemContext(workItemId, customStatePath) {
+function readWorkItemContext(workItemId, customStatePath, options = {}) {
   ensureString(workItemId, "work_item_id")
   const { statePath, projectRoot, runtimeRoot, kitRoot } = ensureWorkItemStoreReady(customStatePath)
   const state = _store.readWorkItemState(runtimeRoot, workItemId)
   validateStateObject(state)
-  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot })
+  validateManagedState(state, projectRoot, workItemId, { storeRoot: runtimeRoot, allowInvalidBoard: options.allowInvalidBoard })
 
   return {
     statePath,
@@ -796,11 +797,17 @@ function validateManagedState(state, projectRoot, workItemId, options = {}) {
   requireTaskBoardStage(state, workItemId, "carry a task board")
 
   const boardStage = options.boardStage ?? taskBoard.current_stage ?? state.current_stage
-  validateTaskBoard({
-    ...buildBoardView(state, taskBoard),
-    mode: state.mode,
-    current_stage: boardStage,
-  })
+  try {
+    validateTaskBoard({
+      ...buildBoardView(state, taskBoard),
+      mode: state.mode,
+      current_stage: boardStage,
+    })
+  } catch (error) {
+    if (options.allowInvalidBoard !== true) {
+      throw error
+    }
+  }
 
   return taskBoard
 }
@@ -1309,7 +1316,10 @@ function requireArtifactSections(projectRoot, artifactCandidates, label, heading
   let text = null
 
   for (const candidate of candidates) {
-    text = readArtifactTextIfLinked(projectRoot, candidate.path, candidate.label)
+    const candidatePath = candidate && typeof candidate === "object" && !Array.isArray(candidate)
+      ? candidate.path
+      : candidate
+    text = readArtifactTextIfLinked(projectRoot, candidatePath, candidate?.label ?? label)
     if (text !== null) {
       break
     }
@@ -1610,9 +1620,7 @@ function buildReadinessSummary(state, context = {}) {
   const artifactReadiness = getArtifactReadiness(state)
   const verificationReadiness = getVerificationReadiness(state)
   const missingRequiredArtifacts = artifactReadiness.filter((entry) => entry.status === "missing-required")
-  const unresolvedIssues = Array.isArray(state.issues)
-    ? state.issues.filter((issue) => issue.current_status !== "resolved" && issue.current_status !== "closed")
-    : []
+  const unresolvedIssues = getOpenIssues(state.issues)
   const issueTelemetry = getIssueTelemetry(state)
   const blockers = []
 
@@ -1716,6 +1724,69 @@ function getMigrationSliceBoardReadiness(projectRoot, workItemId, state) {
     incompleteSliceIds,
     parityReadySliceIds,
     verifiedSliceIds,
+  }
+}
+
+function getFullTaskBoardCloseoutReadiness(projectRoot, workItemId, state) {
+  if (state?.mode !== "full" || !workItemId) {
+    return {
+      present: false,
+      valid: null,
+      blockers: [],
+      activeTaskIds: [],
+      incompleteTaskIds: [],
+      closureValidTaskIds: [],
+    }
+  }
+
+  const board = readTaskBoardIfExists(projectRoot, workItemId)
+  if (!board) {
+    return {
+      present: false,
+      valid: null,
+      blockers: [],
+      activeTaskIds: [],
+      incompleteTaskIds: [],
+      closureValidTaskIds: [],
+    }
+  }
+
+  const boardView = buildBoardView(state, board)
+  const tasks = Array.isArray(boardView.tasks) ? boardView.tasks : []
+  const activeTaskIds = tasks
+    .filter((task) => ["claimed", "in_progress", "qa_ready", "qa_in_progress"].includes(task.status))
+    .map((task) => task.task_id)
+  const incompleteTaskIds = tasks
+    .filter((task) => !["done", "cancelled"].includes(task.status))
+    .map((task) => task.task_id)
+  const closureValidTaskIds = tasks
+    .filter((task) => ["done", "cancelled"].includes(task.status))
+    .map((task) => task.task_id)
+
+  try {
+    validateTaskBoard({
+      ...boardView,
+      mode: "full",
+      current_stage: "full_done",
+    })
+  } catch (error) {
+    return {
+      present: true,
+      valid: false,
+      blockers: [error.message],
+      activeTaskIds,
+      incompleteTaskIds,
+      closureValidTaskIds,
+    }
+  }
+
+  return {
+    present: true,
+    valid: true,
+    blockers: [],
+    activeTaskIds,
+    incompleteTaskIds,
+    closureValidTaskIds,
   }
 }
 
@@ -1879,7 +1950,7 @@ function listWorkItems(customStatePath) {
 }
 
 function getWorkItemCloseoutSummary(workItemId, customStatePath) {
-  const context = readWorkItemContext(workItemId, customStatePath)
+  const context = readWorkItemContext(workItemId, customStatePath, { allowInvalidBoard: true })
   const { state } = context
   validateStateObject(state)
 
@@ -1887,12 +1958,81 @@ function getWorkItemCloseoutSummary(workItemId, customStatePath) {
   const missingRequiredArtifacts = artifactReadiness.filter((entry) => entry.status === "missing-required")
   const recommendedArtifacts = artifactReadiness.filter((entry) => entry.status === "recommended-now")
   const linkedArtifacts = flattenArtifactRefs(state)
-  const unresolvedIssues = Array.isArray(state.issues) ? state.issues : []
-  const board = state.mode === "full" ? readTaskBoardIfExists(context.runtimeRoot, workItemId) : null
+  const unresolvedIssues = getOpenIssues(state.issues)
+  const resolvedIssueHistory = getResolvedIssueHistory(state.issues)
+  const taskBoardCloseoutReadiness = getFullTaskBoardCloseoutReadiness(context.runtimeRoot, workItemId, state)
   const migrationBoardReadiness = getMigrationSliceBoardReadiness(context.runtimeRoot, workItemId, state)
-  const activeTasks = Array.isArray(board?.tasks)
-    ? board.tasks.filter((task) => ["claimed", "in_progress", "qa_in_progress"].includes(task.status))
-    : []
+  const activeTasks = taskBoardCloseoutReadiness.activeTaskIds.map((taskId) => ({ task_id: taskId }))
+  const verificationReadiness = getVerificationReadiness(state)
+  const blockers = []
+  const recommendations = recommendedArtifacts.map((entry) => ({
+    type: "optional_artifact",
+    artifact: entry.artifact,
+    reason: `optional artifact recommended: ${entry.artifact}`,
+  }))
+  const expectedDoneStage = state.mode === "quick" ? "quick_done" : state.mode === "migration" ? "migration_done" : "full_done"
+
+  if (state.current_stage !== expectedDoneStage) {
+    blockers.push({
+      type: "stage",
+      reason: `terminal stage required: ${expectedDoneStage}`,
+      stage: state.current_stage,
+    })
+  }
+
+  if (state.status !== "done") {
+    blockers.push({
+      type: "status",
+      reason: "work item status is not done",
+      status: state.status,
+    })
+  }
+
+  if (missingRequiredArtifacts.length > 0) {
+    blockers.push({
+      type: "missing_required_artifacts",
+      reason: `missing required artifacts: ${missingRequiredArtifacts.map((entry) => entry.artifact).join(", ")}`,
+      artifacts: missingRequiredArtifacts.map((entry) => entry.artifact),
+    })
+  }
+
+  if (verificationReadiness.status === "missing-evidence") {
+    blockers.push({
+      type: "verification",
+      reason: `missing verification evidence${verificationReadiness.missingKinds.length > 0 ? ` (${verificationReadiness.missingKinds.join(", ")})` : ""}`,
+      missingKinds: verificationReadiness.missingKinds,
+    })
+  }
+
+  if (unresolvedIssues.length > 0) {
+    blockers.push({
+      type: "issues",
+      reason: `unresolved/open issues: ${unresolvedIssues.length}`,
+      issueIds: unresolvedIssues.map((issue) => issue.issue_id),
+    })
+  }
+
+  if (taskBoardCloseoutReadiness.valid === false) {
+    blockers.push({
+      type: "task_board",
+      reason: `task board not ready: ${taskBoardCloseoutReadiness.blockers.join("; ")}`,
+      activeTaskIds: taskBoardCloseoutReadiness.activeTaskIds,
+      incompleteTaskIds: taskBoardCloseoutReadiness.incompleteTaskIds,
+    })
+  }
+
+  if (migrationBoardReadiness.valid === false) {
+    blockers.push({
+      type: "migration_slice_board",
+      reason: `migration slice board invalid: ${migrationBoardReadiness.blockers.join("; ")}`,
+    })
+  } else if (migrationBoardReadiness.present && migrationBoardReadiness.incompleteSliceIds.length > 0) {
+    blockers.push({
+      type: "migration_slice_board",
+      reason: `migration slices incomplete: ${migrationBoardReadiness.incompleteSliceIds.join(", ")}`,
+      incompleteSliceIds: migrationBoardReadiness.incompleteSliceIds,
+    })
+  }
 
   return {
     ...context,
@@ -1901,18 +2041,16 @@ function getWorkItemCloseoutSummary(workItemId, customStatePath) {
     missingRequiredArtifacts,
     recommendedArtifacts,
     unresolvedIssues,
+    resolvedIssueHistory,
+    blockers,
+    recommendations,
     activeTasks,
+    taskBoardCloseoutReadiness,
     migrationSliceBoardReadiness: migrationBoardReadiness,
-    verificationReadiness: getVerificationReadiness(state),
+    verificationReadiness,
     scanEvidence: summarizeScanEvidence(state),
     scanEvidenceLines: summarizeScanEvidenceLines(state),
-    readyToClose:
-      state.status === "done" &&
-      missingRequiredArtifacts.length === 0 &&
-      getVerificationReadiness(state).status !== "missing-evidence" &&
-      unresolvedIssues.length === 0 &&
-      activeTasks.length === 0 &&
-      (!migrationBoardReadiness.present || migrationBoardReadiness.incompleteSliceIds.length === 0),
+    readyToClose: blockers.length === 0,
   }
 }
 

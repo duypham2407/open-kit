@@ -242,6 +242,38 @@ function writeTaskBoard(projectRoot, workItemId, board) {
   fs.writeFileSync(boardPath, `${JSON.stringify(board, null, 2)}\n`, "utf8")
 }
 
+function writeActiveWorkItemState(projectRoot, mutator) {
+  const statePath = path.join(projectRoot, ".opencode", "workflow-state.json")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  mutator(state)
+  const workItemId = state.work_item_id ?? "feature-001"
+  const workItemStatePath = path.join(projectRoot, ".opencode", "work-items", workItemId, "state.json")
+  fs.mkdirSync(path.dirname(workItemStatePath), { recursive: true })
+  fs.writeFileSync(workItemStatePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+  return state
+}
+
+function makeWorkflowIssue(overrides = {}) {
+  return {
+    issue_id: "ISSUE-1",
+    title: "Workflow issue fixture",
+    type: "bug",
+    severity: "high",
+    rooted_in: "implementation",
+    recommended_owner: "FullstackAgent",
+    evidence: "CLI regression fixture",
+    artifact_refs: [],
+    current_status: "open",
+    opened_at: "2026-03-21T00:00:00.000Z",
+    last_updated_at: "2026-03-21T00:00:00.000Z",
+    reopen_count: 0,
+    repeat_count: 0,
+    blocked_since: "2026-03-21T00:00:00.000Z",
+    ...overrides,
+  }
+}
+
 function writeInvocationLog(projectRoot, workItemId, entries) {
   const logPath = workItemId
     ? path.join(projectRoot, ".opencode", "work-items", workItemId, "tool-invocations.json")
@@ -456,6 +488,33 @@ function makeFullTaskBoard(overrides = {}) {
     issues: [],
     ...overrides,
   }
+}
+
+function makeCloseoutReadyTaskBoard(overrides = {}) {
+  return makeFullTaskBoard({
+    current_stage: "full_done",
+    tasks: [
+      {
+        task_id: "TASK-CLOSEOUT-DONE",
+        title: "Completed closeout fix",
+        summary: "Implementation and verification finished",
+        kind: "implementation",
+        status: "done",
+        primary_owner: "FullstackAgent",
+        qa_owner: "QAAgent",
+        depends_on: [],
+        blocked_by: [],
+        artifact_refs: [],
+        plan_refs: ["docs/solution/2026-03-21-feature.md"],
+        branch_or_worktree: null,
+        created_by: "SolutionLead",
+        created_at: "2026-03-21T00:00:00.000Z",
+        updated_at: "2026-03-21T00:00:00.000Z",
+      },
+    ],
+    issues: [],
+    ...overrides,
+  })
 }
 
 function makeMigrationSliceBoard(overrides = {}) {
@@ -1023,6 +1082,89 @@ test("scan evidence read models distinguish substitute scans and manual override
   assert.equal(result.status, 0)
   assert.match(result.stdout, /scan evidence: scan-substitute-security \| substitute semgrep --config bundled\/security --json src\/runtime ran/)
   assert.match(result.stdout, /scan evidence: scan-manual-override \| manual override for full_code_review: tool\.rule-scan/)
+})
+
+test("closeout-summary reports ready for full_done with only resolved issues, optional ADR, valid board, and scan evidence", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+  writeActiveWorkItemState(projectRoot, (state) => {
+    state.issues = [
+      makeWorkflowIssue({ issue_id: "ISSUE-RESOLVED", current_status: "resolved", blocked_since: null }),
+      makeWorkflowIssue({ issue_id: "ISSUE-CLOSED", current_status: "closed", blocked_since: null }),
+    ]
+    state.verification_evidence.push({
+      id: "closeout-direct-rule-scan",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan preserved for closeout output",
+      source: "tool.rule-scan",
+      command: "tool.rule-scan .opencode/lib/workflow-state-controller.js .opencode/workflow-state.js",
+      exit_status: 0,
+      artifact_refs: ["artifacts/closeout-rule-scan.json"],
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails(),
+    })
+  })
+  writeTaskBoard(projectRoot, "feature-001", makeCloseoutReadyTaskBoard())
+
+  const closeout = runCli(projectRoot, ["closeout-summary", "feature-001"])
+
+  assert.equal(closeout.status, 0)
+  assert.match(closeout.stdout, /ready to close: yes/)
+  assert.match(closeout.stdout, /blockers: none/)
+  assert.match(closeout.stdout, /recommendations:/)
+  assert.match(closeout.stdout, /optional artifact: adr/)
+  assert.match(closeout.stdout, /open issues: none/)
+  assert.match(closeout.stdout, /resolved issue history: 2/)
+  assert.doesNotMatch(closeout.stdout, /unresolved issues: [1-9]/)
+  assert.match(closeout.stdout, /task board: valid for closeout/)
+  assert.match(closeout.stdout, /scan evidence: closeout-direct-rule-scan \| direct tool\.rule-scan available\/succeeded \| surface runtime_tooling/)
+
+  const metrics = runCli(projectRoot, ["workflow-metrics"])
+  assert.equal(metrics.status, 0)
+  assert.match(metrics.stdout, /issues: 2 total \| 0 open/)
+
+  const readiness = runCli(projectRoot, ["check-stage-readiness"])
+  assert.equal(readiness.status, 0)
+  assert.match(readiness.stdout, /ready: yes/)
+
+  const shortStatus = runCli(projectRoot, ["status", "--short"])
+  assert.equal(shortStatus.status, 0)
+  assert.match(shortStatus.stdout, /^ready$/m)
+})
+
+test("closeout-summary reports open issue and task-board blockers separately from resolved history", () => {
+  const projectRoot = makeTempProject()
+  setupTempRuntime(projectRoot)
+  writeActiveWorkItemState(projectRoot, (state) => {
+    state.issues = [
+      makeWorkflowIssue({ issue_id: "ISSUE-OPEN", current_status: "open" }),
+      makeWorkflowIssue({ issue_id: "ISSUE-RESOLVED", current_status: "resolved", blocked_since: null }),
+    ]
+  })
+  writeTaskBoard(projectRoot, "feature-001", makeCloseoutReadyTaskBoard({
+    tasks: [
+      {
+        ...makeCloseoutReadyTaskBoard().tasks[0],
+        task_id: "TASK-STILL-ACTIVE",
+        status: "in_progress",
+        qa_owner: null,
+      },
+    ],
+  }))
+
+  const closeout = runCli(projectRoot, ["closeout-summary", "feature-001"])
+
+  assert.equal(closeout.status, 1)
+  assert.match(closeout.stdout, /ready to close: no/)
+  assert.match(closeout.stdout, /blockers:/)
+  assert.match(closeout.stdout, /unresolved\/open issues: 1/)
+  assert.match(closeout.stdout, /task board not ready:/)
+  assert.match(closeout.stdout, /recommendations:/)
+  assert.match(closeout.stdout, /optional artifact: adr/)
+  assert.match(closeout.stdout, /open issues: 1/)
+  assert.match(closeout.stdout, /resolved issue history: 1/)
+  assert.match(closeout.stdout, /incomplete tasks: TASK-STILL-ACTIVE/)
 })
 
 test("show-policy-status reports classified scan evidence blockers", () => {

@@ -365,6 +365,60 @@ function writeInvocationLogEntries(statePath, workItemId, entries) {
   fs.writeFileSync(logPath, `${JSON.stringify({ entries }, null, 2)}\n`, "utf8")
 }
 
+function seedFeature001State(statePath, mutator) {
+  validateState(statePath)
+  const projectRoot = path.dirname(path.dirname(statePath))
+  const workItemStatePath = path.join(projectRoot, ".opencode", "work-items", "feature-001", "state.json")
+  const state = JSON.parse(fs.readFileSync(workItemStatePath, "utf8"))
+  mutator(state)
+  fs.writeFileSync(workItemStatePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+  return state
+}
+
+function createWorkflowIssue(overrides = {}) {
+  return {
+    issue_id: "ISSUE-1",
+    title: "Workflow issue fixture",
+    type: "bug",
+    severity: "high",
+    rooted_in: "implementation",
+    recommended_owner: "FullstackAgent",
+    evidence: "regression fixture",
+    artifact_refs: [],
+    current_status: "open",
+    opened_at: "2026-03-21T00:00:00.000Z",
+    last_updated_at: "2026-03-21T00:00:00.000Z",
+    reopen_count: 0,
+    repeat_count: 0,
+    blocked_since: "2026-03-21T00:00:00.000Z",
+    ...overrides,
+  }
+}
+
+function createCloseoutReadyBoard(overrides = {}) {
+  return {
+    mode: "full",
+    current_stage: "full_done",
+    tasks: [
+      createTask({
+        task_id: "CLOSEOUT-1",
+        title: "Implemented closeout fix",
+        status: "done",
+        primary_owner: "FullstackAgent",
+        qa_owner: "QAAgent",
+      }),
+      createTask({
+        task_id: "CLOSEOUT-2",
+        title: "Cancelled optional follow-up",
+        status: "cancelled",
+      }),
+    ],
+    issues: [],
+    ...overrides,
+  }
+}
+
 function setWorkItemField(statePath, workItemId, field, value) {
   const projectRoot = path.dirname(path.dirname(statePath))
   const wiStatePath = path.join(projectRoot, ".opencode", "work-items", workItemId, "state.json")
@@ -1047,6 +1101,127 @@ test("closeout summary stays not ready while migration slices remain incomplete"
   assert.equal(result.readyToClose, false)
   assert.equal(result.migrationSliceBoardReadiness.present, true)
   assert.deepEqual(result.migrationSliceBoardReadiness.incompleteSliceIds, ["SLICE-123"])
+})
+
+test("closeout summary treats resolved issues and optional ADR recommendations as non-blocking history", () => {
+  const statePath = createTempStateFile()
+  seedFeature001State(statePath, (state) => {
+    state.issues = [
+      createWorkflowIssue({
+        issue_id: "ISSUE-RESOLVED",
+        title: "Previously severe implementation finding",
+        current_status: "resolved",
+        blocked_since: null,
+      }),
+      createWorkflowIssue({
+        issue_id: "ISSUE-CLOSED",
+        title: "Closed QA finding",
+        severity: "medium",
+        current_status: "closed",
+        blocked_since: null,
+      }),
+    ]
+  })
+  writeTaskBoard(statePath, "feature-001", createCloseoutReadyBoard())
+
+  const result = getWorkItemCloseoutSummary("feature-001", statePath)
+
+  assert.equal(result.readyToClose, true)
+  assert.deepEqual(result.unresolvedIssues, [])
+  assert.equal(result.resolvedIssueHistory.length, 2)
+  assert.deepEqual(result.resolvedIssueHistory.map((issue) => issue.issue_id), ["ISSUE-RESOLVED", "ISSUE-CLOSED"])
+  assert.deepEqual(result.recommendedArtifacts.map((entry) => entry.artifact), ["adr"])
+  assert.ok(result.recommendations.some((entry) => entry.type === "optional_artifact" && entry.artifact === "adr"))
+  assert.deepEqual(result.blockers, [])
+})
+
+test("closeout summary keeps open issues blocking while preserving resolved issue history", () => {
+  const statePath = createTempStateFile()
+  seedFeature001State(statePath, (state) => {
+    state.issues = [
+      createWorkflowIssue({ issue_id: "ISSUE-OPEN", current_status: "open" }),
+      createWorkflowIssue({
+        issue_id: "ISSUE-RESOLVED",
+        current_status: "resolved",
+        blocked_since: null,
+      }),
+    ]
+  })
+  writeTaskBoard(statePath, "feature-001", createCloseoutReadyBoard())
+
+  const result = getWorkItemCloseoutSummary("feature-001", statePath)
+
+  assert.equal(result.readyToClose, false)
+  assert.deepEqual(result.unresolvedIssues.map((issue) => issue.issue_id), ["ISSUE-OPEN"])
+  assert.deepEqual(result.resolvedIssueHistory.map((issue) => issue.issue_id), ["ISSUE-RESOLVED"])
+  assert.ok(result.blockers.some((blocker) => blocker.reason === "unresolved/open issues: 1"))
+})
+
+test("closeout summary reports full_done ready with valid board and scan evidence summary preserved", () => {
+  const statePath = createTempStateFile()
+  seedFeature001State(statePath, (state) => {
+    state.verification_evidence.push({
+      id: "closeout-rule-scan",
+      kind: "automated",
+      scope: "full_implementation",
+      summary: "Rule scan on closeout readiness files",
+      source: "tool.rule-scan",
+      command: "tool.rule-scan .opencode/lib/workflow-state-controller.js .opencode/workflow-state.js",
+      exit_status: 0,
+      artifact_refs: ["artifacts/closeout-rule-scan.json"],
+      recorded_at: "2026-03-21T00:00:00.000Z",
+      details: makeScanEvidenceDetails({ groups: [] }),
+    })
+  })
+  writeTaskBoard(statePath, "feature-001", createCloseoutReadyBoard())
+
+  const result = getWorkItemCloseoutSummary("feature-001", statePath)
+
+  assert.equal(result.readyToClose, true)
+  assert.equal(result.taskBoardCloseoutReadiness.present, true)
+  assert.equal(result.taskBoardCloseoutReadiness.valid, true)
+  assert.deepEqual(result.taskBoardCloseoutReadiness.incompleteTaskIds, [])
+  assert.ok(result.scanEvidenceLines.some((line) => line.includes("scan evidence: closeout-rule-scan")))
+  assert.ok(result.scanEvidenceLines.some((line) => line.includes("direct tool.rule-scan available/succeeded")))
+})
+
+test("closeout summary blocks full_done when task board has incomplete tasks", () => {
+  const statePath = createTempStateFile()
+  validateState(statePath)
+  writeTaskBoard(statePath, "feature-001", createCloseoutReadyBoard({
+    tasks: [
+      createTask({
+        task_id: "CLOSEOUT-ACTIVE",
+        title: "Still active implementation work",
+        status: "in_progress",
+        primary_owner: "FullstackAgent",
+      }),
+    ],
+  }))
+
+  const result = getWorkItemCloseoutSummary("feature-001", statePath)
+
+  assert.equal(result.readyToClose, false)
+  assert.equal(result.taskBoardCloseoutReadiness.valid, false)
+  assert.deepEqual(result.taskBoardCloseoutReadiness.activeTaskIds, ["CLOSEOUT-ACTIVE"])
+  assert.deepEqual(result.taskBoardCloseoutReadiness.incompleteTaskIds, ["CLOSEOUT-ACTIVE"])
+  assert.ok(result.blockers.some((blocker) => blocker.type === "task_board"))
+})
+
+test("closeout summary blocks missing required artifacts without treating optional ADR as required", () => {
+  const statePath = createTempStateFile()
+  seedFeature001State(statePath, (state) => {
+    state.artifacts.qa_report = null
+  })
+  writeTaskBoard(statePath, "feature-001", createCloseoutReadyBoard())
+
+  const result = getWorkItemCloseoutSummary("feature-001", statePath)
+
+  assert.equal(result.readyToClose, false)
+  assert.deepEqual(result.missingRequiredArtifacts.map((entry) => entry.artifact), ["qa_report"])
+  assert.deepEqual(result.recommendedArtifacts.map((entry) => entry.artifact), ["adr"])
+  assert.ok(result.blockers.some((blocker) => blocker.type === "missing_required_artifacts"))
+  assert.ok(result.recommendations.some((entry) => entry.type === "optional_artifact" && entry.artifact === "adr"))
 })
 
 test("entering migration_strategy auto-scaffolds the migration solution package", () => {
