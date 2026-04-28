@@ -6,6 +6,9 @@ import path from "node:path"
 
 import { validateInstallState } from "../../src/install/install-state.js"
 import { materializeInstall } from "../../src/install/materialize.js"
+import { createPermissionedOpenCodeConfigMetadata, loadDefaultCommandPermissionPolicy } from "../../src/permissions/command-permission-policy.js"
+
+const PERMISSIONED_CONFIG = createPermissionedOpenCodeConfigMetadata(loadDefaultCommandPermissionPolicy())
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "openkit-materialize-"))
@@ -62,29 +65,7 @@ test("materializeInstall creates managed install files without mutating the chec
         enabled: true,
       },
     },
-    permission: {
-      npm: "allow",
-      task: "allow",
-      bash: "allow",
-      edit: "allow",
-      read: "allow",
-      write: "allow",
-      glob: "allow",
-      grep: "allow",
-      list: "allow",
-      skill: "allow",
-      lsp: "allow",
-      todoread: "allow",
-      todowrite: "allow",
-      webfetch: "allow",
-      websearch: "allow",
-      codesearch: "allow",
-      external_directory: "allow",
-      doom_loop: "allow",
-      rm: "ask",
-      "git log": "allow",
-      "git diff": "allow",
-    },
+    ...PERMISSIONED_CONFIG,
     productSurface: {
       current: "global-openkit-install",
       installReadiness: "managed",
@@ -151,29 +132,7 @@ test("materializeInstall additively inserts allowed managed-install keys into an
         enabled: true,
       },
     },
-    permission: {
-      npm: "allow",
-      task: "allow",
-      bash: "allow",
-      edit: "allow",
-      read: "allow",
-      write: "allow",
-      glob: "allow",
-      grep: "allow",
-      list: "allow",
-      skill: "allow",
-      lsp: "allow",
-      todoread: "allow",
-      todowrite: "allow",
-      webfetch: "allow",
-      websearch: "allow",
-      codesearch: "allow",
-      external_directory: "allow",
-      doom_loop: "allow",
-      rm: "ask",
-      "git log": "allow",
-      "git diff": "allow",
-    },
+    ...PERMISSIONED_CONFIG,
     productSurface: {
       current: "global-openkit-install",
       installReadiness: "managed",

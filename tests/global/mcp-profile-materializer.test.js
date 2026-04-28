@@ -9,8 +9,10 @@ import { addCustomMcpEntry } from '../../src/global/mcp/custom-mcp-store.js';
 import { setSecretValue } from '../../src/global/mcp/secret-manager.js';
 import { setMcpEnabled } from '../../src/global/mcp/mcp-config-store.js';
 import { materializeMcpProfiles } from '../../src/global/mcp/profile-materializer.js';
+import { createPermissionedOpenCodeConfigMetadata, loadDefaultCommandPermissionPolicy } from '../../src/permissions/command-permission-policy.js';
 
 const SENTINEL = 'sk-openkit-profile-sentinel-941';
+const PERMISSIONED_CONFIG = createPermissionedOpenCodeConfigMetadata(loadDefaultCommandPermissionPolicy());
 
 function makeTempHome() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-mcp-profile-'));
@@ -38,6 +40,27 @@ test('materializeMcpProfiles writes openkit scope entries with placeholders only
   assert.equal(result.results.openkit.status, 'materialized');
   assert.equal(profile.mcp.context7.environment.CONTEXT7_API_KEY, '${CONTEXT7_API_KEY}');
   assert.equal(JSON.stringify(profile).includes(SENTINEL), false);
+  assert.equal(profile.mcp.context7.enabled, true);
+  assert.deepEqual(profile.permission, PERMISSIONED_CONFIG.permission);
+  assert.deepEqual(profile.commandPermissionPolicy, PERMISSIONED_CONFIG.commandPermissionPolicy);
+});
+
+test('materializeMcpProfiles preserves existing openkit permission policy metadata', () => {
+  const tempHome = makeTempHome();
+  const env = { OPENCODE_HOME: tempHome };
+  const paths = getGlobalPaths({ env });
+  writeJson(paths.profileManifestPath, {
+    $schema: 'https://opencode.ai/config.json',
+    ...PERMISSIONED_CONFIG,
+    mcp: {},
+  });
+  setMcpEnabled('context7', true, { scope: 'openkit', env });
+
+  materializeMcpProfiles({ scope: 'openkit', env });
+  const profile = readJson(paths.profileManifestPath);
+
+  assert.deepEqual(profile.permission, PERMISSIONED_CONFIG.permission);
+  assert.deepEqual(profile.commandPermissionPolicy, PERMISSIONED_CONFIG.commandPermissionPolicy);
   assert.equal(profile.mcp.context7.enabled, true);
 });
 

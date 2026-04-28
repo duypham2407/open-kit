@@ -4,6 +4,7 @@ const OPENKIT_MERGE_ALLOWLIST = new Set([
   "installState",
   "mcp",
   "permission",
+  "commandPermissionPolicy",
   "productSurface",
 ])
 

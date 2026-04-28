@@ -7,6 +7,10 @@ import { createEmptyAgentModelSettings, readAgentModelSettings, writeAgentModelS
 import { getGlobalPaths } from './paths.js';
 import { materializeMcpProfiles } from './mcp/profile-materializer.js';
 import { ensureAstGrepInstalled, ensureSemgrepInstalled } from './tooling.js';
+import {
+  createPermissionedOpenCodeConfigMetadata,
+  loadDefaultCommandPermissionPolicy,
+} from '../permissions/command-permission-policy.js';
 import { getOpenKitVersion } from '../version.js';
 
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -31,6 +35,7 @@ const GLOBAL_KIT_ASSETS = [
   'src/mcp-server',
   'src/global',
   'src/install',
+  'src/permissions',
   'src/mcp-server',
   'src/command-detection.js',
   'src/version.js',
@@ -118,6 +123,8 @@ function listManagedFiles(kitRoot) {
 
 function createOpenCodeConfig(kitRoot) {
   const mcpCommand = [process.execPath, path.join(PACKAGE_ROOT, 'bin', 'openkit-mcp.js')];
+  const permissionPolicy = loadDefaultCommandPermissionPolicy();
+  const permissionedConfig = createPermissionedOpenCodeConfigMetadata(permissionPolicy);
   return {
     $schema: 'https://opencode.ai/config.json',
     default_agent: 'master-orchestrator',
@@ -136,29 +143,7 @@ function createOpenCodeConfig(kitRoot) {
         enabled: true,
       },
     },
-    permission: {
-      npm: 'allow',
-      task: 'allow',
-      bash: 'allow',
-      edit: 'allow',
-      read: 'allow',
-      write: 'allow',
-      glob: 'allow',
-      grep: 'allow',
-      list: 'allow',
-      skill: 'allow',
-      lsp: 'allow',
-      todoread: 'allow',
-      todowrite: 'allow',
-      webfetch: 'allow',
-      websearch: 'allow',
-      codesearch: 'allow',
-      external_directory: 'allow',
-      doom_loop: 'allow',
-      rm: 'ask',
-      'git log': 'allow',
-      'git diff': 'allow',
-    },
+    ...permissionedConfig,
   };
 }
 

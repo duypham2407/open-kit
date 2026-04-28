@@ -51,6 +51,18 @@ Use the standard capability vocabulary in reports: `available`, `unavailable`, `
 
 Keep validation surfaces separate while debugging this stack: `openkit doctor` is `global_cli`; graph, embedding, and semantic-search tools are `runtime_tooling`; workflow-state resume and evidence diagnostics are `compatibility_runtime`; target-project app validation remains `target_project_app` only when the project defines real build, lint, or test commands.
 
+### Verify command permission policy
+
+`openkit doctor` also reports the OpenKit command permission policy projected into the managed kit/profile configs. Look for a line like:
+
+```
+Command permission policy: degraded | support=degraded | policy=<OPENCODE_HOME>/kits/openkit/assets/default-command-permission-policy.json
+```
+
+`degraded` is expected until OpenCode default-allow with confirm-required exception semantics are verified upstream. The canonical policy source is `assets/default-command-permission-policy.json`; the managed global kit config and `profiles/openkit/opencode.json` should match its projection. If doctor reports missing, malformed, or drifted policy state, run `openkit upgrade` and re-run `openkit doctor`.
+
+Dangerous entries such as deletion, destructive git, publish/release/deploy, database-destructive, and privileged/system-impacting commands remain confirmation-required by policy. OpenKit does not auto-confirm prompts, intercept a pseudo-terminal, or weaken the agent git/release safety protocol.
+
 ## 2. Configure Embedding Provider
 
 ### Option A: Ollama (local, recommended for privacy)

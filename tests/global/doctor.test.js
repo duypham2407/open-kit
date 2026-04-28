@@ -71,6 +71,10 @@ test('global doctor reports next steps for healthy installs', () => {
   });
 
   assert.equal(result.status, 'healthy');
+  assert.equal(result.commandPermissionPolicy.status, 'degraded');
+  assert.equal(result.commandPermissionPolicy.support, 'degraded');
+  assert.equal(result.commandPermissionPolicy.checks.length, 2);
+  assert.deepEqual(result.commandPermissionPolicy.issues, []);
   assert.equal(result.nextStep, 'Run openkit run.');
   assert.equal(result.recommendedCommand, 'openkit run');
   assert.equal(result.workspace.paths.workspaceRoot.includes('workspaces'), true);
@@ -96,7 +100,146 @@ test('global doctor reports next steps for healthy installs', () => {
   assert.match(output, /Workflow runtime:/);
   assert.match(output, /Tool enforcement: tool_substitution_level=strict \| source=mode_default \| plugin_active=true \| guard_hook_active=true/);
   assert.match(output, /Tool enforcement blocked_commands: grep, find, cat, head, tail, sed, awk, echo, wc, ls/);
+  assert.match(output, /Command permission policy: degraded \| support=degraded/);
+  assert.match(output, /Command permission caveat: OpenCode defaultAction allow plus confirm-required exception semantics are not verified/);
   assert.match(output, /capabilities/);
+});
+
+test('global doctor reports command permission policy drift with upgrade guidance', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'semgrep'), '#!/bin/sh\nexit 0\n');
+
+  const profilePath = path.join(tempHome, 'profiles', 'openkit', 'opencode.json');
+  const profile = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
+  delete profile.permission.rm;
+  writeJson(profilePath, profile);
+
+  const result = inspectGlobalDoctor({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+  });
+
+  assert.equal(result.status, 'workspace-ready-with-issues');
+  assert.equal(result.commandPermissionPolicy.status, 'drifted');
+  assert.match(result.issues.join('\n'), /openkit-profile-config: Materialized config is missing confirm-required dangerous entries: rm/);
+  assert.match(renderGlobalDoctorSummary(result), /Command permission next action: Run openkit upgrade/);
+});
+
+test('global doctor reports missing packaged command permission policy source', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'semgrep'), '#!/bin/sh\nexit 0\n');
+  fs.rmSync(path.join(tempHome, 'kits', 'openkit', 'assets', 'default-command-permission-policy.json'));
+
+  const result = inspectGlobalDoctor({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+  });
+
+  assert.equal(result.status, 'workspace-ready-with-issues');
+  assert.equal(result.commandPermissionPolicy.status, 'missing');
+  assert.match(result.issues.join('\n'), /Command permission policy source missing/);
+});
+
+test('global doctor reports malformed packaged command permission policy source', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'semgrep'), '#!/bin/sh\nexit 0\n');
+  fs.writeFileSync(path.join(tempHome, 'kits', 'openkit', 'assets', 'default-command-permission-policy.json'), '{"schema": ', 'utf8');
+
+  const result = inspectGlobalDoctor({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+  });
+
+  assert.equal(result.status, 'workspace-ready-with-issues');
+  assert.equal(result.commandPermissionPolicy.status, 'malformed');
+  assert.match(result.issues.join('\n'), /Command permission policy source malformed/);
+});
+
+test('global doctor reports schema-malformed command permission policy without crashing', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+  });
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep'), '#!/bin/sh\nexit 0\n');
+  writeExecutable(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'semgrep'), '#!/bin/sh\nexit 0\n');
+
+  const policyPath = path.join(tempHome, 'kits', 'openkit', 'assets', 'default-command-permission-policy.json');
+  const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
+  writeJson(policyPath, {
+    ...policy,
+    routineAllowExamples: {},
+    confirmRequired: {},
+    unsupportedGranularity: {},
+  });
+
+  const result = inspectGlobalDoctor({
+    projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+    },
+  });
+
+  assert.equal(result.status, 'workspace-ready-with-issues');
+  assert.equal(result.commandPermissionPolicy.status, 'malformed');
+  assert.equal(result.commandPermissionPolicy.support, 'unsupported');
+  assert.match(result.issues.join('\n'), /Command permission policy schema error: routineAllowExamples must be a non-empty array/);
+  assert.match(result.issues.join('\n'), /Command permission policy schema error: confirmRequired must be a non-empty array/);
+  assert.match(result.issues.join('\n'), /Command permission policy schema error: unsupportedGranularity must be an array/);
+  assert.match(renderGlobalDoctorSummary(result), /Command permission policy: malformed \| support=unsupported/);
 });
 
 test('global doctor reports redacted MCP capability and secret readiness', () => {

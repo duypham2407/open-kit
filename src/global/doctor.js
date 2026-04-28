@@ -16,6 +16,10 @@ import { inspectMcpDoctor } from '../runtime/doctor/mcp-doctor.js';
 import { inspectModelDoctor } from '../runtime/doctor/model-doctor.js';
 import { inspectWorkflowDoctor } from '../runtime/doctor/workflow-doctor.js';
 import { readAgentModelSettings } from './agent-models.js';
+import {
+  inspectCommandPermissionPolicy,
+  tryLoadDefaultCommandPermissionPolicy,
+} from '../permissions/command-permission-policy.js';
 import { getOpenKitVersion } from '../version.js';
 
 function isOpenCodeAvailable(env = process.env) {
@@ -42,6 +46,68 @@ function withGuidance(result, nextStep, recommendedCommand = null) {
     ...result,
     nextStep,
     recommendedCommand,
+  };
+}
+
+function inspectGlobalCommandPermissionPolicy(globalPaths) {
+  const policyLoad = tryLoadDefaultCommandPermissionPolicy({
+    policyPath: path.join(globalPaths.kitRoot, 'assets', 'default-command-permission-policy.json'),
+  });
+  const kitConfig = readJsonIfPresent(globalPaths.kitConfigPath);
+  const profileConfig = readJsonIfPresent(globalPaths.profileManifestPath);
+
+  if (policyLoad.status !== 'loaded') {
+    return {
+      status: policyLoad.status,
+      support: 'unsupported',
+      policyPath: policyLoad.policyPath,
+      checks: [],
+      issues: [`Command permission policy source ${policyLoad.status}: ${policyLoad.error}`],
+      caveats: [],
+      nextActions: ['Run openkit upgrade to refresh the managed OpenKit kit and policy source.'],
+    };
+  }
+
+  const checks = [
+    inspectCommandPermissionPolicy({
+      policy: policyLoad.policy,
+      config: kitConfig,
+      configPath: globalPaths.kitConfigPath,
+      scope: 'global-kit-config',
+      surface: 'global_cli',
+    }),
+    inspectCommandPermissionPolicy({
+      policy: policyLoad.policy,
+      config: profileConfig,
+      configPath: globalPaths.profileManifestPath,
+      scope: 'openkit-profile-config',
+      surface: 'global_cli',
+    }),
+  ];
+  const issues = checks.flatMap((check) => check.issues.map((issue) => `${check.scope}: ${issue}`));
+  const caveats = [...new Set(checks.flatMap((check) => check.caveats))];
+  const nextActions = [...new Set(checks.flatMap((check) => check.nextActions))];
+  const status = checks.some((check) => check.status === 'malformed')
+    ? 'malformed'
+    : checks.some((check) => ['missing', 'drifted', 'unsupported'].includes(check.status))
+      ? 'drifted'
+      : checks.some((check) => check.status === 'degraded')
+        ? 'degraded'
+        : 'healthy';
+  const support = checks.some((check) => check.support === 'unsupported')
+    ? 'unsupported'
+    : checks.some((check) => check.support === 'degraded')
+      ? 'degraded'
+      : 'supported';
+
+  return {
+    status,
+    support,
+    policyPath: policyLoad.policyPath,
+    checks,
+    issues,
+    caveats,
+    nextActions,
   };
 }
 
@@ -78,6 +144,11 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
 
   if (!profileManifest) {
     issues.push('OpenCode profile manifest for openkit is missing.');
+  }
+
+  const commandPermissionPolicy = inspectGlobalCommandPermissionPolicy(globalPaths);
+  for (const issue of commandPermissionPolicy.issues) {
+    issues.push(issue);
   }
 
   if (!fs.existsSync(path.join(globalPaths.kitRoot, '.opencode', 'workflow-state.js'))) {
@@ -157,6 +228,7 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
     workspace,
     runtimeFoundation,
       runtimeDoctor,
+      commandPermissionPolicy,
       mcpCapabilityPack: {
         scope: 'openkit',
         secretFile: mcpSecretFile,
@@ -195,6 +267,21 @@ export function renderGlobalDoctorSummary(result) {
     lines.push('Issues:');
     for (const issue of result.issues) {
       lines.push(`- ${issue}`);
+    }
+  }
+
+  if (result.commandPermissionPolicy) {
+    lines.push(
+      `Command permission policy: ${result.commandPermissionPolicy.status} | support=${result.commandPermissionPolicy.support} | policy=${result.commandPermissionPolicy.policyPath ?? 'unknown'}`
+    );
+    for (const check of result.commandPermissionPolicy.checks ?? []) {
+      lines.push(`- ${check.scope}: ${check.status} | config=${check.configPath ?? 'unknown'} | projection=${check.effectiveProjection ?? 'none'}`);
+    }
+    for (const caveat of result.commandPermissionPolicy.caveats ?? []) {
+      lines.push(`Command permission caveat: ${caveat}`);
+    }
+    for (const nextAction of result.commandPermissionPolicy.nextActions ?? []) {
+      lines.push(`Command permission next action: ${nextAction}`);
     }
   }
 

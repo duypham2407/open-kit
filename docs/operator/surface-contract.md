@@ -79,11 +79,12 @@ Use this document to decide which OpenKit surface to use for a given goal.
 
 ## Permission Rule
 
-- Non-destructive commands should run without asking for confirmation.
-- Recommended auto-approved commands include `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `/task`, `/quick-task`, `/migrate`, `/delivery`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git log`, `git diff`, and standard edit/write flows.
-- Commands that remove files, remove directories, or otherwise perform clearly destructive deletion must require explicit user confirmation first.
-- Treat deletion as confirmation-required even when the target looks generated or disposable.
-- If OpenCode offers `Always Allow` at prompt time, that remembered decision is expected to be stored by OpenCode. OpenKit does not currently layer its own extra persistence for command approvals.
+- The command permission policy source of truth is `assets/default-command-permission-policy.json`. Global kit/profile materialization projects it into the OpenKit-managed OpenCode configs used by `openkit run`; `.opencode/opencode.json` is an authoring/compatibility projection.
+- OpenKit's desired behavior is default allow for routine non-dangerous commands. Recommended routine examples include `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `/task`, `/quick-task`, `/migrate`, `/delivery`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git status`, `git log`, `git diff`, and standard edit/write flows.
+- Policy-listed dangerous commands must require explicit confirmation first. This covers deletion (`rm`, `rmdir`, `unlink`), destructive git/discard/force-push commands, publish/release/deploy commands, database destructive forms, and privileged/system-impacting commands represented in the policy.
+- Treat deletion and destructive git/release operations as confirmation-required even when the target looks generated or disposable; OpenKit's agent git/release safety protocol remains binding regardless of the permission map.
+- OpenCode default-allow plus exception support is currently unverified, so OpenKit reports the effective policy support as `degraded` and does not guarantee prompt-free execution when upstream still prompts.
+- If OpenCode offers `Always Allow` at prompt time, that remembered decision is expected to be stored by OpenCode. OpenKit does not layer its own extra persistence for command approvals and does not implement prompt-broker or auto-confirm behavior.
 
 ## Doctor Split
 

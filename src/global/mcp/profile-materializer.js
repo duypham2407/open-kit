@@ -7,6 +7,10 @@ import { getGlobalPaths } from '../paths.js';
 import { loadMcpCatalog } from './catalog-loader.js';
 import { listCustomMcpEntries } from './custom-mcp-store.js';
 import { readMcpConfig } from './mcp-config-store.js';
+import {
+  createPermissionedOpenCodeConfigMetadata,
+  loadDefaultCommandPermissionPolicy,
+} from '../../permissions/command-permission-policy.js';
 
 function readJsonIfPresent(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -59,9 +63,14 @@ function cloneCustomProfileEntry(entry, enabled) {
   return null;
 }
 
-function createDefaultProfileConfig(existing = {}) {
+function createDefaultProfileConfig(existing = {}, { scope = 'openkit' } = {}) {
+  const permissionedConfig = scope === 'openkit'
+    ? createPermissionedOpenCodeConfigMetadata(loadDefaultCommandPermissionPolicy())
+    : {};
+
   return {
     $schema: existing.$schema ?? 'https://opencode.ai/config.json',
+    ...permissionedConfig,
     ...existing,
     mcp: { ...(existing.mcp ?? {}) },
   };
@@ -110,7 +119,7 @@ function removeManagedEntries(currentConfig, managedEntries, predicate) {
 
 function materializeScope(scope, { paths, config, catalog, customEntries, profileState }) {
   const configPath = scope === 'openkit' ? paths.profileManifestPath : path.join(paths.openCodeHome, 'opencode.json');
-  const currentConfig = createDefaultProfileConfig(readJsonIfPresent(configPath));
+  const currentConfig = createDefaultProfileConfig(readJsonIfPresent(configPath), { scope });
   const managedEntries = profileState.profiles[scope].managedEntries ?? {};
   const conflicts = {};
   let changed = removeManagedEntries(currentConfig, managedEntries, (metadata) => metadata.kind === 'custom' && !customEntries.some((entry) => entry.id === metadata.customId || entry.id === metadata.id));

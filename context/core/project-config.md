@@ -62,14 +62,15 @@ Command reality rule: mark a command as current only when it exists in `package.
 
 ## Permission Policy
 
-- The checked-in runtime manifest at `.opencode/opencode.json` now carries the default OpenKit permission policy.
-- Non-destructive commands should run without asking for user confirmation.
-- This includes commands and tools such as `read`, `glob`, `grep`, `list`, `skill`, `task`, `bash`, `npm`, `edit`, `write`, `todowrite`, `webfetch`, `websearch`, `codesearch`, `git log`, and `git diff`.
-- Commands that delete repository state must still require explicit user confirmation before execution.
-- This includes removals, directory deletion, and other clearly destructive delete-style commands.
-- `rm` is explicitly `ask` by policy.
-- Treat clearly destructive git operations as confirmation-required even when a specific git subcommand is not listed in the permission map.
-- If OpenCode offers an `Always Allow` choice at permission prompt time, treat that persistence as an OpenCode-owned behavior. OpenKit does not currently add a separate permission-memory layer on top of OpenCode.
+- The canonical machine-readable command permission policy is `assets/default-command-permission-policy.json` (`openkit/command-permission-policy@1`). Static config files are projections of that policy, not separate policy sources.
+- Global OpenKit-managed config is the primary product target. `openkit run`, first-time global install, and upgrade-style materialization write policy-derived permissions into `<OPENCODE_HOME>/kits/openkit/opencode.json` and `<OPENCODE_HOME>/profiles/openkit/opencode.json`.
+- The checked-in repository-local `.opencode/opencode.json` and `assets/opencode.json.template` remain authoring/compatibility projections and should stay aligned with the canonical policy.
+- The policy intent is default-allow for routine non-dangerous commands, with confirm-required exceptions for dangerous commands. Because OpenCode `defaultAction` exception support is not verified in this MVP, OpenKit writes an explicit `permission` map and reports effective support as `degraded` rather than claiming guaranteed prompt-free behavior.
+- Routine allowed examples include `read`, `glob`, `grep`, `list`, `skill`, `task`, `bash`, `npm`, `edit`, `write`, `todowrite`, `webfetch`, `websearch`, `codesearch`, `git status`, `git log`, and `git diff`. Broad `bash`/`npm` allow entries carry caveats because wrapped dangerous subcommands require upstream exception matching to be enforceable.
+- Confirmation-required dangerous entries include delete/data-loss commands (`rm`, `rmdir`, `unlink`), destructive git (`git reset --hard`, `git clean`, discard-style `git restore`/`git checkout`, force pushes), package/release/deploy publish commands, database destructive forms, and privileged/system-impacting commands (`sudo`, `chmod`, `chown`) where represented in the flat permission map.
+- `openkit doctor` reports command permission policy source health, global kit/profile drift, missing dangerous entries, and degraded/unsupported upstream semantics. Runtime doctor checks compare managed install manifests to the policy projection rather than to a separate hardcoded list.
+- Command permission defaults do not weaken agent git/release safety protocol: commits, amend, force-push, destructive git, release publish, and deploy operations still require explicit user intent and the existing safety rules.
+- If OpenCode offers an `Always Allow` choice at permission prompt time, treat that persistence as OpenCode-owned behavior. OpenKit does not add a prompt broker, pseudo-terminal auto-confirm layer, hidden prompt interceptor, or separate command-approval memory.
 
 ### Workflow-State Utility Commands
 

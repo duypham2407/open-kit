@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url"
 import { createInstallState } from "./install-state.js"
 import { applyOpenKitMergePolicy } from "./merge-policy.js"
 import { createMaterializationConflict, qualifyMergeConflicts } from "./conflicts.js"
+import { createPermissionedOpenCodeConfigMetadata, loadDefaultCommandPermissionPolicy } from "../permissions/command-permission-policy.js"
 import { getOpenKitVersion } from "../version.js"
 
 const ROOT_MANIFEST_ASSET_ID = "runtime.opencode-manifest"
@@ -27,7 +28,12 @@ function readExistingJson(filePath) {
 }
 
 function readTemplate(relativePath) {
-  return readJson(path.join(BUNDLE_ROOT, relativePath))
+  const template = readJson(path.join(BUNDLE_ROOT, relativePath))
+  const permissionPolicy = loadDefaultCommandPermissionPolicy({ packageRoot: BUNDLE_ROOT })
+  return {
+    ...template,
+    ...createPermissionedOpenCodeConfigMetadata(permissionPolicy),
+  }
 }
 
 function writeJson(filePath, value) {

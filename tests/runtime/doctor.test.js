@@ -6,6 +6,9 @@ import path from 'node:path';
 
 import { inspectManagedDoctor } from '../../src/runtime/doctor.js';
 import { inspectCapabilityDoctor } from '../../src/runtime/doctor/capability-doctor.js';
+import { createPermissionedOpenCodeConfigMetadata, loadDefaultCommandPermissionPolicy } from '../../src/permissions/command-permission-policy.js';
+
+const PERMISSIONED_CONFIG = createPermissionedOpenCodeConfigMetadata(loadDefaultCommandPermissionPolicy());
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-doctor-'));
@@ -43,29 +46,7 @@ function materializeManagedInstall(projectRoot) {
       path: '.openkit/openkit-install.json',
       schema: 'openkit/install-state@1',
     },
-    permission: {
-      npm: 'allow',
-      task: 'allow',
-      bash: 'allow',
-      edit: 'allow',
-      read: 'allow',
-      write: 'allow',
-      glob: 'allow',
-      grep: 'allow',
-      list: 'allow',
-      skill: 'allow',
-      lsp: 'allow',
-      todoread: 'allow',
-      todowrite: 'allow',
-      webfetch: 'allow',
-      websearch: 'allow',
-      codesearch: 'allow',
-      external_directory: 'allow',
-      doom_loop: 'allow',
-      rm: 'ask',
-      'git log': 'allow',
-      'git diff': 'allow',
-    },
+    ...PERMISSIONED_CONFIG,
     productSurface: {
       current: 'global-openkit-install',
       installReadiness: 'managed',
@@ -149,29 +130,7 @@ test('doctor reports install incomplete when install state is missing', () => {
       path: '.openkit/openkit-install.json',
       schema: 'openkit/install-state@1',
     },
-    permission: {
-      npm: 'allow',
-      task: 'allow',
-      bash: 'allow',
-      edit: 'allow',
-      read: 'allow',
-      write: 'allow',
-      glob: 'allow',
-      grep: 'allow',
-      list: 'allow',
-      skill: 'allow',
-      lsp: 'allow',
-      todoread: 'allow',
-      todowrite: 'allow',
-      webfetch: 'allow',
-      websearch: 'allow',
-      codesearch: 'allow',
-      external_directory: 'allow',
-      doom_loop: 'allow',
-      rm: 'ask',
-      'git log': 'allow',
-      'git diff': 'allow',
-    },
+    ...PERMISSIONED_CONFIG,
     productSurface: {
       current: 'global-openkit-install',
       installReadiness: 'managed',
@@ -405,6 +364,9 @@ test('doctor reports healthy state when install is intact and launcher prerequis
   });
 
   assert.equal(result.status, 'healthy');
+  assert.equal(result.commandPermissionPolicy.status, 'degraded');
+  assert.equal(result.commandPermissionPolicy.support, 'degraded');
+  assert.deepEqual(result.commandPermissionPolicy.issues, []);
   assert.equal(result.canRunCleanly, true);
   assert.deepEqual(result.issues, []);
   assert.deepEqual(result.driftedAssets, []);
@@ -429,6 +391,31 @@ test('doctor reports healthy state when install is intact and launcher prerequis
   assert.deepEqual(result.runtimeDoctor.continuation.continuationRisk, []);
   assert.match(result.summary, /managed install is healthy/i);
   assert.match(result.summary, /openkit run can proceed cleanly/i);
+});
+
+test('doctor reports managed install drift when command permission policy entries drift', () => {
+  const projectRoot = makeTempDir();
+
+  materializeManagedInstall(projectRoot);
+  writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
+    model: 'managed-model',
+  });
+  const rootManifestPath = path.join(projectRoot, 'opencode.json');
+  const rootManifest = JSON.parse(fs.readFileSync(rootManifestPath, 'utf8'));
+  rootManifest.permission.rm = 'allow';
+  delete rootManifest.commandPermissionPolicy;
+  writeJson(rootManifestPath, rootManifest);
+
+  const result = inspectManagedDoctor({
+    projectRoot,
+    env: withAstGrepPath(projectRoot, {}),
+    isOpenCodeAvailable: () => true,
+  });
+
+  assert.equal(result.status, 'drift-detected');
+  assert.equal(result.commandPermissionPolicy.status, 'drifted');
+  assert.match(result.issues.join('\n'), /rm=allow/);
+  assert.match(result.issues.join('\n'), /missing commandPermissionPolicy metadata/);
 });
 
 test('doctor surfaces orchestration-health risk for stalled full-delivery boards', () => {
@@ -1750,29 +1737,7 @@ test('doctor can report healthy when an adopted root manifest still satisfies th
       path: '.openkit/openkit-install.json',
       schema: 'openkit/install-state@1',
     },
-    permission: {
-      npm: 'allow',
-      task: 'allow',
-      bash: 'allow',
-      edit: 'allow',
-      read: 'allow',
-      write: 'allow',
-      glob: 'allow',
-      grep: 'allow',
-      list: 'allow',
-      skill: 'allow',
-      lsp: 'allow',
-      todoread: 'allow',
-      todowrite: 'allow',
-      webfetch: 'allow',
-      websearch: 'allow',
-      codesearch: 'allow',
-      external_directory: 'allow',
-      doom_loop: 'allow',
-      rm: 'ask',
-      'git log': 'allow',
-      'git diff': 'allow',
-    },
+    ...PERMISSIONED_CONFIG,
     productSurface: {
       current: 'global-openkit-install',
       installReadiness: 'managed',

@@ -1,0 +1,346 @@
+{
+  "schema": "openkit/command-permission-policy@1",
+  "version": 1,
+  "intent": "default-allow-with-confirm-required-exceptions",
+  "validationSurface": "package",
+  "defaults": {
+    "desiredAction": "allow",
+    "opencodeDefaultAction": "allow"
+  },
+  "opencodeProjection": {
+    "targetKey": "permission",
+    "defaultActionField": "defaultAction",
+    "defaultActionSupport": "unverified",
+    "fallbackWhenUnsupported": "explicit-permission-map-with-visible-degraded-status"
+  },
+  "routineAllowExamples": [
+    {
+      "id": "tool.read",
+      "permissionKey": "read",
+      "action": "allow"
+    },
+    {
+      "id": "tool.write",
+      "permissionKey": "write",
+      "action": "allow"
+    },
+    {
+      "id": "tool.edit",
+      "permissionKey": "edit",
+      "action": "allow"
+    },
+    {
+      "id": "tool.glob",
+      "permissionKey": "glob",
+      "action": "allow"
+    },
+    {
+      "id": "tool.grep",
+      "permissionKey": "grep",
+      "action": "allow"
+    },
+    {
+      "id": "tool.list",
+      "permissionKey": "list",
+      "action": "allow"
+    },
+    {
+      "id": "tool.skill",
+      "permissionKey": "skill",
+      "action": "allow"
+    },
+    {
+      "id": "tool.task",
+      "permissionKey": "task",
+      "action": "allow"
+    },
+    {
+      "id": "tool.todo-read",
+      "permissionKey": "todoread",
+      "action": "allow"
+    },
+    {
+      "id": "tool.todo-write",
+      "permissionKey": "todowrite",
+      "action": "allow"
+    },
+    {
+      "id": "tool.webfetch",
+      "permissionKey": "webfetch",
+      "action": "allow"
+    },
+    {
+      "id": "tool.websearch",
+      "permissionKey": "websearch",
+      "action": "allow"
+    },
+    {
+      "id": "tool.codesearch",
+      "permissionKey": "codesearch",
+      "action": "allow"
+    },
+    {
+      "id": "tool.lsp",
+      "permissionKey": "lsp",
+      "action": "allow"
+    },
+    {
+      "id": "tool.external-directory",
+      "permissionKey": "external_directory",
+      "action": "allow"
+    },
+    {
+      "id": "tool.doom-loop",
+      "permissionKey": "doom_loop",
+      "action": "allow"
+    },
+    {
+      "id": "shell.bash",
+      "permissionKey": "bash",
+      "action": "allow",
+      "caveat": "dangerous subcommands require exception support to be enforceable"
+    },
+    {
+      "id": "shell.npm",
+      "permissionKey": "npm",
+      "action": "allow",
+      "caveat": "publish and unpublish subcommands are confirm-required exceptions"
+    },
+    {
+      "id": "git.status",
+      "permissionKey": "git status",
+      "action": "allow"
+    },
+    {
+      "id": "git.log",
+      "permissionKey": "git log",
+      "action": "allow"
+    },
+    {
+      "id": "git.diff",
+      "permissionKey": "git diff",
+      "action": "allow"
+    }
+  ],
+  "confirmRequired": [
+    {
+      "id": "delete.rm",
+      "category": "delete-data-loss",
+      "permissionKey": "rm",
+      "action": "ask",
+      "risk": "file-or-directory-removal",
+      "minimumRequired": true,
+      "opencodeSupport": "exact"
+    },
+    {
+      "id": "delete.rmdir",
+      "category": "delete-data-loss",
+      "permissionKey": "rmdir",
+      "action": "ask",
+      "risk": "directory-removal",
+      "minimumRequired": true,
+      "opencodeSupport": "exact"
+    },
+    {
+      "id": "delete.unlink",
+      "category": "delete-data-loss",
+      "permissionKey": "unlink",
+      "action": "ask",
+      "risk": "file-removal",
+      "minimumRequired": true,
+      "opencodeSupport": "exact"
+    },
+    {
+      "id": "git.reset-hard",
+      "category": "destructive-git",
+      "permissionKey": "git reset --hard",
+      "action": "ask",
+      "risk": "discard-local-work",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "git.clean",
+      "category": "destructive-git",
+      "permissionKey": "git clean",
+      "action": "ask",
+      "risk": "delete-untracked-files",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "git.restore-discard",
+      "category": "destructive-git",
+      "permissionKey": "git restore",
+      "action": "ask",
+      "risk": "may-discard-local-work-depending-on-arguments",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "git.checkout-discard",
+      "category": "destructive-git",
+      "permissionKey": "git checkout",
+      "action": "ask",
+      "risk": "may-discard-local-work-depending-on-arguments",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "git.push-force",
+      "category": "destructive-git",
+      "permissionKey": "git push --force",
+      "action": "ask",
+      "risk": "force-publish-history-rewrite",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "git.push-force-with-lease",
+      "category": "destructive-git",
+      "permissionKey": "git push --force-with-lease",
+      "action": "ask",
+      "risk": "force-publish-history-rewrite",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "npm.publish",
+      "category": "publish-release-deploy",
+      "permissionKey": "npm publish",
+      "action": "ask",
+      "risk": "external-package-publication",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "npm.unpublish",
+      "category": "publish-release-deploy",
+      "permissionKey": "npm unpublish",
+      "action": "ask",
+      "risk": "external-package-removal",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "openkit.release-publish",
+      "category": "publish-release-deploy",
+      "permissionKey": "openkit release publish",
+      "action": "ask",
+      "risk": "external-openkit-release-publication",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "deploy.generic",
+      "category": "publish-release-deploy",
+      "permissionKey": "deploy",
+      "action": "ask",
+      "risk": "external-deployment-side-effects",
+      "minimumRequired": false,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "release.publish-generic",
+      "category": "publish-release-deploy",
+      "permissionKey": "release publish",
+      "action": "ask",
+      "risk": "external-release-side-effects",
+      "minimumRequired": false,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "database.dropdb",
+      "category": "database-destructive",
+      "permissionKey": "dropdb",
+      "action": "ask",
+      "risk": "database-drop",
+      "minimumRequired": true,
+      "opencodeSupport": "exact"
+    },
+    {
+      "id": "database.truncate",
+      "category": "database-destructive",
+      "permissionKey": "truncate",
+      "action": "ask",
+      "risk": "database-table-truncate",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "database.reset",
+      "category": "database-destructive",
+      "permissionKey": "db reset",
+      "action": "ask",
+      "risk": "database-reset",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "database.wipe",
+      "category": "database-destructive",
+      "permissionKey": "db wipe",
+      "action": "ask",
+      "risk": "database-wipe",
+      "minimumRequired": true,
+      "opencodeSupport": "coarse"
+    },
+    {
+      "id": "system.sudo",
+      "category": "privileged-system-impacting",
+      "permissionKey": "sudo",
+      "action": "ask",
+      "risk": "privileged-command-execution",
+      "minimumRequired": true,
+      "opencodeSupport": "exact"
+    },
+    {
+      "id": "system.chmod",
+      "category": "privileged-system-impacting",
+      "permissionKey": "chmod",
+      "action": "ask",
+      "risk": "permission-mode-change",
+      "minimumRequired": true,
+      "opencodeSupport": "exact"
+    },
+    {
+      "id": "system.chown",
+      "category": "privileged-system-impacting",
+      "permissionKey": "chown",
+      "action": "ask",
+      "risk": "file-ownership-change",
+      "minimumRequired": true,
+      "opencodeSupport": "exact"
+    }
+  ],
+  "unsupportedGranularity": [
+    {
+      "id": "shell.rm-wrapper",
+      "category": "shell-wrapped-delete",
+      "summary": "OpenKit cannot prove OpenCode will inspect destructive commands wrapped through bash, sh -c, aliases, chained shell forms, or package scripts.",
+      "affectedPermissionKeys": ["bash", "npm"],
+      "effectiveStatus": "degraded"
+    },
+    {
+      "id": "git.argument-sensitive-discard",
+      "category": "argument-sensitive-git-discard",
+      "summary": "OpenCode command matching may not distinguish safe git checkout/restore forms from forms that discard local work.",
+      "affectedPermissionKeys": ["git checkout", "git restore"],
+      "effectiveStatus": "degraded"
+    },
+    {
+      "id": "deploy.command-specificity",
+      "category": "deploy-release-tooling-specificity",
+      "summary": "Project-specific deploy/release tools may require additional policy entries when their external side-effect command names differ from the generic deploy/release publish keys.",
+      "affectedPermissionKeys": ["deploy", "release publish"],
+      "effectiveStatus": "degraded"
+    },
+    {
+      "id": "database.script-specificity",
+      "category": "database-destructive-scripts",
+      "summary": "Database destruction hidden behind project scripts cannot be proven by the flat OpenCode permission map alone.",
+      "affectedPermissionKeys": ["dropdb", "truncate", "db reset", "db wipe", "npm"],
+      "effectiveStatus": "degraded"
+    }
+  ]
+}

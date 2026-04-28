@@ -12,6 +12,19 @@ import { inspectInstallDoctor } from './doctor/install-doctor.js';
 import { inspectMcpDoctor } from './doctor/mcp-doctor.js';
 import { inspectModelDoctor } from './doctor/model-doctor.js';
 import { inspectWorkflowDoctor } from './doctor/workflow-doctor.js';
+import {
+  buildOpenCodePermissionConfig,
+  createCommandPermissionPolicyMetadata,
+  inspectCommandPermissionPolicy,
+  loadDefaultCommandPermissionPolicy,
+} from '../permissions/command-permission-policy.js';
+
+const DEFAULT_COMMAND_PERMISSION_POLICY = loadDefaultCommandPermissionPolicy();
+const DEFAULT_PERMISSION_PROJECTION = buildOpenCodePermissionConfig(DEFAULT_COMMAND_PERMISSION_POLICY);
+const DEFAULT_COMMAND_PERMISSION_POLICY_METADATA = createCommandPermissionPolicyMetadata(
+  DEFAULT_COMMAND_PERMISSION_POLICY,
+  DEFAULT_PERMISSION_PROJECTION,
+);
 
 const EXPECTED_MANAGED_ASSETS = {
   'runtime.opencode-manifest': {
@@ -20,27 +33,8 @@ const EXPECTED_MANAGED_ASSETS = {
       return (
         contents?.installState?.path === '.openkit/openkit-install.json' &&
         contents?.installState?.schema === 'openkit/install-state@1' &&
-        contents?.permission?.npm === 'allow' &&
-        contents?.permission?.task === 'allow' &&
-        contents?.permission?.bash === 'allow' &&
-        contents?.permission?.edit === 'allow' &&
-        contents?.permission?.read === 'allow' &&
-        contents?.permission?.write === 'allow' &&
-        contents?.permission?.glob === 'allow' &&
-        contents?.permission?.grep === 'allow' &&
-        contents?.permission?.list === 'allow' &&
-        contents?.permission?.skill === 'allow' &&
-        contents?.permission?.lsp === 'allow' &&
-        contents?.permission?.todoread === 'allow' &&
-        contents?.permission?.todowrite === 'allow' &&
-        contents?.permission?.webfetch === 'allow' &&
-        contents?.permission?.websearch === 'allow' &&
-        contents?.permission?.codesearch === 'allow' &&
-        contents?.permission?.external_directory === 'allow' &&
-        contents?.permission?.doom_loop === 'allow' &&
-        contents?.permission?.rm === 'ask' &&
-        contents?.permission?.['git log'] === 'allow' &&
-        contents?.permission?.['git diff'] === 'allow' &&
+        JSON.stringify(contents?.permission) === JSON.stringify(DEFAULT_PERMISSION_PROJECTION.permission) &&
+        JSON.stringify(contents?.commandPermissionPolicy) === JSON.stringify(DEFAULT_COMMAND_PERMISSION_POLICY_METADATA) &&
         contents?.productSurface?.current === 'global-openkit-install' &&
         contents?.productSurface?.installReadiness === 'managed' &&
         contents?.productSurface?.installationMode === 'openkit-managed'
@@ -105,6 +99,16 @@ export function inspectManagedDoctor({
     adopted: [],
   };
   const classification = discoverProjectShape(resolvedProjectRoot).classification;
+
+  function inspectRootManifestPolicy(config) {
+    return inspectCommandPermissionPolicy({
+      policy: DEFAULT_COMMAND_PERMISSION_POLICY,
+      config,
+      configPath: rootManifestPath,
+      scope: 'managed-root-manifest',
+      surface: 'compatibility_runtime',
+    });
+  }
 
   if (!rootManifestResult.exists && !installStateResult.exists) {
     return {
@@ -208,6 +212,8 @@ export function inspectManagedDoctor({
     (asset) => asset?.assetId === ROOT_MANIFEST_ASSET_ID && asset?.path === 'opencode.json'
   );
 
+  const rootManifestPolicy = inspectRootManifestPolicy(rootManifest);
+
   if (adoptedRootManifest && !EXPECTED_MANAGED_ASSETS[ROOT_MANIFEST_ASSET_ID].validate(rootManifest)) {
     return {
       status: 'install-incomplete',
@@ -220,6 +226,7 @@ export function inspectManagedDoctor({
       rootManifestPath,
       runtimeManifestPath,
       installStatePath,
+      commandPermissionPolicy: rootManifestPolicy,
     };
   }
 
@@ -246,7 +253,11 @@ export function inspectManagedDoctor({
       if (!driftedAssets.includes(asset.path)) {
         driftedAssets.push(asset.path);
       }
-      issues.push(`Drift detected for managed asset: ${asset.path}`);
+      if (asset.assetId === ROOT_MANIFEST_ASSET_ID && rootManifestPolicy.status === 'drifted') {
+        issues.push(`Drift detected for managed asset: ${asset.path} (${rootManifestPolicy.issues.join(' ')})`);
+      } else {
+        issues.push(`Drift detected for managed asset: ${asset.path}`);
+      }
     }
   }
 
@@ -262,6 +273,7 @@ export function inspectManagedDoctor({
       rootManifestPath,
       runtimeManifestPath,
       installStatePath,
+      commandPermissionPolicy: rootManifestPolicy,
     };
   }
 
@@ -297,6 +309,7 @@ export function inspectManagedDoctor({
       rootManifestPath,
       runtimeManifestPath,
       installStatePath,
+      commandPermissionPolicy: rootManifestPolicy,
     };
   }
 
@@ -322,6 +335,7 @@ export function inspectManagedDoctor({
       runtimeManifestPath,
       installStatePath,
       runtimeFoundation,
+      commandPermissionPolicy: rootManifestPolicy,
     };
   }
 
@@ -336,6 +350,7 @@ export function inspectManagedDoctor({
     rootManifestPath,
     runtimeManifestPath,
     installStatePath,
+    commandPermissionPolicy: rootManifestPolicy,
     runtimeFoundation,
     runtimeDoctor: {
       install: inspectInstallDoctor({

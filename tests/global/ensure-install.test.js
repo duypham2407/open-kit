@@ -6,6 +6,12 @@ import path from 'node:path';
 
 import { ensureGlobalInstall } from '../../src/global/ensure-install.js';
 import { materializeGlobalInstall } from '../../src/global/materialize.js';
+import {
+  createPermissionedOpenCodeConfigMetadata,
+  loadDefaultCommandPermissionPolicy,
+} from '../../src/permissions/command-permission-policy.js';
+
+const PERMISSIONED_CONFIG = createPermissionedOpenCodeConfigMetadata(loadDefaultCommandPermissionPolicy());
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-global-ensure-'));
@@ -297,6 +303,14 @@ test('materializeGlobalInstall configures managed MCP defaults', () => {
     command: ['npx', '-y', 'chrome-devtools-mcp@0.21.0'],
     enabled: true,
   });
+  assert.deepEqual(profileConfig.permission, PERMISSIONED_CONFIG.permission);
+  assert.deepEqual(kitConfig.permission, PERMISSIONED_CONFIG.permission);
+  assert.deepEqual(profileConfig.commandPermissionPolicy, PERMISSIONED_CONFIG.commandPermissionPolicy);
+  assert.deepEqual(kitConfig.commandPermissionPolicy, PERMISSIONED_CONFIG.commandPermissionPolicy);
+  assert.equal(profileConfig.permission.rm, 'ask');
+  assert.equal(profileConfig.permission['git reset --hard'], 'ask');
+  assert.equal(profileConfig.permission['npm publish'], 'ask');
+  assert.equal(profileConfig.commandPermissionPolicy.projectionSupport, 'degraded');
 });
 
 test('package manifest publishes OpenCode plugin runtime surfaces', () => {
