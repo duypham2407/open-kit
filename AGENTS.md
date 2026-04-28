@@ -173,6 +173,7 @@ Current state:
 - The workflow-state CLI exists and is aligned with the live stage and approval model documented in this repository
 - The repository-local OpenCode config still lives at `.opencode/opencode.json`; do not claim that a root `opencode.json` entrypoint already exists unless the file is added
 - `npm run verify:semgrep-quality` exists for OpenKit bundled Semgrep rule-pack regression checks; it validates OpenKit runtime/tooling governance, not target-project application behavior. Semgrep unavailability fails this gate by default, including in CI; `OPENKIT_ALLOW_SEMGREP_QUALITY_SKIP=1` is only a local non-CI convenience skip and is not valid gate evidence
+- `npm run verify:mcp-secret-package-readiness` exists for MCP secret backend package readiness. It uses `npm pack --dry-run --json`, validates the `package` surface, does not persist tarballs, must not print raw secrets, uses fake/no real macOS Keychain validation in CI, and does not provide `target_project_app` evidence
 
 Rules for agents:
 

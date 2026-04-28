@@ -123,7 +123,7 @@ test('scripted interactive set-key stores raw value only in secrets and material
   const tempHome = makeTempHome();
   const { io, output } = createIo();
   const prompts = scriptedPrompts({
-    answers: ['select', 'context7', 'set-key', 'yes', 'finish'],
+    answers: ['select', 'context7', 'set-key', 'local_env_file', 'yes', 'finish'],
     secrets: [SENTINEL],
   });
 

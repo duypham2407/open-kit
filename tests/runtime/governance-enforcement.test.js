@@ -223,6 +223,10 @@ test('operator docs describe MCP configuration and secret-safe boundaries', () =
   assert.match(mcpDocs, /unset-key.*does not.*disable/s);
   assert.match(mcpDocs, /openkit configure mcp doctor/);
   assert.match(mcpDocs, /openkit configure mcp test/);
+  assert.match(mcpDocs, /verify:mcp-secret-package-readiness/);
+  assert.match(mcpDocs, /npm pack --dry-run --json/);
+  assert.match(mcpDocs, /fake keychain/i);
+  assert.match(mcpDocs, /No real macOS Keychain/i);
   assert.match(mcpDocs, /target_project_app/);
   assert.match(mcpDocs, /Target-project application validation is `target_project_app` only when the target project declares real app/);
 
@@ -295,10 +299,13 @@ test('package scripts expose governance and install-bundle verification gates', 
 
   assert.equal(typeof packageJson.scripts['sync:install-bundle'], 'string');
   assert.equal(typeof packageJson.scripts['verify:install-bundle'], 'string');
+  assert.equal(typeof packageJson.scripts['verify:mcp-secret-package-readiness'], 'string');
   assert.equal(typeof packageJson.scripts['verify:governance'], 'string');
   assert.equal(typeof packageJson.scripts['verify:semgrep-quality'], 'string');
   assert.equal(typeof packageJson.scripts['verify:all'], 'string');
+  assert.match(packageJson.scripts['verify:all'], /verify:mcp-secret-package-readiness/);
   assert.match(packageJson.scripts['verify:all'], /verify:semgrep-quality/);
+  assert.match(packageJson.scripts['verify:mcp-secret-package-readiness'], /verify-mcp-secret-package-readiness/);
   assert.match(packageJson.scripts['verify:install-bundle'], /verify-install-bundle/);
 });
 

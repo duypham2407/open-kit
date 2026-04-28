@@ -2,6 +2,8 @@
 
 Use this runbook to smoke-test the release candidate workflow layered over the existing work-item runtime.
 
+For releases that include MCP secret backend work, run package/global install readiness separately from workflow-state release governance. Use `docs/operations/runbooks/mcp-secret-package-readiness.md` and keep this split explicit: `npm run verify:mcp-secret-package-readiness` validates the `package` surface with `npm pack --dry-run --json`, global CLI smoke checks validate `global_cli`, workflow-state commands below validate `compatibility_runtime`, and `target_project_app` remains unavailable unless a separate target application declares its own build/lint/test commands. MCP keychain evidence in CI must use fake keychain or structural validation only; no real macOS Keychain mutation or raw secret output is valid release evidence.
+
 ## Core Flow
 
 ```bash

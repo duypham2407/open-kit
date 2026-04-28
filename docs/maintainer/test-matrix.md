@@ -30,6 +30,7 @@ npm run verify:all
 | global doctor behavior | `node --test tests/global/doctor.test.js` | validates install/workspace readiness checks |
 | global install materialization or launch wiring | `node --test tests/global/*.test.js` | validates managed-kit bootstrap and launch path |
 | install merge policy or discovery | `node --test tests/install/*.test.js` | validates install safety and detection rules |
+| MCP secret backend package readiness, package allowlist, release packaging docs, or forbidden secret/generated artifacts | `npm run verify:mcp-secret-package-readiness` and `node --test tests/install/mcp-secret-package-readiness.test.js` | validates `npm pack --dry-run --json` package contents, required MCP secret backend files, no persisted tarballs, fake/no real Keychain CI expectations, no raw secrets, and unavailable `target_project_app` labeling |
 | bundled skill metadata, skill router/index output, or skill package sync | `node --test tests/runtime/skill-catalog.test.js && node --test tests/runtime/capability-tools.test.js && node --test tests/install/skill-bundle-sync.test.js && npm run verify:install-bundle` | validates canonical metadata, runtime exposure, advisory MCP bindings, stable/preview/experimental status, and package sync |
 | CommonJS/runtime module boundary | `node --test tests/runtime/module-boundary.test.js` | validates legacy runtime boundary expectations |
 
@@ -121,6 +122,28 @@ node --test tests/cli/openkit-cli.test.js
 npm run verify:install-bundle
 ```
 
+### MCP Secret Package Readiness Changes
+
+Run:
+
+```bash
+npm run verify:mcp-secret-package-readiness
+node --test tests/install/mcp-secret-package-readiness.test.js
+npm run verify:install-bundle
+npm run verify:governance
+node --test tests/global/mcp-keychain-adapter.test.js tests/global/mcp-secret-manager.test.js tests/cli/configure-mcp.test.js tests/runtime/launcher.test.js
+node .opencode/workflow-state.js validate
+```
+
+Maintainer assertions for this surface:
+
+- `npm pack --dry-run --json` is the package file-list source and no package tarball is persisted
+- required MCP secret backend, keychain adapter, CLI/runtime, install-bundle, and packaged docs are included
+- forbidden generated artifacts such as `secrets.env`, `.env` files, workflow-state mirrors, work-item state, runtime databases, extracted packages, and tarballs are absent
+- keychain CI evidence uses fake adapter/runner or structural validation only; no real macOS Keychain mutation is valid
+- command output, docs, package metadata, generated profiles, logs, and workflow evidence use placeholders/redaction and do not print raw secrets
+- package/global/runtime/documentation/compatibility evidence remains separate from unavailable `target_project_app` validation
+
 ## Validation Story Split
 
 - `tests/` covers product CLI, global install, install policy, and release/runtime adapter behavior
@@ -129,5 +152,6 @@ npm run verify:install-bundle
 - `openkit doctor` and `node .opencode/workflow-state.js doctor` validate different OpenKit surfaces and are not target-project app test substitutes
 - use validation surface labels in reports: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, and `target_project_app`
 - use `package` for install-bundle/source synchronization checks such as generated bundled skill metadata; keep it separate from `runtime_tooling`, `documentation`, and `target_project_app`
+- use `package` for `npm run verify:mcp-secret-package-readiness`; it proves MCP secret backend package contents and forbidden artifact absence, not app behavior
 - `target_project_app` evidence is valid only when the target project defines the corresponding build, lint, or test command; otherwise record that app-native validation is unavailable
 - runtime bootstrap tests should cover tool metadata surface labels when a tool crosses surfaces, for example workflow-state tools as `compatibility_runtime` and external typecheck/lint/test probes as `target_project_app`

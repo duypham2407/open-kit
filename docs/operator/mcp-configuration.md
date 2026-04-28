@@ -342,9 +342,22 @@ openkit configure mcp doctor --scope both
 openkit configure mcp test context7 --scope openkit --json
 ```
 
+Package/release checks for MCP secret backends:
+
+```sh
+npm run verify:mcp-secret-package-readiness
+npm pack --dry-run --json
+```
+
+- `npm run verify:mcp-secret-package-readiness` is the governed package-readiness wrapper. It uses `npm pack --dry-run --json` to inspect the package file list without persisting tarballs.
+- The gate requires packaged MCP secret manager, keychain adapter, redaction, CLI/runtime, install-bundle, and operator/runbook files, and fails if generated secret/runtime artifacts such as `secrets.env`, `.env` files, active workflow-state mirrors, work-item state, runtime databases, extracted packages, or generated tarballs appear in the package.
+- Output is path/rule/count oriented and must not print raw secret values. Use placeholders such as `${CONTEXT7_API_KEY}` and `<CONTEXT7_API_KEY_VALUE>` in docs and fixtures.
+- No real macOS Keychain mutation is valid CI evidence. Use fake keychain adapter/runner tests or structural package checks, and isolate any install/global smoke state in a temporary `OPENCODE_HOME`.
+
 Maintainer/runtime checks when working in this repository:
 
 ```sh
+npm run verify:mcp-secret-package-readiness
 npm run verify:governance
 npm run verify:install-bundle
 node .opencode/workflow-state.js validate
@@ -354,6 +367,7 @@ node .opencode/workflow-state.js validate-work-item-board <work_item_id>
 Validation surface boundaries:
 
 - `openkit doctor` and `openkit configure mcp ...` validate `global_cli` and MCP/capability readiness.
+- `npm run verify:mcp-secret-package-readiness` and raw `npm pack --dry-run --json` file-list inspection validate the `package` surface for MCP secret backend release readiness.
 - In-session capability inventory, router, health, `tool.mcp-doctor`, and skill/MCP binding tools validate `runtime_tooling`.
 - Workflow-state commands validate `compatibility_runtime`.
 - Governance and operator docs checks validate `documentation`.

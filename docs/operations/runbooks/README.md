@@ -11,6 +11,7 @@ Current runbooks:
 - `cross-platform-validation-checklist.md`: tick-box matrix for recording Linux, macOS, and Windows validation results
 - `tech-lead-task-decomposition.md`: Solution Lead guidance for deciding when full-delivery or migration work can use parallel execution safely (filename retained for compatibility)
 - `workflow-state-smoke-tests.md`: repeatable smoke checks for runtime and wrapper-related surfaces
+- `mcp-secret-package-readiness.md`: package/global-install readiness checks for MCP secret backend release evidence
 
 Related reusable migration checklists live under `docs/templates/`:
 

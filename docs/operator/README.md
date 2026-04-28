@@ -53,6 +53,7 @@ Then use the in-session path (`in_session`):
 - Surface contract: `docs/operator/surface-contract.md`
 - Supported product and compatibility surfaces: `docs/operator/supported-surfaces.md`
 - MCP and skills capability configuration: `docs/operator/mcp-configuration.md`
+- MCP secret backend package readiness: `docs/operations/runbooks/mcp-secret-package-readiness.md`
 - Detailed usage walkthrough: `docs/operations/runbooks/openkit-daily-usage.md`
 - Role boundary quick policy: `docs/maintainer/2026-03-26-role-operating-policy.md`
 - AI reading-surface map: `docs/maintainer/2026-03-26-ai-surface-map.md`
@@ -77,10 +78,12 @@ Then use the in-session path (`in_session`):
 - Compatibility diagnostics: `node .opencode/workflow-state.js doctor`
 - Current state view: `node .opencode/workflow-state.js show`
 - Validation: `node .opencode/workflow-state.js validate`
+- Package readiness: `npm run verify:mcp-secret-package-readiness` validates `npm pack --dry-run --json` package contents for MCP secret backend files and forbidden secret/generated/runtime artifacts without persisting tarballs.
 
 ## Validation Story
 
 - OpenKit does have validation for its own runtime and CLI surfaces through `tests/` and `.opencode/tests/`
+- MCP secret backend release readiness has a package gate: `npm run verify:mcp-secret-package-readiness`. It validates the `package` surface, keeps output redacted, uses no real macOS Keychain mutation, and is separate from global CLI smoke checks.
 - This repository still does not define repo-native build, lint, or test commands for arbitrary generated application code
 - Treat `openkit doctor` and `node .opencode/workflow-state.js doctor` as OpenKit/runtime verification, not as substitutes for target-project app testing
 - Label evidence by validation surface: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, or `target_project_app`. Use `target_project_app` only when the target project actually declares the relevant build, lint, or test command.
