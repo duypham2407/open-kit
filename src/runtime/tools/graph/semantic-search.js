@@ -9,6 +9,7 @@
 // ---------------------------------------------------------------------------
 
 export function createSemanticSearchTool({ projectGraphManager, sessionMemoryManager }) {
+  const hasEmbeddingProvider = Boolean(sessionMemoryManager?.hasEmbeddingProvider);
   return {
     id: 'tool.semantic-search',
     name: 'Semantic Search Tool',
@@ -19,10 +20,13 @@ export function createSemanticSearchTool({ projectGraphManager, sessionMemoryMan
     family: 'graph',
     stage: 'foundation',
     status: projectGraphManager?.available ? 'active' : 'degraded',
+    validationSurface: 'runtime_tooling',
     async execute(input = {}) {
       if (!projectGraphManager?.available) {
         return {
           status: 'unavailable',
+          validationSurface: 'runtime_tooling',
+          capabilityState: 'unavailable',
           reason: 'Project graph database is not available.',
         };
       }
@@ -57,8 +61,12 @@ export function createSemanticSearchTool({ projectGraphManager, sessionMemoryMan
 
             return {
               status: 'ok',
+              validationSurface: 'runtime_tooling',
+              capabilityState: 'available',
               query,
               searchMode: 'hybrid',
+              evidenceMode: 'embedding_and_keyword',
+              caveats: [],
               results: merged,
               totalMatches: merged.length,
             };
@@ -70,14 +78,18 @@ export function createSemanticSearchTool({ projectGraphManager, sessionMemoryMan
             const enriched = vectorResults.map((result) => enrichVectorResult(result, { sessionMemoryManager }));
             return {
               status: 'ok',
+              validationSurface: 'runtime_tooling',
+              capabilityState: 'available',
               query,
               searchMode: 'embedding',
+              evidenceMode: 'embedding',
+              caveats: [],
               results: enriched,
               totalMatches: enriched.length,
             };
           }
 
-          return executeKeywordSearch(projectGraphManager, query, { topK, sessionMemoryManager });
+          return withKeywordFallbackCaveat(executeKeywordSearch(projectGraphManager, query, { topK, sessionMemoryManager }), hasEmbeddingProvider);
         }
 
         case 'context': {
@@ -122,6 +134,22 @@ export function createSemanticSearchTool({ projectGraphManager, sessionMemoryMan
   };
 }
 
+function withKeywordFallbackCaveat(result, hasEmbeddingProvider) {
+  if (!result || result.status !== 'ok') {
+    return result;
+  }
+  const caveat = hasEmbeddingProvider
+    ? 'No indexed embedding matches were available; search degraded to keyword evidence.'
+    : 'Embedding provider is not configured; search used keyword evidence only.';
+  return {
+    ...result,
+    validationSurface: 'runtime_tooling',
+    capabilityState: result.searchMode === 'keyword' || result.searchMode === 'keyword-fts' ? 'degraded' : 'available',
+    evidenceMode: result.searchMode === 'keyword-fts' ? 'keyword_fts' : result.searchMode,
+    caveats: [...(result.caveats ?? []), caveat],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Internal: keyword-based search through graph DB
 // ---------------------------------------------------------------------------
@@ -148,6 +176,7 @@ function executeKeywordSearch(manager, query, { topK = 20, sessionMemoryManager 
 
       return {
         status: 'ok',
+        validationSurface: 'runtime_tooling',
         query,
         keywords: query.split(/\s+/).filter(Boolean),
         searchMode: 'keyword-fts',
@@ -220,6 +249,7 @@ function executeKeywordSearch(manager, query, { topK = 20, sessionMemoryManager 
 
   return {
     status: 'ok',
+    validationSurface: 'runtime_tooling',
     query,
     keywords,
     searchMode: 'keyword',

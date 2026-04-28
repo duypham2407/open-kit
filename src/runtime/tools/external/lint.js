@@ -152,13 +152,20 @@ export function createLintTool({ projectRoot, toolRunner }) {
       if (!isActive) {
         return {
           status: 'unavailable',
+          validationSurface: 'target_project_app',
+          capabilityState: 'unavailable',
+          unavailableValidationPath: 'target_project_app',
           reason: 'No linter configuration found in project root.',
+          caveats: ['Target-project app lint validation is unavailable until the project declares a supported linter config.'],
         };
       }
 
       if (!toolRunner) {
         return {
           status: 'unavailable',
+          validationSurface: 'target_project_app',
+          capabilityState: 'unavailable',
+          unavailableValidationPath: 'target_project_app',
           reason: 'External tool runner is not configured.',
         };
       }
@@ -167,6 +174,9 @@ export function createLintTool({ projectRoot, toolRunner }) {
       if (!binary) {
         return {
           status: 'unavailable',
+          validationSurface: 'target_project_app',
+          capabilityState: 'unavailable',
+          unavailableValidationPath: 'target_project_app',
           reason: `Cannot detect binary for linter: ${linter}`,
         };
       }
@@ -191,6 +201,8 @@ export function createLintTool({ projectRoot, toolRunner }) {
       if (result.timedOut) {
         return {
           status: 'timeout',
+          validationSurface: 'target_project_app',
+          capabilityState: 'degraded',
           reason: `${linter} timed out after ${timeout}ms.`,
           stdout: result.stdout.slice(0, 2000),
           stderr: result.stderr.slice(0, 2000),
@@ -204,6 +216,8 @@ export function createLintTool({ projectRoot, toolRunner }) {
 
       return {
         status: findings.length === 0 ? 'ok' : 'findings',
+        validationSurface: 'target_project_app',
+        capabilityState: 'available',
         linter,
         configPath,
         exitCode: result.exitCode,

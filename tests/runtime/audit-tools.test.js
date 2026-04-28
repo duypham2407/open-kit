@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { createRuleScanTool } from '../../src/runtime/tools/audit/rule-scan.js';
+import { createRuleScanTool, isHighVolumeCapturedOutput } from '../../src/runtime/tools/audit/rule-scan.js';
 import { createSecurityScanTool } from '../../src/runtime/tools/audit/security-scan.js';
 import { applyTriageClassifications } from '../../src/runtime/tools/audit/scan-evidence.js';
 import { findUsableSemgrepCommand, isSemgrepAvailable, ensureSemgrepInstalled, getToolingEnv } from '../../src/global/tooling.js';
@@ -323,14 +323,14 @@ test('rule-scan tool passes explicit config through without resolving', () => {
   }
 });
 
-test('rule-scan classifies high-volume semgrep output as scan_failed with artifact refs', () => {
+test('rule-scan keeps non-JSON output as parse failure when captured output is not over maxBuffer', () => {
   const projectRoot = makeTempDir();
   const tempHome = makeTempDir();
   const toolingBin = path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin');
 
   writeExecutable(
     path.join(toolingBin, 'semgrep'),
-    `#!/bin/sh\nnode -e "process.stdout.write('x'.repeat(4096))"\n`
+    `#!/bin/sh\nnode -e "process.stderr.write('x'.repeat(4096))"\n`
   );
 
   const originalEnv = process.env;
@@ -346,15 +346,47 @@ test('rule-scan classifies high-volume semgrep output as scan_failed with artifa
     const result = tool.execute({ config: 'auto' });
 
     assert.equal(result.status, 'scan_failed');
-    assert.equal(result.capabilityState, 'degraded');
+    assert.equal(result.capabilityState, 'available');
     assert.equal(result.resultState, 'failed');
-    assert.equal(result.availability.state, 'degraded');
-    assert.match(result.availability.reason, /buffer|output exceeded/i);
-    assert.notEqual(result.status, 'unavailable');
-    assert.equal(result.outputSummary.highVolume, true);
-    assert.equal(result.artifactRefs.length, 1);
-    assert.equal(fs.existsSync(path.join(projectRoot, result.artifactRefs[0])), true);
-    assert.match(result.limitations.join(' '), /inline capture buffer/i);
+    assert.equal(result.availability.state, 'available');
+    assert.equal(result.artifactRefs.length, 0);
+  } finally {
+    process.env = originalEnv;
+  }
+});
+
+test('isHighVolumeCapturedOutput only uses actual byte length against configured maxBuffer', () => {
+  assert.equal(isHighVolumeCapturedOutput({ stdout: 'small', stderr: '' }, 128), false);
+  assert.equal(isHighVolumeCapturedOutput({ stdout: 'x'.repeat(129), stderr: '' }, 128), true);
+  assert.equal(isHighVolumeCapturedOutput({ stdout: '', stderr: 'é'.repeat(65) }, 128), true);
+});
+
+test('rule-scan does not classify small output as high-volume when max buffer is below default', () => {
+  const projectRoot = makeTempDir();
+  const tempHome = makeTempDir();
+  const toolingBin = path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin');
+
+  writeExecutable(
+    path.join(toolingBin, 'semgrep'),
+    `#!/bin/sh\necho '{"results":[]}'\n`
+  );
+
+  const originalEnv = process.env;
+  process.env = {
+    ...process.env,
+    OPENCODE_HOME: tempHome,
+    PATH: toolingBin,
+    OPENKIT_SEMGREP_MAX_BUFFER: '128',
+  };
+
+  try {
+    const tool = createRuleScanTool({ projectRoot });
+    const result = tool.execute({ config: 'auto' });
+
+    assert.equal(result.status, 'ok');
+    assert.equal(result.capabilityState, 'available');
+    assert.equal(result.outputSummary, null);
+    assert.deepEqual(result.artifactRefs, []);
   } finally {
     process.env = originalEnv;
   }

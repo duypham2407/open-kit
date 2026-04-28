@@ -28,6 +28,40 @@ export function normalizeCapabilityState(value, fallback = 'degraded') {
   return isStandardCapabilityState(value) ? value : fallback;
 }
 
+export function normalizeValidationSurface(value, fallback = 'runtime_tooling') {
+  return VALIDATION_SURFACES.includes(value) ? value : fallback;
+}
+
+function normalizeList(value) {
+  return Array.isArray(value) ? value.filter((entry) => typeof entry === 'string' && entry.length > 0) : [];
+}
+
+export function buildCapabilityStatusEnvelope({
+  id,
+  label = id,
+  family,
+  surface = 'runtime_tooling',
+  state = 'degraded',
+  source = 'runtime',
+  freshness = 'fresh',
+  evidenceRefs = [],
+  caveats = [],
+  nextActions = [],
+} = {}) {
+  return {
+    id,
+    label,
+    family,
+    surface: normalizeValidationSurface(surface),
+    state: normalizeCapabilityState(state),
+    source,
+    freshness,
+    evidenceRefs: normalizeList(evidenceRefs),
+    caveats: normalizeList(caveats),
+    nextActions: normalizeList(nextActions),
+  };
+}
+
 export function isSupportedMcpScope(value) {
   return MCP_SCOPE_VALUES.includes(value);
 }

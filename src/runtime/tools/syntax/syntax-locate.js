@@ -6,11 +6,18 @@ export function createSyntaxLocateTool({ syntaxIndexManager }) {
     family: 'syntax',
     stage: 'foundation',
     status: 'active',
+    validationSurface: 'runtime_tooling',
     async execute(input = {}) {
-      return syntaxIndexManager.locateType(
+      const result = await syntaxIndexManager.locateType(
         typeof input === 'string' ? input : input.filePath,
         typeof input === 'string' ? 'program' : input.nodeType
       );
+      return {
+        validationSurface: 'runtime_tooling',
+        capabilityState: result?.status === 'unsupported-language' || result?.status === 'invalid-path' ? 'degraded' : 'available',
+        caveats: result?.status === 'unsupported-language' ? ['Unsupported language; syntax locate is unavailable for this file.'] : [],
+        ...result,
+      };
     },
   };
 }

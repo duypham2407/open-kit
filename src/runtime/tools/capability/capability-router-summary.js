@@ -265,6 +265,13 @@ function statusSummary(entries = []) {
   return states;
 }
 
+function collectReadinessEnvelopes(entries = []) {
+  return entries
+    .map((entry) => entry?.capabilityEnvelope ?? entry?.readiness)
+    .filter((entry) => entry && typeof entry === 'object')
+    .slice(0, 8);
+}
+
 function matchesRoleOrStage(skill, context) {
   const roles = Array.isArray(skill.roles) ? skill.roles : [];
   const stages = Array.isArray(skill.stages) ? skill.stages : [];
@@ -406,6 +413,8 @@ function makeCategory(id, status, summary, nextActions, caveats = []) {
 function buildCategories({ context, skills, mcps, relevantSkills }) {
   const skillStates = statusSummary(skills);
   const mcpStates = statusSummary(mcps);
+  const readinessEnvelopes = collectReadinessEnvelopes([...mcps, ...skills]);
+  const degradedReadiness = readinessEnvelopes.filter((entry) => normalizeCapabilityState(entry.state) !== 'available');
   const categories = [
     makeCategory(
       'workflow',
@@ -435,10 +444,13 @@ function buildCategories({ context, skills, mcps, relevantSkills }) {
   if (roleAllowsCodeIntelligence(context)) {
     categories.push(makeCategory(
       'code-intelligence',
-      'available',
-      'Consider graph, syntax, semantic, AST, or codemod tools only when the current role/stage owns code exploration or implementation planning.',
+      degradedReadiness.some((entry) => entry.family === 'code_intelligence') ? 'degraded' : 'available',
+      'Consider graph, syntax, semantic, AST, or codemod tools only when the current role/stage owns code exploration or implementation planning; inspect readiness/fallback evidence before relying on results.',
       ['tool.semantic-search', 'tool.syntax-outline', 'tool.find-dependencies', 'tool.ast-grep-search', 'tool.codemod-preview'],
-      context.mode === 'migration' ? ['Use migration-safe discovery for seams/adapters and parity, not opportunistic rewrites.'] : [],
+      [
+        ...(context.mode === 'migration' ? ['Use migration-safe discovery for seams/adapters and parity, not opportunistic rewrites.'] : []),
+        'Capability guidance is advisory and does not prove code-intelligence results are complete or fresh.',
+      ],
     ));
   }
 
@@ -539,6 +551,7 @@ export function buildCapabilityGuidance({
   const relevantSkills = selectRelevantSkills(skills, workflowContext, limits);
   const relevantMcpIds = collectRecommendedMcpIds(relevantSkills);
   const capabilityCaveats = selectMcpCaveats(mcps, relevantMcpIds, limits);
+  const readinessEnvelopes = collectReadinessEnvelopes([...mcps, ...skills]);
   const categories = buildCategories({ context: workflowContext, skills, mcps, relevantSkills }).slice(0, limits.maxCategories);
   const roleHints = [roleGuardrailFor(workflowContext)];
   const status = !metadataAvailable ? 'unavailable' : workflowContext.known ? 'ok' : 'degraded';
@@ -564,6 +577,7 @@ export function buildCapabilityGuidance({
     categories,
     roleHints,
     capabilityCaveats,
+    readinessEnvelopes,
     customMcpSummary: buildCustomMcpSummary(mcps, capabilityCaveats, limits),
     limits: {
       maxLines: limits.maxLines,

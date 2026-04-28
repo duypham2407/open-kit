@@ -8,16 +8,29 @@ export function createSyntaxOutlineTool({ syntaxIndexManager }) {
     family: 'syntax',
     stage: 'foundation',
     status: 'active',
+    validationSurface: 'runtime_tooling',
     async execute(input = {}) {
       // Project-wide scan mode
       if (input.projectWide === true) {
-        return syntaxIndexManager.getProjectOutline({
+        const result = await syntaxIndexManager.getProjectOutline({
           maxFiles: input.maxFiles ?? 500,
         });
+        return {
+          validationSurface: 'runtime_tooling',
+          capabilityState: result?.status === 'unsupported-language' || result?.status === 'invalid-path' ? 'degraded' : 'available',
+          caveats: result?.status === 'unsupported-language' ? ['Unsupported language; syntax outline is unavailable for this file set.'] : [],
+          ...result,
+        };
       }
 
       // Single-file mode (original behavior)
-      return syntaxIndexManager.getOutline(typeof input === 'string' ? input : input.filePath);
+      const result = await syntaxIndexManager.getOutline(typeof input === 'string' ? input : input.filePath);
+      return {
+        validationSurface: 'runtime_tooling',
+        capabilityState: result?.status === 'unsupported-language' || result?.status === 'invalid-path' ? 'degraded' : 'available',
+        caveats: result?.status === 'unsupported-language' ? ['Unsupported language; syntax outline is unavailable for this file.'] : [],
+        ...result,
+      };
     },
   };
 }

@@ -73,6 +73,22 @@ Current examples: supervisor dialogue is `not_configured` until enabled with an 
 
 Semgrep audit tools use the same availability states. A missing Semgrep dependency is `unavailable` with reason/fallback guidance; partial usable output is `degraded`; stored workflow-state evidence is `compatibility_runtime`, while the scan execution itself is `runtime_tooling`.
 
+## Capability Platform Maturation Baseline
+
+FEATURE-950 hardens current capability surfaces in strict order: MCP/extensibility first, code intelligence second, and capability-aware orchestration last. The baseline capability map is:
+
+| Capability family | Current status expectation | Validation surface | Refresh / inspection path | Caveats |
+| --- | --- | --- | --- | --- |
+| Bundled MCP catalog and configured MCPs | `available`, `preview`, `not_configured`, or `unavailable` per key/dependency/setup state | `global_cli`, `runtime_tooling` | `openkit configure mcp doctor`, `tool.mcp-doctor`, `tool.capability-inventory` | keys are reported only as redacted presence/missing state; disabled or policy-gated entries are not hidden readiness |
+| Custom MCP definitions | `available`, `degraded`, `not_configured`, or `unavailable` per enablement, origin, command, remote, and key state | `global_cli`, `runtime_tooling` | `openkit configure mcp custom doctor`, `tool.capability-inventory` | custom entries remain origin/ownership-labeled and separate from bundled defaults |
+| Project graph and symbol/dependency tools | `available` when the graph DB is usable; `degraded` when empty/read-only/stale/error-limited; `unavailable` when native DB support is missing | `runtime_tooling` | `tool.import-graph`, `tool.find-symbol`, `tool.find-dependencies`, `tool.find-dependents` | graph results depend on indexing freshness and supported language parsing |
+| Semantic search and embeddings | `available` for embedding/hybrid evidence; `degraded` for keyword-only fallback; `not_configured` when embedding providers are disabled | `runtime_tooling` | `tool.semantic-search`, `tool.embedding-index` | keyword fallback is useful but not full semantic coverage |
+| Syntax, codemod, AST, and LSP helpers | `available`, `preview`, or `degraded` depending on language support, dry-run/preview mode, path safety, and dependencies | `runtime_tooling` | syntax/codemod/LSP tools with explicit status fields | codemod preview is non-mutating; apply requires prior preview evidence |
+| External build/lint/test probes | `available` only when target project config/framework exists; otherwise `unavailable` | `target_project_app` | `tool.typecheck`, `tool.lint`, `tool.test-run` | OpenKit runtime checks never replace app-native target-project validation |
+| Capability-aware startup/runtime guidance | advisory read model over current capability state | `in_session`, `runtime_tooling`, `compatibility_runtime` | session-start guidance, `tool.runtime-summary`, `tool.capability-router` | does not auto-load skills, execute MCPs, approve gates, or enable parallel execution |
+
+Phase completion evidence for this maturation work uses `tool.evidence-capture` / workflow-state evidence with a `details.phase_completion` object containing phase id, completed slices, acceptance criteria covered, validation surfaces checked, commands or tools run, unavailable validation paths, unresolved blockers, and the downstream unlock decision. This is an evidence convention only; it does not add lanes, stages, approval gates, or task parallelism.
+
 ## Scan Evidence Reporting Surfaces
 
 OpenKit scan/tool evidence is reported across Code Review, QA, runtime summaries, and closeout surfaces with a consistent split:

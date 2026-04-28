@@ -95,14 +95,22 @@ export function createTypecheckTool({ projectRoot, toolRunner }) {
       if (!isActive) {
         return {
           status: 'unavailable',
+          validationSurface: 'target_project_app',
+          capabilityState: 'unavailable',
+          unavailableValidationPath: 'target_project_app',
           reason: 'No tsconfig.json found in project root.',
+          caveats: ['Target-project app typecheck validation is unavailable until the project declares tsconfig.json.'],
         };
       }
 
       if (!toolRunner) {
         return {
           status: 'unavailable',
+          validationSurface: 'target_project_app',
+          capabilityState: 'unavailable',
+          unavailableValidationPath: 'target_project_app',
           reason: 'External tool runner is not configured.',
+          caveats: ['Target-project app typecheck validation is unavailable because no tool runner is configured.'],
         };
       }
 
@@ -122,6 +130,8 @@ export function createTypecheckTool({ projectRoot, toolRunner }) {
       if (result.timedOut) {
         return {
           status: 'timeout',
+          validationSurface: 'target_project_app',
+          capabilityState: 'degraded',
           reason: `tsc timed out after ${timeout}ms.`,
           stdout: result.stdout.slice(0, 2000),
           stderr: result.stderr.slice(0, 2000),
@@ -143,6 +153,8 @@ export function createTypecheckTool({ projectRoot, toolRunner }) {
 
       return {
         status: filtered.length === 0 ? 'ok' : 'errors',
+        validationSurface: 'target_project_app',
+        capabilityState: 'available',
         exitCode: result.exitCode,
         diagnostics: filtered,
         totalErrors: diagnostics.filter((d) => d.severity === 'error').length,

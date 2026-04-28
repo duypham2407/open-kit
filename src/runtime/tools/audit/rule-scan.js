@@ -133,6 +133,32 @@ export function createRuleScanTool({ projectRoot, toolId = 'tool.rule-scan', sca
         });
       }
 
+      if (isHighVolumeCapturedOutput(result, maxBuffer)) {
+        const artifact = writeHighVolumeScanArtifact({
+          projectRoot,
+          toolId,
+          stdout: result.stdout ?? '',
+          stderr: result.stderr ?? '',
+          exitCode: result.status ?? null,
+          reason: 'output exceeded inline buffer',
+        });
+        return createHighVolumeScanFailureResult({
+          toolId,
+          scanKind,
+          projectRoot,
+          requestedPath,
+          targetPath,
+          rawConfig,
+          resolvedConfig: config,
+          ruleConfigSource,
+          reason: `Semgrep output exceeded OpenKit's ${maxBuffer} byte inline buffer.`,
+          stdout: result.stdout ?? '',
+          stderr: result.stderr ?? '',
+          exitCode: result.status ?? null,
+          artifactRefs: artifact.relativePath ? [artifact.relativePath] : [],
+        });
+      }
+
       let parsed = { results: [] };
       try {
         parsed = result.stdout ? JSON.parse(result.stdout) : { results: [] };
@@ -184,6 +210,11 @@ export function createRuleScanTool({ projectRoot, toolId = 'tool.rule-scan', sca
       });
     },
   };
+}
+
+export function isHighVolumeCapturedOutput(result, maxBuffer) {
+  return Buffer.byteLength(String(result?.stdout ?? ''), 'utf8') >= maxBuffer ||
+    Buffer.byteLength(String(result?.stderr ?? ''), 'utf8') >= maxBuffer;
 }
 
 function isHighVolumeOutputError(error) {

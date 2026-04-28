@@ -288,13 +288,20 @@ export function createTestRunTool({ projectRoot, toolRunner }) {
       if (!isActive) {
         return {
           status: 'unavailable',
+          validationSurface: 'target_project_app',
+          capabilityState: 'unavailable',
+          unavailableValidationPath: 'target_project_app',
           reason: 'No test framework detected in project root.',
+          caveats: ['Target-project app test validation is unavailable until the project declares a supported test framework.'],
         };
       }
 
       if (!toolRunner) {
         return {
           status: 'unavailable',
+          validationSurface: 'target_project_app',
+          capabilityState: 'unavailable',
+          unavailableValidationPath: 'target_project_app',
           reason: 'External tool runner is not configured.',
         };
       }
@@ -303,6 +310,9 @@ export function createTestRunTool({ projectRoot, toolRunner }) {
       if (!binary) {
         return {
           status: 'unavailable',
+          validationSurface: 'target_project_app',
+          capabilityState: 'unavailable',
+          unavailableValidationPath: 'target_project_app',
           reason: `Cannot detect binary for framework: ${framework}`,
         };
       }
@@ -338,6 +348,8 @@ export function createTestRunTool({ projectRoot, toolRunner }) {
       if (result.timedOut) {
         return {
           status: 'timeout',
+          validationSurface: 'target_project_app',
+          capabilityState: 'degraded',
           reason: `${framework} timed out after ${timeout}ms.`,
           stdout: result.stdout.slice(0, 2000),
           stderr: result.stderr.slice(0, 2000),
@@ -361,6 +373,8 @@ export function createTestRunTool({ projectRoot, toolRunner }) {
       if (!parsed) {
         return {
           status: result.exitCode === 0 ? 'ok' : 'errors',
+          validationSurface: 'target_project_app',
+          capabilityState: 'available',
           framework,
           exitCode: result.exitCode,
           passed: null,
@@ -373,6 +387,8 @@ export function createTestRunTool({ projectRoot, toolRunner }) {
 
       return {
         status: parsed.failed > 0 ? 'failures' : 'ok',
+        validationSurface: 'target_project_app',
+        capabilityState: 'available',
         framework,
         configPath,
         exitCode: result.exitCode,

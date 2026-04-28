@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 
 import { isCommandAvailable } from '../../command-detection.js';
+import { buildCapabilityStatusEnvelope } from '../../capabilities/status.js';
 import { getMcpCatalogEntry, listMcpCatalogEntries } from '../../capabilities/mcp-catalog.js';
 import { getCustomMcpEntry, listCustomMcpEntries, readCustomMcpConfig } from './custom-mcp-store.js';
 import { readMcpConfig } from './mcp-config-store.js';
@@ -26,6 +27,25 @@ function getDependencyState(entry, env = process.env) {
   });
 }
 
+function getBundledCaveats({ enabled, capabilityState, missingRequiredKeys, missingRequiredDeps, optionalMissing, entry }) {
+  return [
+    ...(enabled ? [] : ['disabled for selected scope']),
+    ...(missingRequiredKeys ? ['required secret binding is missing; values are redacted'] : []),
+    ...(missingRequiredDeps ? ['required command dependency is unavailable'] : []),
+    ...(optionalMissing ? ['optional command dependency is unavailable or degraded'] : []),
+    ...(entry.lifecycle === 'preview' ? ['preview lifecycle; behavior may be partial'] : []),
+    ...(entry.lifecycle === 'policy_gated' ? ['policy-gated lifecycle; inspect setup policy before use'] : []),
+    ...(capabilityState !== 'available' ? [`state=${capabilityState}`] : []),
+  ];
+}
+
+function getNextActions({ capabilityState, guidance }) {
+  if (capabilityState === 'available') {
+    return ['Use explicit MCP doctor/test before relying on current session readiness.'];
+  }
+  return [guidance, 'Run openkit configure mcp doctor or tool.mcp-doctor for current readiness.'];
+}
+
 export function buildMcpStatus(entry, { scope = 'openkit', config = readMcpConfig(), loadedSecrets = { values: {} }, env = process.env } = {}) {
   const scopeState = config.scopes?.[scope]?.[entry.id] ?? { enabled: entry.defaultEnabled?.[scope] === true, source: 'default' };
   const keyState = getKeyState(entry, loadedSecrets, env);
@@ -46,21 +66,51 @@ export function buildMcpStatus(entry, { scope = 'openkit', config = readMcpConfi
     capabilityState = 'available';
   }
 
+  const guidance = missingRequiredKeys
+    ? `Run openkit configure mcp set-key ${entry.id} --stdin`
+    : entry.docs?.setup ?? 'docs/operator/mcp-configuration.md';
+  const caveats = getBundledCaveats({
+    enabled: scopeState.enabled === true,
+    capabilityState,
+    missingRequiredKeys,
+    missingRequiredDeps,
+    optionalMissing,
+    entry,
+  });
+
   return {
     mcpId: entry.id,
+    id: entry.id,
     displayName: entry.displayName,
+    label: entry.displayName,
+    kind: 'bundled',
+    family: 'mcp',
     scope,
     enabled: scopeState.enabled === true,
     source: scopeState.source ?? 'default',
     capabilityState,
+    capabilityEnvelope: buildCapabilityStatusEnvelope({
+      id: entry.id,
+      label: entry.displayName,
+      family: 'mcp',
+      surface: 'runtime_tooling',
+      state: capabilityState,
+      source: 'bundled',
+      freshness: 'fresh',
+      evidenceRefs: ['src/global/mcp/health-checks.js', 'docs/operator/mcp-configuration.md'],
+      caveats,
+      nextActions: getNextActions({ capabilityState, guidance }),
+    }),
+    surface: 'runtime_tooling',
+    freshness: 'fresh',
+    caveats,
+    nextActions: getNextActions({ capabilityState, guidance }),
     lifecycle: entry.lifecycle,
     optional: entry.optional === true,
     keyState,
     dependencies,
     validationSurface: 'runtime_tooling',
-    guidance: missingRequiredKeys
-      ? `Run openkit configure mcp set-key ${entry.id} --stdin`
-      : entry.docs?.setup ?? 'docs/operator/mcp-configuration.md',
+    guidance,
   };
 }
 
@@ -154,16 +204,48 @@ export function buildCustomMcpStatus(entry, { scope = 'openkit', loadedSecrets =
     reason = 'provider_unverified';
   }
 
+  const guidance = missingRequiredKeys
+    ? `Provide environment or run openkit configure mcp set-key ${entry.id} --env-var <ENV_VAR> --stdin for declared custom bindings.`
+    : 'docs/operator/mcp-configuration.md#custom-mcp-definitions';
+  const caveats = [
+    ...(enabled ? [] : ['disabled for selected scope']),
+    ...(missingRequiredKeys ? ['required custom secret binding is missing; values are redacted'] : []),
+    ...(missingRequiredDeps ? ['required local custom MCP command is unavailable'] : []),
+    ...(entry.definition?.type === 'remote' ? ['remote custom MCP provider is unverified until explicitly tested'] : []),
+    ...(entry.riskWarnings ?? []),
+    ...(entry.validationWarnings ?? []),
+    ...(reason ? [`reason=${reason}`] : []),
+  ];
+
   return {
     mcpId: entry.id,
+    id: entry.id,
     displayName: entry.displayName,
+    label: entry.displayName,
     kind: 'custom',
+    family: 'custom_mcp',
     origin: entry.origin,
     ownership: entry.ownership,
     scope,
     enabled,
     source: 'custom',
     capabilityState,
+    capabilityEnvelope: buildCapabilityStatusEnvelope({
+      id: entry.id,
+      label: entry.displayName,
+      family: 'custom_mcp',
+      surface: 'runtime_tooling',
+      state: capabilityState,
+      source: 'custom',
+      freshness: 'fresh',
+      evidenceRefs: ['src/global/mcp/health-checks.js', 'docs/operator/mcp-configuration.md#custom-mcp-definitions'],
+      caveats,
+      nextActions: getNextActions({ capabilityState, guidance }),
+    }),
+    surface: 'runtime_tooling',
+    freshness: 'fresh',
+    caveats,
+    nextActions: getNextActions({ capabilityState, guidance }),
     lifecycle: 'custom',
     optional: false,
     keyState,
@@ -172,9 +254,7 @@ export function buildCustomMcpStatus(entry, { scope = 'openkit', loadedSecrets =
     conflicts: [],
     reason,
     validationSurface: 'runtime_tooling',
-    guidance: missingRequiredKeys
-      ? `Provide environment or run openkit configure mcp set-key ${entry.id} --env-var <ENV_VAR> --stdin for declared custom bindings.`
-      : 'docs/operator/mcp-configuration.md#custom-mcp-definitions',
+    guidance,
   };
 }
 

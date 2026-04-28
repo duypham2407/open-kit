@@ -16,6 +16,7 @@ export function createCodemodApplyTool({ projectRoot }) {
     family: 'codemod',
     stage: 'foundation',
     status: 'active',
+    validationSurface: 'runtime_tooling',
     async execute(input = {}) {
       let jscodeshift;
       try {
@@ -24,7 +25,10 @@ export function createCodemodApplyTool({ projectRoot }) {
       } catch {
         return {
           status: 'dependency-missing',
+          validationSurface: 'runtime_tooling',
+          capabilityState: 'unavailable',
           provider: 'jscodeshift',
+          caveats: ['jscodeshift dependency is unavailable; apply cannot run.'],
           applied: [],
         };
       }
@@ -37,6 +41,8 @@ export function createCodemodApplyTool({ projectRoot }) {
       if (!transformPath && !inlineTransform) {
         return {
           status: 'invalid-input',
+          validationSurface: 'runtime_tooling',
+          capabilityState: 'degraded',
           provider: 'jscodeshift',
           message: 'Either transform (file path) or inlineTransform (function source) is required.',
           applied: [],
@@ -46,6 +52,8 @@ export function createCodemodApplyTool({ projectRoot }) {
       if (targetFiles.length === 0) {
         return {
           status: 'invalid-input',
+          validationSurface: 'runtime_tooling',
+          capabilityState: 'degraded',
           provider: 'jscodeshift',
           message: 'At least one target file is required.',
           applied: [],
@@ -60,6 +68,8 @@ export function createCodemodApplyTool({ projectRoot }) {
         } catch (error) {
           return {
             status: 'transform-error',
+            validationSurface: 'runtime_tooling',
+            capabilityState: 'degraded',
             provider: 'jscodeshift',
             message: `Failed to compile inline transform: ${error.message}`,
             applied: [],
@@ -70,6 +80,8 @@ export function createCodemodApplyTool({ projectRoot }) {
         if (!resolvedPath || !isInsideProjectRoot(projectRoot, resolvedPath)) {
           return {
             status: 'invalid-path',
+            validationSurface: 'runtime_tooling',
+            capabilityState: 'degraded',
             provider: 'jscodeshift',
             message: 'Transform path must stay inside the project root.',
             applied: [],
@@ -81,6 +93,8 @@ export function createCodemodApplyTool({ projectRoot }) {
         } catch (error) {
           return {
             status: 'transform-error',
+            validationSurface: 'runtime_tooling',
+            capabilityState: 'degraded',
             provider: 'jscodeshift',
             message: `Failed to load transform: ${error.message}`,
             applied: [],
@@ -126,6 +140,12 @@ export function createCodemodApplyTool({ projectRoot }) {
 
       return {
         status: 'ok',
+        validationSurface: 'runtime_tooling',
+        capabilityState: dryRun ? 'preview' : 'available',
+        evidenceMode: dryRun ? 'dry_run' : 'mutating_apply',
+        caveats: dryRun
+          ? ['Dry-run apply preview; no files were written.']
+          : ['Mutating codemod apply; prior codemod-preview evidence should exist before use.'],
         provider: 'jscodeshift',
         transform: transformPath ?? '(inline)',
         dryRun,

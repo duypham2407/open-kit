@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { ProjectGraphDb, isBetterSqliteAvailable } from '../analysis/project-graph-db.js';
+import { buildCapabilityStatusEnvelope } from '../../capabilities/status.js';
 import { buildFileGraph } from '../analysis/import-graph-builder.js';
 import { trackReferences } from '../analysis/reference-tracker.js';
 import { buildCallGraph, symbolKey } from '../analysis/call-graph-builder.js';
@@ -70,22 +71,63 @@ export class ProjectGraphManager {
 
   describe() {
     if (!this._available || !this._db) {
+      const capabilityEnvelope = buildCapabilityStatusEnvelope({
+        id: 'code-intelligence.project-graph',
+        label: 'Project Graph',
+        family: 'code_intelligence',
+        surface: 'runtime_tooling',
+        state: 'unavailable',
+        source: 'runtime',
+        freshness: 'fresh',
+        evidenceRefs: ['src/runtime/managers/project-graph-manager.js'],
+        caveats: ['better-sqlite3 is not available or failed to initialize'],
+        nextActions: ['Run openkit doctor to inspect native dependency availability.'],
+      });
       return {
         status: 'unavailable',
+        validationSurface: 'runtime_tooling',
+        capabilityState: 'unavailable',
+        capabilityEnvelope,
+        readiness: capabilityEnvelope,
         reason: 'better-sqlite3 is not available or failed to initialize',
         dbPath: this._dbPath,
       };
     }
 
+    const stats = this._db.stats();
+    const caveats = [
+      ...(this._readOnly ? ['graph database is open read-only; indexing mutations are unavailable'] : []),
+      ...(this._indexingInProgress ? ['indexing is currently in progress; results may be changing'] : []),
+      ...(this._indexedFileCount === 0 && (stats.nodes ?? 0) === 0 ? ['graph is empty or has not been indexed in this session'] : []),
+      ...(this._phase3Errors > 0 ? [`reference/call tracking reported ${this._phase3Errors} best-effort error(s)`] : []),
+    ];
+    const capabilityState = this._readOnly || caveats.length > 0 ? 'degraded' : 'available';
+    const capabilityEnvelope = buildCapabilityStatusEnvelope({
+      id: 'code-intelligence.project-graph',
+      label: 'Project Graph',
+      family: 'code_intelligence',
+      surface: 'runtime_tooling',
+      state: capabilityState,
+      source: 'runtime',
+      freshness: this._lastIndexTime > 0 ? 'cached' : 'unknown',
+      evidenceRefs: ['src/runtime/managers/project-graph-manager.js'],
+      caveats,
+      nextActions: ['Use tool.import-graph action=index or index-file to refresh graph data before relying on results.'],
+    });
+
     return {
       status: this._readOnly ? 'read-only' : 'active',
+      validationSurface: 'runtime_tooling',
+      capabilityState,
+      capabilityEnvelope,
+      readiness: capabilityEnvelope,
       readOnly: this._readOnly,
       dbPath: this._dbPath,
       indexingInProgress: this._indexingInProgress,
       lastIndexTime: this._lastIndexTime,
       indexedFileCount: this._indexedFileCount,
       phase3Errors: this._phase3Errors,
-      stats: this._db.stats(),
+      stats,
     };
   }
 

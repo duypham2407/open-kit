@@ -86,3 +86,26 @@ Do not invent alternate labels for the same states. If a command or tool is docu
 - Syntax tooling should expose supported languages, outline/context/locate semantics, and any unsupported-language fallback clearly rather than pretending all files are parseable
 - Semantic search and graph tools should expose dependency/config/indexing limitations: no database or missing native module is `unavailable`, missing embeddings can be `degraded` to keyword behavior, and disabled embedding providers are `not_configured`.
 - Browser and background execution surfaces are runtime aids. They may produce evidence or progress visibility, but they do not approve gates, declare QA complete, or imply unrestricted parallel safety.
+
+## Capability Status Envelope
+
+Hardened capability read models should align around these fields when reporting readiness, even when an older command keeps its existing output shape:
+
+```text
+CapabilityStatus {
+  id
+  label
+  family: mcp | custom_mcp | code_intelligence | workflow | scan | browser | background | external_tool
+  surface: global_cli | in_session | compatibility_runtime | runtime_tooling | documentation | package | target_project_app
+  state: available | unavailable | degraded | preview | compatibility_only | not_configured
+  source
+  freshness: fresh | startup_snapshot | cached | stale | unknown
+  evidenceRefs
+  caveats
+  nextActions
+}
+```
+
+This envelope is an inspectability convention, not a new authority model. It must not serialize raw secrets, token values, headers, provider payloads, or full environment maps. Capability summaries may guide tool choice, diagnostics, routing recommendations, and evidence interpretation, but they do not load skills, execute MCP tools, approve gates, mutate workflow state, declare QA complete, or change the three-lane workflow contract.
+
+FEATURE-950 phase completion evidence uses workflow verification evidence with `details.phase_completion` fields for completed slices, acceptance criteria, validation surfaces, commands/tools run, unavailable validation paths, unresolved blockers, and downstream unlock decision. These records document the approved phase order; they do not introduce new runtime stages or approval gates.

@@ -6,16 +6,24 @@ export function createSyntaxContextTool({ syntaxIndexManager }) {
     family: 'syntax',
     stage: 'foundation',
     status: 'active',
+    validationSurface: 'runtime_tooling',
     async execute(input = {}) {
+      let result;
       if (typeof input === 'string') {
-        return syntaxIndexManager.getContext(input, {});
+        result = await syntaxIndexManager.getContext(input, {});
+      } else {
+        result = await syntaxIndexManager.getContext(input.filePath, {
+          line: input.line,
+          column: input.column,
+          depth: input.depth,
+        });
       }
-
-      return syntaxIndexManager.getContext(input.filePath, {
-        line: input.line,
-        column: input.column,
-        depth: input.depth,
-      });
+      return {
+        validationSurface: 'runtime_tooling',
+        capabilityState: result?.status === 'unsupported-language' || result?.status === 'invalid-path' ? 'degraded' : 'available',
+        caveats: result?.status === 'unsupported-language' ? ['Unsupported language; syntax context is unavailable for this file.'] : [],
+        ...result,
+      };
     },
   };
 }
