@@ -2,9 +2,9 @@
 
 ## Latest
 
-- [`0.3.29`](release-notes/0.3.29.md) - add OpenClaw supervisor dialogue and structured scan evidence gates
-- npm latest: `@duypham93/openkit@0.3.29`
-- git tag: `v0.3.29`
+- [`0.3.30`](release-notes/0.3.30.md) - harden capability platform readiness surfaces
+- npm latest: `@duypham93/openkit@0.3.30`
+- git tag: `v0.3.30`
 
 ## Previous
 
@@ -16,6 +16,7 @@
 
 Historical release notes tracked in-repo:
 
+- [`0.3.30`](release-notes/0.3.30.md) - harden capability platform readiness surfaces
 - [`0.3.29`](release-notes/0.3.29.md) - add OpenClaw supervisor dialogue and structured scan evidence gates
 - [`0.3.28`](release-notes/0.3.28.md) - add explicit retained worktree launch controls and fix verify/runtime status handling
 - [`0.3.27`](release-notes/0.3.27.md) - require quick-task alignment before option analysis and plan confirmation
