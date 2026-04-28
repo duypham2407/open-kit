@@ -3,7 +3,7 @@
   "registryVersion": 1,
   "kit": {
     "name": "OpenKit AI Software Factory",
-    "version": "0.3.31",
+    "version": "0.3.32",
     "description": "Local component metadata for the checked-in OpenKit repository and the global-kit compatibility surface.",
     "repositoryRoot": ".",
     "productSurface": {
