@@ -8,9 +8,10 @@ import { getGlobalPaths } from './paths.js';
 import { materializeMcpProfiles } from './mcp/profile-materializer.js';
 import { ensureAstGrepInstalled, ensureSemgrepInstalled } from './tooling.js';
 import {
-  createPermissionedOpenCodeConfigMetadata,
+  createPermissionedOpenCodeConfigProjection,
   loadDefaultCommandPermissionPolicy,
 } from '../permissions/command-permission-policy.js';
+import { sanitizeOpenCodeConfig } from '../opencode/config-schema.js';
 import { getOpenKitVersion } from '../version.js';
 
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -35,6 +36,7 @@ const GLOBAL_KIT_ASSETS = [
   'src/mcp-server',
   'src/global',
   'src/install',
+  'src/opencode',
   'src/permissions',
   'src/mcp-server',
   'src/command-detection.js',
@@ -124,8 +126,8 @@ function listManagedFiles(kitRoot) {
 function createOpenCodeConfig(kitRoot) {
   const mcpCommand = [process.execPath, path.join(PACKAGE_ROOT, 'bin', 'openkit-mcp.js')];
   const permissionPolicy = loadDefaultCommandPermissionPolicy();
-  const permissionedConfig = createPermissionedOpenCodeConfigMetadata(permissionPolicy);
-  return {
+  const permissionedConfig = createPermissionedOpenCodeConfigProjection(permissionPolicy);
+  return sanitizeOpenCodeConfig({
     $schema: 'https://opencode.ai/config.json',
     default_agent: 'master-orchestrator',
     mcp: {
@@ -144,7 +146,7 @@ function createOpenCodeConfig(kitRoot) {
       },
     },
     ...permissionedConfig,
-  };
+  }).config;
 }
 
 export function materializeGlobalInstall({

@@ -46,10 +46,6 @@ test("materializeInstall creates managed install files without mutating the chec
   assert.equal(result.conflicts.length, 0)
   assert.equal(result.warnings.length, 0)
   assert.deepEqual(rootManifest, {
-    installState: {
-      path: ".openkit/openkit-install.json",
-      schema: "openkit/install-state@1",
-    },
     mcp: {
       openkit: {
         type: "local",
@@ -66,11 +62,6 @@ test("materializeInstall creates managed install files without mutating the chec
       },
     },
     ...PERMISSIONED_CONFIG,
-    productSurface: {
-      current: "global-openkit-install",
-      installReadiness: "managed",
-      installationMode: "openkit-managed",
-    },
   })
   assert.equal(fs.readFileSync(runtimeManifestPath, "utf8"), beforeRuntimeManifest)
   assert.deepEqual(validateInstallState(installState), [])
@@ -90,7 +81,7 @@ test("materializeInstall creates managed install files without mutating the chec
   ])
 })
 
-test("materializeInstall additively inserts allowed managed-install keys into an existing root manifest", () => {
+test("materializeInstall additively inserts allowed OpenCode keys into an existing root manifest", () => {
   const projectRoot = makeTempDir()
   const rootManifestPath = path.join(projectRoot, "opencode.json")
 
@@ -100,7 +91,6 @@ test("materializeInstall additively inserts allowed managed-install keys into an
   writeJson(rootManifestPath, {
     plugin: ["existing-plugin"],
     instructions: ["LOCAL.md"],
-    theme: "light",
   })
 
   const result = materializeInstall(projectRoot, {
@@ -112,11 +102,6 @@ test("materializeInstall additively inserts allowed managed-install keys into an
   assert.deepEqual(afterRootManifest, {
     plugin: ["existing-plugin"],
     instructions: ["LOCAL.md"],
-    theme: "light",
-    installState: {
-      path: ".openkit/openkit-install.json",
-      schema: "openkit/install-state@1",
-    },
     mcp: {
       openkit: {
         type: "local",
@@ -133,11 +118,6 @@ test("materializeInstall additively inserts allowed managed-install keys into an
       },
     },
     ...PERMISSIONED_CONFIG,
-    productSurface: {
-      current: "global-openkit-install",
-      installReadiness: "managed",
-      installationMode: "openkit-managed",
-    },
   })
   assert.deepEqual(result.conflicts, [])
   assert.deepEqual(result.managedAssets, [
@@ -180,7 +160,7 @@ test("materializeInstall configures the openkit MCP in the root manifest", () =>
   })
 })
 
-test("materializeInstall fails closed for unsupported root manifest rewrites", () => {
+test("materializeInstall fails closed for schema-invalid root manifest keys", () => {
   const projectRoot = makeTempDir()
   const rootManifestPath = path.join(projectRoot, "opencode.json")
 
@@ -188,10 +168,7 @@ test("materializeInstall fails closed for unsupported root manifest rewrites", (
     runtime: true,
   })
   writeJson(rootManifestPath, {
-    theme: "light",
-    productSurface: {
-      current: "custom-surface",
-    },
+    unknownWrapperState: true,
   })
 
   const beforeRootManifest = fs.readFileSync(rootManifestPath, "utf8")
@@ -206,16 +183,9 @@ test("materializeInstall fails closed for unsupported root manifest rewrites", (
     {
       assetId: "runtime.opencode-manifest",
       path: "opencode.json",
-      field: "productSurface",
-      reason: "unsupported-top-level-key",
-      currentValue: {
-        current: "custom-surface",
-      },
-      desiredValue: {
-        current: "global-openkit-install",
-        installReadiness: "managed",
-        installationMode: "openkit-managed",
-      },
+      field: "unknownWrapperState",
+      reason: "schema-invalid-top-level-key",
+      currentValue: true,
       resolution: "manual-review-required",
     },
   ])

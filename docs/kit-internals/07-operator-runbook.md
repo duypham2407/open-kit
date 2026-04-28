@@ -59,7 +59,7 @@ Keep validation surfaces separate while debugging this stack: `openkit doctor` i
 Command permission policy: degraded | support=degraded | policy=<OPENCODE_HOME>/kits/openkit/assets/default-command-permission-policy.json
 ```
 
-`degraded` is expected until OpenCode default-allow with confirm-required exception semantics are verified upstream. The canonical policy source is `assets/default-command-permission-policy.json`; the managed global kit config and `profiles/openkit/opencode.json` should match its projection. If doctor reports missing, malformed, or drifted policy state, run `openkit upgrade` and re-run `openkit doctor`.
+`degraded` is expected until OpenCode default-allow with confirm-required exception semantics are verified upstream. The canonical policy source is `assets/default-command-permission-policy.json`; the managed global kit config and `profiles/openkit/opencode.json` should match its strict-schema-safe `permission` projection and must not contain OpenKit-only top-level metadata such as `commandPermissionPolicy`. If doctor reports missing, malformed, or drifted policy state, run `openkit upgrade` and re-run `openkit doctor`.
 
 Dangerous entries such as deletion, destructive git, publish/release/deploy, database-destructive, and privileged/system-impacting commands remain confirmation-required by policy. OpenKit does not auto-confirm prompts, intercept a pseudo-terminal, or weaken the agent git/release safety protocol.
 

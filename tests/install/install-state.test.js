@@ -16,6 +16,7 @@ import {
   createInstallState,
   validateInstallState,
 } from "../../src/install/install-state.js"
+import { validateOpenCodeConfigTopLevelKeys } from "../../src/opencode/config-schema.js"
 
 test("asset manifest defines the phase 1 managed assets", () => {
   assert.equal(OPENKIT_ASSET_MANIFEST.schema, "openkit/asset-manifest@1")
@@ -305,18 +306,26 @@ test("install state validation rejects parseable non-ISO timestamps", () => {
   ])
 })
 
-test("asset templates exist and point at the new schemas", () => {
+test("asset templates exist and keep OpenCode config strict-schema-safe", () => {
   const testDir = path.dirname(fileURLToPath(import.meta.url))
   const opencodeTemplatePath = path.resolve(testDir, "../../assets/opencode.json.template")
   const installTemplatePath = path.resolve(testDir, "../../assets/openkit-install.json.template")
 
   const opencodeTemplate = JSON.parse(fs.readFileSync(opencodeTemplatePath, "utf8"))
   const installTemplate = JSON.parse(fs.readFileSync(installTemplatePath, "utf8"))
+  const opencodeValidation = validateOpenCodeConfigTopLevelKeys(opencodeTemplate, {
+    configPath: "assets/opencode.json.template",
+  })
 
-  assert.equal(opencodeTemplate.installState.path, ".openkit/openkit-install.json")
-  assert.equal(opencodeTemplate.installState.schema, INSTALL_STATE_SCHEMA)
-  assert.equal(opencodeTemplate.productSurface.installReadiness, "managed")
-  assert.equal(opencodeTemplate.productSurface.installationMode, "openkit-managed")
+  assert.deepEqual(opencodeValidation.errors, [])
+  assert.deepEqual(opencodeValidation.unknownKeys, [])
+  assert.deepEqual(opencodeValidation.openKitOnlyKeys, [])
+  assert.equal(Object.hasOwn(opencodeTemplate, "installState"), false)
+  assert.equal(Object.hasOwn(opencodeTemplate, "productSurface"), false)
+  assert.equal(Object.hasOwn(opencodeTemplate, "commandPermissionPolicy"), false)
+  assert.equal(opencodeTemplate.permission.read, "allow")
+  assert.equal(opencodeTemplate.permission.rm, "ask")
+  assert.equal(opencodeTemplate.mcp.openkit.enabled, true)
 
   assert.equal(installTemplate.schema, INSTALL_STATE_SCHEMA)
   assert.equal(installTemplate.stateVersion, 1)

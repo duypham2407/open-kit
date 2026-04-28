@@ -1,8 +1,4 @@
 {
-  "installState": {
-    "path": ".openkit/openkit-install.json",
-    "schema": "openkit/install-state@1"
-  },
   "permission": {
     "npm": "allow",
     "task": "allow",
@@ -47,16 +43,6 @@
     "chmod": "ask",
     "chown": "ask"
   },
-  "commandPermissionPolicy": {
-    "schema": "openkit/command-permission-policy@1",
-    "version": 1,
-    "intent": "default-allow-with-confirm-required-exceptions",
-    "desiredDefaultAction": "allow",
-    "projectionSupport": "degraded",
-    "effectiveProjection": "explicit-permission-map-with-visible-degraded-status",
-    "defaultActionSupport": "unverified",
-    "unsupportedGranularityCount": 4
-  },
   "mcp": {
     "openkit": {
       "type": "local",
@@ -78,10 +64,5 @@
       ],
       "enabled": true
     }
-  },
-  "productSurface": {
-    "current": "global-openkit-install",
-    "installReadiness": "managed",
-    "installationMode": "openkit-managed"
   }
 }

@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { getOpenKitOnlyOpenCodeConfigKeys } from '../opencode/config-schema.js';
+
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(MODULE_DIR, '../..');
 
@@ -373,7 +375,6 @@ export function inspectCommandPermissionPolicy({
   }
 
   const projection = buildOpenCodePermissionConfig(policy);
-  const expectedMetadata = createCommandPermissionPolicyMetadata(policy, projection);
   const configPermission = isPlainObject(config.permission) ? config.permission : {};
   const confirm = comparePermissionEntries({
     configPermission,
@@ -387,15 +388,16 @@ export function inspectCommandPermissionPolicy({
   });
   const issues = [];
   const nextActions = [];
+  const legacyOpenKitMetadataKeys = getOpenKitOnlyOpenCodeConfigKeys(config);
 
   if (!isPlainObject(config.permission)) {
     issues.push('Materialized OpenCode config is missing the permission map.');
   }
 
-  if (!isPlainObject(config.commandPermissionPolicy)) {
-    issues.push('Materialized OpenCode config is missing commandPermissionPolicy metadata.');
-  } else if (JSON.stringify(config.commandPermissionPolicy) !== JSON.stringify(expectedMetadata)) {
-    issues.push('Materialized OpenCode config commandPermissionPolicy metadata is out of sync with the policy source.');
+  if (legacyOpenKitMetadataKeys.length > 0) {
+    issues.push(
+      `Materialized OpenCode config contains OpenKit-only metadata keys that strict OpenCode rejects: ${legacyOpenKitMetadataKeys.join(', ')}.`,
+    );
   }
 
   if (confirm.missing.length > 0) {
@@ -435,7 +437,8 @@ export function inspectCommandPermissionPolicy({
     missingRoutineAllows: routine.missing,
     mismatchedRoutineAllows: routine.mismatched,
     unsupportedGranularity: projection.unsupportedGranularity,
-    metadataMatches: isPlainObject(config.commandPermissionPolicy) && JSON.stringify(config.commandPermissionPolicy) === JSON.stringify(expectedMetadata),
+    legacyOpenKitMetadataKeys,
+    metadataMatches: legacyOpenKitMetadataKeys.length === 0,
     issues,
     caveats: projection.caveats,
     nextActions,
@@ -443,9 +446,12 @@ export function inspectCommandPermissionPolicy({
 }
 
 export function createPermissionedOpenCodeConfigMetadata(policy = loadDefaultCommandPermissionPolicy()) {
+  return createPermissionedOpenCodeConfigProjection(policy);
+}
+
+export function createPermissionedOpenCodeConfigProjection(policy = loadDefaultCommandPermissionPolicy()) {
   const projection = buildOpenCodePermissionConfig(policy);
   return {
     permission: projection.permission,
-    commandPermissionPolicy: createCommandPermissionPolicyMetadata(policy, projection),
   };
 }

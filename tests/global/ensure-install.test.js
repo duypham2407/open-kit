@@ -305,12 +305,11 @@ test('materializeGlobalInstall configures managed MCP defaults', () => {
   });
   assert.deepEqual(profileConfig.permission, PERMISSIONED_CONFIG.permission);
   assert.deepEqual(kitConfig.permission, PERMISSIONED_CONFIG.permission);
-  assert.deepEqual(profileConfig.commandPermissionPolicy, PERMISSIONED_CONFIG.commandPermissionPolicy);
-  assert.deepEqual(kitConfig.commandPermissionPolicy, PERMISSIONED_CONFIG.commandPermissionPolicy);
+  assert.equal(Object.hasOwn(profileConfig, 'commandPermissionPolicy'), false);
+  assert.equal(Object.hasOwn(kitConfig, 'commandPermissionPolicy'), false);
   assert.equal(profileConfig.permission.rm, 'ask');
   assert.equal(profileConfig.permission['git reset --hard'], 'ask');
   assert.equal(profileConfig.permission['npm publish'], 'ask');
-  assert.equal(profileConfig.commandPermissionPolicy.projectionSupport, 'degraded');
 });
 
 test('package manifest publishes OpenCode plugin runtime surfaces', () => {

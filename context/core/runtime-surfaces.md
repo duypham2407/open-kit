@@ -63,7 +63,7 @@ Do not invent alternate labels for the same states. If a command or tool is docu
 ## Validation Split
 
 - `openkit doctor` validates the `global_cli` surface.
-- `openkit doctor` also reports OpenKit command permission policy health on the `global_cli` surface: canonical policy source readability, global kit/profile alignment, confirm-required dangerous entry coverage, routine allow projection, and degraded upstream support caveats when OpenCode cannot be proven to honor default-allow plus exception semantics.
+- `openkit doctor` also reports OpenKit command permission policy health on the `global_cli` surface: canonical policy source readability, strict-schema-safe global kit/profile permission projection, confirm-required dangerous entry coverage, routine allow projection, legacy invalid OpenKit-only metadata drift, and degraded upstream support caveats when OpenCode cannot be proven to honor default-allow plus exception semantics.
 - `node .opencode/workflow-state.js doctor`, `status`, `resume-summary`, `show`, and `validate` validate the `compatibility_runtime` surface.
 - In-session tool results validate `runtime_tooling` only when the tool actually ran and reports its status honestly.
 - Workflow-state runtime tools such as `tool.workflow-state`, `tool.runtime-summary`, and `tool.evidence-capture` are compatibility-runtime inspection and evidence surfaces even though they are exposed inside the runtime tool layer.
@@ -74,7 +74,7 @@ Do not invent alternate labels for the same states. If a command or tool is docu
 - FEATURE-939 scan/tool evidence remains required where applicable and must stay distinct from FEATURE-940 supervisor dialogue behavior evidence.
 - Documentation checks and governance tests validate the `documentation` surface.
 - Install-bundle/source synchronization, including derived bundled skill metadata, validates the `package` surface.
-- Command permission policy package checks validate the `package` surface when they prove `assets/default-command-permission-policy.json` is shipped and synchronized with generated OpenKit config projections; these checks still do not prove target-project application behavior.
+- Command permission policy package checks validate the `package` surface when they prove `assets/default-command-permission-policy.json` is shipped and synchronized with generated strict OpenCode config permission projections; these checks still do not prove target-project application behavior.
 - Target-project build/lint/test validation belongs to `target_project_app` only when the target project defines those commands.
 - If target-project app-native commands are absent, record that validation path as unavailable. Do not replace it with OpenKit runtime checks.
 

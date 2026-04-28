@@ -1,11 +1,10 @@
+import { isOpenCodeConfigTopLevelKey, sanitizeOpenCodeConfig } from "../opencode/config-schema.js"
+
 const OPENKIT_MERGE_ALLOWLIST = new Set([
   "plugin",
   "instructions",
-  "installState",
   "mcp",
   "permission",
-  "commandPermissionPolicy",
-  "productSurface",
 ])
 
 function isPlainObject(value) {
@@ -77,38 +76,50 @@ export function applyOpenKitMergePolicy({ currentConfig = {}, desiredConfig = {}
   const config = {}
   const conflicts = []
   const appliedFields = []
-  const keys = new Set([...Object.keys(currentConfig), ...Object.keys(desiredConfig)])
+  const sanitizedCurrent = sanitizeOpenCodeConfig(currentConfig).config
+  const sanitizedDesired = sanitizeOpenCodeConfig(desiredConfig).config
+  const keys = new Set([...Object.keys(sanitizedCurrent), ...Object.keys(sanitizedDesired)])
 
   for (const key of keys) {
-    const hasCurrent = Object.hasOwn(currentConfig, key)
-    const hasDesired = Object.hasOwn(desiredConfig, key)
+    const hasCurrent = Object.hasOwn(sanitizedCurrent, key)
+    const hasDesired = Object.hasOwn(sanitizedDesired, key)
 
     if (!hasDesired) {
-      config[key] = cloneValue(currentConfig[key])
+      if (!isOpenCodeConfigTopLevelKey(key)) {
+        conflicts.push({
+          field: key,
+          reason: "schema-invalid-top-level-key",
+          currentValue: cloneValue(sanitizedCurrent[key]),
+          desiredValue: undefined,
+        })
+        continue
+      }
+
+      config[key] = cloneValue(sanitizedCurrent[key])
       continue
     }
 
     if (OPENKIT_MERGE_ALLOWLIST.has(key)) {
-      if (Array.isArray(desiredConfig[key])) {
-        config[key] = mergeUniqueArray(currentConfig[key], desiredConfig[key])
+      if (Array.isArray(sanitizedDesired[key])) {
+        config[key] = mergeUniqueArray(sanitizedCurrent[key], sanitizedDesired[key])
         appliedFields.push(key)
         continue
       }
 
       if (!hasCurrent) {
-        config[key] = cloneValue(desiredConfig[key])
+        config[key] = cloneValue(sanitizedDesired[key])
         appliedFields.push(key)
         continue
       }
 
-      config[key] = cloneValue(currentConfig[key])
+      config[key] = cloneValue(sanitizedCurrent[key])
 
-      if (!valuesMatch(currentConfig[key], desiredConfig[key])) {
+      if (!valuesMatch(sanitizedCurrent[key], sanitizedDesired[key])) {
         conflicts.push({
           field: key,
           reason: "unsupported-top-level-key",
-          currentValue: cloneValue(currentConfig[key]),
-          desiredValue: cloneValue(desiredConfig[key]),
+          currentValue: cloneValue(sanitizedCurrent[key]),
+          desiredValue: cloneValue(sanitizedDesired[key]),
         })
       } else {
         appliedFields.push(key)
@@ -122,19 +133,19 @@ export function applyOpenKitMergePolicy({ currentConfig = {}, desiredConfig = {}
         field: key,
         reason: "unclassified-top-level-key",
         currentValue: undefined,
-        desiredValue: cloneValue(desiredConfig[key]),
+        desiredValue: cloneValue(sanitizedDesired[key]),
       })
       continue
     }
 
-    config[key] = cloneValue(currentConfig[key])
+    config[key] = cloneValue(sanitizedCurrent[key])
 
-    if (!Object.is(currentConfig[key], desiredConfig[key])) {
+    if (!Object.is(sanitizedCurrent[key], sanitizedDesired[key])) {
       conflicts.push({
         field: key,
         reason: "unsupported-top-level-key",
-        currentValue: cloneValue(currentConfig[key]),
-        desiredValue: cloneValue(desiredConfig[key]),
+        currentValue: cloneValue(sanitizedCurrent[key]),
+        desiredValue: cloneValue(sanitizedDesired[key]),
       })
     }
   }

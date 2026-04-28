@@ -42,16 +42,17 @@ test('materializeMcpProfiles writes openkit scope entries with placeholders only
   assert.equal(JSON.stringify(profile).includes(SENTINEL), false);
   assert.equal(profile.mcp.context7.enabled, true);
   assert.deepEqual(profile.permission, PERMISSIONED_CONFIG.permission);
-  assert.deepEqual(profile.commandPermissionPolicy, PERMISSIONED_CONFIG.commandPermissionPolicy);
+  assert.equal(Object.hasOwn(profile, 'commandPermissionPolicy'), false);
 });
 
-test('materializeMcpProfiles preserves existing openkit permission policy metadata', () => {
+test('materializeMcpProfiles strips legacy openkit permission policy metadata', () => {
   const tempHome = makeTempHome();
   const env = { OPENCODE_HOME: tempHome };
   const paths = getGlobalPaths({ env });
   writeJson(paths.profileManifestPath, {
     $schema: 'https://opencode.ai/config.json',
     ...PERMISSIONED_CONFIG,
+    commandPermissionPolicy: { schema: 'openkit/command-permission-policy@1' },
     mcp: {},
   });
   setMcpEnabled('context7', true, { scope: 'openkit', env });
@@ -60,7 +61,7 @@ test('materializeMcpProfiles preserves existing openkit permission policy metada
   const profile = readJson(paths.profileManifestPath);
 
   assert.deepEqual(profile.permission, PERMISSIONED_CONFIG.permission);
-  assert.deepEqual(profile.commandPermissionPolicy, PERMISSIONED_CONFIG.commandPermissionPolicy);
+  assert.equal(Object.hasOwn(profile, 'commandPermissionPolicy'), false);
   assert.equal(profile.mcp.context7.enabled, true);
 });
 

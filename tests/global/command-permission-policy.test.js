@@ -6,7 +6,6 @@ import path from 'node:path';
 
 import {
   buildOpenCodePermissionConfig,
-  createCommandPermissionPolicyMetadata,
   inspectCommandPermissionPolicy,
   loadDefaultCommandPermissionPolicy,
   validateCommandPermissionPolicy,
@@ -88,7 +87,6 @@ test('inspectCommandPermissionPolicy reports aligned config as degraded when ups
     policy,
     config: {
       permission: projection.permission,
-      commandPermissionPolicy: createCommandPermissionPolicyMetadata(policy, projection),
     },
     configPath: '/tmp/opencode.json',
     scope: 'test-profile',
@@ -100,7 +98,28 @@ test('inspectCommandPermissionPolicy reports aligned config as degraded when ups
   assert.deepEqual(result.missingConfirmRequired, []);
   assert.deepEqual(result.mismatchedConfirmRequired, []);
   assert.deepEqual(result.missingRoutineAllows, []);
+  assert.deepEqual(result.legacyOpenKitMetadataKeys, []);
   assert.ok(result.caveats.some((entry) => /defaultAction/i.test(entry)));
+});
+
+test('inspectCommandPermissionPolicy reports legacy inline policy metadata as strict-schema drift', () => {
+  const policy = loadDefaultCommandPermissionPolicy();
+  const projection = buildOpenCodePermissionConfig(policy);
+  const result = inspectCommandPermissionPolicy({
+    policy,
+    config: {
+      permission: projection.permission,
+      commandPermissionPolicy: {
+        schema: 'openkit/command-permission-policy@1',
+      },
+    },
+    configPath: '/tmp/opencode.json',
+    scope: 'legacy-profile',
+  });
+
+  assert.equal(result.status, 'drifted');
+  assert.deepEqual(result.legacyOpenKitMetadataKeys, ['commandPermissionPolicy']);
+  assert.match(result.issues.join('\n'), /strict OpenCode rejects: commandPermissionPolicy/);
 });
 
 test('inspectCommandPermissionPolicy reports drift for missing dangerous entries', () => {
@@ -173,12 +192,11 @@ test('loadDefaultCommandPermissionPolicy can load a packaged policy path and rep
 test('repo-local compatibility configs mirror the policy projection', () => {
   const policy = loadDefaultCommandPermissionPolicy();
   const projection = buildOpenCodePermissionConfig(policy);
-  const metadata = createCommandPermissionPolicyMetadata(policy, projection);
   const template = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'assets', 'opencode.json.template'), 'utf8'));
   const repoLocal = JSON.parse(fs.readFileSync(path.join(process.cwd(), '.opencode', 'opencode.json'), 'utf8'));
 
   assert.deepEqual(template.permission, projection.permission);
-  assert.deepEqual(template.commandPermissionPolicy, metadata);
   assert.deepEqual(repoLocal.permission, projection.permission);
-  assert.deepEqual(repoLocal.commandPermissionPolicy, metadata);
+  assert.equal(Object.hasOwn(template, 'commandPermissionPolicy'), false);
+  assert.equal(Object.hasOwn(repoLocal, 'commandPermissionPolicy'), false);
 });

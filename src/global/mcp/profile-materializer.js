@@ -8,9 +8,10 @@ import { loadMcpCatalog } from './catalog-loader.js';
 import { listCustomMcpEntries } from './custom-mcp-store.js';
 import { readMcpConfig } from './mcp-config-store.js';
 import {
-  createPermissionedOpenCodeConfigMetadata,
+  createPermissionedOpenCodeConfigProjection,
   loadDefaultCommandPermissionPolicy,
 } from '../../permissions/command-permission-policy.js';
+import { sanitizeOpenCodeConfig } from '../../opencode/config-schema.js';
 
 function readJsonIfPresent(filePath) {
   if (!fs.existsSync(filePath)) {
@@ -65,15 +66,15 @@ function cloneCustomProfileEntry(entry, enabled) {
 
 function createDefaultProfileConfig(existing = {}, { scope = 'openkit' } = {}) {
   const permissionedConfig = scope === 'openkit'
-    ? createPermissionedOpenCodeConfigMetadata(loadDefaultCommandPermissionPolicy())
+    ? createPermissionedOpenCodeConfigProjection(loadDefaultCommandPermissionPolicy())
     : {};
 
-  return {
+  return sanitizeOpenCodeConfig({
     $schema: existing.$schema ?? 'https://opencode.ai/config.json',
-    ...permissionedConfig,
     ...existing,
+    ...permissionedConfig,
     mcp: { ...(existing.mcp ?? {}) },
-  };
+  }).config;
 }
 
 function readProfileState(paths) {
@@ -119,10 +120,12 @@ function removeManagedEntries(currentConfig, managedEntries, predicate) {
 
 function materializeScope(scope, { paths, config, catalog, customEntries, profileState }) {
   const configPath = scope === 'openkit' ? paths.profileManifestPath : path.join(paths.openCodeHome, 'opencode.json');
-  const currentConfig = createDefaultProfileConfig(readJsonIfPresent(configPath), { scope });
+  const existingConfig = readJsonIfPresent(configPath);
+  const currentConfig = createDefaultProfileConfig(existingConfig, { scope });
   const managedEntries = profileState.profiles[scope].managedEntries ?? {};
   const conflicts = {};
-  let changed = removeManagedEntries(currentConfig, managedEntries, (metadata) => metadata.kind === 'custom' && !customEntries.some((entry) => entry.id === metadata.customId || entry.id === metadata.id));
+  let changed = Object.keys(existingConfig).length > 0 && JSON.stringify(existingConfig) !== JSON.stringify(currentConfig);
+  changed = removeManagedEntries(currentConfig, managedEntries, (metadata) => metadata.kind === 'custom' && !customEntries.some((entry) => entry.id === metadata.customId || entry.id === metadata.id)) || changed;
 
   for (const entry of catalog) {
     const scopeState = config.scopes?.[scope]?.[entry.id];

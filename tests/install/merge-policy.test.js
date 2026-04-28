@@ -97,18 +97,13 @@ test("applyOpenKitMergePolicy preserves existing order while appending unique al
   assert.deepEqual(result.conflicts, [])
 })
 
-test("applyOpenKitMergePolicy additively inserts allowed managed-install top-level keys", () => {
+test("applyOpenKitMergePolicy additively inserts allowed OpenCode top-level keys", () => {
   const result = applyOpenKitMergePolicy({
     currentConfig: {
       plugin: ["existing-plugin"],
       instructions: ["LOCAL.md"],
-      theme: "light",
     },
     desiredConfig: {
-      installState: {
-        path: ".openkit/openkit-install.json",
-        schema: "openkit/install-state@1",
-      },
       mcp: {
         openkit: {
           type: "local",
@@ -129,22 +124,12 @@ test("applyOpenKitMergePolicy additively inserts allowed managed-install top-lev
         write: "allow",
         rm: "ask",
       },
-      productSurface: {
-        current: "global-openkit-install",
-        installReadiness: "managed",
-        installationMode: "openkit-managed",
-      },
     },
   })
 
   assert.deepEqual(result.config, {
     plugin: ["existing-plugin"],
     instructions: ["LOCAL.md"],
-    theme: "light",
-    installState: {
-      path: ".openkit/openkit-install.json",
-      schema: "openkit/install-state@1",
-    },
     mcp: {
       openkit: {
         type: "local",
@@ -165,65 +150,64 @@ test("applyOpenKitMergePolicy additively inserts allowed managed-install top-lev
       write: "allow",
       rm: "ask",
     },
-    productSurface: {
-      current: "global-openkit-install",
-      installReadiness: "managed",
-      installationMode: "openkit-managed",
-    },
   })
   assert.deepEqual(result.conflicts, [])
-  assert.deepEqual(result.appliedFields, ["installState", "mcp", "permission", "productSurface"])
+  assert.deepEqual(result.appliedFields, ["mcp", "permission"])
 })
 
 test("applyOpenKitMergePolicy treats allowlisted object fields as equal regardless of key order", () => {
   const result = applyOpenKitMergePolicy({
     currentConfig: {
-      installState: {
-        schema: "openkit/install-state@1",
-        path: ".openkit/openkit-install.json",
-      },
       permission: {
         rm: "ask",
         read: "allow",
-      },
-      productSurface: {
-        installationMode: "openkit-managed",
-        installReadiness: "managed",
-        current: "global-openkit-install",
       },
     },
     desiredConfig: {
-      installState: {
-        path: ".openkit/openkit-install.json",
-        schema: "openkit/install-state@1",
-      },
       permission: {
         read: "allow",
         rm: "ask",
-      },
-      productSurface: {
-        current: "global-openkit-install",
-        installReadiness: "managed",
-        installationMode: "openkit-managed",
       },
     },
   })
 
   assert.deepEqual(result.config, {
-    installState: {
-      schema: "openkit/install-state@1",
-      path: ".openkit/openkit-install.json",
-    },
     permission: {
       rm: "ask",
       read: "allow",
     },
-    productSurface: {
-      installationMode: "openkit-managed",
-      installReadiness: "managed",
-      current: "global-openkit-install",
+  })
+  assert.deepEqual(result.conflicts, [])
+  assert.deepEqual(result.appliedFields, ["permission"])
+})
+
+test("applyOpenKitMergePolicy strips legacy OpenKit-only metadata without conflicts", () => {
+  const result = applyOpenKitMergePolicy({
+    currentConfig: {
+      commandPermissionPolicy: {
+        schema: "openkit/command-permission-policy@1",
+      },
+      installState: {
+        path: ".openkit/openkit-install.json",
+      },
+      productSurface: {
+        current: "global-openkit-install",
+      },
+      permission: {
+        read: "allow",
+      },
+    },
+    desiredConfig: {
+      permission: {
+        read: "allow",
+      },
+    },
+  })
+
+  assert.deepEqual(result.config, {
+    permission: {
+      read: "allow",
     },
   })
   assert.deepEqual(result.conflicts, [])
-  assert.deepEqual(result.appliedFields, ["installState", "permission", "productSurface"])
 })

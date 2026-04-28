@@ -42,16 +42,17 @@ function withAstGrepPath(projectRoot, env = {}) {
 
 function materializeManagedInstall(projectRoot) {
   writeJson(path.join(projectRoot, 'opencode.json'), {
-    installState: {
-      path: '.openkit/openkit-install.json',
-      schema: 'openkit/install-state@1',
+    mcp: {
+      openkit: {
+        type: 'local',
+        command: ['node', 'bin/openkit-mcp.js'],
+        enabled: true,
+        environment: {
+          OPENKIT_PROJECT_ROOT: '{cwd}',
+        },
+      },
     },
     ...PERMISSIONED_CONFIG,
-    productSurface: {
-      current: 'global-openkit-install',
-      installReadiness: 'managed',
-      installationMode: 'openkit-managed',
-    },
   });
 
   writeJson(path.join(projectRoot, '.openkit', 'openkit-install.json'), {
@@ -126,16 +127,14 @@ test('doctor reports install incomplete when install state is missing', () => {
   const projectRoot = makeTempDir();
 
   writeJson(path.join(projectRoot, 'opencode.json'), {
-    installState: {
-      path: '.openkit/openkit-install.json',
-      schema: 'openkit/install-state@1',
+    mcp: {
+      openkit: {
+        type: 'local',
+        command: ['node', 'bin/openkit-mcp.js'],
+        enabled: true,
+      },
     },
     ...PERMISSIONED_CONFIG,
-    productSurface: {
-      current: 'global-openkit-install',
-      installReadiness: 'managed',
-      installationMode: 'openkit-managed',
-    },
   });
 
   const result = inspectManagedDoctor({
@@ -200,15 +199,11 @@ test('doctor reports drift when a managed asset changed on disk', () => {
   });
 
   writeJson(path.join(projectRoot, 'opencode.json'), {
-    installState: {
-      path: '.openkit/openkit-install.json',
-      schema: 'openkit/install-state@1',
+    permission: {
+      read: 'allow',
+      rm: 'allow',
     },
-    productSurface: {
-      current: 'changed-wrapper-surface',
-      installReadiness: 'managed',
-      installationMode: 'openkit-managed',
-    },
+    mcp: {},
   });
 
   const result = inspectManagedDoctor({
@@ -415,7 +410,7 @@ test('doctor reports managed install drift when command permission policy entrie
   assert.equal(result.status, 'drift-detected');
   assert.equal(result.commandPermissionPolicy.status, 'drifted');
   assert.match(result.issues.join('\n'), /rm=allow/);
-  assert.match(result.issues.join('\n'), /missing commandPermissionPolicy metadata/);
+  assert.doesNotMatch(result.issues.join('\n'), /commandPermissionPolicy/);
 });
 
 test('doctor surfaces orchestration-health risk for stalled full-delivery boards', () => {
@@ -1733,16 +1728,14 @@ test('doctor can report healthy when an adopted root manifest still satisfies th
 
   writeJson(path.join(projectRoot, 'opencode.json'), {
     plugin: ['existing-plugin'],
-    installState: {
-      path: '.openkit/openkit-install.json',
-      schema: 'openkit/install-state@1',
+    mcp: {
+      openkit: {
+        type: 'local',
+        command: ['node', 'bin/openkit-mcp.js'],
+        enabled: true,
+      },
     },
     ...PERMISSIONED_CONFIG,
-    productSurface: {
-      current: 'global-openkit-install',
-      installReadiness: 'managed',
-      installationMode: 'openkit-managed',
-    },
   });
   writeJson(path.join(projectRoot, '.openkit', 'openkit-install.json'), {
     schema: 'openkit/install-state@1',

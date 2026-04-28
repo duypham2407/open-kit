@@ -14,30 +14,23 @@ import { inspectModelDoctor } from './doctor/model-doctor.js';
 import { inspectWorkflowDoctor } from './doctor/workflow-doctor.js';
 import {
   buildOpenCodePermissionConfig,
-  createCommandPermissionPolicyMetadata,
   inspectCommandPermissionPolicy,
   loadDefaultCommandPermissionPolicy,
 } from '../permissions/command-permission-policy.js';
+import { getOpenKitOnlyOpenCodeConfigKeys, getUnknownOpenCodeConfigTopLevelKeys } from '../opencode/config-schema.js';
 
 const DEFAULT_COMMAND_PERMISSION_POLICY = loadDefaultCommandPermissionPolicy();
 const DEFAULT_PERMISSION_PROJECTION = buildOpenCodePermissionConfig(DEFAULT_COMMAND_PERMISSION_POLICY);
-const DEFAULT_COMMAND_PERMISSION_POLICY_METADATA = createCommandPermissionPolicyMetadata(
-  DEFAULT_COMMAND_PERMISSION_POLICY,
-  DEFAULT_PERMISSION_PROJECTION,
-);
 
 const EXPECTED_MANAGED_ASSETS = {
   'runtime.opencode-manifest': {
     path: 'opencode.json',
     validate(contents) {
       return (
-        contents?.installState?.path === '.openkit/openkit-install.json' &&
-        contents?.installState?.schema === 'openkit/install-state@1' &&
+        getUnknownOpenCodeConfigTopLevelKeys(contents).length === 0 &&
         JSON.stringify(contents?.permission) === JSON.stringify(DEFAULT_PERMISSION_PROJECTION.permission) &&
-        JSON.stringify(contents?.commandPermissionPolicy) === JSON.stringify(DEFAULT_COMMAND_PERMISSION_POLICY_METADATA) &&
-        contents?.productSurface?.current === 'global-openkit-install' &&
-        contents?.productSurface?.installReadiness === 'managed' &&
-        contents?.productSurface?.installationMode === 'openkit-managed'
+        contents?.mcp?.openkit?.type === 'local' &&
+        contents?.mcp?.openkit?.enabled === true
       );
     },
   },
@@ -213,8 +206,30 @@ export function inspectManagedDoctor({
   );
 
   const rootManifestPolicy = inspectRootManifestPolicy(rootManifest);
+  const rootManifestLegacyOpenKitMetadataKeys = getOpenKitOnlyOpenCodeConfigKeys(rootManifest);
 
-  if (adoptedRootManifest && !EXPECTED_MANAGED_ASSETS[ROOT_MANIFEST_ASSET_ID].validate(rootManifest)) {
+  if (adoptedRootManifest && rootManifestLegacyOpenKitMetadataKeys.length > 0) {
+    return {
+      status: 'install-incomplete',
+      canRunCleanly: false,
+      summary: 'Managed install contract is incomplete; adopted root manifest is not compatible enough to run cleanly.',
+      issues: [
+        `Adopted root manifest is incompatible with the managed install contract because it contains OpenKit-only metadata that strict OpenCode rejects: ${rootManifestLegacyOpenKitMetadataKeys.join(', ')}.`,
+      ],
+      driftedAssets,
+      ownedAssets,
+      classification,
+      rootManifestPath,
+      runtimeManifestPath,
+      installStatePath,
+      commandPermissionPolicy: rootManifestPolicy,
+    };
+  }
+
+  if (
+    adoptedRootManifest &&
+    !EXPECTED_MANAGED_ASSETS[ROOT_MANIFEST_ASSET_ID].validate(rootManifest)
+  ) {
     return {
       status: 'install-incomplete',
       canRunCleanly: false,

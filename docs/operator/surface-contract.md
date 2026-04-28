@@ -79,7 +79,7 @@ Use this document to decide which OpenKit surface to use for a given goal.
 
 ## Permission Rule
 
-- The command permission policy source of truth is `assets/default-command-permission-policy.json`. Global kit/profile materialization projects it into the OpenKit-managed OpenCode configs used by `openkit run`; `.opencode/opencode.json` is an authoring/compatibility projection.
+- The command permission policy source of truth is `assets/default-command-permission-policy.json`. Global kit/profile materialization projects it into the OpenKit-managed OpenCode configs used by `openkit run`; `.opencode/opencode.json` is an authoring/compatibility projection. OpenKit-only metadata such as `commandPermissionPolicy` must not be embedded as top-level keys in OpenCode-validated `opencode.json` files.
 - OpenKit's desired behavior is default allow for routine non-dangerous commands. Recommended routine examples include `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `/task`, `/quick-task`, `/migrate`, `/delivery`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git status`, `git log`, `git diff`, and standard edit/write flows.
 - Policy-listed dangerous commands must require explicit confirmation first. This covers deletion (`rm`, `rmdir`, `unlink`), destructive git/discard/force-push commands, publish/release/deploy commands, database destructive forms, and privileged/system-impacting commands represented in the policy.
 - Treat deletion and destructive git/release operations as confirmation-required even when the target looks generated or disposable; OpenKit's agent git/release safety protocol remains binding regardless of the permission map.
