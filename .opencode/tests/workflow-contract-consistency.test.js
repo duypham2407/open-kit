@@ -77,6 +77,7 @@ function setupTempRuntime(projectRoot) {
             "commands/write-solution.md",
             "commands/execute-solution.md",
             "commands/configure-agent-models.md",
+            "commands/switch-profiles.md",
           ],
         },
     }, null, 2)}\n`,
@@ -122,7 +123,7 @@ function setupTempRuntime(projectRoot) {
       "",
       "Quick Task+ is the live semantics of the quick lane, not a third lane.",
       "Mode enums remain `quick`, `migration`, and `full`.",
-      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, and `/configure-agent-models`.",
+      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/configure-agent-models`, and `/switch-profiles`.",
       "Migration is the dedicated upgrade and modernization lane.",
       "Migration work must stay free of task boards.",
       "Migration must preserve behavior first and decouple blockers before broad upgrade work.",
@@ -183,7 +184,7 @@ function setupTempRuntime(projectRoot) {
     "utf8",
   )
 
-  for (const commandName of ["task", "quick-task", "migrate", "delivery", "brainstorm", "write-solution", "execute-solution", "configure-agent-models"]) {
+  for (const commandName of ["task", "quick-task", "migrate", "delivery", "brainstorm", "write-solution", "execute-solution", "configure-agent-models", "switch-profiles"]) {
     fs.writeFileSync(path.join(commandsDir, `${commandName}.md`), `# ${commandName}\n`, "utf8")
   }
 

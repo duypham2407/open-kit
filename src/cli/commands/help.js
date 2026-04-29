@@ -19,6 +19,7 @@ function topLevelHelp() {
     '  onboard   Explain the safest first-run path and command choices',
     '  configure Configure OpenKit product surfaces such as bundled MCPs',
     '  configure-agent-models  Configure provider-specific models per OpenKit agent',
+    '  profiles  Manage global agent model profiles',
     '  release   Prepare, verify, and publish OpenKit releases',
     '',
     'Runtime foundation:',

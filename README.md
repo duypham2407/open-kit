@@ -11,7 +11,7 @@ It helps OpenCode behave more like a real software team instead of a single chat
 - keep workflow state, approvals, issues, and evidence explicit
 - reduce hallucinated completion claims through runtime checks and verification gates
 
-Preferred operator lifecycle outside OpenCode: `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, then maintain with `openkit upgrade` or `openkit uninstall` when needed. If you remember one command after launch, remember this: start with `/task`.
+Preferred operator lifecycle outside OpenCode: `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, then maintain global model profiles with `openkit profiles` and the kit itself with `openkit upgrade` or `openkit uninstall` when needed. If you remember one command after launch, remember this: start with `/task`.
 
 ## 2. Why OpenKit
 
@@ -130,11 +130,12 @@ openkit run
 Use these lifecycle commands when maintaining the global kit:
 
 ```bash
+openkit profiles --list
 openkit upgrade
 openkit uninstall
 ```
 
-`openkit run` materializes the managed OpenKit kit under `OPENCODE_HOME` on first use when needed. `openkit doctor` is the non-mutating readiness check for the global install and current workspace. Do not treat repository-local `.opencode/` commands as the preferred end-user install path; they are compatibility and maintainer diagnostics.
+`openkit profiles` manages reusable global agent model profiles for this OpenKit installation. `openkit run` materializes the managed OpenKit kit under `OPENCODE_HOME` on first use when needed. `openkit doctor` is the non-mutating readiness check for the global install and current workspace. Do not treat repository-local `.opencode/` commands as the preferred end-user install path; they are compatibility and maintainer diagnostics.
 
 Optional manual provisioning remains available when you intentionally need it:
 
@@ -315,6 +316,24 @@ Recommended flow:
 2. `openkit configure-agent-models --interactive`
 3. `openkit run`
 
+### Manage reusable global model profiles
+
+Use `openkit profiles` when you want named, reusable model mixes across OpenKit agents instead of only the current per-agent override set:
+
+```bash
+openkit profiles --list
+openkit profiles --create
+openkit profiles --edit
+openkit profiles --set-default
+openkit profiles --delete
+```
+
+Profiles are global to the current OpenCode home (`global_cli`). `--set-default` controls the initial profile for future `openkit run` launches. Deletion is blocked when a profile is the global default or is reported active in a running OpenKit session.
+
+Inside an active OpenKit session, use `/switch-profiles` to choose one of those existing global profiles for the current session only. `/switch-profiles` is an `in_session` command: it does not create profiles, edit profiles, delete profiles, set the global default, or intentionally affect other running sessions.
+
+OpenKit profile checks are not target-project application validation. Record target-project app validation as unavailable unless the target project declares its own build, lint, test, smoke, or regression command.
+
 ### Configure semantic embedding search
 
 OpenKit supports semantic code search backed by embedding vectors. When enabled, the `tool.semantic-search` tool uses embeddings instead of keyword matching.
@@ -433,8 +452,8 @@ Approvals alone are not enough for closure-sensitive stages. Verification eviden
 
 OpenKit has 3 main surfaces:
 
-- product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, `openkit uninstall`
-- in-session path (`in_session`): `/task`, `/quick-task`, `/migrate`, `/delivery`
+- product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit upgrade`, `openkit uninstall`
+- in-session path (`in_session`): `/task`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`
 - compatibility runtime path (`compatibility_runtime`): `node .opencode/workflow-state.js ...`
 
 Use the product path for daily use. Use the lower-level runtime CLI for inspection, diagnostics, and maintainer workflows.
@@ -466,6 +485,7 @@ The current runtime config path also supports:
 - `fallback_models` chains for categories and specialists
 - automatic fallback activation after repeated model failures through `modelExecution.autoFallback` and agent `auto_fallback`
 - two agent model profiles for quick provider switching, useful when the same model family is available from multiple providers
+- global named agent model profiles through `openkit profiles`, plus current-session selection through `/switch-profiles`
 - `file://` prompt references for agent prompts and category prompt appends
 - model-resolution trace visibility in doctor/runtime diagnostics
 
@@ -473,9 +493,9 @@ This foundation is additive. The canonical workflow contract still lives in `con
 
 ### Model Overrides
 
-Per-agent model overrides are saved by the global OpenKit install and reused by future `openkit run` sessions.
+Per-agent model overrides and named agent model profiles are saved by the global OpenKit install and reused by future `openkit run` sessions. `openkit profiles --set-default` sets the launch default; `/switch-profiles` writes only current-session selection state.
 
-Current limitation: the checked-in runtime does not yet hot-reload provider/model profile changes into an already-running `openkit run` child `opencode` session. Profile switching state can be updated live inside OpenKit-managed files, but the active child session only receives model config at bootstrap time.
+Current limitation: `/switch-profiles` refreshes OpenKit runtime model-resolution read models and persisted current-session selection for subsequent runtime resolution paths. It cannot retroactively change prompts, model choices, or background work that were already dispatched before the switch.
 
 Global install behavior: OpenKit now provisions `ast-grep` into its managed global tooling path by default and prepends that tooling bin directory during `openkit run`, so AST tooling is available without requiring a separate manual install in the common case.
 
@@ -490,7 +510,7 @@ Use them when you want different strengths per role, for example:
 - a careful review-oriented model for `code-reviewer`
 - a verification-oriented model for `qa-agent`
 
-Use `openkit configure-agent-models --list` any time you want to inspect or confirm the current saved overrides.
+Use `openkit configure-agent-models --list` any time you want to inspect or confirm the current saved overrides. Use `openkit profiles --list` to inspect reusable global profiles and their default marker.
 
 ### Useful Runtime Commands
 

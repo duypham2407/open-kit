@@ -40,6 +40,7 @@ import { createLspRenameTool } from './lsp/lsp-rename.js';
 import { createLspSymbolsTool } from './lsp/lsp-symbols.js';
 import { createMcpDispatchTool } from './mcp/mcp-dispatch.js';
 import { createProfileSwitchTool } from './models/profile-switch.js';
+import { createSessionProfileSwitchTool } from './models/session-profile-switch.js';
 import { createSessionListTool } from './session/session-list.js';
 import { createSessionReadTool } from './session/session-read.js';
 import { createSessionSearchTool } from './session/session-search.js';
@@ -89,6 +90,10 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
       specialists: managers.delegationSupervisor?.specialists ?? [],
       modelRuntime: modelRuntime ?? { resolutions: [] },
       agentProfileSwitchManager: managers.agentProfileSwitchManager,
+    }),
+    createSessionProfileSwitchTool({
+      sessionProfileManager: managers.sessionProfileManager,
+      modelRuntime: modelRuntime ?? { resolutions: [] },
     }),
     createInteractiveBashTool(),
     createHashlineEditTool({ projectRoot }),

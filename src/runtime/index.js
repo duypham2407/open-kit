@@ -8,6 +8,7 @@ import { createRuntimeInterface } from './create-runtime-interface.js';
 import { createTools } from './create-tools.js';
 import { createMcpPlatform } from './mcp/index.js';
 import { createModelRuntime } from './models/index.js';
+import { applySessionProfileOverridesToModelRuntime } from './tools/models/session-profile-switch.js';
 import { createCategoryRuntime } from './categories/index.js';
 import { createSkillRegistry } from './skills/index.js';
 import { createSpecialistRegistry } from './specialists/index.js';
@@ -46,6 +47,17 @@ export function bootstrapRuntimeFoundation({ projectRoot, env = process.env, mod
       },
     },
   });
+  const activeSessionProfile = managers.sessionProfileManager.getActiveProfileState();
+  if (activeSessionProfile.profileName) {
+    const applied = managers.sessionProfileManager.applyProfile(activeSessionProfile.profileName, {
+      source: activeSessionProfile.source ?? 'switch_profiles',
+    });
+    if (applied.status === 'ok') {
+      applySessionProfileOverridesToModelRuntime(modelRuntime, applied.effectiveOverrides);
+    } else {
+      configResult.warnings.push(applied.message ?? `Session profile ${activeSessionProfile.profileName} could not be applied.`);
+    }
+  }
   managers.skillMcpManager.registerSkillBindings([...skills.skills, ...listBundledSkills()]);
   const mcpPlatform = createMcpPlatform({
     projectRoot,

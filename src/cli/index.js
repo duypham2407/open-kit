@@ -12,6 +12,7 @@ import { configureEmbeddingCommand } from './commands/configure-embedding.js';
 import { configureCommand } from './commands/configure.js';
 import { releaseCommand } from './commands/release.js';
 import { onboardCommand } from './commands/onboard.js';
+import { profilesCommand } from './commands/profiles.js';
 
 const commands = {
   help: helpCommand,
@@ -26,6 +27,7 @@ const commands = {
   configure: configureCommand,
   'configure-agent-models': configureAgentModelsCommand,
   'configure-embedding': configureEmbeddingCommand,
+  profiles: profilesCommand,
   release: releaseCommand,
   'internal-audit-vietnamese': detectVietnameseCommand,
 };

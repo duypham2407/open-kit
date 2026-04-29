@@ -29,6 +29,9 @@ Mark each step as `pass`, `soft fail`, or `hard fail`.
 | `openkit configure-agent-models --list` |  |  |  |  |
 | `openkit configure-agent-models --models` |  |  |  |  |
 | `openkit configure-agent-models --interactive` |  |  |  |  |
+| `openkit profiles --list` |  |  |  |  |
+| `openkit profiles --help` |  |  |  |  |
+| `/switch-profiles` current-session switch |  |  |  | requires an active `openkit run` session and at least one profile |
 | interactive provider picker |  |  |  |  |
 | interactive model picker |  |  |  |  |
 | interactive variant picker or fallback mode |  |  |  |  |
@@ -44,6 +47,8 @@ Mark each step as `pass`, `soft fail`, or `hard fail`.
 | Doctor |  |  |  |
 | Run |  |  |  |
 | Configure models |  |  |  |
+| Model profiles |  |  |  |
+| Target-project app validation |  |  |  | mark unavailable unless the disposable project declares build/lint/test/smoke commands |
 | Upgrade |  |  |  |
 | Uninstall |  |  |  |
 | Overall |  |  |  |

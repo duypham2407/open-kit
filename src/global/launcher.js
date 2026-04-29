@@ -2,7 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-import { buildAgentModelConfigOverrides } from './agent-models.js';
+import { buildAgentModelConfigOverrides, readAgentModelSettings } from './agent-models.js';
+import {
+  detectStaleAgentModelProfileReferences,
+  readAgentModelProfiles,
+  resolveAgentModelProfileConfig,
+} from './agent-model-profiles.js';
 import { deepMergeConfig, parseInlineConfig } from './config-merge.js';
 import { ensureWorkspaceBootstrap } from './workspace-state.js';
 import { getToolingEnv } from './tooling.js';
@@ -13,7 +18,9 @@ import { listCustomMcpEntries } from './mcp/custom-mcp-store.js';
 import { createManagedWorktree, getManagedWorktree, updateManagedWorktreeMetadata } from './worktree-manager.js';
 import { COPY_ENV_WARNING, propagateWorktreeEnvFiles, resolveEnvPropagationMode } from './worktree-env.js';
 import { parseRunOptions } from '../cli/commands/run-options.js';
+import { parseModelIdsFromOutput } from '../cli/commands/agent-model-selection.js';
 import { bootstrapRuntimeFoundation, createRuntimeFoundationEnvironment } from '../runtime/index.js';
+import { createRuntimeSessionId, normalizeRuntimeSessionId } from '../runtime/runtime-session-id.js';
 import { selectActiveWorkItem, showWorkItemState } from '../../.opencode/lib/workflow-state-controller.js';
 
 function formatMissingOpenCodeError() {
@@ -387,6 +394,156 @@ function resolveDeclaredSecretEnv({ env, loadedSecrets }) {
   return values;
 }
 
+function formatProfileWarnings(warnings = []) {
+  return warnings
+    .filter((warning) => typeof warning === 'string' && warning.length > 0)
+    .map((warning) => `OpenKit agent model profile warning: ${warning}`);
+}
+
+function staleProfileWarning(stale) {
+  return `OpenKit agent model profile warning: Profile ${stale.profileName} references ${stale.model} for ${stale.agentId} (${stale.field}), but OpenCode did not return that model; using base agent model settings instead of applying that profile.`;
+}
+
+function activeProfileStoreWarnings(profileStore, profileName) {
+  if (!profileName) {
+    return [];
+  }
+
+  return (profileStore.warnings ?? []).filter((warning) => {
+    if (typeof warning !== 'string' || warning.length === 0) {
+      return false;
+    }
+    return warning.startsWith(`profiles.${profileName}.`);
+  });
+}
+
+function discoverLaunchModelEntries({ spawn, env }) {
+  const result = spawn('opencode', ['models'], {
+    env,
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+
+  if (result.error?.code === 'ENOENT') {
+    return {
+      status: 'unavailable',
+      warnings: [
+        'OpenKit agent model profile warning: Could not validate the configured default profile because `opencode models` was unavailable; using base agent model settings instead.',
+      ],
+      models: [],
+    };
+  }
+
+  if (result.error) {
+    return {
+      status: 'unavailable',
+      warnings: [
+        `OpenKit agent model profile warning: Could not validate the configured default profile because \`opencode models\` failed: ${result.error.message}; using base agent model settings instead.`,
+      ],
+      models: [],
+    };
+  }
+
+  if ((result.status ?? 1) !== 0) {
+    return {
+      status: 'unavailable',
+      warnings: [
+        `OpenKit agent model profile warning: Could not validate the configured default profile because \`opencode models\` exited with ${result.status ?? 1}; using base agent model settings instead.`,
+      ],
+      models: [],
+    };
+  }
+
+  return {
+    status: 'available',
+    warnings: [],
+    models: parseModelIdsFromOutput(result.stdout ?? ''),
+  };
+}
+
+function resolveLaunchAgentModelProfile({ paths, spawn, env, notices }) {
+  const baseSettings = readAgentModelSettings(paths.agentModelSettingsPath);
+  const profileStore = readAgentModelProfiles(paths.agentModelProfilesPath);
+
+  appendUniqueNotices(notices, ...formatProfileWarnings(profileStore.warnings));
+
+  if (!profileStore.defaultProfile) {
+    return {
+      overrides: buildAgentModelConfigOverrides(paths.agentModelSettingsPath),
+      activeProfileMetadata: null,
+    };
+  }
+
+  const resolved = resolveAgentModelProfileConfig({ baseSettings, profileStore });
+  appendUniqueNotices(notices, ...formatProfileWarnings(resolved.warnings));
+
+  if (!resolved.activeProfileName) {
+    return {
+      overrides: buildAgentModelConfigOverrides(paths.agentModelSettingsPath),
+      activeProfileMetadata: null,
+    };
+  }
+
+  const activeWarnings = activeProfileStoreWarnings(profileStore, resolved.activeProfileName);
+  if (activeWarnings.length > 0) {
+    appendUniqueNotices(
+      notices,
+      ...activeWarnings.map(
+        (warning) => `OpenKit agent model profile warning: Profile ${resolved.activeProfileName} is invalid (${warning}); using base agent model settings instead.`
+      )
+    );
+    return {
+      overrides: buildAgentModelConfigOverrides(paths.agentModelSettingsPath),
+      activeProfileMetadata: null,
+    };
+  }
+
+  const modelDiscovery = discoverLaunchModelEntries({ spawn, env });
+  appendUniqueNotices(notices, ...modelDiscovery.warnings);
+  if (modelDiscovery.status !== 'available') {
+    return {
+      overrides: buildAgentModelConfigOverrides(paths.agentModelSettingsPath),
+      activeProfileMetadata: null,
+    };
+  }
+
+  const stale = detectStaleAgentModelProfileReferences(
+    { profiles: { [resolved.activeProfileName]: profileStore.profiles[resolved.activeProfileName] } },
+    modelDiscovery.models
+  );
+  if (stale.length > 0) {
+    appendUniqueNotices(notices, ...stale.map(staleProfileWarning));
+    return {
+      overrides: buildAgentModelConfigOverrides(paths.agentModelSettingsPath),
+      activeProfileMetadata: null,
+    };
+  }
+
+  return {
+    overrides: resolved.overrides,
+    activeProfileMetadata: {
+      name: resolved.activeProfileName,
+      source: 'global_default',
+      storePath: paths.agentModelProfilesPath,
+      appliedAgentIds: Object.keys(profileStore.profiles[resolved.activeProfileName]?.agentModels ?? {}).sort(),
+    },
+  };
+}
+
+function recordFailedGlobalRuntimeSession({ runtimeFoundation, runtimeSessionId, args, activeAgentModelProfile }) {
+  runtimeFoundation.managers.sessionStateManager?.upsertRuntimeSession({
+    sessionId: runtimeSessionId,
+    launcher: 'global',
+    workflowKernel: runtimeFoundation.managers.workflowKernel,
+    backgroundManager: runtimeFoundation.managers.backgroundManager,
+    args,
+    exitCode: 1,
+    status: 'failed',
+    running: false,
+    activeAgentModelProfile,
+  });
+}
+
 export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), env = process.env, spawn = spawnSync, stdio = 'inherit' } = {}) {
   let parsedArgs;
   try {
@@ -445,8 +602,14 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
     launcherNotices.push(...(resolution.notices ?? []));
   }
 
-  const baselineInlineConfig = parseInlineConfig(env.OPENCODE_CONFIG_CONTENT, 'OPENCODE_CONFIG_CONTENT') ?? {};
-  const agentModelOverrides = buildAgentModelConfigOverrides(paths.agentModelSettingsPath);
+  const runtimeSessionId = normalizeRuntimeSessionId(env.OPENKIT_RUNTIME_SESSION_ID) ?? createRuntimeSessionId();
+  const sessionEnv = {
+    ...env,
+    OPENKIT_RUNTIME_SESSION_ID: runtimeSessionId,
+  };
+  const baselineInlineConfig = parseInlineConfig(sessionEnv.OPENCODE_CONFIG_CONTENT, 'OPENCODE_CONFIG_CONTENT') ?? {};
+  const launchProfile = resolveLaunchAgentModelProfile({ paths, spawn, env: sessionEnv, notices: launcherNotices });
+  const agentModelOverrides = launchProfile.overrides;
   const layeredInlineConfig = deepMergeConfig(baselineInlineConfig, agentModelOverrides);
   let loadedSecrets = { values: {} };
   try {
@@ -456,7 +619,7 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
   }
   const secretEnv = resolveDeclaredSecretEnv({ env, loadedSecrets });
   const runtimeBootstrapEnv = {
-    ...env,
+    ...sessionEnv,
     ...secretEnv,
     OPENKIT_GLOBAL_MODE: '1',
     OPENKIT_PROJECT_ROOT: launchProjectRoot,
@@ -480,6 +643,18 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
     delete launcherEnv.OPENCODE_CONFIG_CONTENT;
   }
 
+  runtimeFoundation.managers.sessionStateManager?.upsertRuntimeSession({
+    sessionId: runtimeSessionId,
+    launcher: 'global',
+    workflowKernel: runtimeFoundation.managers.workflowKernel,
+    backgroundManager: runtimeFoundation.managers.backgroundManager,
+    args: parsedArgs.passthroughArgs,
+    exitCode: null,
+    status: 'running',
+    running: true,
+    activeAgentModelProfile: launchProfile.activeProfileMetadata,
+  });
+
   const result = spawn('opencode', [launchProjectRoot, ...parsedArgs.passthroughArgs], {
     cwd: launchProjectRoot,
     env: launcherEnv,
@@ -488,6 +663,12 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
   });
 
   if (result.error?.code === 'ENOENT') {
+    recordFailedGlobalRuntimeSession({
+      runtimeFoundation,
+      runtimeSessionId,
+      args: parsedArgs.passthroughArgs,
+      activeAgentModelProfile: launchProfile.activeProfileMetadata,
+    });
     return {
       exitCode: 1,
       stdout: '',
@@ -498,6 +679,12 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
   }
 
   if (result.error) {
+    recordFailedGlobalRuntimeSession({
+      runtimeFoundation,
+      runtimeSessionId,
+      args: parsedArgs.passthroughArgs,
+      activeAgentModelProfile: launchProfile.activeProfileMetadata,
+    });
     return {
       exitCode: 1,
       stdout: result.stdout ?? '',
@@ -507,12 +694,16 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
     };
   }
 
-  runtimeFoundation.managers.sessionStateManager?.recordRuntimeSession({
+  runtimeFoundation.managers.sessionStateManager?.upsertRuntimeSession({
+    sessionId: runtimeSessionId,
     launcher: 'global',
     workflowKernel: runtimeFoundation.managers.workflowKernel,
     backgroundManager: runtimeFoundation.managers.backgroundManager,
     args: parsedArgs.passthroughArgs,
     exitCode: typeof result.status === 'number' ? result.status : 1,
+    status: (typeof result.status === 'number' ? result.status : 1) === 0 ? 'completed' : 'failed',
+    running: false,
+    activeAgentModelProfile: launchProfile.activeProfileMetadata,
   });
 
   const retainedContextLines = buildRetainedContextLines({

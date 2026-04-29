@@ -58,8 +58,27 @@ test('openkit --help shows global-install oriented help', () => {
   assert.match(result.stdout, /upgrade/);
   assert.match(result.stdout, /uninstall/);
   assert.match(result.stdout, /onboard/);
+  assert.match(result.stdout, /configure-agent-models\s+Configure provider-specific models per OpenKit agent/);
+  assert.match(result.stdout, /profiles\s+Manage global agent model profiles/);
   assert.match(result.stdout, /release/);
   assert.match(result.stdout, /Launch OpenCode and perform first-time setup if needed/);
+  assert.equal(result.stderr, '');
+});
+
+test('openkit profiles --help documents global profile management and session-only switching', () => {
+  const result = runCli(['profiles', '--help']);
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Usage: openkit profiles \[--create\|--edit\|--list\|--delete\|--set-default\]/);
+  assert.match(result.stdout, /Manage global OpenKit agent model profiles/);
+  assert.match(result.stdout, /--create/);
+  assert.match(result.stdout, /--edit/);
+  assert.match(result.stdout, /--list/);
+  assert.match(result.stdout, /--delete/);
+  assert.match(result.stdout, /--set-default/);
+  assert.match(result.stdout, /Profiles are global to this OpenKit installation/);
+  assert.match(result.stdout, /stored under OPENCODE_HOME\/openkit/);
+  assert.match(result.stdout, /\/switch-profiles is session-only/);
   assert.equal(result.stderr, '');
 });
 

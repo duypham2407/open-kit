@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 
 import { bootstrapRuntimeFoundation, createRuntimeFoundationEnvironment } from './index.js';
 import { buildOpenCodeLayering } from './opencode-layering.js';
+import { createRuntimeSessionId, normalizeRuntimeSessionId } from './runtime-session-id.js';
 
 function formatMissingOpenCodeError() {
   return [
@@ -20,7 +21,12 @@ export function launchManagedOpenCode(
     stdio = 'inherit',
   } = {}
 ) {
-  const layering = buildOpenCodeLayering({ projectRoot, env });
+  const runtimeSessionId = normalizeRuntimeSessionId(env.OPENKIT_RUNTIME_SESSION_ID) ?? createRuntimeSessionId();
+  const sessionEnv = {
+    ...env,
+    OPENKIT_RUNTIME_SESSION_ID: runtimeSessionId,
+  };
+  const layering = buildOpenCodeLayering({ projectRoot, env: sessionEnv });
   const runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot, env: layering.env });
   const runtimeEnv = createRuntimeFoundationEnvironment(runtimeFoundation);
   const result = spawn('opencode', args, {
@@ -54,6 +60,7 @@ export function launchManagedOpenCode(
   }
 
   runtimeFoundation.managers.sessionStateManager?.recordRuntimeSession({
+    sessionId: runtimeSessionId,
     launcher: 'managed',
     workflowKernel: runtimeFoundation.managers.workflowKernel,
     backgroundManager: runtimeFoundation.managers.backgroundManager,

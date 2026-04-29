@@ -102,6 +102,9 @@ export function createRuntimeInterface({
       projectRootResolution,
     },
     environment: {
+      ...(managers.sessionProfileManager?.sessionId
+        ? { OPENKIT_RUNTIME_SESSION_ID: managers.sessionProfileManager.sessionId }
+        : {}),
       OPENKIT_RUNTIME_FOUNDATION: '1',
       OPENKIT_RUNTIME_FOUNDATION_VERSION: '1',
       OPENKIT_RUNTIME_CONFIG_CONTENT: JSON.stringify(configResult.config),

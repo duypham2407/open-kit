@@ -8,6 +8,7 @@ import { DelegationSupervisor } from './managers/delegation-supervisor.js';
 import { createConfigHandler } from './managers/config-handler.js';
 import { NotificationManager } from './managers/notification-manager.js';
 import { PersistentBackgroundStore } from './managers/persistent-background-store.js';
+import { SessionProfileManager } from './managers/session-profile-manager.js';
 import { SessionStateManager } from './managers/session-state-manager.js';
 import { SkillMcpManager } from './managers/skill-mcp-manager.js';
 import { CapabilityRegistryManager } from './managers/capability-registry-manager.js';
@@ -246,6 +247,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
   }
 
   const sessionStateManager = new SessionStateManager({ projectRoot, runtimeRoot, mode });
+  const sessionProfileManager = new SessionProfileManager({ projectRoot, runtimeRoot, mode, env });
   const continuationStateManager = new ContinuationStateManager({ projectRoot, runtimeRoot, mode });
   const actionModelStateManager = new ActionModelStateManager({ projectRoot, runtimeRoot, mode });
   const agentProfileSwitchManager = new AgentProfileSwitchManager({ projectRoot, runtimeRoot, mode });
@@ -304,6 +306,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     tmuxSessionManager,
     fileWatcher,
     sessionStateManager,
+    sessionProfileManager,
     actionModelStateManager,
     agentProfileSwitchManager,
     toolMetadataStore,

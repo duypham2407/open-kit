@@ -4,8 +4,8 @@ Use this file to keep the product path, in-session path, and compatibility runti
 
 ## Surface Summary
 
-- product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, `openkit uninstall`
-- in-session path (`in_session`): `/task`, `/quick-task`, `/migrate`, `/delivery`, and related workflow commands inside OpenCode
+- product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit upgrade`, `openkit uninstall`
+- in-session path (`in_session`): `/task`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`, and related workflow commands inside OpenCode
 - compatibility runtime path (`compatibility_runtime`): `node .opencode/workflow-state.js ...` for lower-level state inspection and maintainer diagnostics
 - runtime tooling path (`runtime_tooling`): OpenKit tools for workflow state, evidence, graph, semantic search, syntax, AST, codemod, audit, browser, MCP, background execution, and external-tool probes
 - documentation path (`documentation`): roadmap, operator, maintainer, governance, and runbook artifacts
@@ -13,8 +13,8 @@ Use this file to keep the product path, in-session path, and compatibility runti
 
 ## Which Questions Each Surface Answers
 
-- product path: is OpenKit installed, healthy, and ready to launch?
-- in-session path: which lane should the work follow and what should the team do next?
+- product path: is OpenKit installed, healthy, ready to launch, and configured with the intended global agent model profile defaults?
+- in-session path: which lane should the work follow, what should the team do next, and should the current session switch to an existing global agent model profile?
 - compatibility runtime path: what does the workflow state say right now, and is the runtime internally consistent?
 - runtime tooling path: which OpenKit capabilities are available, degraded, preview-only, compatibility-only, unavailable, or not configured?
 - documentation path: what is the current contract, command reality, artifact expectation, or validation policy?
@@ -63,6 +63,8 @@ Do not invent alternate labels for the same states. If a command or tool is docu
 ## Validation Split
 
 - `openkit doctor` validates the `global_cli` surface.
+- `openkit profiles` validates and mutates only OpenKit global profile configuration on the `global_cli` surface; it does not prove target-project application behavior.
+- `/switch-profiles` validates in-session profile selection behavior for the current OpenKit session. The persisted active-profile selection is workspace/runtime state; stored evidence for that state is `compatibility_runtime`, while model-resolution helpers that consume it are `runtime_tooling`.
 - `openkit doctor` also reports OpenKit command permission policy health on the `global_cli` surface: canonical policy source readability, strict-schema-safe global kit/profile permission projection, confirm-required dangerous entry coverage, routine allow projection, legacy invalid OpenKit-only metadata drift, and degraded upstream support caveats when OpenCode cannot be proven to honor default-allow plus exception semantics.
 - `node .opencode/workflow-state.js doctor`, `status`, `resume-summary`, `show`, and `validate` validate the `compatibility_runtime` surface.
 - In-session tool results validate `runtime_tooling` only when the tool actually ran and reports its status honestly.

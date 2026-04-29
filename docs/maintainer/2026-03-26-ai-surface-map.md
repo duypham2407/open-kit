@@ -70,6 +70,7 @@ Active commands:
 - `/write-solution`
 - `/execute-solution`
 - `/configure-agent-models`
+- `/switch-profiles`
 
 ## Active Skill Surface
 

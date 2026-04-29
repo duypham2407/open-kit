@@ -14,7 +14,7 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 - There is no single canonical package manager or language toolchain for future applications yet.
 - OpenKit uses the mode-aware workflow documented in `context/core/workflow.md`; keep tooling and command guidance here aligned with that live contract instead of re-stating lane policy in full.
 - The active compatibility mirror uses a mode-aware schema and `.opencode/workflow-state.js` supports that workflow model.
-- The preferred operator install path is now global: `npm install -g @duypham93/openkit`, then `openkit doctor` and `openkit run`; use `openkit upgrade` and `openkit uninstall` for lifecycle maintenance.
+- The preferred operator install path is now global: `npm install -g @duypham93/openkit`, then `openkit doctor` and `openkit run`; use `openkit profiles` for reusable global agent model profiles and `openkit upgrade` / `openkit uninstall` for lifecycle maintenance.
 - The checked-in repository-local runtime still exists as the authoring and compatibility surface under `.opencode/`.
 - The capability-runtime foundation now starts under `src/runtime/` and is additive over the existing workflow kernel.
 - `registry.json` and `.opencode/install-manifest.json` are additive local metadata surfaces; they do not imply destructive install or plugin-only packaging.
@@ -59,6 +59,8 @@ Command reality rule: mark a command as current only when it exists in `package.
 - `npm run verify:mcp-secret-package-readiness` runs the MCP secret backend package-readiness gate. It uses `npm pack --dry-run --json` to validate the `package` surface for required MCP secret backend files, forbidden secret/generated/runtime artifacts, redacted secret scanning, no persisted tarballs, fake/no real Keychain CI expectations, and explicit unavailable `target_project_app` labeling.
 - `openkit configure mcp --interactive` starts the TTY-only guided MCP setup wizard. It is a `global_cli` wrapper over the existing bundled MCP catalog/config/secret/materialization/test control plane plus custom MCP list/doctor/test visibility; non-TTY invocations fail with no mutation and automation should use existing non-interactive commands such as `set-key <mcp-id> --stdin` or the custom namespace below.
 - `openkit configure mcp custom list|add-local|add-remote|import-global|disable|remove|doctor|test` manages OpenKit-managed custom MCP definitions in `<OPENCODE_HOME>/openkit/custom-mcp-config.json`, separate from the bundled catalog/config. Custom definitions carry origin/ownership metadata, use argv-array local commands or validated web URLs, materialize placeholders only, reject raw secret-bearing fields, and preserve unmanaged global OpenCode entries on conflict.
+- `openkit profiles --create|--edit|--list|--delete|--set-default` manages reusable global agent model profiles under `<OPENCODE_HOME>/openkit/agent-model-profiles.json`. It is a `global_cli` surface for profile storage, launch defaults, and delete-safety checks; it does not switch an already-running session by itself.
+- `/switch-profiles` is the in-session, interactive-only profile switch command. It selects an existing global profile for the current `openkit run` session, writes session/workspace runtime state, and must not mutate the global profile store, global default, or other sessions.
 
 ## Permission Policy
 
@@ -84,6 +86,11 @@ These are repository workflow commands, not application build/lint/test commands
 - `openkit run [args]`
 - `openkit upgrade`
 - `openkit uninstall [--remove-workspaces]`
+- `openkit profiles --create`
+- `openkit profiles --edit`
+- `openkit profiles --list`
+- `openkit profiles --delete`
+- `openkit profiles --set-default`
 - `openkit configure mcp --interactive [--scope openkit|global|both]`
 - `openkit configure mcp custom list [--scope openkit|global|both] [--json]`
 - `openkit configure mcp custom add-local <custom-id> --cmd <executable> [--arg <arg> ...] [--env <ENV=${ENV}> ...] [--scope openkit|global|both] [--enable|--disabled] [--yes] [--json]`
@@ -179,9 +186,11 @@ Current workflow-state behavior:
 - The global OpenKit install now provisions `ast-grep` into the managed tooling path and doctor verifies that tooling path is available.
 - `openkit run` launches OpenCode with the OpenKit-managed config directory and workspace-specific environment.
 - `openkit run` now also injects runtime foundation metadata through environment variables for capability bootstrap.
+- `openkit profiles` manages reusable global agent model profiles and the launch default on the `global_cli` surface. Profiles are global to the current OpenCode home and are layered over current/default per-agent model settings when a matching default or active session profile is selected.
+- `/switch-profiles` switches the active global agent model profile for the current `openkit run` session only. The switch is `in_session` behavior backed by workspace/runtime state; it is not target-project application validation and does not set, edit, or delete global profiles.
 - `openkit upgrade` refreshes the global managed kit bundle in place.
 - `openkit uninstall` removes the global managed kit and profile, with optional workspace cleanup.
-- Normal operator docs should describe `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall` as the product lifecycle path. Keep `openkit install`, `openkit install-global`, and repository-local workflow-state commands in manual, compatibility, or diagnostic sections only.
+- Normal operator docs should describe `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit upgrade`, and `openkit uninstall` as current global product surfaces. Keep `openkit install`, `openkit install-global`, and repository-local workflow-state commands in manual, compatibility, or diagnostic sections only.
 - `status`, `resume-summary`, `doctor`, `version`, `profiles`, `show-profile`, and `sync-install-manifest` are part of the current runtime inspection surface.
 - `status --short`, `resume-summary --short`, and `doctor --short` provide compact runtime views for fast operational decisions.
 - `start-feature` remains available as a compatibility shortcut and initializes `Full Delivery` mode.

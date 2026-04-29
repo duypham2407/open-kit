@@ -63,6 +63,22 @@ test('bootstrapRuntimeFoundation builds config, capabilities, managers, tools, h
   assert.equal(JSON.parse(result.runtimeInterface.environment.OPENKIT_RUNTIME_CONFIG_CONTENT).tmux.enabled, true);
 });
 
+test('bootstrapRuntimeFoundation exposes caller runtime session id to managers and environment', () => {
+  const projectRoot = makeTempDir();
+  const homeRoot = makeTempDir();
+
+  const result = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: {
+      HOME: homeRoot,
+      OPENKIT_RUNTIME_SESSION_ID: 'bootstrap-session-a',
+    },
+  });
+
+  assert.equal(result.managers.sessionProfileManager.sessionId, 'bootstrap-session-a');
+  assert.equal(result.runtimeInterface.environment.OPENKIT_RUNTIME_SESSION_ID, 'bootstrap-session-a');
+});
+
 test('bootstrapRuntimeFoundation exposes disabled unconfigured supervisor health as non-fatal runtime state', () => {
   const projectRoot = makeTempDir();
   const homeRoot = makeTempDir();

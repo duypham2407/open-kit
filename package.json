@@ -21,6 +21,7 @@
     ".opencode/package.json",
     ".opencode/plugins/",
     ".opencode/profile-switch.js",
+    ".opencode/switch-profiles.js",
     ".opencode/README.md",
     ".opencode/workflow-state.js",
     "agents/",

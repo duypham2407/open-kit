@@ -11,6 +11,7 @@ import { createInitialWorkflowState, ensureWorkspaceBootstrap } from '../../src/
 import { getWorkspacePaths } from '../../src/global/paths.js';
 import { launchManagedOpenCode } from '../../src/runtime/launcher.js';
 import { launchGlobalOpenKit } from '../../src/global/launcher.js';
+import { deleteAgentModelProfile } from '../../src/global/agent-model-profiles.js';
 import { writeWorkItemIndex, writeWorkItemState, writeWorkItemWorktree } from '../../.opencode/lib/work-item-store.js';
 import { buildSecretBindingRef, setSecretValue } from '../../src/global/mcp/secret-manager.js';
 import { recordSecretBinding } from '../../src/global/mcp/mcp-config-store.js';
@@ -187,6 +188,7 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
       '  configContent: process.env.OPENCODE_CONFIG_CONTENT ?? null,',
       '  runtimeFoundation: process.env.OPENKIT_RUNTIME_FOUNDATION ?? null,',
       '  runtimeFoundationVersion: process.env.OPENKIT_RUNTIME_FOUNDATION_VERSION ?? null,',
+      '  runtimeSessionId: process.env.OPENKIT_RUNTIME_SESSION_ID ?? null,',
       '};',
       'process.stdout.write(JSON.stringify(payload));',
     ].join('\n'),
@@ -219,6 +221,8 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
   assert.deepEqual(layeredContent.instructions, ['AGENTS.md', 'context/navigation.md']);
   assert.equal(payload.runtimeFoundation, '1');
   assert.equal(payload.runtimeFoundationVersion, '1');
+  assert.match(payload.runtimeSessionId, /^session_[a-f0-9]{16}$/);
+  assert.equal(result.runtimeFoundation.runtimeInterface.environment.OPENKIT_RUNTIME_SESSION_ID, payload.runtimeSessionId);
 });
 
 test('launchManagedOpenCode records a runtime session snapshot', () => {
@@ -247,6 +251,42 @@ test('launchManagedOpenCode records a runtime session snapshot', () => {
   assert.equal(sessions.length, 1);
   assert.equal(sessions[0].launcher, 'managed');
   assert.deepEqual(sessions[0].args, ['status']);
+  assert.match(sessions[0].session_id, /^session_[a-f0-9]{16}$/);
+  assert.equal(result.runtimeFoundation.runtimeInterface.environment.OPENKIT_RUNTIME_SESSION_ID, sessions[0].session_id);
+});
+
+test('launchManagedOpenCode reuses caller-provided runtime session id for env and metadata', () => {
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(projectRoot, 'bin');
+
+  writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
+    $schema: 'https://opencode.ai/config.json',
+  });
+  writeExecutable(
+    path.join(fakeBinDir, 'opencode'),
+    [
+      '#!/usr/bin/env node',
+      'process.stdout.write(JSON.stringify({ runtimeSessionId: process.env.OPENKIT_RUNTIME_SESSION_ID ?? null }));',
+    ].join('\n')
+  );
+
+  const result = launchManagedOpenCode(['status'], {
+    projectRoot,
+    env: {
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH ?? ''}`,
+      OPENKIT_RUNTIME_SESSION_ID: 'pre-generated-session',
+    },
+    stdio: 'pipe',
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(JSON.parse(result.stdout).runtimeSessionId, 'pre-generated-session');
+
+  const sessions = JSON.parse(
+    fs.readFileSync(path.join(projectRoot, '.opencode', 'runtime-sessions', 'index.json'), 'utf8')
+  ).sessions;
+  assert.equal(sessions[0].session_id, 'pre-generated-session');
+  assert.equal(result.runtimeFoundation.runtimeInterface.environment.OPENKIT_RUNTIME_SESSION_ID, 'pre-generated-session');
 });
 
 test('launchGlobalOpenKit injects saved per-agent model overrides into inline config', () => {
@@ -330,6 +370,576 @@ test('launchGlobalOpenKit injects saved per-agent model overrides into inline co
     { model: 'openai/gpt-5', variant: 'high' },
     { model: 'azure/gpt-5', variant: 'high' },
   ]);
+});
+
+test('launchGlobalOpenKit layers the configured global default profile over current model settings', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let launchSpawnCall = null;
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-models.json'), {
+    schema: 'openkit/agent-model-settings@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    agentModels: {
+      'product-lead-agent': {
+        model: 'openai/gpt-5-mini',
+        variant: 'low',
+      },
+      'qa-agent': {
+        model: 'anthropic/claude-sonnet-4-5',
+        variant: 'balanced',
+        fallback_models: ['openai/gpt-5-mini'],
+      },
+    },
+  });
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-model-profiles.json'), {
+    schema: 'openkit/agent-model-profiles@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    defaultProfile: 'reasoning-heavy',
+    profiles: {
+      'reasoning-heavy': {
+        name: 'reasoning-heavy',
+        description: 'Use stronger planning models.',
+        agentModels: {
+          'product-lead-agent': {
+            model: 'openai/gpt-5',
+            variant: 'high',
+          },
+        },
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+    },
+  });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+      OPENCODE_CONFIG_CONTENT: JSON.stringify({
+        customSetting: true,
+        agent: {
+          'product-lead-agent': { model: 'baseline/provider-model' },
+          'qa-agent': { model: 'baseline/qa-model' },
+        },
+      }),
+    },
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      if (command === 'opencode' && args[0] === 'models') {
+        return {
+          status: 0,
+          stdout: 'openai/gpt-5\nopenai/gpt-5-mini\nanthropic/claude-sonnet-4-5\n',
+          stderr: '',
+        };
+      }
+
+      launchSpawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(launchSpawnCall.command, 'opencode');
+  assert.deepEqual(launchSpawnCall.args, [projectRoot, 'status']);
+
+  const inlineConfig = JSON.parse(launchSpawnCall.options.env.OPENCODE_CONFIG_CONTENT);
+  assert.equal(inlineConfig.customSetting, true);
+  assert.equal(inlineConfig.agent['product-lead-agent'].model, 'openai/gpt-5');
+  assert.equal(inlineConfig.agent['product-lead-agent'].variant, 'high');
+  assert.equal(inlineConfig.agent['qa-agent'].model, 'anthropic/claude-sonnet-4-5');
+  assert.equal(inlineConfig.agent['qa-agent'].variant, 'balanced');
+  assert.deepEqual(inlineConfig.agent['qa-agent'].fallback_models, ['openai/gpt-5-mini']);
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+  });
+  const sessionIndexPath = path.join(workspacePaths.workspaceRoot, '.opencode', 'runtime-sessions', 'index.json');
+  const sessions = JSON.parse(fs.readFileSync(sessionIndexPath, 'utf8')).sessions;
+  assert.equal(sessions[0].activeAgentModelProfile.name, 'reasoning-heavy');
+  assert.equal(sessions[0].activeAgentModelProfile.source, 'global_default');
+  assert.deepEqual(sessions[0].activeAgentModelProfile.appliedAgentIds, ['product-lead-agent']);
+});
+
+test('launchGlobalOpenKit records running profile session before launch and updates it on exit', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-models.json'), {
+    schema: 'openkit/agent-model-settings@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    agentModels: {
+      'qa-agent': {
+        model: 'openai/gpt-5-mini',
+      },
+    },
+  });
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-model-profiles.json'), {
+    schema: 'openkit/agent-model-profiles@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    defaultProfile: 'daily',
+    profiles: {
+      daily: {
+        name: 'daily',
+        agentModels: {
+          'qa-agent': {
+            model: 'openai/gpt-5',
+          },
+        },
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+      heavy: {
+        name: 'heavy',
+        agentModels: {
+          'qa-agent': {
+            model: 'openai/gpt-5-mini',
+          },
+        },
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+    },
+  });
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+  });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+      OPENKIT_RUNTIME_SESSION_ID: 'session_live_profile',
+    },
+    stdio: 'pipe',
+    spawn: (command, args) => {
+      if (command === 'opencode' && args[0] === 'models') {
+        return { status: 0, stdout: 'openai/gpt-5\nopenai/gpt-5-mini\n', stderr: '' };
+      }
+
+      writeJson(workspacePaths.agentModelProfilesPath, {
+        schema: 'openkit/agent-model-profiles@1',
+        stateVersion: 1,
+        updatedAt: '2026-04-29T00:00:00.000Z',
+        defaultProfile: 'heavy',
+        profiles: JSON.parse(fs.readFileSync(workspacePaths.agentModelProfilesPath, 'utf8')).profiles,
+      });
+      assert.throws(
+        () => deleteAgentModelProfile(workspacePaths.agentModelProfilesPath, 'daily', { workspacesRoot: workspacePaths.workspacesRoot }),
+        /active in running OpenKit sessions: session_live_profile/
+      );
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+
+  const sessions = JSON.parse(
+    fs.readFileSync(path.join(workspacePaths.workspaceRoot, '.opencode', 'runtime-sessions', 'index.json'), 'utf8')
+  ).sessions;
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].session_id, 'session_live_profile');
+  assert.equal(sessions[0].status, 'completed');
+  assert.equal(sessions[0].running, false);
+  assert.equal(sessions[0].exitCode, 0);
+  assert.equal(sessions[0].activeAgentModelProfile.name, 'daily');
+
+  deleteAgentModelProfile(workspacePaths.agentModelProfilesPath, 'daily', { workspacesRoot: workspacePaths.workspacesRoot });
+});
+
+test('launchGlobalOpenKit marks pre-launch profile session failed when opencode spawn is unavailable', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-models.json'), {
+    schema: 'openkit/agent-model-settings@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    agentModels: {
+      'qa-agent': {
+        model: 'openai/gpt-5-mini',
+      },
+    },
+  });
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-model-profiles.json'), {
+    schema: 'openkit/agent-model-profiles@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    defaultProfile: 'daily',
+    profiles: {
+      daily: {
+        name: 'daily',
+        agentModels: {
+          'qa-agent': {
+            model: 'openai/gpt-5',
+          },
+        },
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+    },
+  });
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+  });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+      OPENKIT_RUNTIME_SESSION_ID: 'session_failed_profile',
+    },
+    stdio: 'pipe',
+    spawn: (command, args) => {
+      if (command === 'opencode' && args[0] === 'models') {
+        return { status: 0, stdout: 'openai/gpt-5\nopenai/gpt-5-mini\n', stderr: '' };
+      }
+
+      return {
+        error: Object.assign(new Error('spawn opencode ENOENT'), { code: 'ENOENT' }),
+        status: null,
+        stdout: '',
+        stderr: '',
+      };
+    },
+  });
+
+  assert.equal(result.exitCode, 1);
+
+  const sessions = JSON.parse(
+    fs.readFileSync(path.join(workspacePaths.workspaceRoot, '.opencode', 'runtime-sessions', 'index.json'), 'utf8')
+  ).sessions;
+  assert.equal(sessions.length, 1);
+  assert.equal(sessions[0].session_id, 'session_failed_profile');
+  assert.equal(sessions[0].status, 'failed');
+  assert.equal(sessions[0].running, false);
+  assert.equal(sessions[0].exitCode, 1);
+  assert.equal(sessions[0].activeAgentModelProfile.name, 'daily');
+  assert.equal(sessions[0].activeAgentModelProfile.source, 'global_default');
+  assert.deepEqual(sessions[0].activeAgentModelProfile.appliedAgentIds, ['qa-agent']);
+
+  const profileStore = JSON.parse(fs.readFileSync(workspacePaths.agentModelProfilesPath, 'utf8'));
+  writeJson(workspacePaths.agentModelProfilesPath, {
+    ...profileStore,
+    defaultProfile: null,
+  });
+  deleteAgentModelProfile(workspacePaths.agentModelProfilesPath, 'daily', { workspacesRoot: workspacePaths.workspacesRoot });
+});
+
+test('launchGlobalOpenKit applies a valid default profile when another profile has invalid agent models', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let launchSpawnCall = null;
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-models.json'), {
+    schema: 'openkit/agent-model-settings@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    agentModels: {
+      'product-lead-agent': {
+        model: 'openai/gpt-5-mini',
+        variant: 'low',
+      },
+      'qa-agent': {
+        model: 'anthropic/claude-sonnet-4-5',
+        variant: 'balanced',
+      },
+    },
+  });
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-model-profiles.json'), {
+    schema: 'openkit/agent-model-profiles@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    defaultProfile: 'valid-default',
+    profiles: {
+      'valid-default': {
+        name: 'valid-default',
+        agentModels: {
+          'product-lead-agent': {
+            model: 'openai/gpt-5',
+            variant: 'high',
+          },
+        },
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+      'broken-non-default': {
+        name: 'broken-non-default',
+        agentModels: {
+          'qa-agent': {
+            model: 'openai/gpt-5',
+            variant: 42,
+          },
+        },
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+    },
+  });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      if (command === 'opencode' && args[0] === 'models') {
+        return {
+          status: 0,
+          stdout: 'openai/gpt-5\nopenai/gpt-5-mini\nanthropic/claude-sonnet-4-5\n',
+          stderr: '',
+        };
+      }
+
+      launchSpawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.match(result.stdout, /profiles\.broken-non-default\.agentModels\.qa-agent\.variant must be a string/);
+  assert.doesNotMatch(result.stdout, /Profile valid-default is invalid/);
+
+  const inlineConfig = JSON.parse(launchSpawnCall.options.env.OPENCODE_CONFIG_CONTENT);
+  assert.equal(inlineConfig.agent['product-lead-agent'].model, 'openai/gpt-5');
+  assert.equal(inlineConfig.agent['product-lead-agent'].variant, 'high');
+  assert.equal(inlineConfig.agent['qa-agent'].model, 'anthropic/claude-sonnet-4-5');
+  assert.equal(inlineConfig.agent['qa-agent'].variant, 'balanced');
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+  });
+  const sessionIndexPath = path.join(workspacePaths.workspaceRoot, '.opencode', 'runtime-sessions', 'index.json');
+  const sessions = JSON.parse(fs.readFileSync(sessionIndexPath, 'utf8')).sessions;
+  assert.equal(sessions[0].activeAgentModelProfile.name, 'valid-default');
+  assert.deepEqual(sessions[0].activeAgentModelProfile.appliedAgentIds, ['product-lead-agent']);
+});
+
+test('launchGlobalOpenKit falls back when the configured default profile is missing', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let launchSpawnCall = null;
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-models.json'), {
+    schema: 'openkit/agent-model-settings@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    agentModels: {
+      'product-lead-agent': {
+        model: 'openai/gpt-5-mini',
+        variant: 'low',
+      },
+      'qa-agent': {
+        model: 'anthropic/claude-sonnet-4-5',
+        fallback_models: ['openai/gpt-5-mini'],
+        auto_fallback: {
+          enabled: true,
+          after_failures: 2,
+        },
+      },
+    },
+  });
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-model-profiles.json'), {
+    schema: 'openkit/agent-model-profiles@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    defaultProfile: 'ghost',
+    profiles: {},
+  });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      launchSpawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.match(result.stdout, /defaultProfile ghost does not reference an existing profile/);
+  assert.match(result.stdout, /Profile ghost does not exist; using base agent model settings/);
+
+  const inlineConfig = JSON.parse(launchSpawnCall.options.env.OPENCODE_CONFIG_CONTENT);
+  assert.equal(inlineConfig.agent['product-lead-agent'].model, 'openai/gpt-5-mini');
+  assert.equal(inlineConfig.agent['product-lead-agent'].variant, 'low');
+  assert.equal(inlineConfig.agent['qa-agent'].model, 'anthropic/claude-sonnet-4-5');
+  assert.deepEqual(inlineConfig.agent['qa-agent'].fallback_models, ['openai/gpt-5-mini']);
+  assert.deepEqual(inlineConfig.agent['qa-agent'].auto_fallback, {
+    enabled: true,
+    after_failures: 2,
+  });
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+  });
+  const sessionIndexPath = path.join(workspacePaths.workspaceRoot, '.opencode', 'runtime-sessions', 'index.json');
+  const sessions = JSON.parse(fs.readFileSync(sessionIndexPath, 'utf8')).sessions;
+  assert.equal(sessions[0].activeAgentModelProfile, null);
+});
+
+test('launchGlobalOpenKit warns and skips a stale default profile without losing current settings', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let launchSpawnCall = null;
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-models.json'), {
+    schema: 'openkit/agent-model-settings@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    agentModels: {
+      'product-lead-agent': {
+        model: 'openai/gpt-5-mini',
+      },
+    },
+  });
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-model-profiles.json'), {
+    schema: 'openkit/agent-model-profiles@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    defaultProfile: 'stale-default',
+    profiles: {
+      'stale-default': {
+        name: 'stale-default',
+        agentModels: {
+          'product-lead-agent': {
+            model: 'missing/provider-model',
+          },
+        },
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+    },
+  });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      if (command === 'opencode' && args[0] === 'models') {
+        return {
+          status: 0,
+          stdout: 'openai/gpt-5-mini\n',
+          stderr: '',
+        };
+      }
+
+      launchSpawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.match(result.stdout, /stale-default/);
+  assert.match(result.stdout, /missing\/provider-model/);
+
+  const inlineConfig = JSON.parse(launchSpawnCall.options.env.OPENCODE_CONFIG_CONTENT);
+  assert.equal(inlineConfig.agent['product-lead-agent'].model, 'openai/gpt-5-mini');
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+  });
+  const sessionIndexPath = path.join(workspacePaths.workspaceRoot, '.opencode', 'runtime-sessions', 'index.json');
+  const sessions = JSON.parse(fs.readFileSync(sessionIndexPath, 'utf8')).sessions;
+  assert.equal(sessions[0].activeAgentModelProfile, null);
+});
+
+test('launchGlobalOpenKit warns and skips invalid default profile entries', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let launchSpawnCall = null;
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-models.json'), {
+    schema: 'openkit/agent-model-settings@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    agentModels: {
+      'product-lead-agent': {
+        model: 'openai/gpt-5-mini',
+        variant: 'low',
+      },
+    },
+  });
+  writeJson(path.join(openCodeHome, 'openkit', 'agent-model-profiles.json'), {
+    schema: 'openkit/agent-model-profiles@1',
+    stateVersion: 1,
+    updatedAt: '2026-04-29T00:00:00.000Z',
+    defaultProfile: 'invalid-default',
+    profiles: {
+      'invalid-default': {
+        name: 'invalid-default',
+        agentModels: {
+          'product-lead-agent': {
+            model: 'openai/gpt-5',
+            variant: 42,
+          },
+        },
+        createdAt: '2026-04-29T00:00:00.000Z',
+        updatedAt: '2026-04-29T00:00:00.000Z',
+      },
+    },
+  });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      if (command === 'opencode' && args[0] === 'models') {
+        return {
+          status: 0,
+          stdout: 'openai/gpt-5\nopenai/gpt-5-mini\n',
+          stderr: '',
+        };
+      }
+
+      launchSpawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.match(result.stdout, /invalid-default/);
+  assert.match(result.stdout, /variant must be a string/);
+
+  const inlineConfig = JSON.parse(launchSpawnCall.options.env.OPENCODE_CONFIG_CONTENT);
+  assert.equal(inlineConfig.agent['product-lead-agent'].model, 'openai/gpt-5-mini');
+  assert.equal(inlineConfig.agent['product-lead-agent'].variant, 'low');
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+  });
+  const sessionIndexPath = path.join(workspacePaths.workspaceRoot, '.opencode', 'runtime-sessions', 'index.json');
+  const sessions = JSON.parse(fs.readFileSync(sessionIndexPath, 'utf8')).sessions;
+  assert.equal(sessions[0].activeAgentModelProfile, null);
 });
 
 test('launchGlobalOpenKit preserves shell env over saved local secrets', () => {
@@ -448,7 +1058,12 @@ test('launchGlobalOpenKit records runtime sessions in the managed workspace root
       OPENCODE_HOME: openCodeHome,
     },
     stdio: 'pipe',
-    spawn: () => ({ status: 0, stdout: '', stderr: '' }),
+    spawn: (command, args) => {
+      if (command === 'opencode' && args[0] === 'models') {
+        return { status: 0, stdout: '', stderr: '' };
+      }
+      return { status: 0, stdout: '', stderr: '' };
+    },
   });
 
   assert.equal(result.exitCode, 0);
@@ -468,6 +1083,42 @@ test('launchGlobalOpenKit records runtime sessions in the managed workspace root
   assert.equal(sessions.length, 1);
   assert.equal(sessions[0].launcher, 'global');
   assert.deepEqual(sessions[0].args, ['status']);
+  assert.match(sessions[0].session_id, /^session_[a-f0-9]{16}$/);
+  assert.equal(result.runtimeFoundation.runtimeInterface.environment.OPENKIT_RUNTIME_SESSION_ID, sessions[0].session_id);
+});
+
+test('launchGlobalOpenKit passes runtime session id to OpenCode and records the same id', () => {
+  const projectRoot = makeTempDir();
+  const openCodeHome = makeTempDir();
+  let launchSpawnCall = null;
+
+  fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
+
+  const result = launchGlobalOpenKit(['status'], {
+    projectRoot,
+    env: {
+      OPENCODE_HOME: openCodeHome,
+      OPENKIT_RUNTIME_SESSION_ID: 'global-session-a',
+    },
+    stdio: 'pipe',
+    spawn: (command, args, options) => {
+      launchSpawnCall = { command, args, options };
+      return { status: 0, stdout: '', stderr: '' };
+    },
+  });
+
+  assert.equal(result.exitCode, 0);
+  assert.equal(launchSpawnCall.options.env.OPENKIT_RUNTIME_SESSION_ID, 'global-session-a');
+  assert.equal(result.runtimeFoundation.runtimeInterface.environment.OPENKIT_RUNTIME_SESSION_ID, 'global-session-a');
+
+  const workspacePaths = getWorkspacePaths({
+    projectRoot,
+    env: { OPENCODE_HOME: openCodeHome },
+  });
+  const sessions = JSON.parse(
+    fs.readFileSync(path.join(workspacePaths.workspaceRoot, '.opencode', 'runtime-sessions', 'index.json'), 'utf8')
+  ).sessions;
+  assert.equal(sessions[0].session_id, 'global-session-a');
 });
 
 test('launchGlobalOpenKit can target a managed worktree for a specific work item', () => {

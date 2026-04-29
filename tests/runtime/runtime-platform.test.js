@@ -140,15 +140,17 @@ test('skill and command loaders discover added runtime surfaces', () => {
   writeText(path.join(projectRoot, 'commands', 'stop-continuation.md'), '# Command');
   writeText(path.join(projectRoot, 'commands', 'browser-verify.md'), '# Command');
   writeText(path.join(projectRoot, 'commands', 'switch.md'), '# Command');
+  writeText(path.join(projectRoot, 'commands', 'switch-profiles.md'), '# Command');
 
   const skillRegistry = createSkillRegistry({ projectRoot, env: { HOME: makeTempDir() } });
   const commands = loadRuntimeCommands({ projectRoot });
   const context = createContextInjection({ projectRoot, mode: 'full', category: 'deep' });
 
   assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill'));
-  assert.equal(commands.length, 7);
+  assert.equal(commands.length, 8);
   assert.ok(commands.some((entry) => entry.name === '/browser-verify' && entry.compatibility === 'builtin-compatible'));
   assert.ok(commands.some((entry) => entry.name === '/switch' && entry.compatibility === 'builtin-compatible'));
+  assert.ok(commands.some((entry) => entry.name === '/switch-profiles' && entry.compatibility === 'builtin-compatible'));
   assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill' && entry.compatibility === 'project-local'));
   assert.equal(context.agentsPath, path.join(projectRoot, 'AGENTS.md'));
   assert.equal(context.readmePath, path.join(projectRoot, 'README.md'));
@@ -644,6 +646,7 @@ test('session, continuation, browser, safer-edit, ast, syntax, and lsp tools exp
       ...process.env,
       HOME: makeTempDir(),
       PATH: '',
+      OPENKIT_RUNTIME_SESSION_ID: 'runtime-platform-session',
     },
   });
 
@@ -653,6 +656,7 @@ test('session, continuation, browser, safer-edit, ast, syntax, and lsp tools exp
     maxPasses: 2,
   });
   result.managers.sessionStateManager.recordRuntimeSession({
+    sessionId: 'runtime-platform-session',
     launcher: 'managed',
     workflowKernel: result.managers.workflowKernel,
     backgroundManager: result.managers.backgroundManager,

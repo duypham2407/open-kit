@@ -10,6 +10,7 @@ The goal is to prove that the supported operator flow works end to end on each O
 - materialize the managed global kit
 - launch OpenCode through `openkit run`
 - configure per-agent models
+- manage reusable global agent model profiles
 - run health checks, upgrade, and uninstall cleanly
 
 ## Scope
@@ -48,6 +49,7 @@ Count the OS as validated when all are true:
 - `openkit run` works on a clean setup and on a second run
 - `openkit doctor` reports sensible status before and after install
 - `openkit configure-agent-models --interactive` is usable
+- `openkit profiles --list` is usable and reports either existing profiles or a clear empty-list message
 - `openkit upgrade` refreshes without breaking the workspace
 - `openkit uninstall` removes the managed install cleanly
 - no hard blocker appears in wrapper execution, path detection, or session-start bootstrap
@@ -176,7 +178,26 @@ openkit run
 
 Confirm the saved override persists and does not break launch.
 
-### 7. Upgrade path
+### 7. Agent model profile management
+
+Check the reusable global profile surface:
+
+```bash
+openkit profiles --list
+openkit profiles --help
+```
+
+Expected results:
+
+- `--list` exits successfully and either lists global profiles or clearly reports that none exist
+- `--help` documents `--create`, `--edit`, `--list`, `--delete`, `--set-default`, and the session-only `/switch-profiles` boundary
+- if testing interactive flows, create and set a disposable profile only under a disposable `OPENCODE_HOME`
+
+Inside an active `openkit run` session, `/switch-profiles` should list existing global profiles and switch only the current session. It must not edit the global profile store or change the global default.
+
+Record this evidence as `global_cli` for `openkit profiles` and `in_session` for `/switch-profiles`. Do not record either as `target_project_app`; target-project application validation is unavailable unless the disposable test project declares its own build, lint, test, smoke, or regression command.
+
+### 8. Upgrade path
 
 ```bash
 openkit upgrade
@@ -189,7 +210,7 @@ Expected results:
 - `doctor` still reports a healthy or usable state
 - existing workspace state is not broken
 
-### 8. Uninstall path
+### 9. Uninstall path
 
 ```bash
 openkit uninstall
@@ -241,6 +262,8 @@ openkit doctor
 openkit configure-agent-models --list
 openkit configure-agent-models --models
 openkit configure-agent-models --interactive
+openkit profiles --list
+openkit profiles --help
 openkit run
 openkit upgrade
 openkit uninstall
@@ -260,6 +283,8 @@ Install: pass|soft fail|hard fail
 Doctor: pass|soft fail|hard fail
 Run: pass|soft fail|hard fail
 Configure models: pass|soft fail|hard fail
+Model profiles: pass|soft fail|hard fail
+Target-project app validation: unavailable|pass|soft fail|hard fail
 Upgrade: pass|soft fail|hard fail
 Uninstall: pass|soft fail|hard fail
 

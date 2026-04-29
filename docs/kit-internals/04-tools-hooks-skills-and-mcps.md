@@ -224,6 +224,7 @@ Builtin runtime commands currently include:
 
 - `/browser-verify`
 - `/switch`
+- `/switch-profiles`
 - `/init-deep`
 - `/refactor`
 - `/start-work`
@@ -240,6 +241,7 @@ Project command markdown also provides lane commands and workflow ergonomics suc
 - `/write-solution`
 - `/execute-solution`
 - `/configure-agent-models`
+- `/switch-profiles`
 
 ## 7. MCP Platform
 

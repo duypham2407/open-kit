@@ -200,6 +200,14 @@
         "modes": ["quick", "migration", "full"]
       },
       {
+        "id": "command.switch-profiles",
+        "name": "/switch-profiles",
+        "path": "commands/switch-profiles.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
+      },
+      {
         "id": "command.browser-verify",
         "name": "/browser-verify",
         "path": "commands/browser-verify.md",

@@ -24,7 +24,7 @@ The kit is structured into several core directories:
 
 - `agents/`: Definitions for the primary team roles plus helper subagents such as `code-reviewer.md` and `quick-agent.md`
 - `skills/`: Composable workflow procedures (TDD, brainstorming, planning, debugging)
-- `commands/`: User-facing triggers such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, and `/execute-solution`
+- `commands/`: User-facing triggers such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, and `/switch-profiles`
 - `context/`: Shared intelligence (`navigation.md`, `core/code-quality.md`, `core/workflow.md`)
 - `hooks/`: Session bootstrap integration (`session-start`)
 - `.opencode/`: Configuration for the OpenCode environment
@@ -41,11 +41,11 @@ Current repository facts:
 - The current workflow contract is the active Product Lead / Solution Lead design described in `context/core/workflow.md`
 - `context/core/workflow.md` is the canonical workflow-semantics document for lane behavior, stages, escalation, approvals, and quick-lane artifact expectations
 - Historical planning and example docs should live under `docs/archive/`; prefer current runtime docs and git history when older rationale is needed
-- `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit
+- `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit and reusable global agent model profile management
 - `openkit configure mcp --interactive` is the current guided TTY setup path for bundled MCPs and custom MCP visibility/testing; it wraps existing MCP configure service logic and fails closed without mutation in non-TTY contexts
 - `openkit configure mcp custom list|add-local|add-remote|import-global|disable|remove|doctor|test` is the current custom MCP lifecycle surface; custom definitions live separately from the bundled catalog under `<OPENCODE_HOME>/openkit/custom-mcp-config.json`, carry origin/ownership metadata, and use placeholder-only config/profile materialization
 - `assets/default-command-permission-policy.json` is the canonical machine-readable command permission policy; global kit/profile materialization and repo-local compatibility config project from it, and doctor reports degraded support where OpenCode default-allow exception semantics are unverified
-- Operator command surfaces stay split: `global_cli` handles install, doctor, launch, upgrade, and uninstall; `in_session` slash commands handle lane selection and workflow execution; `compatibility_runtime` handles lower-level workflow-state inspection and maintainer diagnostics
+- Operator command surfaces stay split: `global_cli` handles install, doctor, launch, global profile management, upgrade, and uninstall; `in_session` slash commands handle lane selection, workflow execution, and current-session profile switching; `compatibility_runtime` handles lower-level workflow-state inspection and maintainer diagnostics
 - `.opencode/opencode.json` is present as the repository-local OpenCode config for this kit
 - `.opencode/workflow-state.json` is present as the active external compatibility mirror for the active work item
 - `.opencode/work-items/` is present as the internal per-item workflow backing store for managed runtime state

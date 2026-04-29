@@ -43,12 +43,13 @@ Then start work from the chat surface with one of these:
 - `/migrate` when the work is primarily an upgrade or migration effort
 - `/delivery` when the work clearly needs the full multi-stage delivery flow
 - `/configure-agent-models` when you want to bind exact provider-qualified models to OpenKit agents
+- `/switch-profiles` when you want to interactively switch this running session to an existing global agent model profile without changing the global default
 - `/browser-verify` when acceptance depends on UI flows, browser evidence, or page behavior
 
 Keep the three surfaces separate:
 
-- `global_cli`: install, readiness, launch, upgrade, uninstall, and product lifecycle (`npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, `openkit uninstall`)
-- `in_session`: lane selection and workflow execution inside OpenCode (`/task`, `/quick-task`, `/migrate`, `/delivery`)
+- `global_cli`: install, readiness, launch, reusable model profile management, upgrade, uninstall, and product lifecycle (`npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles --list|--create|--edit|--set-default|--delete`, `openkit upgrade`, `openkit uninstall`)
+- `in_session`: lane selection, workflow execution, and current-session profile switching inside OpenCode (`/task`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`)
 - `compatibility_runtime`: lower-level workflow-state inspection, resume, diagnostics, issues, task boards, and evidence (`node .opencode/workflow-state.js ...`)
 
 If you need to inspect the current state more closely inside this repository's compatibility runtime:
@@ -142,6 +143,7 @@ Common read-only commands you can usually run immediately:
 - `openkit doctor`
 - `openkit onboard`
 - `openkit configure-agent-models --list`
+- `openkit profiles --list`
 - `node .opencode/workflow-state.js status`
 - `node .opencode/workflow-state.js resume-summary`
 - `node .opencode/workflow-state.js show`
@@ -183,6 +185,24 @@ The interactive flow now supports numbered provider and model pickers, so you do
 If `opencode models --verbose` exposes variants for the selected model, the interactive flow will also offer a numbered variant picker before saving the override.
 
 If verbose discovery is unavailable, OpenKit falls back to plain provider/model selection so setup can still continue without variant metadata.
+
+### Optional: manage reusable global model profiles before launch
+
+Use `openkit profiles` when you want named global model mixes that can be reused across sessions instead of only one current per-agent override set:
+
+```bash
+openkit profiles --list
+openkit profiles --create
+openkit profiles --edit
+openkit profiles --set-default
+openkit profiles --delete
+```
+
+Profiles are stored under the current OpenCode home on the `global_cli` surface. Setting a default affects future `openkit run` launches. Deletion is blocked for the global default and for profiles reported active in running OpenKit sessions.
+
+Inside an active `openkit run` session, use `/switch-profiles` to choose an existing global profile interactively for that current session only. `/switch-profiles` does not create, edit, delete, set the global default, or intentionally affect other sessions.
+
+Profile management and switching evidence stays on `global_cli` and `in_session`. Target-project app validation remains unavailable unless the current target project declares its own app-native validation commands.
 
 ### 3. Start or resume work
 

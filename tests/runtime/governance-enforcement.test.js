@@ -82,6 +82,7 @@ test('workflow-facing prompts reference runtime surface boundaries where relevan
     'commands/write-solution.md',
     'commands/execute-solution.md',
     'commands/brainstorm.md',
+    'commands/switch-profiles.md',
   ];
 
   for (const file of files) {
