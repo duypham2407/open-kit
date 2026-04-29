@@ -2,9 +2,9 @@
 
 ## Latest
 
-- [`0.3.32`](release-notes/0.3.32.md) - fix strict OpenCode config permissions
-- npm latest: `@duypham93/openkit@0.3.32`
-- git tag: `v0.3.32`
+- [`0.3.33`](release-notes/0.3.33.md) - add agent model profiles
+- npm latest: `@duypham93/openkit@0.3.33`
+- git tag: `v0.3.33`
 
 ## Previous
 
@@ -16,6 +16,7 @@
 
 Historical release notes tracked in-repo:
 
+- [`0.3.33`](release-notes/0.3.33.md) - add agent model profiles
 - [`0.3.32`](release-notes/0.3.32.md) - fix strict OpenCode config permissions
 - [`0.3.31`](release-notes/0.3.31.md) - add default command permission policy
 - [`0.3.30`](release-notes/0.3.30.md) - harden capability platform readiness surfaces
