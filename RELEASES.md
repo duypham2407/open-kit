@@ -2,9 +2,9 @@
 
 ## Latest
 
-- [`0.3.34`](release-notes/0.3.34.md) - fix managed kit module boundary
-- npm latest: `@duypham93/openkit@0.3.34`
-- git tag: `v0.3.34`
+- [`0.3.35`](release-notes/0.3.35.md) - fix switch profiles shim
+- npm latest: `@duypham93/openkit@0.3.35`
+- git tag: `v0.3.35`
 
 ## Previous
 
@@ -16,6 +16,7 @@
 
 Historical release notes tracked in-repo:
 
+- [`0.3.35`](release-notes/0.3.35.md) - fix switch profiles shim
 - [`0.3.34`](release-notes/0.3.34.md) - fix managed kit module boundary
 - [`0.3.33`](release-notes/0.3.33.md) - add agent model profiles
 - [`0.3.32`](release-notes/0.3.32.md) - fix strict OpenCode config permissions
