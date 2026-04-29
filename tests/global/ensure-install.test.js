@@ -337,6 +337,23 @@ test('materializeGlobalInstall copies the entire src/global directory into the m
   assert.equal(fs.existsSync(path.join(globalDir, 'config-merge.js')), true);
 });
 
+test('materializeGlobalInstall copies package manifest with ESM boundary into the managed kit', () => {
+  const tempHome = makeTempDir();
+
+  materializeGlobalInstall({
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+    },
+    ensureAstGrep: noopTooling,
+    ensureSemgrep: noopTooling,
+  });
+
+  const packageManifest = readJson(path.join(tempHome, 'kits', 'openkit', 'package.json'));
+  assert.equal(packageManifest.type, 'module');
+  assert.equal(packageManifest.name, '@duypham93/openkit');
+});
+
 test('materializeGlobalInstall provisions node_modules for the managed kit runtime', () => {
   const tempHome = makeTempDir();
 

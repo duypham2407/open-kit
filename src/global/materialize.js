@@ -31,6 +31,7 @@ const GLOBAL_KIT_ASSETS = [
   'registry.json',
   'AGENTS.md',
   'README.md',
+  'src/cli',
   'src/capabilities',
   'src/runtime',
   'src/mcp-server',
@@ -41,6 +42,7 @@ const GLOBAL_KIT_ASSETS = [
   'src/mcp-server',
   'src/command-detection.js',
   'src/version.js',
+  'package.json',
 ];
 
 function removePathIfPresent(targetPath) {
