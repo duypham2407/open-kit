@@ -297,12 +297,14 @@ process.stdout.write('mock opencode launched\\n');
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.js')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'profile-switch.js')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'switch-profiles.js')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'work-items')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'work-items')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, 'context', 'core', 'workflow.md')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.json')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.js')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'profile-switch.js')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'switch-profiles.js')), true);
 });
 
 test('openkit run loads OpenKit secrets env without printing or serializing raw values', () => {
@@ -635,6 +637,22 @@ test('openkit run creates CommonJS workflow wrappers without module-boundary war
   assert.match(profileSwitchWrapper, /OPENKIT_WORKFLOW_STATE/);
   assert.doesNotMatch(profileSwitchWrapper, /import \{ spawnSync \} from 'node:child_process';/);
 
+  const workspaceSwitchProfilesWrapper = fs.readFileSync(path.join(projectRoot, '.opencode', 'openkit', 'switch-profiles.js'), 'utf8');
+  assert.match(workspaceSwitchProfilesWrapper, /switch-profiles-cli\.js/);
+  assert.match(workspaceSwitchProfilesWrapper, /OPENKIT_PROJECT_ROOT/);
+  assert.match(workspaceSwitchProfilesWrapper, /OPENKIT_WORKFLOW_STATE/);
+  assert.match(workspaceSwitchProfilesWrapper, /OPENKIT_KIT_ROOT/);
+  assert.doesNotMatch(workspaceSwitchProfilesWrapper, /\.opencode\/switch-profiles\.js/);
+  assert.doesNotMatch(workspaceSwitchProfilesWrapper, /import \{ spawnSync \} from 'node:child_process';/);
+
+  const rootSwitchProfilesWrapper = fs.readFileSync(path.join(projectRoot, '.opencode', 'switch-profiles.js'), 'utf8');
+  assert.match(rootSwitchProfilesWrapper, /switch-profiles-cli\.js/);
+  assert.match(rootSwitchProfilesWrapper, /OPENKIT_PROJECT_ROOT/);
+  assert.match(rootSwitchProfilesWrapper, /OPENKIT_WORKFLOW_STATE/);
+  assert.match(rootSwitchProfilesWrapper, /OPENKIT_KIT_ROOT/);
+  assert.doesNotMatch(rootSwitchProfilesWrapper, /\.opencode\/switch-profiles\.js/);
+  assert.doesNotMatch(rootSwitchProfilesWrapper, /import \{ spawnSync \} from 'node:child_process';/);
+
   const wrapperRun = spawnSync(process.execPath, ['.opencode/openkit/workflow-state.js', 'help'], {
     cwd: projectRoot,
     encoding: 'utf8',
@@ -643,6 +661,20 @@ test('openkit run creates CommonJS workflow wrappers without module-boundary war
   assert.equal(wrapperRun.status, 0);
   assert.match(wrapperRun.stdout, /Usage:/);
   assert.doesNotMatch(wrapperRun.stderr, /MODULE_TYPELESS_PACKAGE_JSON/);
+
+  const switchProfilesRun = spawnSync(process.execPath, ['.opencode/switch-profiles.js'], {
+    cwd: projectRoot,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      OPENKIT_RUNTIME_SESSION_ID: 'test-session',
+    },
+  });
+
+  assert.equal(switchProfilesRun.status, 0);
+  assert.match(switchProfilesRun.stdout, /No global agent model profiles are available to switch/);
+  assert.doesNotMatch(switchProfilesRun.stderr, /MODULE_TYPELESS_PACKAGE_JSON/);
 });
 
 test('profile-switch wrapper updates live workspace selection state during a managed session', () => {
