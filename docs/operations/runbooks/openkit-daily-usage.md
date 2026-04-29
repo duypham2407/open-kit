@@ -43,12 +43,12 @@ Then start work from the chat surface with one of these:
 - `/migrate` when the work is primarily an upgrade or migration effort
 - `/delivery` when the work clearly needs the full multi-stage delivery flow
 - `/configure-agent-models` when you want to bind exact provider-qualified models to OpenKit agents
-- `/switch-profiles` when you want to interactively switch this running session to an existing global agent model profile without changing the global default
+- `openkit switch-profiles`, `openkit switch`, or `/switch-profiles` when you want to interactively switch this running session to an existing global agent model profile without changing the global default
 - `/browser-verify` when acceptance depends on UI flows, browser evidence, or page behavior
 
 Keep the three surfaces separate:
 
-- `global_cli`: install, readiness, launch, reusable model profile management, upgrade, uninstall, and product lifecycle (`npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles --list|--create|--edit|--set-default|--delete`, `openkit upgrade`, `openkit uninstall`)
+- `global_cli`: install, readiness, launch, reusable model profile management, direct session profile picker, upgrade, uninstall, and product lifecycle (`npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles --list|--create|--edit|--set-default|--delete`, `openkit switch-profiles`, `openkit switch`, `openkit upgrade`, `openkit uninstall`)
 - `in_session`: lane selection, workflow execution, and current-session profile switching inside OpenCode (`/task`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`)
 - `compatibility_runtime`: lower-level workflow-state inspection, resume, diagnostics, issues, task boards, and evidence (`node .opencode/workflow-state.js ...`)
 
@@ -200,7 +200,7 @@ openkit profiles --delete
 
 Profiles are stored under the current OpenCode home on the `global_cli` surface. Setting a default affects future `openkit run` launches. Deletion is blocked for the global default and for profiles reported active in running OpenKit sessions.
 
-Inside an active `openkit run` session, use `/switch-profiles` to choose an existing global profile interactively for that current session only. `/switch-profiles` does not create, edit, delete, set the global default, or intentionally affect other sessions.
+Inside an active `openkit run` session, use `openkit switch-profiles` or `openkit switch` to choose an existing global profile interactively for that current session only. The CLI requires a valid `OPENKIT_RUNTIME_SESSION_ID` and fails closed outside an active OpenKit runtime session. `/switch-profiles` remains available as an in-session prompt template for the same operation, but OpenCode custom slash command files are prompt templates and true native executable slash command support is not currently documented.
 
 Profile management and switching evidence stays on `global_cli` and `in_session`. Target-project app validation remains unavailable unless the current target project declares its own app-native validation commands.
 

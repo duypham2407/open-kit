@@ -21,13 +21,13 @@ function formatProfiles(profiles = []) {
   return lines.join('\n');
 }
 
-function printHelp(io) {
+function printHelp(io, invocation = 'node .opencode/switch-profiles.js') {
   io.stdout.write(
     [
       'OpenKit switch profiles',
       '',
       'Usage:',
-      '  node .opencode/switch-profiles.js',
+      `  ${invocation}`,
       '',
       'This command is interactive-only. It lists global profiles and applies the selected profile to this workspace session.',
       'It does not change the global default profile, edit profiles, delete profiles, or affect other sessions.',
@@ -62,9 +62,14 @@ async function chooseProfileInteractively(profiles, io) {
   }
 }
 
-export async function runSwitchProfilesCli({ argv = process.argv.slice(2), env = process.env, io = process } = {}) {
+export async function runSwitchProfilesCli({
+  argv = process.argv.slice(2),
+  env = process.env,
+  io = process,
+  invocation = 'node .opencode/switch-profiles.js',
+} = {}) {
   if (argv.includes('--help') || argv.includes('-h')) {
-    printHelp(io);
+    printHelp(io, invocation);
     return 0;
   }
 

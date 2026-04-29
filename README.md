@@ -132,8 +132,8 @@ Current global CLI commands shown by `openkit help`:
 | Command | Primary use |
 | --- | --- |
 | `openkit help` | Show CLI help. |
-| `openkit install-global` | Manual global setup command; compatibility/manual alias, not the primary onboarding path. |
-| `openkit init` | Compatibility alias for `install-global`; not the primary onboarding path. |
+| `openkit install-global` | Manual global setup command; manual/compatibility helper, not the primary onboarding path. |
+| `openkit init` | Manual/compatibility helper alias for `install-global`; not the primary onboarding path. |
 | `openkit install` | Explicitly install the global kit and provision runtime tooling. Use `openkit install --verify` for setup plus post-install verification. |
 | `openkit run` | Launch OpenCode and perform first-time setup if needed. |
 | `openkit upgrade` | Refresh the global OpenKit managed kit under `OPENCODE_HOME`. |
@@ -165,7 +165,9 @@ openkit profiles --set-default
 
 Profiles are global to the current OpenCode home (`global_cli`). `openkit profiles --set-default` controls the initial profile for future `openkit run` launches. Deletion is blocked when a profile is the global default or is reported active in a running OpenKit session.
 
-Inside an active OpenKit session, use `/switch-profiles` to choose one of those existing global profiles for the current session only. `/switch-profiles` is an `in_session` command: it does not create profiles, edit profiles, delete profiles, set the global default, or intentionally affect other running sessions.
+Inside an active OpenKit runtime session, use `openkit switch-profiles` or its short alias `openkit switch` to choose one of those existing global profiles for the current session only. The CLI requires `OPENKIT_RUNTIME_SESSION_ID`, fails closed outside an active OpenKit runtime session, and does not create profiles, edit profiles, delete profiles, set the global default, or intentionally affect other running sessions.
+
+The `/switch-profiles` slash command is kept as an in-session prompt template for the same current-session profile switch. OpenCode custom slash command files are prompt templates; true native executable slash command support is not currently documented, so `/switch-profiles` may be agent-mediated and should not be described as a guaranteed native command runner.
 
 ### Per-agent model overrides
 
@@ -261,7 +263,7 @@ Use these slash commands inside an active `openkit run` session:
 | `/brainstorm <topic>` | Structured brainstorming before scope, solution, or implementation work. |
 | `/write-solution <request>` | Create or refine a solution package from approved scope or migration context. |
 | `/execute-solution <request>` | Execute approved solution work through the implementation path. |
-| `/switch-profiles` | Switch to an existing global agent model profile for the current session only. |
+| `/switch-profiles` | Agent-mediated prompt template for switching to an existing global agent model profile for the current session only. Direct CLI picker: `openkit switch-profiles` or `openkit switch`. |
 
 Lane-lock note: when you explicitly use `/quick-task`, `/migrate`, or `/delivery`, OpenKit honors that lane choice unless you authorize a lane change after a reported blocker.
 
@@ -452,7 +454,7 @@ Approvals alone are not enough for closure-sensitive stages. Verification eviden
 
 OpenKit has 3 main operator-facing surfaces:
 
-- product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit upgrade`, `openkit uninstall`
+- product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit switch-profiles`, `openkit switch`, `openkit upgrade`, `openkit uninstall`
 - in-session path (`in_session`): `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/switch-profiles`
 - compatibility runtime path (`compatibility_runtime`): `node .opencode/workflow-state.js ...`
 
@@ -520,7 +522,7 @@ The current runtime config path also supports:
 - `fallback_models` chains for categories and specialists
 - automatic fallback activation after repeated model failures through `modelExecution.autoFallback` and agent `auto_fallback`
 - two agent model profiles for quick provider switching, useful when the same model family is available from multiple providers
-- global named agent model profiles through `openkit profiles`, plus current-session selection through `/switch-profiles`
+- global named agent model profiles through `openkit profiles`, plus current-session selection through `openkit switch-profiles`, `openkit switch`, or the `/switch-profiles` prompt template inside a session
 - `file://` prompt references for agent prompts and category prompt appends
 - model-resolution trace visibility in doctor/runtime diagnostics
 
@@ -528,9 +530,9 @@ This foundation is additive. The canonical workflow contract still lives in `con
 
 ### Model override notes
 
-Per-agent model overrides and named agent model profiles are saved by the global OpenKit install and reused by future `openkit run` sessions. `openkit profiles --set-default` sets the launch default; `/switch-profiles` writes only current-session selection state.
+Per-agent model overrides and named agent model profiles are saved by the global OpenKit install and reused by future `openkit run` sessions. `openkit profiles --set-default` sets the launch default; `openkit switch-profiles`, `openkit switch`, and `/switch-profiles` write only current-session selection state.
 
-Current limitation: `/switch-profiles` refreshes OpenKit runtime model-resolution read models and persisted current-session selection for subsequent runtime resolution paths. It cannot retroactively change prompts, model choices, or background work that were already dispatched before the switch.
+Current limitation: current-session profile switching refreshes OpenKit runtime model-resolution read models and persisted current-session selection for subsequent runtime resolution paths. It cannot retroactively change prompts, model choices, or background work that were already dispatched before the switch.
 
 Use model overrides when you want different strengths per role, for example:
 

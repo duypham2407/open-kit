@@ -22,7 +22,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - At session start, read the compact `<openkit_capability_guidance>` block as advisory routing guidance only; refresh details explicitly with `tool.runtime-summary`, `tool.capability-router`, `tool.skill-index`, `tool.mcp-doctor`, or `tool.capability-health` rather than assuming skills or MCPs were auto-activated.
 - If you need MCP-backed capabilities such as Context7, run `openkit configure mcp --interactive` for guided TTY setup, or use `openkit configure mcp list`, `openkit configure mcp doctor`, and `openkit configure mcp set-key <mcp-id> --stdin` with placeholder-only shared examples and local-only secrets. For your own MCP servers, use `openkit configure mcp custom add-local`, `add-remote`, `import-global`, `list`, `doctor`, `test`, `disable`, and `remove`.
 - Once OpenCode is open, use `Ctrl+P` and choose `/task`, `/quick-task`, `/migrate`, or `/delivery` to enter the right workflow lane
-- If you want different providers or models per agent, run `/configure-agent-models`, `openkit configure-agent-models --interactive`, or `openkit configure-agent-models --models` before starting the session you care about; if you want reusable global model mixes, manage them with `openkit profiles` before launch and switch the current running session with `/switch-profiles`
+- If you want different providers or models per agent, run `/configure-agent-models`, `openkit configure-agent-models --interactive`, or `openkit configure-agent-models --models` before starting the session you care about; if you want reusable global model mixes, manage them with `openkit profiles` before launch and switch the current running session with `openkit switch-profiles`, `openkit switch`, or the `/switch-profiles` prompt template
 - Use `/task` unless you already know the work must start in `Quick Task`, `Migration`, or `Full Delivery`
 - Use `context/navigation.md` when you need to locate deeper workflow or standards references
 
@@ -65,9 +65,9 @@ Then use the in-session path (`in_session`):
 
 ## Live Operator Surfaces In This Repository
 
-- Slash commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, `/switch-profiles`
+- Slash command prompt templates: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, `/switch-profiles`. OpenCode custom slash command files are prompt templates; true native executable slash command support is not currently documented.
 - MCP capability configuration: `openkit configure mcp --interactive`, plus bundled `list`, `doctor`, `enable`, `disable`, `set-key`, `unset-key`, and `test`, and custom `add-local`, `add-remote`, `import-global`, `list`, `doctor`, `test`, `disable`, and `remove`
-- Agent model profile management: `openkit profiles --create`, `--edit`, `--list`, `--delete`, and `--set-default` manage global profiles; `/switch-profiles` is current-session-only and does not mutate the global default
+- Agent model profile management: `openkit profiles --create`, `--edit`, `--list`, `--delete`, and `--set-default` manage global profiles; `openkit switch-profiles`, `openkit switch`, and `/switch-profiles` are current-session-only and do not mutate the global default
 - Global diagnostics: `openkit doctor`
 - Global launcher: `openkit run`
 - Global lifecycle: `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit upgrade`, `openkit uninstall`

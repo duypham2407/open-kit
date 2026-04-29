@@ -41,10 +41,11 @@ Use this document to decide which OpenKit surface to use for a given goal.
 | get a dry onboarding summary | product surface | `openkit onboard` |
 | refresh or remove the global kit | product surface | `openkit upgrade`, `openkit uninstall` |
 | manage reusable global agent model profiles | product surface | `openkit profiles --list`, `--create`, `--edit`, `--set-default`, `--delete` |
+| directly switch the active profile for only the current runtime session | product surface | `openkit switch-profiles`, `openkit switch` |
 | inspect or configure bundled MCPs | product surface | `openkit configure mcp list`, `doctor`, `enable`, `disable`, `set-key`, `unset-key`, `test` |
 | choose the correct lane | in-session workflow surface | `/task` |
 | force a known lane | in-session workflow surface | `/quick-task`, `/migrate`, `/delivery` |
-| switch the active profile for only the current session | in-session workflow surface | `/switch-profiles` |
+| request an in-session profile switch through a slash prompt template | in-session workflow surface | `/switch-profiles` |
 | inspect active workflow state | compatibility runtime surface | `node .opencode/workflow-state.js status` |
 | get a human-readable resume snapshot | compatibility runtime surface | `node .opencode/workflow-state.js resume-summary` |
 | inspect raw linked state | compatibility runtime surface | `node .opencode/workflow-state.js show` |
@@ -54,9 +55,9 @@ Use this document to decide which OpenKit surface to use for a given goal.
 
 - prefer the global product surface for daily work
 - use `openkit configure mcp ...` for MCP catalog/configuration work and keep examples placeholder-only; raw secrets belong only in the local OpenKit secret store and runtime process environment
-- use `openkit profiles ...` for global profile storage and launch defaults; use `/switch-profiles` only for current-session selection, not global default mutation
+- use `openkit profiles ...` for global profile storage and launch defaults; use `openkit switch-profiles`, `openkit switch`, or `/switch-profiles` only for current-session selection, not global default mutation
 - use `openkit upgrade` and `openkit uninstall` for product lifecycle maintenance; do not switch to repository-local workflow-state commands for install, launch, upgrade, or uninstall work
-- prefer slash commands once OpenCode is running
+- prefer slash commands once OpenCode is running for workflow routing; for profile switching, prefer `openkit switch-profiles` when direct executable behavior matters because OpenCode custom slash command files are prompt templates and true native executable slash command support is not currently documented
 - prefer the low-level runtime CLI only when you need raw state inspection, maintainer diagnostics, or work-item/task-board operations
 - keep `openkit install` and `openkit install-global` only as manual/compatibility setup helpers when they are intentionally needed; they are not the preferred onboarding path
 - keep the path model explicit: global kit root for managed kit/config, workspace state root for active runtime state, project `.opencode/` for compatibility shim behavior

@@ -20,6 +20,8 @@ function topLevelHelp() {
     '  configure Configure OpenKit product surfaces such as bundled MCPs',
     '  configure-agent-models  Configure provider-specific models per OpenKit agent',
     '  profiles  Manage global agent model profiles',
+    '  switch-profiles  Switch the current OpenKit runtime session profile',
+    '  switch    Alias for switch-profiles',
     '  release   Prepare, verify, and publish OpenKit releases',
     '',
     'Runtime foundation:',

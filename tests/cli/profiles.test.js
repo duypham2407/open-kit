@@ -147,7 +147,35 @@ test('profiles help documents only profile-management flags and the session boun
   assert.match(result.stdout, /--set-default/);
   assert.match(result.stdout, /global/i);
   assert.match(result.stdout, /\/switch-profiles.*session-only/);
+  assert.match(result.stdout, /openkit switch-profiles/);
   assert.doesNotMatch(result.stdout, /--models/);
+});
+
+test('switch-profiles command switches only when a runtime session id is present', async () => {
+  const tempHome = makeTempDir();
+  const env = { ...createEnv(tempHome), OPENKIT_RUNTIME_SESSION_ID: 'cli-session' };
+  writeProfileStore(
+    tempHome,
+    {
+      daily: {
+        name: 'daily',
+        description: 'Daily profile',
+        agentModels: {
+          'qa-agent': { model: 'openai/gpt-5-mini' },
+        },
+      },
+    },
+    'daily'
+  );
+
+  const result = await runCli(['switch-profiles'], { env, input: '1\n' });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Available global agent model profiles/);
+  assert.match(result.stdout, /Active session profile set to daily/);
+  assert.match(result.stdout, /Global default profile was not changed/);
+  assert.equal(result.stderr, '');
+  assert.equal(readJson(profilesPath(tempHome)).defaultProfile, 'daily');
 });
 
 test('profiles rejects unsupported flags instead of accepting configure-agent-model options', async () => {

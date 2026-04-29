@@ -13,6 +13,7 @@ import { configureCommand } from './commands/configure.js';
 import { releaseCommand } from './commands/release.js';
 import { onboardCommand } from './commands/onboard.js';
 import { profilesCommand } from './commands/profiles.js';
+import { switchProfilesCommand } from './commands/switch-profiles.js';
 
 const commands = {
   help: helpCommand,
@@ -28,6 +29,8 @@ const commands = {
   'configure-agent-models': configureAgentModelsCommand,
   'configure-embedding': configureEmbeddingCommand,
   profiles: profilesCommand,
+  'switch-profiles': switchProfilesCommand,
+  switch: switchProfilesCommand,
   release: releaseCommand,
   'internal-audit-vietnamese': detectVietnameseCommand,
 };

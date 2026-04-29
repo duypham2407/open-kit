@@ -60,9 +60,42 @@ test('openkit --help shows global-install oriented help', () => {
   assert.match(result.stdout, /onboard/);
   assert.match(result.stdout, /configure-agent-models\s+Configure provider-specific models per OpenKit agent/);
   assert.match(result.stdout, /profiles\s+Manage global agent model profiles/);
+  assert.match(result.stdout, /switch-profiles\s+Switch the current OpenKit runtime session profile/);
+  assert.match(result.stdout, /switch\s+Alias for switch-profiles/);
   assert.match(result.stdout, /release/);
   assert.match(result.stdout, /Launch OpenCode and perform first-time setup if needed/);
   assert.equal(result.stderr, '');
+});
+
+test('openkit switch-profiles help documents direct session picker invocation', () => {
+  const result = runCli(['switch-profiles', '--help']);
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Usage:\n  openkit switch-profiles/);
+  assert.match(result.stdout, /interactive-only/);
+  assert.match(result.stdout, /does not change the global default profile/);
+  assert.equal(result.stderr, '');
+});
+
+test('openkit switch alias reuses switch-profiles help', () => {
+  const result = runCli(['switch', '--help']);
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /Usage:\n  openkit switch-profiles/);
+  assert.equal(result.stderr, '');
+});
+
+test('openkit switch-profiles fails closed without active runtime session id', () => {
+  const tempHome = makeTempDir();
+  const result = runCli(['switch-profiles'], {
+    env: { ...process.env, OPENCODE_HOME: tempHome, OPENKIT_RUNTIME_SESSION_ID: '' },
+  });
+
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout, '');
+  assert.match(result.stderr, /requires OPENKIT_RUNTIME_SESSION_ID/);
+  assert.match(result.stderr, /openkit run/);
+  assert.equal(fs.existsSync(path.join(tempHome, 'openkit', 'agent-model-profiles.json')), false);
 });
 
 test('openkit profiles --help documents global profile management and session-only switching', () => {
@@ -78,7 +111,7 @@ test('openkit profiles --help documents global profile management and session-on
   assert.match(result.stdout, /--set-default/);
   assert.match(result.stdout, /Profiles are global to this OpenKit installation/);
   assert.match(result.stdout, /stored under OPENCODE_HOME\/openkit/);
-  assert.match(result.stdout, /\/switch-profiles is session-only/);
+  assert.match(result.stdout, /\/switch-profiles and openkit switch-profiles are session-only/);
   assert.equal(result.stderr, '');
 });
 

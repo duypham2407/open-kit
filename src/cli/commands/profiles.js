@@ -40,7 +40,7 @@ function profilesHelp() {
     '',
     'Notes:',
     '  Profiles are global to this OpenKit installation.',
-    '  /switch-profiles is session-only and does not change the global default.',
+    '  /switch-profiles and openkit switch-profiles are session-only and do not change the global default.',
   ].join('\n');
 }
 
