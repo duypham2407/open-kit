@@ -1,7 +1,5 @@
 # OpenKit
 
-## 1. Hero
-
 OpenKit is an AI software factory for OpenCode.
 
 It helps OpenCode behave more like a real software team instead of a single chat session:
@@ -11,9 +9,303 @@ It helps OpenCode behave more like a real software team instead of a single chat
 - keep workflow state, approvals, issues, and evidence explicit
 - reduce hallucinated completion claims through runtime checks and verification gates
 
-Preferred operator lifecycle outside OpenCode: `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, then maintain global model profiles with `openkit profiles` and the kit itself with `openkit upgrade` or `openkit uninstall` when needed. If you remember one command after launch, remember this: start with `/task`.
+If you are new, start here: install the global CLI, run the doctor check, launch OpenKit, then use `/task` inside OpenCode.
 
-## 2. Why OpenKit
+## Install
+
+OpenKit is distributed as the npm package `@duypham93/openkit`.
+
+Prerequisites:
+
+- Node.js >= 18, with Node 20 LTS recommended
+- npm
+- OpenCode CLI (`opencode`) available on `PATH`
+- Ubuntu/Debian only: build tools for native modules such as `better-sqlite3` (`build-essential`, `python3`)
+
+First-time install flow:
+
+```bash
+npm install -g @duypham93/openkit
+openkit doctor
+openkit run
+```
+
+What each command does:
+
+- `npm install -g @duypham93/openkit` installs the global npm CLI package that provides the `openkit` command.
+- `openkit doctor` checks global OpenKit readiness and the current workspace bootstrap.
+- `openkit run` launches OpenCode with the OpenKit-managed config and performs first-time managed-kit setup when needed.
+
+Explicit setup and verification flow:
+
+```bash
+openkit install
+openkit install --verify
+```
+
+`openkit install` is the explicit setup path for materializing the global managed kit and provisioning runtime tooling. `openkit install --verify` runs that setup path plus post-install verification. Most users should still begin with `npm install -g @duypham93/openkit`, `openkit doctor`, and `openkit run`; use `openkit install --verify` when you intentionally want an explicit setup and verification pass.
+
+## Upgrade
+
+Use both the npm package update and OpenKit managed-kit refresh when you want the latest global OpenKit installation:
+
+```bash
+npm install -g @duypham93/openkit@latest
+openkit upgrade
+openkit doctor
+```
+
+Update responsibilities are split on purpose:
+
+- `npm install -g @duypham93/openkit@latest` updates the global npm CLI package.
+- `openkit upgrade` refreshes the managed OpenKit kit under `OPENCODE_HOME`.
+- `openkit doctor` checks readiness after the package and managed kit are refreshed.
+
+Use the global `openkit` CLI for product lifecycle updates. Do not use repository-local workflow-state commands as a substitute for updating the global package or the managed kit.
+
+## Verify
+
+Primary readiness check:
+
+```bash
+openkit doctor
+```
+
+Explicit setup plus post-install verification:
+
+```bash
+openkit install --verify
+```
+
+Common post-install checks:
+
+```bash
+which openkit
+which openkit-mcp
+which opencode
+openkit doctor
+```
+
+OpenKit checks validate OpenKit surfaces such as `global_cli`, `compatibility_runtime`, `runtime_tooling`, `documentation`, and `package` depending on the command. They do not prove a target project's application build, lint, or test behavior unless that target project defines app-native commands.
+
+## Start OpenKit
+
+Launch OpenCode with OpenKit:
+
+```bash
+openkit run
+```
+
+Path model during managed launch:
+
+- kit/config root: `OPENCODE_HOME/kits/openkit`
+- workspace runtime state: `OPENCODE_HOME/workspaces/<workspace-id>/openkit/.opencode`
+- project compatibility shim: `projectRoot/.opencode`
+
+Treat those as different layers. `openkit run` uses the managed global kit plus the derived workspace state. The checked-in project `.opencode/` path remains a compatibility surface, not the default source of truth for managed runtime state.
+
+After launch, start most work with:
+
+```text
+/task <your request>
+```
+
+Use `/quick-task`, `/migrate`, or `/delivery` only when the lane is already obvious.
+
+## Daily commands
+
+High-value global CLI commands for regular operators:
+
+```bash
+openkit help
+openkit onboard
+openkit doctor
+openkit run
+openkit profiles --list
+openkit configure mcp --interactive
+openkit upgrade
+openkit uninstall
+```
+
+Current global CLI commands shown by `openkit help`:
+
+| Command | Primary use |
+| --- | --- |
+| `openkit help` | Show CLI help. |
+| `openkit install-global` | Manual global setup command; compatibility/manual alias, not the primary onboarding path. |
+| `openkit init` | Compatibility alias for `install-global`; not the primary onboarding path. |
+| `openkit install` | Explicitly install the global kit and provision runtime tooling. Use `openkit install --verify` for setup plus post-install verification. |
+| `openkit run` | Launch OpenCode and perform first-time setup if needed. |
+| `openkit upgrade` | Refresh the global OpenKit managed kit under `OPENCODE_HOME`. |
+| `openkit uninstall` | Remove the global OpenKit install; use documented options when intentionally removing workspace state. |
+| `openkit doctor` | Inspect global OpenKit and workspace readiness. |
+| `openkit onboard` | Explain the safest first-run path and command choices. |
+| `openkit configure` | Configure OpenKit product surfaces such as bundled MCPs. |
+| `openkit configure-agent-models` | Configure provider-specific models per OpenKit agent. |
+| `openkit profiles` | Manage reusable global agent model profiles. |
+| `openkit release` | Maintainer-only release preparation, verification, and publishing workflow. |
+
+Maintainers can inspect command details with `openkit <command> --help` before changing docs or release processes.
+
+## Agent model profiles
+
+OpenKit has two related model-configuration surfaces.
+
+### Reusable global profiles
+
+Use `openkit profiles` when you want named, reusable model mixes across OpenKit agents:
+
+```bash
+openkit profiles --create
+openkit profiles --edit
+openkit profiles --list
+openkit profiles --delete
+openkit profiles --set-default
+```
+
+Profiles are global to the current OpenCode home (`global_cli`). `openkit profiles --set-default` controls the initial profile for future `openkit run` launches. Deletion is blocked when a profile is the global default or is reported active in a running OpenKit session.
+
+Inside an active OpenKit session, use `/switch-profiles` to choose one of those existing global profiles for the current session only. `/switch-profiles` is an `in_session` command: it does not create profiles, edit profiles, delete profiles, set the global default, or intentionally affect other running sessions.
+
+### Per-agent model overrides
+
+Use `openkit configure-agent-models` when you want to inspect or assign provider-specific models per OpenKit agent:
+
+```bash
+openkit configure-agent-models --list
+openkit configure-agent-models --interactive
+openkit configure-agent-models --models
+openkit configure-agent-models --models <provider>
+openkit configure-agent-models --models <provider> --refresh
+openkit configure-agent-models --models <provider> --refresh --verbose
+openkit configure-agent-models --agent <agent-id> --model <provider/model>
+openkit configure-agent-models --agent <agent-id> --clear
+```
+
+Active agent ids:
+
+- `master-orchestrator`
+- `product-lead-agent`
+- `solution-lead-agent`
+- `fullstack-agent`
+- `code-reviewer`
+- `qa-agent`
+
+Recommended flow:
+
+1. `openkit configure-agent-models --list`
+2. `openkit configure-agent-models --models`
+3. `openkit configure-agent-models --interactive`
+4. `openkit run`
+
+OpenKit profile and model checks are not target-project application validation.
+
+## MCP config
+
+Start with the guided MCP setup wizard:
+
+```bash
+openkit configure mcp --interactive
+```
+
+The MCP configuration surface supports bundled MCP visibility, readiness checks, enable/disable actions, secret placeholder management, repair, and testing:
+
+```bash
+openkit configure mcp list
+openkit configure mcp doctor
+openkit configure mcp enable <mcp-id>
+openkit configure mcp disable <mcp-id>
+openkit configure mcp set-key <mcp-id> --stdin
+openkit configure mcp unset-key <mcp-id>
+openkit configure mcp list-key <mcp-id>
+openkit configure mcp copy-key <mcp-id>
+openkit configure mcp repair <mcp-id>
+openkit configure mcp test <mcp-id>
+```
+
+Representative custom MCP commands:
+
+```bash
+openkit configure mcp custom list
+openkit configure mcp custom add-local <custom-id> --cmd <executable> --arg <arg>
+openkit configure mcp custom add-remote <custom-id> --url <url> --transport http
+openkit configure mcp custom import-global <global-id> --as <custom-id>
+openkit configure mcp custom disable <custom-id>
+openkit configure mcp custom remove <custom-id>
+openkit configure mcp custom doctor [<custom-id>]
+openkit configure mcp custom test <custom-id>
+```
+
+Custom MCP definitions are OpenKit-managed, separate from the bundled catalog, and materialize placeholder-only config. Avoid putting raw secrets in command arguments or config files; prefer `--stdin` or environment-backed placeholders where supported.
+
+OpenKit enables Chrome DevTools MCP by default so browser testing and debugging tools are available out of the box when the surrounding environment can run them.
+
+Configured server:
+
+- MCP id: `chrome-devtools`
+- command: `npx -y chrome-devtools-mcp@0.21.0`
+- enabled: `true`
+
+Then in-session, browser tools should be available for page navigation, console/network inspection, screenshots, and UI debugging flows.
+
+## In-session commands
+
+Use these slash commands inside an active `openkit run` session:
+
+| Command | Use |
+| --- | --- |
+| `/task <request>` | Default entrypoint. Master Orchestrator chooses the right lane. |
+| `/quick-task <request>` | Explicit quick lane for narrow, low-risk work. |
+| `/migrate <request>` | Explicit migration lane for upgrades, dependency modernization, and compatibility remediation. |
+| `/delivery <request>` | Explicit full-delivery lane for feature work or higher-risk changes. |
+| `/brainstorm <topic>` | Structured brainstorming before scope, solution, or implementation work. |
+| `/write-solution <request>` | Create or refine a solution package from approved scope or migration context. |
+| `/execute-solution <request>` | Execute approved solution work through the implementation path. |
+| `/switch-profiles` | Switch to an existing global agent model profile for the current session only. |
+
+Lane-lock note: when you explicitly use `/quick-task`, `/migrate`, or `/delivery`, OpenKit honors that lane choice unless you authorize a lane change after a reported blocker.
+
+## Troubleshooting and update notes
+
+If `openkit doctor` reports install drift or missing managed-kit files:
+
+```bash
+openkit upgrade
+openkit doctor
+```
+
+If the global CLI itself is stale, update the npm package first:
+
+```bash
+npm install -g @duypham93/openkit@latest
+openkit upgrade
+openkit doctor
+```
+
+If you want an explicit setup and verification pass:
+
+```bash
+openkit install
+openkit install --verify
+```
+
+Use this distinction when troubleshooting updates:
+
+- `npm install -g @duypham93/openkit@latest` updates the global npm CLI package.
+- `openkit upgrade` refreshes the managed kit under `OPENCODE_HOME`.
+- `openkit install --verify` is explicit setup plus post-install verification.
+- `openkit doctor` checks readiness; it is the safest first diagnostic command.
+- `openkit install-global` and `openkit init` remain manual/compatibility aliases, not the primary path for new users.
+
+Platform notes:
+
+- macOS: confirm Node/npm and `opencode` are on `PATH`, then use the first-time install flow.
+- Ubuntu/Debian: install build tools before setup when native modules fail: `sudo apt install -y build-essential python3`.
+- If `better-sqlite3`, `ast-grep`, or `semgrep` readiness is reported as missing, run `openkit doctor`, follow the printed recovery step, then rerun `openkit doctor`.
+
+There is currently no repo-native target-project application build, lint, or test command documented by OpenKit itself. Do not treat OpenKit runtime, CLI, workflow-state, or MCP checks as target application validation.
+
+## Why OpenKit
 
 OpenKit exists to solve common failure modes in AI-assisted software work:
 
@@ -40,7 +332,7 @@ It is now also evolving a hybrid runtime foundation under `src/runtime/` that ad
 - supervisor dialogue primitives for OpenClaw/OpenKit advisory exchange
 - a clean-room path toward MCP, background execution, categories, specialists, and recovery
 
-## 3. Core Modes
+## Core modes
 
 OpenKit has 3 workflow modes.
 
@@ -68,7 +360,7 @@ OpenKit has 3 workflow modes.
 - can use a task board when the approved solution package allows it
 - expected artifact trail is Product Lead scope in `docs/scope/` before Solution Lead design in `docs/solution/`, then implementation evidence, code review, and QA evidence in `docs/qa/`
 
-## 4. How It Works
+## How it works
 
 ```text
 User request
@@ -82,7 +374,7 @@ Master Orchestrator chooses mode
    +--> Quick ------> Quick Agent: brainstorm(3 options) -> plan -> implement -> test -> done
    |
    +--> Migration --> baseline -> strategy -> upgrade -> code review -> verify -> done
-    |
+   |
    +--> Full -------> Product Lead(scope package) -> Solution Lead(solution package) -> Fullstack -> Code Reviewer -> QA -> done
    |
    v
@@ -95,7 +387,7 @@ At runtime, OpenKit keeps the process explicit through:
 - `.opencode/work-items/` as the per-item store
 - `node .opencode/workflow-state.js ...` for runtime inspection and operations
 
-## 5. Example Flow
+## Example flow
 
 Example: you ask OpenKit to add a new feature.
 
@@ -107,232 +399,66 @@ Example: you ask OpenKit to add a new feature.
 6. `Code Reviewer` checks scope compliance first and code quality second.
 7. `QA Agent` validates runtime behavior, routes any issues, and the workflow only closes when the gates are satisfied.
 
-For a narrow bugfix, the same entrypoint may route to `Quick`.
-For a framework upgrade, it may route to `Migration`.
+For a narrow bugfix, the same entrypoint may route to `Quick`. For a framework upgrade, it may route to `Migration`.
 
-## 6. Quick Start
+## Concepts
 
-### Install (macOS and Ubuntu)
+### Orchestrator
 
-OpenKit is distributed as an npm global package:
+`Master Orchestrator` is the delivery router.
 
-```bash
-npm install -g @duypham93/openkit
-```
+It chooses the mode when `/task` is used, records state, controls handoffs and gates, tracks feedback loops, and keeps work moving through the right workflow.
 
-Preferred operator path after npm install:
+It does not code, define scope, design the solution, perform review, or make QA judgment. It is a procedural controller: route, dispatch, record, reroute, and close the loop only after the owning role has produced the required evidence.
 
-```bash
-openkit doctor
-openkit run
-```
+### Agents
 
-Use these lifecycle commands when maintaining the global kit:
+OpenKit currently ships active orchestration and delivery roles plus compatibility split-role views:
 
-```bash
-openkit profiles --list
-openkit upgrade
-openkit uninstall
-```
+1. **Master Orchestrator**: chooses the mode, routes handoffs, manages feedback loops, and never performs code or artifact-authoring work itself
+2. **Product Lead**: defines scope, business rules, acceptance criteria, and the scope package for full delivery
+3. **Solution Lead**: defines technical direction, migration strategy, sequencing, validation expectations, and the solution package that depends on the approved scope package
+4. **Fullstack Agent**: implements, debugs, and verifies approved work
+5. **Code Reviewer**: performs independent scope-compliance and code-quality review before QA
+6. **QA Agent**: validates implementation evidence and classifies issues
 
-`openkit profiles` manages reusable global agent model profiles for this OpenKit installation. `openkit run` materializes the managed OpenKit kit under `OPENCODE_HOME` on first use when needed. `openkit doctor` is the non-mutating readiness check for the global install and current workspace. Do not treat repository-local `.opencode/` commands as the preferred end-user install path; they are compatibility and maintainer diagnostics.
+### Workflow state
 
-Optional manual provisioning remains available when you intentionally need it:
+Workflow state is the shared runtime memory of the system.
 
-```bash
-openkit install --verify
-```
+It tracks things like:
 
-`openkit install --verify` is a manual/compatibility helper that can:
+- current mode and stage
+- current owner
+- linked artifacts
+- approvals
+- issues and issue lifecycle
+- verification evidence
+- readiness, closeout, and release-level signals
 
-- materialize the managed OpenKit kit under `OPENCODE_HOME`
-- enable default MCP servers for OpenKit runtime tools and Chrome DevTools debugging
-- install or link `ast-grep`
-- install or link `semgrep`
-- provision runtime dependencies used by OpenKit tooling:
-  - `better-sqlite3`
-  - `jscodeshift`
-  - `web-tree-sitter`
-  - `tree-sitter-javascript`
-  - `tree-sitter-typescript`
+### Approvals and evidence
 
-#### 6.1 macOS setup
+OpenKit separates:
 
-Prerequisites:
+- stage readiness
+- definition of done
+- release readiness
 
-- Node.js >= 18 (recommended: Node 20 LTS)
-- npm
-- OpenCode CLI (`opencode`) available on PATH
+Approvals alone are not enough for closure-sensitive stages. Verification evidence must also be inspectable in workflow state.
 
-Recommended install flow:
+## Advanced
 
-```bash
-# 1) Verify Node/npm
-node -v
-npm -v
+### Product vs compatibility surfaces
 
-# 2) Install OpenKit globally
-npm install -g @duypham93/openkit
+OpenKit has 3 main operator-facing surfaces:
 
-# 3) Doctor check
-openkit doctor
+- product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit upgrade`, `openkit uninstall`
+- in-session path (`in_session`): `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/switch-profiles`
+- compatibility runtime path (`compatibility_runtime`): `node .opencode/workflow-state.js ...`
 
-# 4) Launch OpenKit
-openkit run
-```
+Use the product path for daily use. Use the lower-level runtime CLI for inspection, diagnostics, and maintainer workflows.
 
-If `semgrep` or another managed tool is missing, run the readiness check first and follow the printed recovery step:
-
-```bash
-openkit doctor
-openkit upgrade
-openkit doctor
-```
-
-If native module setup fails (`better-sqlite3`):
-
-```bash
-npm install -g @duypham93/openkit
-openkit doctor
-openkit run
-```
-
-#### 6.2 Ubuntu / Debian setup
-
-Prerequisites:
-
-- Node.js >= 18 (recommended: Node 20 LTS)
-- npm
-- OpenCode CLI (`opencode`) available on PATH
-- build tools for native modules (`better-sqlite3`): `build-essential`, `python3`
-
-Recommended install flow:
-
-```bash
-# 1) Install system prerequisites
-sudo apt update
-sudo apt install -y build-essential python3 python3-pip
-
-# 2) Verify Node/npm
-node -v
-npm -v
-
-# 3) Install OpenKit globally
-npm install -g @duypham93/openkit
-
-# 4) Doctor check
-openkit doctor
-
-# 5) Launch OpenKit
-openkit run
-```
-
-If `better-sqlite3` fails to build, reinstall after confirming build tools are installed:
-
-```bash
-sudo apt install -y build-essential python3
-npm install -g @duypham93/openkit
-openkit doctor
-openkit run
-```
-
-#### 6.3 Common post-install checks (both OSes)
-
-```bash
-which openkit
-which openkit-mcp
-which opencode
-openkit doctor
-```
-
-If doctor reports install drift or missing global-kit files:
-
-```bash
-openkit upgrade
-openkit doctor
-```
-
-#### 6.4 Default browser testing/debugging MCP
-
-OpenKit now enables Chrome DevTools MCP by default so browser testing and debugging are available out of the box.
-
-Configured server:
-
-- MCP id: `chrome-devtools`
-- command: `npx -y chrome-devtools-mcp@0.21.0`
-- enabled: `true`
-
-This is written to both:
-
-- repository authoring config: `.opencode/opencode.json`
-- managed global profile: `OPENCODE_HOME/profiles/openkit/opencode.json`
-
-Quick validation:
-
-```bash
-openkit doctor
-openkit run
-```
-
-Then in-session, browser tools should be available for page navigation, console/network inspection, screenshots, and UI debugging flows.
-
-### Verify setup
-
-```bash
-openkit doctor
-```
-
-### Configure per-agent models
-
-Before you start a session you can assign different models to different OpenKit agents:
-
-```bash
-openkit configure-agent-models --interactive
-```
-
-Useful commands:
-
-```bash
-openkit configure-agent-models --list
-openkit configure-agent-models --models
-openkit configure-agent-models --models <provider>
-openkit configure-agent-models --agent <agent-id> --model <provider/model>
-openkit configure-agent-models --agent <agent-id> --model <provider/model> --variant <variant>
-openkit configure-agent-models --agent <agent-id> --clear
-```
-
-Active agent ids:
-
-- `master-orchestrator`
-- `product-lead-agent`
-- `solution-lead-agent`
-- `fullstack-agent`
-- `code-reviewer`
-- `qa-agent`
-
-Recommended flow:
-
-1. `openkit configure-agent-models --list`
-2. `openkit configure-agent-models --interactive`
-3. `openkit run`
-
-### Manage reusable global model profiles
-
-Use `openkit profiles` when you want named, reusable model mixes across OpenKit agents instead of only the current per-agent override set:
-
-```bash
-openkit profiles --list
-openkit profiles --create
-openkit profiles --edit
-openkit profiles --set-default
-openkit profiles --delete
-```
-
-Profiles are global to the current OpenCode home (`global_cli`). `--set-default` controls the initial profile for future `openkit run` launches. Deletion is blocked when a profile is the global default or is reported active in a running OpenKit session.
-
-Inside an active OpenKit session, use `/switch-profiles` to choose one of those existing global profiles for the current session only. `/switch-profiles` is an `in_session` command: it does not create profiles, edit profiles, delete profiles, set the global default, or intentionally affect other running sessions.
-
-OpenKit profile checks are not target-project application validation. Record target-project app validation as unavailable unless the target project declares its own build, lint, test, smoke, or regression command.
+Validation evidence should name the surface it validates: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, `package`, or `target_project_app`. OpenKit runtime checks validate OpenKit surfaces; they do not prove target application build, lint, or test behavior unless the target project defines those commands.
 
 ### Configure semantic embedding search
 
@@ -356,9 +482,9 @@ openkit configure-embedding --clear
 Supported providers:
 
 | Provider | Notes |
-|---|---|
-| `openai` | Requires `OPENAI_API_KEY` env var or `--api-key`. Default model: `text-embedding-3-small` (1536 dims). |
-| `ollama` | Local server, no API key needed. Default URL: `http://localhost:11434`. Default model: `nomic-embed-text` (768 dims). |
+| --- | --- |
+| `openai` | Requires `OPENAI_API_KEY` env var or `--api-key`. Default model: `text-embedding-3-small` with 1536 dimensions. |
+| `ollama` | Local server, no API key needed. Default URL: `http://localhost:11434`. Default model: `nomic-embed-text` with 768 dimensions. |
 | `custom` | Any OpenAI-compatible endpoint. Requires `--base-url`. |
 
 Recommended flow:
@@ -367,100 +493,9 @@ Recommended flow:
 2. `openkit run`
 3. Inside the session, run `tool.embedding-index` with `action: index-project` to index the codebase.
 
-Config is written to `.opencode/openkit.runtime.jsonc` in the project root. Restart `openkit run` to pick up changes. When embedding is disabled the semantic search tool falls back to keyword search automatically.
+Config is written to `.opencode/openkit.runtime.jsonc` in the project root. Restart `openkit run` to pick up changes. When embedding is disabled, the semantic search tool falls back to keyword search automatically.
 
-### Launch OpenCode with OpenKit
-
-```bash
-openkit run
-```
-
-Path model during managed launch:
-
-- kit/config root: `OPENCODE_HOME/kits/openkit`
-- workspace runtime state: `OPENCODE_HOME/workspaces/<workspace-id>/openkit/.opencode`
-- project compatibility shim: `projectRoot/.opencode`
-
-Treat those as different layers. `openkit run` uses the managed global kit plus the derived workspace state. The checked-in project `.opencode/` path remains a compatibility surface, not the default source of truth for managed runtime state.
-
-### Start work
-
-Inside OpenCode:
-
-```text
-/task <your request>
-```
-
-Use `/quick-task`, `/migrate`, or `/delivery` only when the lane is already obvious.
-
-If workflow state already exists, these are the fastest runtime views:
-
-```bash
-node .opencode/workflow-state.js ops-summary
-node .opencode/workflow-state.js resume-summary
-node .opencode/workflow-state.js status --short
-```
-
-## 7. Concepts
-
-### Orchestrator
-
-`Master Orchestrator` is the delivery router.
-
-It chooses the mode when `/task` is used, records state, controls handoffs and gates, tracks feedback loops, and keeps work moving through the right workflow.
-
-It does not code, define scope, design the solution, perform review, or make QA judgment. It is a procedural controller: route, dispatch, record, reroute, and close the loop only after the owning role has produced the required evidence.
-
-### Agents
-
-OpenKit currently ships active orchestration and delivery roles plus compatibility split-role views:
-
-1. **Master Orchestrator**: chooses the mode, routes handoffs, manages feedback loops, and never performs code or artifact-authoring work itself
-2. **Product Lead**: defines scope, business rules, acceptance criteria, and the scope package for full delivery
-3. **Solution Lead**: defines technical direction, migration strategy, sequencing, validation expectations, and the solution package that depends on the approved scope package
-4. **Fullstack Agent**: implements, debugs, and verifies approved work
-5. **Code Reviewer**: performs independent scope-compliance and code-quality review before QA
-6. **QA Agent**: validates implementation evidence and classifies issues
-
-### Workflow State
-
-Workflow state is the shared runtime memory of the system.
-
-It tracks things like:
-
-- current mode and stage
-- current owner
-- linked artifacts
-- approvals
-- issues and issue lifecycle
-- verification evidence
-- readiness, closeout, and release-level signals
-
-### Approvals And Evidence
-
-OpenKit separates:
-
-- stage readiness
-- definition of done
-- release readiness
-
-Approvals alone are not enough for closure-sensitive stages. Verification evidence must also be inspectable in workflow state.
-
-## 8. Advanced
-
-### Product vs Compatibility Surfaces
-
-OpenKit has 3 main surfaces:
-
-- product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit upgrade`, `openkit uninstall`
-- in-session path (`in_session`): `/task`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`
-- compatibility runtime path (`compatibility_runtime`): `node .opencode/workflow-state.js ...`
-
-Use the product path for daily use. Use the lower-level runtime CLI for inspection, diagnostics, and maintainer workflows.
-
-Validation evidence should name the surface it validates: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, or `target_project_app`. OpenKit runtime checks validate OpenKit surfaces; they do not prove target application build, lint, or test behavior unless the target project defines those commands.
-
-### Hybrid Runtime Foundation
+### Hybrid runtime foundation
 
 OpenKit now includes the first phase of a hybrid runtime foundation:
 
@@ -491,19 +526,13 @@ The current runtime config path also supports:
 
 This foundation is additive. The canonical workflow contract still lives in `context/core/workflow.md` and `.opencode/workflow-state.js` remains the explicit state surface.
 
-### Model Overrides
+### Model override notes
 
 Per-agent model overrides and named agent model profiles are saved by the global OpenKit install and reused by future `openkit run` sessions. `openkit profiles --set-default` sets the launch default; `/switch-profiles` writes only current-session selection state.
 
 Current limitation: `/switch-profiles` refreshes OpenKit runtime model-resolution read models and persisted current-session selection for subsequent runtime resolution paths. It cannot retroactively change prompts, model choices, or background work that were already dispatched before the switch.
 
-Global install behavior: OpenKit now provisions `ast-grep` into its managed global tooling path by default and prepends that tooling bin directory during `openkit run`, so AST tooling is available without requiring a separate manual install in the common case.
-
-Current AST tooling scope: the runtime surfaces expose structural-search metadata and preview-first replacement semantics, but the checked-in AST tools still operate on JSON and JSONC documents today. They must report degraded or fallback status honestly when broader language-aware structural search is not yet active.
-
-Syntax parsing scope: OpenKit now exposes a Tree-sitter-backed syntax layer for JavaScript-family files (`.js`, `.jsx`, `.cjs`, `.mjs`) so agents can request file outlines, locate node types, and inspect nearest structure around a position without reading full files blindly.
-
-Use them when you want different strengths per role, for example:
+Use model overrides when you want different strengths per role, for example:
 
 - a stronger reasoning model for `product-lead-agent` and `solution-lead-agent`
 - a code-focused model for `fullstack-agent`
@@ -512,30 +541,54 @@ Use them when you want different strengths per role, for example:
 
 Use `openkit configure-agent-models --list` any time you want to inspect or confirm the current saved overrides. Use `openkit profiles --list` to inspect reusable global profiles and their default marker.
 
-### Useful Runtime Commands
+### Runtime tooling notes
 
-Some high-value runtime commands:
+Global install behavior: OpenKit provisions `ast-grep` into its managed global tooling path by default and prepends that tooling bin directory during `openkit run`, so AST tooling is available without requiring a separate manual install in the common case.
 
-- `node .opencode/workflow-state.js resume-summary`
-- `node .opencode/workflow-state.js workflow-metrics`
-- `node .opencode/workflow-state.js show-dod`
-- `node .opencode/workflow-state.js release-readiness`
-- `node .opencode/workflow-state.js release-dashboard`
-- `node .opencode/workflow-state.js policy-trace`
+Current AST tooling scope: runtime surfaces expose structural-search metadata and preview-first replacement semantics. They must report degraded or fallback status honestly when broader language-aware structural search is not active.
 
-### Release Workflow
+Syntax parsing scope: OpenKit exposes a Tree-sitter-backed syntax layer for JavaScript-family files (`.js`, `.jsx`, `.cjs`, `.mjs`) so agents can request file outlines, locate node types, and inspect nearest structure around a position without reading full files blindly.
 
-OpenKit now supports release-level governance through:
+### Useful runtime commands
 
-- release candidates
-- release notes drafting and validation
-- release gates
-- rollback plans
-- release-linked hotfixes
+Some high-value compatibility runtime commands:
 
-### Supervisor Dialogue And Scan Evidence
+```bash
+node .opencode/workflow-state.js ops-summary
+node .opencode/workflow-state.js resume-summary
+node .opencode/workflow-state.js status --short
+node .opencode/workflow-state.js workflow-metrics
+node .opencode/workflow-state.js show-dod
+node .opencode/workflow-state.js release-readiness
+node .opencode/workflow-state.js release-dashboard
+node .opencode/workflow-state.js policy-trace
+```
 
-OpenKit now includes runtime support for a guarded OpenClaw supervisor dialogue path:
+These commands inspect OpenKit workflow/runtime state. They do not update the global npm package, refresh the managed kit under `OPENCODE_HOME`, or validate target-project app behavior.
+
+### Release workflow
+
+`openkit release` is maintainer-only. It supports release-level governance through:
+
+- release preparation
+- release metadata verification
+- optional full test-suite verification
+- npm publishing
+- optional GitHub release creation
+
+Current release subcommands:
+
+```bash
+openkit release prepare <version> --summary "<text>"
+openkit release verify
+openkit release publish
+```
+
+Do not run release publishing commands unless you are intentionally performing a maintainer release.
+
+### Supervisor dialogue and scan evidence
+
+OpenKit includes runtime support for a guarded OpenClaw supervisor dialogue path:
 
 - OpenKit emits audit-oriented supervisor events after successful workflow authority writes.
 - OpenClaw can acknowledge, propose, raise concerns, or request attention through advisory inbound records.
@@ -549,7 +602,7 @@ Review and QA flows also use structured scan/tool evidence:
 - High-volume scan output is summarized with artifact references instead of being treated as silent success.
 - Target-project application validation remains separate from OpenKit runtime, compatibility runtime, documentation, and global CLI validation.
 
-### Where To Go Next
+### Where to go next
 
 - operator path: `docs/operator/README.md`
 - surface selection: `docs/operator/surface-contract.md`
