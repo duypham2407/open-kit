@@ -129,21 +129,24 @@ test('action model state manager tracks consecutive failures per action and rese
 });
 
 test('skill and command loaders discover added runtime surfaces', () => {
+  // Use a fake kitRoot to simulate global kit install; project root stays separate
+  const kitRoot = makeTempDir();
   const projectRoot = makeTempDir();
   writeText(path.join(projectRoot, 'README.md'), '# project');
-  writeText(path.join(projectRoot, 'src/kit/AGENTS.md'), '# agents');
-  writeText(path.join(projectRoot, 'src', 'kit', 'skills', 'custom-skill', 'SKILL.md'), '# custom-skill');
-  writeText(path.join(projectRoot, 'src', 'kit', 'commands', 'init-deep.md'), '# Command');
-  writeText(path.join(projectRoot, 'src', 'kit', 'commands', 'refactor.md'), '# Command');
-  writeText(path.join(projectRoot, 'src', 'kit', 'commands', 'start-work.md'), '# Command');
-  writeText(path.join(projectRoot, 'src', 'kit', 'commands', 'handoff.md'), '# Command');
-  writeText(path.join(projectRoot, 'src', 'kit', 'commands', 'stop-continuation.md'), '# Command');
-  writeText(path.join(projectRoot, 'src', 'kit', 'commands', 'browser-verify.md'), '# Command');
-  writeText(path.join(projectRoot, 'src', 'kit', 'commands', 'switch.md'), '# Command');
-  writeText(path.join(projectRoot, 'src', 'kit', 'commands', 'switch-profiles.md'), '# Command');
+  writeText(path.join(projectRoot, 'AGENTS.md'), '# agents');
+  writeText(path.join(kitRoot, 'src', 'kit', 'skills', 'custom-skill', 'SKILL.md'), '# custom-skill');
+  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'init-deep.md'), '# Command');
+  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'refactor.md'), '# Command');
+  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'start-work.md'), '# Command');
+  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'handoff.md'), '# Command');
+  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'stop-continuation.md'), '# Command');
+  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'browser-verify.md'), '# Command');
+  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'switch.md'), '# Command');
+  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'switch-profiles.md'), '# Command');
 
-  const skillRegistry = createSkillRegistry({ projectRoot, env: { HOME: makeTempDir() } });
-  const commands = loadRuntimeCommands({ projectRoot });
+  const env = { HOME: makeTempDir(), OPENKIT_KIT_ROOT: kitRoot };
+  const skillRegistry = createSkillRegistry({ projectRoot, env });
+  const commands = loadRuntimeCommands({ projectRoot, env });
   const context = createContextInjection({ projectRoot, mode: 'full', category: 'deep' });
 
   assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill'));
@@ -152,8 +155,8 @@ test('skill and command loaders discover added runtime surfaces', () => {
   assert.ok(commands.some((entry) => entry.name === '/switch' && entry.compatibility === 'builtin-compatible'));
   assert.ok(commands.some((entry) => entry.name === '/switch-profiles' && entry.compatibility === 'builtin-compatible'));
   assert.ok(commands.some((entry) => entry.name === '/init-deep' && entry.runtimeBacked === true));
-  assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill' && entry.compatibility === 'project-local'));
-  assert.equal(context.agentsPath, path.join(projectRoot, 'src/kit/AGENTS.md'));
+  assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill' && entry.compatibility === 'kit-local'));
+  assert.equal(context.agentsPath, path.join(projectRoot, 'AGENTS.md'));
   assert.equal(context.readmePath, path.join(projectRoot, 'README.md'));
   assert.equal(context.rules.mode, 'full');
 });
@@ -174,9 +177,9 @@ test('runtime command executor runs init-deep and writes project-owned AGENTS.md
 
   assert.equal(result.status, 'ok');
   assert.equal(result.validation_surface, 'runtime_tooling');
-  assert.equal(result.agentsPath, path.join(projectRoot, 'src/kit/AGENTS.md'));
+  assert.equal(result.agentsPath, path.join(projectRoot, 'AGENTS.md'));
 
-  const contents = fs.readFileSync(path.join(projectRoot, 'src/kit/AGENTS.md'), 'utf8');
+  const contents = fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8');
   assert.match(contents, /# Project Agent Guide/);
   assert.match(contents, /Sample Product/);
   assert.match(contents, /\.opencode\/openkit\/AGENTS\.md/);
@@ -187,7 +190,7 @@ test('runtime command executor runs init-deep and writes project-owned AGENTS.md
 test('runtime command executor preserves existing project guidance sections when refreshing AGENTS.md', async () => {
   const projectRoot = makeTempDir();
   writeText(path.join(projectRoot, 'README.md'), '# Sample Product');
-  writeText(path.join(projectRoot, 'src/kit/AGENTS.md'), `# Project Agent Guide
+  writeText(path.join(projectRoot, 'AGENTS.md'), `# Project Agent Guide
 
 Project-specific preamble that should survive refresh.
 
@@ -214,7 +217,7 @@ Legacy identity note.
   assert.equal(result.status, 'ok');
   assert.equal(result.analysis.preservedSectionCount >= 1, true);
 
-  const contents = fs.readFileSync(path.join(projectRoot, 'src/kit/AGENTS.md'), 'utf8');
+  const contents = fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8');
   assert.match(contents, /## Preserved Project Notes/);
   assert.match(contents, /Project-specific preamble that should survive refresh/);
   assert.match(contents, /Legacy identity note/);
@@ -248,7 +251,7 @@ test('command runner tool dispatches runtime-backed init-deep execution', async 
   assert.equal(run.requestedCommand, '/init-deep');
   assert.equal(run.validation_surface, 'runtime_tooling');
 
-  const contents = fs.readFileSync(path.join(projectRoot, 'src/kit/AGENTS.md'), 'utf8');
+  const contents = fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8');
   assert.match(contents, /Tool Driven Product/);
 });
 
@@ -286,7 +289,8 @@ test('command runner tool validates missing command input', async () => {
 test('runtime command executor reports write failures when AGENTS.md cannot be written', async () => {
   const projectRoot = makeTempDir();
   writeText(path.join(projectRoot, 'README.md'), '# Sample Product');
-  const agentsParent = path.join(projectRoot, 'src/kit/AGENTS.md');
+  // Create a directory at the AGENTS.md path to trigger a write error
+  const agentsParent = path.join(projectRoot, 'AGENTS.md');
   fs.mkdirSync(agentsParent, { recursive: true });
 
   const executor = createRuntimeCommandExecutor({ projectRoot });

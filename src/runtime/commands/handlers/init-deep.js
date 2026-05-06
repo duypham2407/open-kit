@@ -265,7 +265,7 @@ export function createInitDeepHandler() {
         importantDirectories,
       });
 
-      const agentsPath = path.join(projectRoot, 'src/kit/AGENTS.md');
+      const agentsPath = path.join(projectRoot, 'AGENTS.md');
       const existingContent = fs.existsSync(agentsPath) && fs.statSync(agentsPath).isFile()
         ? fs.readFileSync(agentsPath, 'utf8')
         : null;

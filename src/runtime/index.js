@@ -80,7 +80,7 @@ export function bootstrapRuntimeFoundation({ projectRoot, env = process.env, mod
     capabilities,
     skills,
   });
-  const commands = loadRuntimeCommands({ projectRoot });
+  const commands = loadRuntimeCommands({ projectRoot, env });
   const commandExecutor = createRuntimeCommandExecutor({ projectRoot });
   const tools = createTools({
     config: configResult.config,
