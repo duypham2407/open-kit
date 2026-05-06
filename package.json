@@ -1,6 +1,6 @@
 {
   "name": "@duypham93/openkit",
-  "version": "0.3.37",
+  "version": "0.3.38",
   "type": "module",
   "engines": {
     "node": ">=18"
