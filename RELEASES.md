@@ -2,9 +2,9 @@
 
 ## Latest
 
-- [`0.3.38`](release-notes/0.3.38.md) - harden init-deep direct-runtime routing and install-bundle checks
-- npm latest: `@duypham93/openkit@0.3.38`
-- git tag: `v0.3.38`
+- [`0.3.39`](release-notes/0.3.39.md) - move checked-in authoring surfaces under src/kit and preserve runtime shims without root conflicts
+- npm latest: `@duypham93/openkit@0.3.39`
+- git tag: `v0.3.39`
 
 ## Previous
 
@@ -16,6 +16,7 @@
 
 Historical release notes tracked in-repo:
 
+- [`0.3.39`](release-notes/0.3.39.md) - move checked-in authoring surfaces under src/kit and preserve runtime shims without root conflicts
 - [`0.3.38`](release-notes/0.3.38.md) - harden init-deep direct-runtime routing and install-bundle checks
 - [`0.3.36`](release-notes/0.3.36.md) - add direct profile switch command
 - [`0.3.37`](release-notes/0.3.37.md) - make init-deep runtime-backed and keep root AGENTS project-owned

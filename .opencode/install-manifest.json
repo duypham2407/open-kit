@@ -3,7 +3,7 @@
   "manifestVersion": 1,
   "kit": {
     "name": "OpenKit AI Software Factory",
-    "version": "0.3.38"
+    "version": "0.3.39"
   },
   "registry": {
     "path": "registry.json",

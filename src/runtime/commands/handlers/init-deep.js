@@ -265,7 +265,7 @@ export function createInitDeepHandler() {
         importantDirectories,
       });
 
-      const agentsPath = path.join(projectRoot, 'AGENTS.md');
+      const agentsPath = path.join(projectRoot, 'src/kit/AGENTS.md');
       const existingContent = fs.existsSync(agentsPath) && fs.statSync(agentsPath).isFile()
         ? fs.readFileSync(agentsPath, 'utf8')
         : null;
@@ -273,6 +273,7 @@ export function createInitDeepHandler() {
       const content = buildAgentsContent({ analysis, preservedSections });
 
       try {
+        fs.mkdirSync(path.dirname(agentsPath), { recursive: true });
         fs.writeFileSync(agentsPath, content, 'utf8');
       } catch (error) {
         return {

@@ -4,7 +4,7 @@ import path from 'node:path';
 export function getSkillScopes({ projectRoot = process.cwd(), env = process.env } = {}) {
   const homeDir = env.HOME ?? os.homedir();
   return {
-    project: path.join(projectRoot, 'skills'),
+    project: path.join(projectRoot, 'src', 'kit', 'skills'),
     projectOpencode: path.join(projectRoot, '.opencode', 'skills'),
     user: homeDir ? path.join(homeDir, '.config', 'opencode', 'skills') : null,
   };

@@ -499,7 +499,7 @@ export const profilesCommand = {
 
     const globalPaths = getGlobalPaths({ env: process.env });
     const profilesPath = globalPaths.agentModelProfilesPath;
-    const registryPath = `${globalPaths.kitRoot}/registry.json`;
+    const registryPath = `${globalPaths.kitRoot}/src/kit/registry.json`;
     const agents = readAgentCatalog(registryPath);
     const knownAgentIds = knownAgentIdsFromCatalog(agents);
     const store = readAgentModelProfiles(profilesPath, { knownAgentIds });

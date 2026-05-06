@@ -393,12 +393,12 @@ test("contract consistency accepts canonical full-delivery task-board ownership 
 
 test("role and QA reporting artifacts preserve scan evidence contract wording", () => {
   const requiredFiles = [
-    "agents/fullstack-agent.md",
-    "agents/code-reviewer.md",
-    "agents/qa-agent.md",
+    "src/kit/agents/fullstack-agent.md",
+    "src/kit/agents/code-reviewer.md",
+    "src/kit/agents/qa-agent.md",
     "docs/templates/qa-report-template.md",
-    "context/core/approval-gates.md",
-    "context/core/tool-substitution-rules.md",
+    "src/kit/context/core/approval-gates.md",
+    "src/kit/context/core/tool-substitution-rules.md",
   ]
 
   for (const file of requiredFiles) {

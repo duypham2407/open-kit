@@ -36,7 +36,7 @@ function copyDirectoryContents(sourceDirectory, targetDirectory) {
 function makeValidationFixture() {
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-skill-bundle-sync-'));
 
-  copyDirectoryContents(path.join(projectRoot, 'skills'), path.join(fixtureRoot, 'skills'));
+  copyDirectoryContents(path.join(projectRoot, 'src', 'kit', 'skills'), path.join(fixtureRoot, 'src', 'kit', 'skills'));
   copyDirectoryContents(path.join(projectRoot, 'assets/install-bundle'), path.join(fixtureRoot, 'assets/install-bundle'));
 
   return fixtureRoot;
@@ -103,7 +103,7 @@ test('install bundle validation detects skill catalog and asset drift', () => {
 
 test('install bundle validation fails for an extra source skill without canonical metadata', () => {
   const fixtureRoot = makeValidationFixture();
-  const extraSkillPath = path.join(fixtureRoot, 'skills', 'unmapped-source-skill', 'SKILL.md');
+  const extraSkillPath = path.join(fixtureRoot, 'src', 'kit', 'skills', 'unmapped-source-skill', 'SKILL.md');
 
   fs.mkdirSync(path.dirname(extraSkillPath), { recursive: true });
   fs.writeFileSync(
@@ -115,9 +115,9 @@ test('install bundle validation fails for an extra source skill without canonica
   const validation = validateBundledAssetFiles(fixtureRoot);
 
   assert.deepEqual(validation.missingSourceSkillCatalogEntries, [
-    'skills/unmapped-source-skill/SKILL.md',
+    'src/kit/skills/unmapped-source-skill/SKILL.md',
   ]);
   assert.deepEqual(validation.sourceSkillsMissingInstallBundleDecision, [
-    'skills/unmapped-source-skill/SKILL.md',
+    'src/kit/skills/unmapped-source-skill/SKILL.md',
   ]);
 });

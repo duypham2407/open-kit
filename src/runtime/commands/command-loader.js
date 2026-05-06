@@ -4,7 +4,7 @@ import path from 'node:path';
 import { listBuiltinRuntimeCommands } from './builtin-commands.js';
 
 function loadProjectCommands(projectRoot) {
-  const commandsDir = path.join(projectRoot, 'commands');
+  const commandsDir = path.join(projectRoot, 'src', 'kit', 'commands');
   if (!fs.existsSync(commandsDir)) {
     return [];
   }
@@ -28,7 +28,7 @@ function loadProjectCommands(projectRoot) {
 
 export function loadRuntimeCommands({ projectRoot = process.cwd() } = {}) {
   const builtin = listBuiltinRuntimeCommands()
-    .filter((command) => fs.existsSync(path.join(projectRoot, command.path)))
+    .filter((command) => fs.existsSync(path.join(projectRoot, 'src', 'kit', command.path)))
       .map((command) => ({
         ...command,
         source: 'builtin',

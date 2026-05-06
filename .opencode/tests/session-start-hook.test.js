@@ -125,7 +125,7 @@ function makeFullState(overrides = {}) {
 }
 
 function writeMetaSkill(projectRoot) {
-  const skillDir = path.join(projectRoot, "skills", "using-skills")
+  const skillDir = path.join(projectRoot, "src", "kit", "skills", "using-skills")
   fs.mkdirSync(skillDir, { recursive: true })
   fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# using-skills\n", "utf8")
 }
@@ -158,7 +158,7 @@ test("session-start emits mode-aware resume hint for quick tasks", () => {
   writeManifest(projectRoot)
   writeState(projectRoot, makeQuickState())
 
-  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+  const result = spawnSync(process.execPath, [path.resolve(__dirname, "../../src/kit/hooks/session-start.js")], {
     cwd: projectRoot,
     encoding: "utf8",
     env: makeHookEnv(projectRoot, {
@@ -198,7 +198,7 @@ test("session-start reports quick_plan as a resumable quick stage", () => {
     }),
   )
 
-  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+  const result = spawnSync(process.execPath, [path.resolve(__dirname, "../../src/kit/hooks/session-start.js")], {
     cwd: projectRoot,
     encoding: "utf8",
     env: makeHookEnv(projectRoot, {
@@ -228,7 +228,7 @@ test("session-start reports loaded startup skill when meta-skill exists", () => 
     }),
   )
 
-  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+  const result = spawnSync(process.execPath, [path.resolve(__dirname, "../../src/kit/hooks/session-start.js")], {
     cwd: projectRoot,
     encoding: "utf8",
     env: makeHookEnv(projectRoot),
@@ -257,7 +257,7 @@ test("session-start emits compact role-aware capability guidance without secrets
   writeManifest(projectRoot)
   writeState(projectRoot, makeFullState({ current_stage: "full_implementation", current_owner: "FullstackAgent" }))
 
-  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+  const result = spawnSync(process.execPath, [path.resolve(__dirname, "../../src/kit/hooks/session-start.js")], {
     cwd: projectRoot,
     encoding: "utf8",
     env: makeHookEnv(projectRoot, {
@@ -291,7 +291,7 @@ test("session-start capability guidance preserves quick and migration guardrails
   writeManifest(quickProjectRoot)
   writeState(quickProjectRoot, makeQuickState({ current_stage: "quick_plan", current_owner: "QuickAgent" }))
 
-  const quick = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+  const quick = spawnSync(process.execPath, [path.resolve(__dirname, "../../src/kit/hooks/session-start.js")], {
     cwd: quickProjectRoot,
     encoding: "utf8",
     env: makeHookEnv(quickProjectRoot, {
@@ -319,7 +319,7 @@ test("session-start capability guidance preserves quick and migration guardrails
     },
   })
 
-  const migration = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+  const migration = spawnSync(process.execPath, [path.resolve(__dirname, "../../src/kit/hooks/session-start.js")], {
     cwd: migrationProjectRoot,
     encoding: "utf8",
     env: makeHookEnv(migrationProjectRoot, {
@@ -348,7 +348,7 @@ test("session-start prints canonical resume guidance and inspection commands", (
     }),
   )
 
-  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+  const result = spawnSync(process.execPath, [path.resolve(__dirname, "../../src/kit/hooks/session-start.js")], {
     cwd: projectRoot,
     encoding: "utf8",
     env: makeHookEnv(projectRoot, {
@@ -373,7 +373,7 @@ test("session-start degrades gracefully when the JSON helper fails", () => {
   writeState(projectRoot, makeQuickState())
   fs.writeFileSync(manifestPath, '{"kit":', 'utf8')
 
-  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+  const result = spawnSync(process.execPath, [path.resolve(__dirname, "../../src/kit/hooks/session-start.js")], {
     cwd: projectRoot,
     encoding: "utf8",
     env: makeHookEnv(projectRoot, {
@@ -434,7 +434,7 @@ test("session-start emits task-aware resume hint for active full-delivery work",
     issues: [],
   })
 
-  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+  const result = spawnSync(process.execPath, [path.resolve(__dirname, "../../src/kit/hooks/session-start.js")], {
     cwd: projectRoot,
     encoding: "utf8",
     env: makeHookEnv(projectRoot, {

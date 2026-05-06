@@ -8,7 +8,7 @@ import { spawn } from 'node:child_process';
 
 const require = createRequire(import.meta.url);
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
-const DEFAULT_KIT_ROOT = path.resolve(SCRIPT_DIR, '..');
+const DEFAULT_KIT_ROOT = path.resolve(SCRIPT_DIR, '..', '..', '..');
 
 function resolveKitRoot(projectRoot, statePath) {
   if (process.env.OPENKIT_KIT_ROOT) {
@@ -28,7 +28,7 @@ function resolveKitRoot(projectRoot, statePath) {
     }
   }
 
-  return DEFAULT_KIT_ROOT;
+  return projectRoot;
 }
 
 function print(line = '') {
@@ -234,11 +234,11 @@ const kitRoot = resolveKitRoot(projectRoot, statePath);
 const workspaceRoot = path.dirname(path.dirname(statePath));
 const compatibilityShimRoot = path.join(projectRoot, '.opencode');
 const workspaceShimRoot = path.join(projectRoot, '.opencode', 'openkit');
-const metaSkillPath = path.join(kitRoot, 'skills', 'using-skills', 'SKILL.md');
-const toolSubstitutionRulesPath = path.join(kitRoot, 'context', 'core', 'tool-substitution-rules.md');
+const metaSkillPath = path.join(kitRoot, 'src', 'kit', 'skills', 'using-skills', 'SKILL.md');
+const toolSubstitutionRulesPath = path.join(kitRoot, 'src', 'kit', 'context', 'core', 'tool-substitution-rules.md');
 const manifestPath = path.join(kitRoot, '.opencode', 'opencode.json');
 const runtimeSummaryModulePath = path.join(kitRoot, '.opencode', 'lib', 'runtime-summary.js');
-const graphIndexerPath = path.join(kitRoot, 'hooks', 'graph-indexer.js');
+const graphIndexerPath = path.join(kitRoot, 'src', 'kit', 'hooks', 'graph-indexer.js');
 
 let kitName = 'OpenKit AI Software Factory';
 let kitVersion = 'unknown';

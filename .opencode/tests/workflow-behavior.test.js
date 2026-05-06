@@ -178,7 +178,7 @@ test("session-start resume hints stay aligned with full stage names", () => {
   state.status = "in_progress"
   fs.writeFileSync(path.join(opencodeDir, "workflow-state.json"), `${JSON.stringify(state, null, 2)}\n`, "utf8")
 
-  const result = spawnSync(path.resolve(__dirname, "../../hooks/session-start"), {
+  const result = spawnSync(process.execPath, [path.resolve(__dirname, "../../src/kit/hooks/session-start.js")], {
     cwd: projectRoot,
     encoding: "utf8",
     env: {

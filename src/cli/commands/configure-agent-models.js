@@ -247,7 +247,7 @@ export const configureAgentModelsCommand = {
     }
 
     const globalPaths = getGlobalPaths({ env: process.env });
-    const registryPath = `${globalPaths.kitRoot}/registry.json`;
+    const registryPath = `${globalPaths.kitRoot}/src/kit/registry.json`;
     const settingsPath = globalPaths.agentModelSettingsPath;
     const agents = readAgentCatalog(registryPath);
     const settings = readAgentModelSettings(settingsPath);

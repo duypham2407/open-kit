@@ -128,13 +128,13 @@ export function ensureWorkspaceShim(paths) {
 
   createIfMissing(createdPaths, {
     linkPath: paths.workspaceShimAgentsPath,
-    targetPath: path.join(paths.kitRoot, 'AGENTS.md'),
+    targetPath: path.join(paths.kitRoot, 'src/kit/AGENTS.md'),
     type: 'file',
   });
 
   createIfMissing(createdPaths, {
     linkPath: paths.workspaceShimContextDir,
-    targetPath: path.join(paths.kitRoot, 'context'),
+    targetPath: path.join(paths.kitRoot, 'src', 'kit', 'context'),
     type: 'dir',
   });
 
