@@ -332,7 +332,7 @@ process.stdout.write('mock opencode launched\\n');
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'profile-switch.js')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'switch-profiles.js')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'work-items')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'work-items')), true);
-  assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), false);
   assert.equal(fs.existsSync(path.join(projectRoot, 'context', 'core', 'workflow.md')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.json')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.js')), true);
@@ -512,6 +512,28 @@ process.stdout.write('mock opencode launched after auto-install\\n');
   assert.equal(invocation.runtimeFoundation, '1');
   assert.equal(invocation.path.startsWith(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), false);
+});
+
+test('openkit run keeps root AGENTS.md project-owned and not runtime-managed', () => {
+  const tempHome = makeTempDir();
+  const projectRoot = makeTempDir();
+  const fakeBinDir = path.join(tempHome, 'bin');
+
+  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
+
+  const result = runCli(['run'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      OPENCODE_HOME: tempHome,
+      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
+    },
+  });
+
+  assert.equal(result.status, 0);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), false);
 });
 
 test('openkit run does not overwrite existing repo-local workflow files when creating shims', () => {
@@ -627,7 +649,7 @@ test('openkit run cleans root compatibility shims when created files are removed
   });
 
   assert.equal(result.status, 0);
-  assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), false);
 
   removePathIfPresent(path.join(projectRoot, 'AGENTS.md'));
   removePathIfPresent(path.join(projectRoot, 'context'));

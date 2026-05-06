@@ -2,9 +2,9 @@
 
 ## Latest
 
-- [`0.3.36`](release-notes/0.3.36.md) - add direct profile switch command
-- npm latest: `@duypham93/openkit@0.3.36`
-- git tag: `v0.3.36`
+- [`0.3.37`](release-notes/0.3.37.md) - make init-deep runtime-backed and keep root AGENTS project-owned
+- npm latest: `@duypham93/openkit@0.3.37`
+- git tag: `v0.3.37`
 
 ## Previous
 
@@ -17,6 +17,7 @@
 Historical release notes tracked in-repo:
 
 - [`0.3.36`](release-notes/0.3.36.md) - add direct profile switch command
+- [`0.3.37`](release-notes/0.3.37.md) - make init-deep runtime-backed and keep root AGENTS project-owned
 - [`0.3.35`](release-notes/0.3.35.md) - fix switch profiles shim
 - [`0.3.34`](release-notes/0.3.34.md) - fix managed kit module boundary
 - [`0.3.33`](release-notes/0.3.33.md) - add agent model profiles

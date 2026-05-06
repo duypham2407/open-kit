@@ -39,6 +39,8 @@ In practice, the kit has two important identities at once:
 - global kit under `OPENCODE_HOME/kits/openkit`
 - workspace runtime state under `OPENCODE_HOME/workspaces/<workspace-id>/openkit/.opencode`
 - project compatibility shim under `projectRoot/.opencode`
+- OpenKit-managed compatibility agent brief under `projectRoot/.opencode/openkit/AGENTS.md`
+- project-owned root agent brief under `projectRoot/AGENTS.md`
 
 ### C. Operator entrypoints
 

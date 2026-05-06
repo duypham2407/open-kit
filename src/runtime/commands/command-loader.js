@@ -18,6 +18,7 @@ function loadProjectCommands(projectRoot) {
         name,
         path: path.join('commands', entry.name),
         source: 'project',
+        runtimeBacked: false,
         compatibility: listBuiltinRuntimeCommands().some((command) => command.path === path.join('commands', entry.name))
           ? 'builtin-compatible'
           : 'project-local',
@@ -31,6 +32,7 @@ export function loadRuntimeCommands({ projectRoot = process.cwd() } = {}) {
     .map((command) => ({
       ...command,
       source: 'builtin',
+      runtimeBacked: typeof command.handler === 'string',
       compatibility: 'builtin-compatible',
     }));
   const projectCommands = loadProjectCommands(projectRoot);

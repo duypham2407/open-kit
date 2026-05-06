@@ -66,6 +66,8 @@ Then use the in-session path (`in_session`):
 ## Live Operator Surfaces In This Repository
 
 - Slash command prompt templates: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, `/switch-profiles`. OpenCode custom slash command files are prompt templates; true native executable slash command support is not currently documented.
+- Runtime-backed repository guidance helper: `/init-deep` now has a checked-in OpenKit runtime handler that refreshes project-owned root `AGENTS.md` content from repository signals while preserving the OpenKit compatibility guide under `.opencode/openkit/AGENTS.md`.
+- In-session execution bridge: use `tool.command-runner` with `{ command: '/init-deep' }` when you need the runtime-backed `/init-deep` handler to execute deterministically inside the active session. Treat the slash command file itself as the human-facing contract, and the tool result as the authoritative execution outcome.
 - MCP capability configuration: `openkit configure mcp --interactive`, plus bundled `list`, `doctor`, `enable`, `disable`, `set-key`, `unset-key`, and `test`, and custom `add-local`, `add-remote`, `import-global`, `list`, `doctor`, `test`, `disable`, and `remove`
 - Agent model profile management: `openkit profiles --create`, `--edit`, `--list`, `--delete`, and `--set-default` manage global profiles; `openkit switch-profiles`, `openkit switch`, and `/switch-profiles` are current-session-only and do not mutate the global default
 - Global diagnostics: `openkit doctor`
@@ -87,6 +89,7 @@ Then use the in-session path (`in_session`):
 - MCP secret backend release readiness has a package gate: `npm run verify:mcp-secret-package-readiness`. It validates the `package` surface, keeps output redacted, uses no real macOS Keychain mutation, and is separate from global CLI smoke checks.
 - This repository still does not define repo-native build, lint, or test commands for arbitrary generated application code
 - Treat `openkit doctor` and `node .opencode/workflow-state.js doctor` as OpenKit/runtime verification, not as substitutes for target-project app testing
+- Treat `tool.command-runner` execution for `/init-deep` as `runtime_tooling` evidence only; it proves OpenKit command execution and root guidance refresh behavior, not target-project application behavior
 - Label evidence by validation surface: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, or `target_project_app`. Use `target_project_app` only when the target project actually declares the relevant build, lint, or test command.
 
 ## Boundary Notes
@@ -97,6 +100,7 @@ Then use the in-session path (`in_session`):
 - `.opencode/opencode.json` remains the checked-in repository-local OpenCode config in this repository
 - `src/runtime/` now adds a capability-runtime foundation without changing the canonical workflow path
 - `Quick Task+` remains the current semantics of the `quick` lane, not a third live mode
+- Root `AGENTS.md` is project-owned and should describe the current repository first; OpenKit-managed guidance lives under `.opencode/openkit/AGENTS.md`
 - When role boundaries feel fuzzy, use `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form contract for who owns scope, solution, code review, and runtime verification
 - When AI reading scope or file priority feels fuzzy, use `docs/maintainer/2026-03-26-ai-surface-map.md` as the strict map for active versus historical surfaces
 

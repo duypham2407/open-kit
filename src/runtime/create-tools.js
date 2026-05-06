@@ -73,7 +73,7 @@ function normalizeToolValidationSurface(tool) {
   return 'runtime_tooling';
 }
 
-export function createTools({ config, capabilityIndex, projectRoot, managers, mcpPlatform, modelRuntime, hooks = null, env = process.env }) {
+export function createTools({ config, capabilityIndex, projectRoot, managers, mcpPlatform, modelRuntime, commandExecutor = null, hooks = null, env = process.env }) {
   let invocationLogger = null;
   try {
     const pathContext = resolvePathContext(env.OPENKIT_WORKFLOW_STATE ?? null, env);
@@ -101,7 +101,7 @@ export function createTools({ config, capabilityIndex, projectRoot, managers, mc
   // Extract guard hooks for tool-execution gating
   const guardHooks = hooks?.hookList?.filter((hook) => hook.id === 'hook.bash-guard') ?? null;
 
-  const registry = createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, invocationLogger, guardHooks, env });
+  const registry = createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, commandExecutor, invocationLogger, guardHooks, env });
   const toolList = registry.toolList.map((tool) => ({
     id: tool.id,
     name: tool.name ?? tool.id,

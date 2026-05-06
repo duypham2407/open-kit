@@ -9,7 +9,7 @@ import { bootstrapRuntimeFoundation } from '../../src/runtime/index.js';
 import { createMcpPlatform } from '../../src/runtime/mcp/index.js';
 import { createContextInjection } from '../../src/runtime/context/index.js';
 import { createSkillRegistry } from '../../src/runtime/skills/index.js';
-import { loadRuntimeCommands } from '../../src/runtime/commands/index.js';
+import { createRuntimeCommandExecutor, loadRuntimeCommands } from '../../src/runtime/commands/index.js';
 import { wrapToolExecution } from '../../src/runtime/tools/wrap-tool-execution.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -151,10 +151,161 @@ test('skill and command loaders discover added runtime surfaces', () => {
   assert.ok(commands.some((entry) => entry.name === '/browser-verify' && entry.compatibility === 'builtin-compatible'));
   assert.ok(commands.some((entry) => entry.name === '/switch' && entry.compatibility === 'builtin-compatible'));
   assert.ok(commands.some((entry) => entry.name === '/switch-profiles' && entry.compatibility === 'builtin-compatible'));
+  assert.ok(commands.some((entry) => entry.name === '/init-deep' && entry.runtimeBacked === true));
   assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill' && entry.compatibility === 'project-local'));
   assert.equal(context.agentsPath, path.join(projectRoot, 'AGENTS.md'));
   assert.equal(context.readmePath, path.join(projectRoot, 'README.md'));
   assert.equal(context.rules.mode, 'full');
+});
+
+test('runtime command executor runs init-deep and writes project-owned AGENTS.md', async () => {
+  const projectRoot = makeTempDir();
+  writeText(path.join(projectRoot, 'README.md'), '# Sample Product');
+  writeText(path.join(projectRoot, 'package.json'), JSON.stringify({
+    name: 'sample-product',
+    scripts: {
+      test: 'node --test'
+    }
+  }, null, 2));
+  writeText(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md'), '# openkit-agents');
+
+  const executor = createRuntimeCommandExecutor({ projectRoot });
+  const result = await executor.execute('/init-deep');
+
+  assert.equal(result.status, 'ok');
+  assert.equal(result.validation_surface, 'runtime_tooling');
+  assert.equal(result.agentsPath, path.join(projectRoot, 'AGENTS.md'));
+
+  const contents = fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8');
+  assert.match(contents, /# Project Agent Guide/);
+  assert.match(contents, /Sample Product/);
+  assert.match(contents, /\.opencode\/openkit\/AGENTS\.md/);
+  assert.match(contents, /Build: Unavailable/);
+  assert.match(contents, /Test: `node --test`/);
+});
+
+test('runtime command executor preserves existing project guidance sections when refreshing AGENTS.md', async () => {
+  const projectRoot = makeTempDir();
+  writeText(path.join(projectRoot, 'README.md'), '# Sample Product');
+  writeText(path.join(projectRoot, 'AGENTS.md'), `# Project Agent Guide
+
+Project-specific preamble that should survive refresh.
+
+## Project Identity
+
+Legacy identity note.
+
+## Repository Constraints
+
+- Custom constraint that should survive refresh.
+
+## Working Rules
+
+- Preserve this project rule.
+
+## OpenKit Workflow Overlay
+
+- Old overlay.
+`);
+
+  const executor = createRuntimeCommandExecutor({ projectRoot });
+  const result = await executor.execute('/init-deep');
+
+  assert.equal(result.status, 'ok');
+  assert.equal(result.analysis.preservedSectionCount >= 1, true);
+
+  const contents = fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8');
+  assert.match(contents, /## Preserved Project Notes/);
+  assert.match(contents, /Project-specific preamble that should survive refresh/);
+  assert.match(contents, /Legacy identity note/);
+  assert.match(contents, /## Repository Constraints/);
+  assert.match(contents, /Custom constraint that should survive refresh/);
+  assert.match(contents, /Preserve this project rule/);
+});
+
+test('runtime command executor returns structured unknown-command response', async () => {
+  const projectRoot = makeTempDir();
+  const executor = createRuntimeCommandExecutor({ projectRoot });
+  const result = await executor.execute('/unknown-command');
+
+  assert.equal(result.status, 'unknown-command');
+  assert.equal(result.validation_surface, 'runtime_tooling');
+});
+
+test('command runner tool dispatches runtime-backed init-deep execution', async () => {
+  const projectRoot = makeTempDir();
+  writeText(path.join(projectRoot, 'README.md'), '# Tool Driven Product');
+
+  const result = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  const tool = result.tools.tools['tool.command-runner'];
+  const run = await tool.execute({ command: '/init-deep' });
+
+  assert.equal(run.status, 'ok');
+  assert.equal(run.requestedCommand, '/init-deep');
+  assert.equal(run.validation_surface, 'runtime_tooling');
+
+  const contents = fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8');
+  assert.match(contents, /Tool Driven Product/);
+});
+
+test('command runner tool returns the same runtime execution result surface for /init-deep', async () => {
+  const projectRoot = makeTempDir();
+  writeText(path.join(projectRoot, 'README.md'), '# Routed Product');
+
+  const result = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  const tool = result.tools.tools['tool.command-runner'];
+  const run = await tool.execute({ command: '/init-deep' });
+
+  assert.equal(run.command, '/init-deep');
+  assert.equal(run.requestedCommand, '/init-deep');
+  assert.equal(run.message.includes('Root AGENTS.md was refreshed'), true);
+});
+
+test('command runner tool validates missing command input', async () => {
+  const projectRoot = makeTempDir();
+  const result = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: { HOME: makeTempDir() },
+  });
+
+  const tool = result.tools.tools['tool.command-runner'];
+  const run = await tool.execute({});
+
+  assert.equal(run.status, 'invalid-input');
+  assert.equal(run.validation_surface, 'runtime_tooling');
+});
+
+test('runtime command executor reports write failures when AGENTS.md cannot be written', async () => {
+  const projectRoot = makeTempDir();
+  writeText(path.join(projectRoot, 'README.md'), '# Sample Product');
+  const agentsParent = path.join(projectRoot, 'AGENTS.md');
+  fs.mkdirSync(agentsParent, { recursive: true });
+
+  const executor = createRuntimeCommandExecutor({ projectRoot });
+  const result = await executor.execute('/init-deep');
+
+  assert.equal(result.status, 'error');
+  assert.equal(result.validation_surface, 'runtime_tooling');
+  assert.match(result.message, /Failed to write root AGENTS\.md/);
+});
+
+test('context injection falls back to the OpenKit compatibility AGENTS guide when root AGENTS.md is absent', () => {
+  const projectRoot = makeTempDir();
+  writeText(path.join(projectRoot, 'README.md'), '# project');
+  writeText(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md'), '# openkit-agents');
+
+  const context = createContextInjection({ projectRoot, mode: 'full', category: 'deep' });
+
+  assert.equal(context.agentsPath, path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md'));
+  assert.equal(context.readmePath, path.join(projectRoot, 'README.md'));
 });
 
 test('mcp platform loads builtin mcps and optional config file', async () => {

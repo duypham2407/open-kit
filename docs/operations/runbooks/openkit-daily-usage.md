@@ -166,6 +166,8 @@ On the first run on a machine or a fresh OpenCode home, `openkit run` also mater
 
 Do not expect `openkit run` to use the checked-in project `.opencode/` directory as its only runtime source. The managed launch path reads kit assets from the global kit root and runtime state from the derived workspace state path, while leaving the project `.opencode/` surface available as a compatibility layer.
 
+`openkit run` keeps OpenKit-managed guidance under `projectRoot/.opencode/openkit/AGENTS.md`. The repository root `projectRoot/AGENTS.md` stays project-owned so it can hold commit-safe project context instead of a runtime-created symlink.
+
 ### Optional: configure per-agent models before launch
 
 If you want different models for different OpenKit agents, inspect the exact provider-qualified model ids that OpenCode currently knows about:

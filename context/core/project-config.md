@@ -273,6 +273,8 @@ Validation split to keep explicit:
 - `tool.typecheck`, `tool.lint`, and `tool.test-run` validate `target_project_app` only when their corresponding project-local config or framework is detected; an `unavailable` result means the target project did not provide that validation surface
 - workflow-state and evidence runtime tools validate `compatibility_runtime`; they can prove OpenKit workflow state, readiness, issues, and evidence records, not application behavior
 - session-start capability guidance and capability-router summary checks validate OpenKit `global_cli` / `runtime_tooling` / stored `compatibility_runtime` surfaces only; they do not prove target-project build, lint, test, smoke, or regression behavior
+- the runtime-backed `/init-deep` command validates `runtime_tooling` only; it can refresh project-owned root `AGENTS.md` guidance from repository signals but does not prove target-project application behavior
+- `tool.command-runner` is the current in-session execution bridge for runtime-backed commands such as `/init-deep`; its results stay on the `runtime_tooling` surface
 
 ### Quick Task
 

@@ -39,6 +39,7 @@ export function createRuntimeInterface({
   modelRuntime,
   skills,
   commands,
+  commandExecutor,
   contextInjection,
 }) {
   const capabilityIds = capabilities.map((capability) => capability.id);
@@ -86,6 +87,12 @@ export function createRuntimeInterface({
     modelExecution: modelRuntime.executionState ?? [],
     skills: skills.skills,
     commands,
+    runtimeCommands: Object.values(commandExecutor?.handlers ?? {}).map((handler) => ({
+      id: handler.id,
+      name: handler.name,
+      description: handler.description ?? 'runtime-backed command',
+      validationSurface: 'runtime_tooling',
+    })),
     contextInjection,
     runtimeState: {
       persistedSessions: managers.sessionStateManager?.list?.().length ?? 0,

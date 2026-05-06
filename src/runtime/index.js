@@ -1,5 +1,6 @@
 import { createCapabilityIndex, listRuntimeCapabilities } from './capability-registry.js';
 import { loadRuntimeCommands } from './commands/index.js';
+import { createRuntimeCommandExecutor } from './commands/index.js';
 import { createContextInjection } from './context/index.js';
 import { createRuntimeConfig } from './create-config.js';
 import { createHooks } from './create-hooks.js';
@@ -79,6 +80,8 @@ export function bootstrapRuntimeFoundation({ projectRoot, env = process.env, mod
     capabilities,
     skills,
   });
+  const commands = loadRuntimeCommands({ projectRoot });
+  const commandExecutor = createRuntimeCommandExecutor({ projectRoot });
   const tools = createTools({
     config: configResult.config,
     capabilityIndex,
@@ -86,10 +89,10 @@ export function bootstrapRuntimeFoundation({ projectRoot, env = process.env, mod
     managers,
     mcpPlatform,
     modelRuntime,
+    commandExecutor,
     hooks,
     env,
   });
-  const commands = loadRuntimeCommands({ projectRoot });
   const contextInjection = createContextInjection({ projectRoot, hooks: hooks.hooks });
   const runtimeInterface = createRuntimeInterface({
     projectRoot,
@@ -105,6 +108,7 @@ export function bootstrapRuntimeFoundation({ projectRoot, env = process.env, mod
     modelRuntime,
     skills,
     commands,
+    commandExecutor,
     contextInjection,
   });
 
@@ -118,6 +122,7 @@ export function bootstrapRuntimeFoundation({ projectRoot, env = process.env, mod
     modelRuntime,
     skills,
     commands,
+    commandExecutor,
     contextInjection,
     managers,
     mcpPlatform,

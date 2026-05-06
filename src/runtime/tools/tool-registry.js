@@ -52,16 +52,18 @@ import { createLintTool } from './external/lint.js';
 import { createTestRunTool } from './external/test-run.js';
 import { createExternalToolRunner } from './external/tool-runner.js';
 import { createEvidenceCaptureTool } from './workflow/evidence-capture.js';
+import { createCommandRunnerTool } from './workflow/command-runner.js';
 import { createRuntimeSummaryTool } from './workflow/runtime-summary.js';
 import { createWorkflowStateTool } from './workflow/workflow-state.js';
 import { wrapToolExecution } from './wrap-tool-execution.js';
 
-export function createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, invocationLogger = null, guardHooks = null, env = process.env }) {
+export function createToolRegistry({ projectRoot, managers, config, mcpPlatform, modelRuntime, commandExecutor = null, invocationLogger = null, guardHooks = null, env = process.env }) {
   const disabledTools = new Set(config?.disabled?.tools ?? []);
   const definitions = [
     createWorkflowStateTool({ projectRoot, workflowKernel: managers.workflowKernel }),
     createRuntimeSummaryTool({ workflowKernel: managers.workflowKernel }),
     createEvidenceCaptureTool({ workflowKernel: managers.workflowKernel }),
+    createCommandRunnerTool({ commandExecutor }),
     createCapabilityInventoryTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
     createCapabilityRouterTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
     createCapabilityHealthTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),

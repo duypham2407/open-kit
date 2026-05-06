@@ -102,7 +102,12 @@ Path model during managed launch:
 - workspace runtime state: `OPENCODE_HOME/workspaces/<workspace-id>/openkit/.opencode`
 - project compatibility shim: `projectRoot/.opencode`
 
-Treat those as different layers. `openkit run` uses the managed global kit plus the derived workspace state. The checked-in project `.opencode/` path remains a compatibility surface, not the default source of truth for managed runtime state.
+Project guidance ownership during managed launch:
+
+- project-owned agent brief: `projectRoot/AGENTS.md`
+- OpenKit-managed compatibility brief: `projectRoot/.opencode/openkit/AGENTS.md`
+
+Treat those as different layers. `openkit run` uses the managed global kit plus the derived workspace state. The checked-in project `.opencode/` path remains a compatibility surface, not the default source of truth for managed runtime state. Root `AGENTS.md` is project-owned and safe to commit; OpenKit keeps its own managed guidance under `.opencode/openkit/AGENTS.md`.
 
 After launch, start most work with:
 
@@ -111,6 +116,10 @@ After launch, start most work with:
 ```
 
 Use `/quick-task`, `/migrate`, or `/delivery` only when the lane is already obvious.
+
+Use `/init-deep` when you want OpenKit to analyze the current repository and refresh a project-owned root `AGENTS.md` while keeping OpenKit-managed compatibility guidance under `.opencode/openkit/AGENTS.md`.
+
+If you need deterministic in-session execution of the runtime-backed handler today, run it through `tool.command-runner` with `command: '/init-deep'`.
 
 ## Daily commands
 

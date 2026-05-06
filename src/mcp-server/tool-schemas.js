@@ -317,6 +317,18 @@ export const TOOL_SCHEMAS = {
     },
   },
 
+  'tool.command-runner': {
+    description: 'Runs runtime-backed OpenKit commands such as /init-deep through the runtime executor.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        command: { type: 'string', description: 'Runtime-backed command name such as /init-deep' },
+        args: { type: 'object', description: 'Optional structured arguments for the command' },
+      },
+      required: ['command'],
+    },
+  },
+
   'tool.evidence-capture': {
     description: 'Records verification evidence through the workflow kernel.',
     inputSchema: {

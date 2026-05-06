@@ -244,12 +244,6 @@ process.exit(typeof result.status === 'number' ? result.status : 1);
   }
 
   createIfMissing(createdPaths, {
-    linkPath: path.join(paths.projectRoot, 'AGENTS.md'),
-    targetPath: paths.workspaceShimAgentsPath,
-    type: 'file',
-  });
-
-  createIfMissing(createdPaths, {
     linkPath: path.join(paths.projectRoot, 'context'),
     targetPath: paths.workspaceShimContextDir,
     type: 'dir',
