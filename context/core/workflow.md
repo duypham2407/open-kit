@@ -23,6 +23,7 @@ The Master Orchestrator is the entry point for all lanes and is responsible for 
 
 Important role boundary:
 
+- Direct-runtime exception: runtime-backed direct commands such as `/init-deep` do not enter lane selection through Master Orchestrator. At most, Master performs thin dispatch to the command-specific runtime surface and must not reinterpret those commands as `/task`, lane selection, or workflow-triage prompts.
 - `Master Orchestrator` is a procedural workflow controller
 - `Master Orchestrator` does not own business analysis, technical design, planning content, implementation, review, or QA judgment
 - `Master Orchestrator` must never write code or execute the approved solution; it only routes, records state, and controls gates

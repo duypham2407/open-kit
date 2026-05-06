@@ -8,6 +8,8 @@ Use `context/core/workflow.md` for the canonical live contract. Use this file wh
 
 This routing rubric applies **only when the Master Orchestrator is choosing the lane** (i.e. the user entered `/task` and `lane_source = orchestrator_routed`).
 
+Direct-runtime commands such as `/init-deep` are outside this rubric. They do not ask Master Orchestrator to choose a lane and must not be reinterpreted as `/task`.
+
 When the user enters `/quick-task`, `/migrate`, or `/delivery`, the lane is **locked by the user** (`lane_source = user_explicit`). In that case:
 
 - do **not** apply this rubric to reject or override the user's choice

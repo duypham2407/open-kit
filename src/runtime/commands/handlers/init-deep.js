@@ -53,6 +53,43 @@ function summarizeValidationCommands(packageJson) {
   };
 }
 
+function listTopLevelEntries(projectRoot) {
+  try {
+    return fs.readdirSync(projectRoot, { withFileTypes: true })
+      .filter((entry) => !entry.name.startsWith('.git'))
+      .map((entry) => `${entry.name}${entry.isDirectory() ? '/' : ''}`)
+      .slice(0, 40);
+  } catch {
+    return [];
+  }
+}
+
+function collectProjectMarkers(projectRoot) {
+  const markers = [];
+  const checks = [
+    ['package.json', 'JavaScript/TypeScript package metadata present in `package.json`.'],
+    ['tsconfig.json', 'TypeScript compiler configuration present in `tsconfig.json`.'],
+    ['vite.config.ts', 'Vite configuration present in `vite.config.ts`.'],
+    ['vite.config.js', 'Vite configuration present in `vite.config.js`.'],
+    ['next.config.js', 'Next.js configuration present in `next.config.js`.'],
+    ['next.config.mjs', 'Next.js configuration present in `next.config.mjs`.'],
+    ['turbo.json', 'Turborepo configuration present in `turbo.json`.'],
+    ['pnpm-workspace.yaml', 'pnpm workspace configuration present in `pnpm-workspace.yaml`.'],
+    ['Cargo.toml', 'Rust package or workspace metadata present in `Cargo.toml`.'],
+    ['go.mod', 'Go module metadata present in `go.mod`.'],
+    ['pyproject.toml', 'Python project metadata present in `pyproject.toml`.'],
+    ['Dockerfile', 'Container build instructions present in `Dockerfile`.'],
+  ];
+
+  for (const [relativePath, description] of checks) {
+    if (fs.existsSync(path.join(projectRoot, relativePath))) {
+      markers.push(description);
+    }
+  }
+
+  return markers;
+}
+
 function extractExistingProjectSections(existingContent) {
   if (!existingContent) {
     return [];
@@ -130,11 +167,15 @@ function inferProjectSummary({ projectRoot, packageJson, readmeHeading, importan
 
 function buildAgentsContent({ analysis, preservedSections = [] }) {
   const validation = analysis.validation;
+  const topLevelEntries = analysis.topLevelEntries
+    .map((entry) => `- \`${entry}\``)
+    .join('\n');
   const importantDirectories = analysis.importantDirectories
     .map((entry) => `- \`${entry}/\``)
     .join('\n');
-  const stackLines = analysis.project.stack.length > 0
-    ? analysis.project.stack.map((entry) => `- ${entry}`).join('\n')
+  const stackSignals = [...analysis.project.stack, ...analysis.projectMarkers];
+  const stackLines = stackSignals.length > 0
+    ? stackSignals.map((entry) => `- ${entry}`).join('\n')
     : '- Project stack signals are incomplete; inspect the repository before assuming frameworks or tooling.';
 
   const buildCommand = validation.build ? `\`${validation.build}\`` : 'Unavailable: no repository-native build command is currently defined.';
@@ -159,6 +200,10 @@ ${stackLines}
 
 ${importantDirectories || '- Add important repository directories here once the project structure is established.'}
 
+## Top-Level Entries
+
+${topLevelEntries || '- Add notable top-level files and directories here once repository discovery is complete.'}
+
 ## Validation Commands
 
 - Build: ${buildCommand}
@@ -170,6 +215,7 @@ ${importantDirectories || '- Add important repository directories here once the 
 - Treat this root \`AGENTS.md\` as the project-owned agent briefing document that is safe to commit.
 - Update this file when the repository's actual stack, commands, structure, or conventions change.
 - Do not invent frameworks, package managers, CI behavior, or deployment steps that are not present in the working tree.
+- Treat workflow mode or lane state as downstream execution context, not as a prerequisite for repository analysis.
 - If validation tooling is missing, report that gap honestly instead of substituting OpenKit runtime checks as project-app validation.
 
 ${preservedBlock}## OpenKit Workflow Overlay
@@ -192,6 +238,8 @@ export function createInitDeepHandler() {
     id: 'runtime-command.init-deep',
     name: '/init-deep',
     description: 'Analyze project signals and refresh root AGENTS guidance.',
+    executionPriority: 'direct-runtime',
+    bypassLaneSelection: true,
     async execute({ projectRoot, commandName = '/init-deep' } = {}) {
       if (!projectRoot) {
         return {
@@ -205,6 +253,8 @@ export function createInitDeepHandler() {
       const importantDirectories = listImportantDirectories(projectRoot);
       const analysis = {
         importantDirectories,
+        topLevelEntries: listTopLevelEntries(projectRoot),
+        projectMarkers: collectProjectMarkers(projectRoot),
         readmeHeading: readFirstMarkdownHeading(path.join(projectRoot, 'README.md')),
         validation: summarizeValidationCommands(packageJson),
       };
@@ -242,11 +292,13 @@ export function createInitDeepHandler() {
           projectName: analysis.project.packageName,
           readmeHeading: analysis.readmeHeading,
           importantDirectories,
+          topLevelEntries: analysis.topLevelEntries,
+          projectMarkers: analysis.projectMarkers,
           preservedSectionCount: preservedSections.length,
           validation: analysis.validation,
         },
         validation_surface: 'runtime_tooling',
-        message: 'Root AGENTS.md was refreshed from current project signals while preserving the OpenKit workflow overlay contract.',
+        message: 'Root AGENTS.md was refreshed from current project signals while preserving the OpenKit workflow overlay contract; workflow lanes were treated as downstream context rather than a prerequisite.',
       };
     },
   };

@@ -67,7 +67,9 @@ Then use the in-session path (`in_session`):
 
 - Slash command prompt templates: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, `/switch-profiles`. OpenCode custom slash command files are prompt templates; true native executable slash command support is not currently documented.
 - Runtime-backed repository guidance helper: `/init-deep` now has a checked-in OpenKit runtime handler that refreshes project-owned root `AGENTS.md` content from repository signals while preserving the OpenKit compatibility guide under `.opencode/openkit/AGENTS.md`.
+- `/init-deep` is a repository-analysis surface, not a lane chooser; operators should not be asked to pick `quick`, `migration`, or `full` before deep analysis runs.
 - In-session execution bridge: use `tool.command-runner` with `{ command: '/init-deep' }` when you need the runtime-backed `/init-deep` handler to execute deterministically inside the active session. Treat the slash command file itself as the human-facing contract, and the tool result as the authoritative execution outcome.
+- `Master Orchestrator` remains routing-only: it may thin-dispatch direct-runtime commands, but it must not reinterpret `/init-deep` as `/task` or perform lane reasoning on its behalf.
 - MCP capability configuration: `openkit configure mcp --interactive`, plus bundled `list`, `doctor`, `enable`, `disable`, `set-key`, `unset-key`, and `test`, and custom `add-local`, `add-remote`, `import-global`, `list`, `doctor`, `test`, `disable`, and `remove`
 - Agent model profile management: `openkit profiles --create`, `--edit`, `--list`, `--delete`, and `--set-default` manage global profiles; `openkit switch-profiles`, `openkit switch`, and `/switch-profiles` are current-session-only and do not mutate the global default
 - Global diagnostics: `openkit doctor`

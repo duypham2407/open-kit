@@ -119,6 +119,10 @@ Use `/quick-task`, `/migrate`, or `/delivery` only when the lane is already obvi
 
 Use `/init-deep` when you want OpenKit to analyze the current repository and refresh a project-owned root `AGENTS.md` while keeping OpenKit-managed compatibility guidance under `.opencode/openkit/AGENTS.md`.
 
+`/init-deep` is not a lane-selection command: it should not ask the user to choose between Quick Task, Migration, or Full Delivery before running deep repository analysis.
+
+`Master Orchestrator` is routing-only and must not reinterpret `/init-deep` as `/task` or perform lane reasoning on behalf of this runtime-backed command.
+
 If you need deterministic in-session execution of the runtime-backed handler today, run it through `tool.command-runner` with `command: '/init-deep'`.
 
 ## Daily commands

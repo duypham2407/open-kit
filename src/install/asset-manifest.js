@@ -123,6 +123,12 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     bundledPath: "assets/install-bundle/opencode/commands/write-solution.md",
   },
   {
+    id: "opencode.command.init-deep",
+    assetClass: "commands",
+    sourcePath: "commands/init-deep.md",
+    bundledPath: "assets/install-bundle/opencode/commands/init-deep.md",
+  },
+  {
     id: "opencode.context.lane-selection",
     assetClass: "context",
     sourcePath: "context/core/lane-selection.md",

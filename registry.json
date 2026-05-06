@@ -237,7 +237,10 @@
         "path": "commands/init-deep.md",
         "audience": "operator",
         "surface": "in-session",
-        "modes": ["quick", "migration", "full"]
+        "modes": ["quick", "migration", "full"],
+        "executionPriority": "direct-runtime",
+        "bypassLaneSelection": true,
+        "intent": "repository-analysis"
       },
       {
         "id": "command.refactor",

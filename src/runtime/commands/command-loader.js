@@ -29,12 +29,14 @@ function loadProjectCommands(projectRoot) {
 export function loadRuntimeCommands({ projectRoot = process.cwd() } = {}) {
   const builtin = listBuiltinRuntimeCommands()
     .filter((command) => fs.existsSync(path.join(projectRoot, command.path)))
-    .map((command) => ({
-      ...command,
-      source: 'builtin',
-      runtimeBacked: typeof command.handler === 'string',
-      compatibility: 'builtin-compatible',
-    }));
+      .map((command) => ({
+        ...command,
+        source: 'builtin',
+        runtimeBacked: typeof command.handler === 'string',
+        compatibility: 'builtin-compatible',
+        executionPriority: command.executionPriority ?? 'default',
+        bypassLaneSelection: command.bypassLaneSelection === true,
+      }));
   const projectCommands = loadProjectCommands(projectRoot);
   const merged = new Map();
 

@@ -92,6 +92,8 @@ export function createRuntimeInterface({
       id: handler.id,
       name: handler.name,
       description: handler.description ?? 'runtime-backed command',
+      executionPriority: handler.executionPriority ?? 'default',
+      bypassLaneSelection: handler.bypassLaneSelection === true,
       validationSurface: 'runtime_tooling',
     })),
     contextInjection,
