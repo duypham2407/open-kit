@@ -10,6 +10,8 @@ import { createEmbeddingIndexTool } from './analysis/embedding-index.js';
 import { createBrowserVerifyTool } from './browser/browser-verify.js';
 import { createCapabilityHealthTool } from './capability/capability-health.js';
 import { createCapabilityInventoryTool } from './capability/capability-inventory.js';
+import { createCapabilityLedgerTool } from './capability/capability-ledger.js';
+import { createCapabilityReadinessTool } from './capability/capability-readiness.js';
 import { createCapabilityRouterTool } from './capability/capability-router.js';
 import { createMcpDoctorTool } from './capability/mcp-doctor.js';
 import { createSkillIndexTool } from './capability/skill-index.js';
@@ -61,11 +63,16 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
   const disabledTools = new Set(config?.disabled?.tools ?? []);
   const definitions = [
     createWorkflowStateTool({ projectRoot, workflowKernel: managers.workflowKernel }),
-    createRuntimeSummaryTool({ workflowKernel: managers.workflowKernel }),
+    createRuntimeSummaryTool({
+      workflowKernel: managers.workflowKernel,
+      capabilityRegistryManager: managers.capabilityRegistryManager,
+    }),
     createEvidenceCaptureTool({ workflowKernel: managers.workflowKernel }),
     createCommandRunnerTool({ commandExecutor }),
     createCapabilityInventoryTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
     createCapabilityRouterTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
+    createCapabilityReadinessTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
+    createCapabilityLedgerTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
     createCapabilityHealthTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
     createMcpDoctorTool({ capabilityRegistryManager: managers.capabilityRegistryManager }),
     createSkillIndexTool(),

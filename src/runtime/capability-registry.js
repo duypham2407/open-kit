@@ -2,6 +2,7 @@ import {
   STANDARD_CAPABILITY_STATES,
   VALIDATION_SURFACES,
 } from '../capabilities/status.js';
+import { buildCapabilityGraph } from '../capabilities/capability-graph.js';
 import { listMcpCatalogEntries } from '../capabilities/mcp-catalog.js';
 import { listBundledSkills, summarizeSkillCatalog } from '../capabilities/skill-catalog.js';
 
@@ -23,7 +24,7 @@ const DEFAULT_RUNTIME_CAPABILITIES = [
   {
     id: 'capability.capability-registry',
     category: 'foundation',
-    description: 'Publishes runtime capability metadata and feature-gated availability.',
+    description: 'Publishes runtime capability metadata, feature-gated availability, decision ledger, and readiness read model summaries.',
     status: 'active',
     enabledByDefault: true,
   },
@@ -270,6 +271,14 @@ export function createCapabilityIndex({ config } = {}) {
   return Object.fromEntries(
     listRuntimeCapabilities({ config }).map((capability) => [capability.id, capability])
   );
+}
+
+export function buildRuntimeCapabilityGraph({ config, customMcps = [], targetProjectValidationProbes = undefined } = {}) {
+  return buildCapabilityGraph({
+    customMcps,
+    runtimeCapabilities: listRuntimeCapabilities({ config }),
+    targetProjectValidationProbes,
+  });
 }
 
 export function summarizeRuntimeCapabilities(capabilities) {

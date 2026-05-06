@@ -138,6 +138,8 @@ test('MCP server lists tools via tools/list', async () => {
     assert.ok(toolNames.includes('tool.security-scan'), 'should have tool.security-scan');
     assert.ok(toolNames.includes('tool.capability-inventory'), 'should have tool.capability-inventory');
     assert.ok(toolNames.includes('tool.capability-router'), 'should have tool.capability-router');
+    assert.ok(toolNames.includes('tool.capability-readiness'), 'should have tool.capability-readiness');
+    assert.ok(toolNames.includes('tool.capability-ledger'), 'should have tool.capability-ledger');
     assert.ok(toolNames.includes('tool.capability-health'), 'should have tool.capability-health');
     assert.ok(toolNames.includes('tool.mcp-doctor'), 'should have tool.mcp-doctor');
     assert.ok(toolNames.includes('tool.skill-index'), 'should have tool.skill-index');
@@ -158,7 +160,54 @@ test('MCP server lists tools via tools/list', async () => {
     const router = result.tools.find((t) => t.name === 'tool.capability-router');
     assert.ok(router.inputSchema.properties.includePreview);
     assert.ok(router.inputSchema.properties.includeExperimental);
+    assert.ok(router.inputSchema.properties.rank);
     assert.ok(router.description.includes('metadata-backed skill selection'));
+
+    const runtimeSummary = result.tools.find((t) => t.name === 'tool.runtime-summary');
+    assert.ok(runtimeSummary.description.includes('bounded capability readiness'));
+    assert.ok(runtimeSummary.inputSchema.properties.maxNextActions);
+
+    const readiness = result.tools.find((t) => t.name === 'tool.capability-readiness');
+    assert.ok(readiness.inputSchema.properties.maxNextActions);
+
+    const ledger = result.tools.find((t) => t.name === 'tool.capability-ledger');
+    assert.ok(ledger.inputSchema.properties.action.enum.includes('summary'));
+    assert.ok(ledger.inputSchema.properties.action.enum.includes('list'));
+    assert.ok(ledger.inputSchema.properties.action.enum.includes('get'));
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP server executes capability readiness and ledger tools with bounded redacted output', async () => {
+  const client = createMcpClient();
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const readinessResult = await client.send('tools/call', {
+      name: 'tool.capability-readiness',
+      arguments: { maxNextActions: 2 },
+    });
+    const readiness = JSON.parse(readinessResult.content[0].text);
+    assert.equal(readiness.schema, 'openkit/capability-read-model@1');
+    assert.equal(readiness.validationSurface, 'runtime_tooling');
+    assert.ok(readiness.nextActions.length <= 2);
+    assert.equal(readiness.readiness.targetProjectValidation.state, 'unavailable');
+
+    const ledgerResult = await client.send('tools/call', {
+      name: 'tool.capability-ledger',
+      arguments: { action: 'summary', limit: 5 },
+    });
+    const ledger = JSON.parse(ledgerResult.content[0].text);
+    assert.equal(ledger.schema, 'openkit/capability-decision-ledger@1');
+    assert.equal(ledger.validationSurface, 'runtime_tooling');
+    assert.ok(ledger.summary);
+    assert.equal(Object.hasOwn(ledger, 'entries'), false);
   } finally {
     await client.close();
   }

@@ -56,6 +56,7 @@ export function createRuntimeInterface({
     skillSummary: summarizeSkillCatalog(capabilityPackInventory.skills),
     keySummary: summarizeKeyState(capabilityPackInventory.mcps),
     guidance: capabilityGuidance,
+    readiness: managers.capabilityRegistryManager?.buildReadModel?.({ scope: 'openkit', maxNextActions: 5 }) ?? null,
   };
   const latestSession = managers.sessionStateManager?.latest?.() ?? null;
   const workflowDoctor = inspectWorkflowDoctor(managers.workflowKernel);

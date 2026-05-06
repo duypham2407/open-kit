@@ -199,7 +199,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
   });
   const mcpHealthManager = new McpHealthManager({ env });
   const skillMcpManager = new SkillMcpManager({ mcpHealthManager });
-  const capabilityRegistryManager = new CapabilityRegistryManager({ mcpHealthManager, skillMcpManager });
+  const capabilityRegistryManager = new CapabilityRegistryManager({ mcpHealthManager, skillMcpManager, runtimeRoot, mode });
   const syntaxIndexManager = new SyntaxIndexManager({ projectRoot });
   const projectGraphManager = new ProjectGraphManager({ projectRoot, runtimeRoot, syntaxIndexManager, mode });
 

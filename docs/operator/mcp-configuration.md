@@ -42,6 +42,27 @@ The bundled catalog currently includes:
 
 Capability states use the standard OpenKit vocabulary: `available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, and `not_configured`.
 
+## Readiness Dashboard And Runtime Tools
+
+OpenKit exposes a compact capability readiness dashboard through the runtime tool surface:
+
+```text
+tool.capability-readiness
+tool.capability-router
+tool.capability-ledger
+tool.capability-inventory
+tool.capability-health
+tool.mcp-doctor
+tool.skill-index
+tool.skill-mcp-bindings
+```
+
+`tool.capability-readiness` returns the bounded dashboard read model. It summarizes capability graph totals, standard state distribution, family counts, policy-gated counts, metadata-only skills, unavailable skills, freshness labels, browser/external readiness, custom/bundled ownership, target-project validation availability, ledger counts, and next actions. It is intended for operator diagnosis and reviewer handoff, not as proof that any listed MCP, browser tool, external provider, skill, or target-project command has actually run.
+
+`tool.capability-router` uses graph-backed ranking and selection guidance. Ranking is read-only: it does not load skills, execute MCPs, run browser automation, call providers, mutate workflow state, or change files. Selection output reports eligibility and policy gates, but actual activation still goes through the normal explicit tool or skill path.
+
+`tool.capability-ledger` reads sanitized capability decision evidence. Ledger entries can record ranked, selected, skipped, blocked, degraded, failed, loaded, or executed decisions. They must remain redacted and may be file-backed when the runtime manager has a writable runtime root, or memory-backed/degraded for transient manager instances.
+
 ## Default Bundled Skill Catalog Overview
 
 The skill catalog is bundled with the kit and joined with MCP availability at runtime. It includes:
@@ -56,6 +77,14 @@ Every bundled skill has canonical metadata in `src/capabilities/skill-catalog.js
 
 Inside an OpenKit session, capability inventory, routing, health, MCP doctor, and skill/MCP binding tools report which MCP-backed skills are available, degraded, unavailable, or not configured. If a backing MCP is absent or missing a key, OpenKit should return a visible next-action reason instead of silently pretending the skill has full MCP support. `recommended_mcps` are advisory and secret-free; missing or disabled MCPs are caveats, not hidden skill activation failures.
 
+MCP policy and readiness labels are intentionally separate from catalog membership:
+
+- Readiness labels report current state such as enabled/disabled, missing key, placeholder key, dependency unavailable, provider unverified, browser dependency degraded, custom origin, bundled ownership, and stale or cached freshness.
+- Policy labels report whether use is read-only, diagnostic, mutating, browser-backed, external/provider-backed, git/package/deploy/database/system-impacting, destructive, blocked, confirmation-required, degraded, or approved.
+- A bundled MCP can be present in the catalog and still be `not_configured`, `degraded`, `preview`, or policy-gated.
+- A custom MCP can be visible in readiness output and still require separate operator trust, dependency, placeholder, secret, or provider validation before use.
+- Browser and external MCP use is conditional: proceed only when relevant to the task and explicitly allowed by the workflow context or user request.
+
 ## Session-Start Capability Guidance
 
 `openkit run` sessions include a compact `<openkit_capability_guidance>` startup snapshot after the runtime status block. The block is advisory only: it does not load skill bodies, call the `skill` tool, execute MCP-backed tools, run provider/network health checks, mutate workflow state, or approve gates. It summarizes a bounded set of role/stage-aware routes and points agents to explicit follow-up calls such as `tool.runtime-summary`, `tool.capability-router`, `tool.skill-index`, `tool.capability-inventory`, `tool.mcp-doctor`, and `tool.capability-health`.
@@ -63,6 +92,16 @@ Inside an OpenKit session, capability inventory, routing, health, MCP doctor, an
 The startup snapshot uses standard capability states (`available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, `not_configured`) plus human caveats such as `needs-key` over `not_configured`. Custom MCPs, when relevant, are shown as `kind=custom` with origin/ownership labels and are not presented as bundled defaults. Startup output is intentionally bounded and must not print a full skill catalog, full bundled MCP catalog, or full custom MCP registry.
 
 Capability guidance is a snapshot and can become stale after the session starts. Refresh explicitly with in-session runtime tools or, for operator MCP setup questions, `openkit configure mcp list` / `openkit configure mcp doctor`. Guidance, runtime summaries, doctor output, workflow evidence, and docs examples must keep key state redacted (`missing`, `present_redacted`, `not_configured`, or `needs-key`) and must not print raw secrets, token-like query values, auth headers, provider payloads, or command env maps. These checks validate `global_cli`, `runtime_tooling`, or `compatibility_runtime` surfaces only; they are never target-project application build/lint/test evidence.
+
+Recommended dashboard next actions:
+
+- If an MCP is `not_configured`, use `openkit configure mcp set-key <mcp-id> --stdin` or disable it if it is not needed.
+- If an MCP is disabled, use `openkit configure mcp enable <mcp-id> --scope <scope>` only when the task needs it.
+- If a dependency is degraded or unavailable, run `openkit configure mcp doctor --scope <scope>` or the relevant custom `doctor` command and install the dependency only if needed.
+- If a browser capability is blocked, verify the task actually requires browser evidence before enabling `allowBrowser` or using browser tools.
+- If an external/provider capability is blocked, verify the task actually requires current external information before enabling or keying the provider.
+- If a capability is policy-gated or mutating, obtain the exact required approval or use a read-only alternative.
+- If target-project validation is unavailable, add or identify real app-native build, lint, test, smoke, or regression commands before claiming target-project app validation.
 
 ## Command Reference
 

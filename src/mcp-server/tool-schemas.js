@@ -310,10 +310,13 @@ export const TOOL_SCHEMAS = {
   },
 
   'tool.runtime-summary': {
-    description: 'Reads workflow-backed runtime summary including capabilities and tool availability.',
+    description: 'Reads workflow-backed runtime summary including bounded capability readiness and tool availability.',
     inputSchema: {
       type: 'object',
-      properties: {},
+      properties: {
+        scope: { type: 'string', enum: ['openkit', 'global'], description: 'Capability readiness scope (default: openkit)' },
+        maxNextActions: { type: 'number', description: 'Maximum capability readiness next actions to include' },
+      },
     },
   },
 
@@ -361,7 +364,7 @@ export const TOOL_SCHEMAS = {
   },
 
   'tool.capability-router': {
-    description: 'Route a requested skill, MCP, or intent to an available capability with metadata-backed skill selection reasons, or return unavailable/not_configured/degraded guidance.',
+    description: 'Route or rank a requested skill, MCP, or intent to graph-backed capabilities with metadata-backed skill selection, bounded recommendations, caveats, and non-activating selection guidance.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -374,9 +377,39 @@ export const TOOL_SCHEMAS = {
         stage: { type: 'string', description: 'Workflow stage hint' },
         status: { type: 'string', description: 'Workflow status hint used only for explicit compact summaries' },
         summary: { type: 'boolean', description: 'Return compact advisory capability guidance instead of a single route (default false)' },
+        rank: { type: 'boolean', description: 'Return graph-backed ranking groups instead of the legacy single-route compatibility shape (default false)' },
         tags: { type: 'array', items: { type: 'string' }, description: 'Skill tag filters' },
         includePreview: { type: 'boolean', description: 'Allow preview skills in intent-based recommendations' },
         includeExperimental: { type: 'boolean', description: 'Allow experimental skills in intent-based recommendations' },
+        allowExternal: { type: 'boolean', description: 'Allow external/provider-backed capabilities in resolver output (default false)' },
+        allowBrowser: { type: 'boolean', description: 'Allow browser capabilities in resolver output (default false)' },
+        allowMutating: { type: 'boolean', description: 'Allow mutating capabilities in resolver output (default false)' },
+        maxCandidates: { type: 'number', description: 'Maximum entries per resolver group, clamped to 1-10 (default 3)' },
+      },
+    },
+  },
+
+  'tool.capability-readiness': {
+    description: 'Return a bounded sanitized capability dashboard read model with readiness, freshness, policy-gated, ownership, and validation availability summaries.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scope: { type: 'string', enum: ['openkit', 'global'], description: 'Scope to inspect (default: openkit)' },
+        maxNextActions: { type: 'number', description: 'Maximum next actions to include, bounded by the read model' },
+      },
+    },
+  },
+
+  'tool.capability-ledger': {
+    description: 'Read sanitized capability decision ledger entries or summaries without exposing secrets/provider payloads.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: { type: 'string', enum: ['summary', 'list', 'get'], description: 'Read action (default: list)' },
+        id: { type: 'string', description: 'Ledger decision id for get action' },
+        limit: { type: 'number', description: 'Maximum entries to return, bounded by the ledger' },
+        actionType: { type: 'string', description: 'Optional action type filter' },
+        capabilityId: { type: 'string', description: 'Optional capability id filter' },
       },
     },
   },
