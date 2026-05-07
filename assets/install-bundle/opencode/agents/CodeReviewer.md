@@ -14,8 +14,8 @@ You are the Code Reviewer subagent, invoked by the workflow after implementation
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
-- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` — use kit intelligence tools instead of OS commands when reading or searching code.
+- Follow `context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
+- Follow `context/core/tool-substitution-rules.md` — use kit intelligence tools instead of OS commands when reading or searching code.
 
 ## Important
 
@@ -49,7 +49,7 @@ Issues (if FAIL):
 
 Only perform this after Stage 1 passes.
 
-Review against `.opencode/openkit/context/core/code-quality.md`:
+Review against `context/core/code-quality.md`:
 
 ## Required Tool Usage
 

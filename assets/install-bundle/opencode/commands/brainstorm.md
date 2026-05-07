@@ -8,8 +8,8 @@ Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode an
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
-- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
+- Follow `context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
+- Follow `context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
 
 ## Preconditions
 
@@ -19,13 +19,13 @@ Use `/brainstorm` when work is already in `Migration` or `Full Delivery` mode an
 
 ## Canonical docs to load
 
-- `.opencode/openkit/AGENTS.md`
-- `.opencode/openkit/context/navigation.md`
-- `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/project-config.md`
-- `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/workflow-state.json` when resuming
-- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/openkit/work-items/` as compatibility-only when present
+- `AGENTS.md`
+- `context/navigation.md`
+- `context/core/workflow.md`
+- `context/core/project-config.md`
+- `context/core/runtime-surfaces.md`
+- `.opencode/workflow-state.json` when resuming
+- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/work-items/` as compatibility-only when present
 - skill `brainstorming`
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
@@ -47,6 +47,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Use `node .opencode/openkit/workflow-state.js show` or `node .opencode/openkit/workflow-state.js validate` when resumable state needs confirmation
+- Use `node .opencode/workflow-state.js show` or `node .opencode/workflow-state.js validate` when resumable state needs confirmation
 - Brainstorming output is design and workflow evidence, not app build/lint/test evidence
 - If the repository has no app-native validation commands for the eventual implementation, record that constraint honestly in downstream artifacts

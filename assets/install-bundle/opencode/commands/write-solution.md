@@ -8,8 +8,8 @@ Use `/write-solution` to create a solution package for work currently in `Full D
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
-- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
+- Follow `context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
+- Follow `context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
 
 ## Preconditions
 
@@ -21,15 +21,15 @@ Use `/write-solution` to create a solution package for work currently in `Full D
 
 ## Canonical docs to load
 
-- `.opencode/openkit/AGENTS.md`
-- `.opencode/openkit/context/navigation.md`
-- `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/project-config.md`
-- `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/workflow-state.json`
-- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/openkit/work-items/` as compatibility-only when present
-- `.opencode/openkit/docs/templates/solution-package-template.md`
-- `.opencode/openkit/docs/templates/migration-report-template.md` when migration work benefits from one running artifact
+- `AGENTS.md`
+- `context/navigation.md`
+- `context/core/workflow.md`
+- `context/core/project-config.md`
+- `context/core/runtime-surfaces.md`
+- `.opencode/workflow-state.json`
+- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/work-items/` as compatibility-only when present
+- `docs/templates/solution-package-template.md`
+- `docs/templates/migration-report-template.md` when migration work benefits from one running artifact
 - skill `writing-solution`
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
@@ -57,4 +57,4 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 - The solution package should name the strongest real validation path available in the repository
 - In migration mode, use `migration_report` when handoffs would benefit from a single running narrative instead of scattered notes
 - If no repo-native app build, lint, or test command exists, say that explicitly in the solution package instead of guessing a stack command
-- Use `node .opencode/openkit/workflow-state.js validate` only to confirm workflow state, not to stand in for implementation verification
+- Use `node .opencode/workflow-state.js validate` only to confirm workflow state, not to stand in for implementation verification

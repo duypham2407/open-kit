@@ -50,6 +50,15 @@ function createUnavailableKernel(projectRoot) {
     completeBackgroundRun() {
       return null;
     },
+    startPlanningDispatch() {
+      return null;
+    },
+    completePlanningDispatch() {
+      return null;
+    },
+    scaffoldAndLinkArtifact() {
+      return null;
+    },
     cancelBackgroundRun() {
       return null;
     },
@@ -187,6 +196,33 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env }) 
     );
   }
 
+  function startPlanningDispatch({ role, stage, artifactKind, title, requestedBy = 'MasterOrchestrator', customStatePath = null }) {
+    if (!canWriteState(customStatePath)) {
+      return null;
+    }
+    return safeCall(
+      () => controller.startPlanningDispatch(role, stage, artifactKind, title, withStatePath(customStatePath), { requestedBy }),
+      null
+    );
+  }
+
+  function completePlanningDispatch({ runId, output = {}, customStatePath = null }) {
+    if (!canWriteState(customStatePath)) {
+      return null;
+    }
+    return safeCall(
+      () => controller.completePlanningDispatch(runId, withStatePath(customStatePath), output ?? {}),
+      null
+    );
+  }
+
+  function scaffoldAndLinkArtifact({ kind, slug, customStatePath = null, options = {} }) {
+    if (!canWriteState(customStatePath)) {
+      return null;
+    }
+    return safeCall(() => controller.scaffoldAndLinkArtifact(kind, slug, withStatePath(customStatePath), options), null);
+  }
+
   function cancelBackgroundRun({ runId, customStatePath = null }) {
     if (!canWriteState(customStatePath)) {
       return null;
@@ -269,6 +305,9 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env }) 
     listBackgroundRuns,
     startBackgroundRun,
     completeBackgroundRun,
+    startPlanningDispatch,
+    completePlanningDispatch,
+    scaffoldAndLinkArtifact,
     cancelBackgroundRun,
     recordVerificationEvidence,
     listTasks,

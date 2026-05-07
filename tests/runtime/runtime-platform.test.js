@@ -508,6 +508,7 @@ test('runtime foundation exposes workflow-backed tools, supervisor, and persiste
   const runtimeSummaryResult = runtimeSummaryTool.execute({ customStatePath: statePath });
   assert.equal(runtimeSummaryResult.status, 'ok');
   assert.ok(runtimeSummaryResult.runtimeContext);
+  assert.equal(Array.isArray(runtimeSummaryResult.renderedLines), true);
   assert.equal(runtimeSummaryResult.runtimeContext.capabilityGuidance.validationSurface, 'runtime_tooling');
   assert.ok(runtimeSummaryResult.runtimeContext.capabilityGuidanceLines.some((line) => /advisory only; no skill or MCP was auto-activated/i.test(line)));
   assert.equal(runtimeSummaryResult.runtimeContext.capabilityGuidance.targetProjectValidation.status, 'unavailable');
@@ -638,6 +639,118 @@ test('runtime foundation exposes workflow-backed tools, supervisor, and persiste
     customStatePath: statePath,
   });
   assert.equal(dispatched.dispatched, false);
+
+  const planningDispatch = delegationTool.execute({
+    dispatchPlanningStage: true,
+    workItemId: status.state.work_item_id,
+    role: 'ProductLead',
+    stage: 'full_product',
+    artifactKind: 'scope_package',
+    title: 'Product scope handoff',
+    customStatePath: statePath,
+    output: { artifact: 'docs/scope/runtime-platform.md' },
+  });
+  assert.equal(planningDispatch.dispatched, true);
+
+  const updatedStatus = workflowStateTool.execute({ command: 'status', customStatePath: statePath });
+  assert.equal(updatedStatus.runtimeContext.planningDispatchSummary.ready, false);
+  assert.ok(updatedStatus.runtimeContext.planningDispatchSummary.readiness.some((entry) => entry.role === 'ProductLead'));
+});
+
+test('workflow kernel exposes planning dispatch helpers and workflow status surfaces show planning blockers', () => {
+  const { projectRoot, statePath, sourceRoot } = createIsolatedWorkflowStateRoot();
+  const result = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: {
+      ...process.env,
+      HOME: makeTempDir(),
+      OPENKIT_KIT_ROOT: sourceRoot,
+      OPENKIT_WORKFLOW_STATE: statePath,
+    },
+  });
+
+  const workflowStateTool = result.tools.tools['tool.workflow-state'];
+  const kernel = result.managers.workflowKernel;
+
+  const started = kernel.startPlanningDispatch({
+    role: 'ProductLead',
+    stage: 'full_product',
+    artifactKind: 'scope_package',
+    title: 'Kernel product scope handoff',
+    customStatePath: statePath,
+  });
+  assert.ok(started.run.run_id);
+
+  const runningStatus = workflowStateTool.execute({ command: 'status', customStatePath: statePath });
+  assert.ok(runningStatus.runtimeContext.planningDispatchSummary.blockers.some((entry) => /ProductLead/.test(entry)));
+
+  const completed = kernel.completePlanningDispatch({
+    runId: started.run.run_id,
+    output: { artifact: 'docs/scope/kernel-platform.md' },
+    customStatePath: statePath,
+  });
+  assert.equal(completed.run.status, 'completed');
+
+  const doctor = workflowStateTool.execute({ command: 'doctor', customStatePath: statePath });
+  assert.equal(Array.isArray(doctor.runtime.runtimeContext.planningDispatchSummary.blockers), true);
+  assert.ok(result.runtimeInterface.runtimeState.workflowDoctor.planningDispatchLines.some((line) => /planning dispatches:/i.test(line)));
+});
+
+test('command orchestrator auto-emits planning dispatch telemetry for delivery and migrate entries', () => {
+  const { projectRoot, statePath, sourceRoot } = createIsolatedWorkflowStateRoot();
+  const result = bootstrapRuntimeFoundation({
+    projectRoot,
+    env: {
+      ...process.env,
+      HOME: makeTempDir(),
+      OPENKIT_KIT_ROOT: sourceRoot,
+      OPENKIT_WORKFLOW_STATE: statePath,
+    },
+  });
+
+  const deliveryState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  deliveryState.mode = 'full';
+  deliveryState.current_stage = 'full_product';
+  deliveryState.current_owner = 'ProductLead';
+  fs.writeFileSync(statePath, `${JSON.stringify(deliveryState, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(path.join(projectRoot, '.opencode', 'work-items', deliveryState.work_item_id, 'state.json'), `${JSON.stringify(deliveryState, null, 2)}\n`, 'utf8');
+
+  const workItemId = deliveryState.work_item_id;
+  const deliveryDispatch = result.commandOrchestrator.execute('/delivery', { customStatePath: statePath });
+  assert.equal(deliveryDispatch.status, 'ok');
+  assert.ok(Array.isArray(deliveryDispatch.actions));
+  assert.ok(deliveryDispatch.actions.some((entry) => entry.dispatched === true || entry.reason === 'already-complete'));
+
+  const deliveryRuns = result.managers.workflowKernel.listBackgroundRuns(statePath).runs.filter((run) => (
+    run.work_item_id === workItemId
+  ));
+  assert.ok(deliveryRuns.length >= 1);
+
+  const migrateState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+  migrateState.mode = 'migration';
+  migrateState.current_stage = 'migration_strategy';
+  migrateState.current_owner = 'SolutionLead';
+  migrateState.approvals = {
+    baseline_to_strategy: { status: 'approved', approved_by: 'MasterOrchestrator', approved_at: '2026-03-21', notes: 'Baseline approved' },
+    strategy_to_upgrade: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+    upgrade_to_code_review: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+    code_review_to_verify: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+    migration_verified: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+  };
+  migrateState.artifacts = {
+    ...migrateState.artifacts,
+    scope_package: null,
+    solution_package: 'docs/solution/migration-runtime-platform.md',
+    qa_report: null,
+  };
+  fs.writeFileSync(statePath, `${JSON.stringify(migrateState, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(path.join(projectRoot, '.opencode', 'work-items', workItemId, 'state.json'), `${JSON.stringify(migrateState, null, 2)}\n`, 'utf8');
+
+  const migrateDispatch = result.commandOrchestrator.execute('/migrate', { customStatePath: statePath });
+  assert.ok(['ok', 'unavailable'].includes(migrateDispatch.status));
+  if (migrateDispatch.status === 'ok') {
+    assert.ok(migrateDispatch.actions.some((entry) => entry.role === 'SolutionLead' || entry.run?.payload?.dispatch?.role === 'SolutionLead' || entry.dispatched === true));
+  }
 });
 
 test('tool output truncation hook enforces configured string and array limits', () => {

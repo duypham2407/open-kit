@@ -8,8 +8,8 @@ Use `/execute-solution` when an approved Full Delivery or Migration solution pac
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
-- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
+- Follow `context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
+- Follow `context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
 
 ## Preconditions
 
@@ -19,15 +19,15 @@ Use `/execute-solution` when an approved Full Delivery or Migration solution pac
 
 ## Canonical docs to load
 
-- `.opencode/openkit/AGENTS.md`
-- `.opencode/openkit/context/navigation.md`
-- `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/project-config.md`
-- `.opencode/openkit/context/core/session-resume.md`
-- `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/context/core/workflow-state-schema.md`
-- `.opencode/openkit/workflow-state.json`
-- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/openkit/work-items/` as compatibility-only when present
+- `AGENTS.md`
+- `context/navigation.md`
+- `context/core/workflow.md`
+- `context/core/project-config.md`
+- `context/core/session-resume.md`
+- `context/core/runtime-surfaces.md`
+- `context/core/workflow-state-schema.md`
+- `.opencode/workflow-state.json`
+- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/work-items/` as compatibility-only when present
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 
@@ -46,6 +46,6 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Run `node .opencode/openkit/workflow-state.js validate` when you need to confirm workflow-state integrity before execution
+- Run `node .opencode/workflow-state.js validate` when you need to confirm workflow-state integrity before execution
 - Use repo-native app build, lint, or test commands only if they actually exist and are documented
 - If the repository still lacks app-native validation tooling, report manual checks or other real evidence instead of inventing automation

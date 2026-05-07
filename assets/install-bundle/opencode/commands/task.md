@@ -13,8 +13,8 @@ Default-path rule:
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
-- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
+- Follow `context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
+- Follow `context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
 
 ## Preconditions
 
@@ -23,14 +23,14 @@ Default-path rule:
 
 ## Canonical docs to load
 
-- `.opencode/openkit/AGENTS.md`
-- `.opencode/openkit/context/navigation.md`
-- `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/lane-selection.md`
-- `.opencode/openkit/context/core/project-config.md`
-- `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/workflow-state.json` when resuming
-- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/openkit/work-items/` as compatibility-only when present
+- `AGENTS.md`
+- `context/navigation.md`
+- `context/core/workflow.md`
+- `context/core/lane-selection.md`
+- `context/core/project-config.md`
+- `context/core/runtime-surfaces.md`
+- `.opencode/workflow-state.json` when resuming
+- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/work-items/` as compatibility-only when present
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 
@@ -59,8 +59,8 @@ For operator checks, use the current workflow-state utility surface: `status`, `
 
 ## Validation guidance
 
-- Use `node .opencode/openkit/workflow-state.js status` or `node .opencode/openkit/workflow-state.js show` to inspect resumable state before rerouting when needed
-- Use `node .opencode/openkit/workflow-state.js validate` to validate stale or manually edited state when needed
+- Use `node .opencode/workflow-state.js status` or `node .opencode/workflow-state.js show` to inspect resumable state before rerouting when needed
+- Use `node .opencode/workflow-state.js validate` to validate stale or manually edited state when needed
 - Do not imply repo-native app build, lint, or test commands exist when this repository has not defined them
 
 ## Example transcript

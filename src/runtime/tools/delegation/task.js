@@ -13,6 +13,9 @@ export function createDelegationTaskTool({ backgroundManager, delegationSupervis
           actionTracking,
         });
       }
+      if (input?.dispatchPlanningStage) {
+        return delegationSupervisor.dispatchPlanningStage(input);
+      }
       return backgroundManager.spawn(input);
     },
   };

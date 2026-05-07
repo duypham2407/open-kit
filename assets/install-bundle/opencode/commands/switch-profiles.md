@@ -4,9 +4,9 @@ description: "Interactively switch the active global agent model profile for thi
 
 # Command: `/switch-profiles`
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md`.
-- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching runtime code or profile-related files.
-- Use `.opencode/openkit/context/core/runtime-surfaces.md` to keep the `in_session`, `runtime_tooling`, `compatibility_runtime`, and `global_cli` surfaces separate.
+- Follow `context/core/prompt-contracts.md`.
+- Follow `context/core/tool-substitution-rules.md` when reading or searching runtime code or profile-related files.
+- Use `context/core/runtime-surfaces.md` to keep the `in_session`, `runtime_tooling`, `compatibility_runtime`, and `global_cli` surfaces separate.
 
 Use `/switch-profiles` when an active `openkit run` session should change to an existing global agent model profile without leaving the session.
 

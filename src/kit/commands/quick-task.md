@@ -8,8 +8,8 @@ Use `/quick-task` when the user wants to enter the quick lane directly for daily
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
-- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
+- Follow `context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
+- Follow `context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
 
 ## Preconditions
 
@@ -18,13 +18,13 @@ Use `/quick-task` when the user wants to enter the quick lane directly for daily
 
 ## Canonical docs to load
 
-- `.opencode/openkit/AGENTS.md`
-- `.opencode/openkit/context/navigation.md`
-- `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/project-config.md`
-- `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/context/core/code-quality.md`
-- `.opencode/openkit/workflow-state.json` when resuming
+- `AGENTS.md`
+- `context/navigation.md`
+- `context/core/workflow.md`
+- `context/core/project-config.md`
+- `context/core/runtime-surfaces.md`
+- `context/core/code-quality.md`
+- `.opencode/workflow-state.json` when resuming
 - `.opencode/work-items/` when managed work-item backing state is relevant
 
 ## Expected action
@@ -49,7 +49,7 @@ The user selected `/quick-task` explicitly. This is a **lane lock**.
 
 - Keep quick-task validation real, following `context/core/project-config.md`
 - If no app-native test or lint command exists, document the manual or artifact-based verification path clearly
-- Use `node .opencode/openkit/workflow-state.js validate` only for workflow-state checks, not as a substitute for application testing
+- Use `node .opencode/workflow-state.js validate` only for workflow-state checks, not as a substitute for application testing
 
 ## Example transcript
 

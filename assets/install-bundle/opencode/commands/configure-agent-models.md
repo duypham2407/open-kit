@@ -6,7 +6,7 @@ description: "Inspect OpenCode models and assign provider-specific models to Ope
 
 Use `/configure-agent-models` when you want to configure an exact provider-qualified OpenCode model for one or more OpenKit agents.
 
-When inspecting repository code or runtime surfaces during model setup, follow `.opencode/openkit/context/core/tool-substitution-rules.md` and prefer kit intelligence tools before basic built-in tools or OS commands.
+When inspecting repository code or runtime surfaces during model setup, follow `context/core/tool-substitution-rules.md` and prefer kit intelligence tools before basic built-in tools or OS commands.
 
 ## Purpose
 

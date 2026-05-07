@@ -259,6 +259,7 @@ test('openkit doctor reports healthy without mutating workspace metadata', () =>
   assert.match(result.stdout, /Recommended command: openkit run/);
   assert.match(result.stdout, /Default session entrypoint: \/task/);
   assert.match(result.stdout, /Next action after launch:/);
+  assert.match(result.stdout, /Planning dispatch:/);
   assert.equal(fs.existsSync(path.join(tempHome, 'workspaces')), false);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode')), false);
 });

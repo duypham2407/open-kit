@@ -5,9 +5,12 @@ Use this file to keep shared prompt rules stable across agent and command instru
 ## Shared Runtime Path Contract
 
 - In globally installed OpenKit sessions, treat `.opencode/openkit/` as the repo-local compatibility surface for OpenKit-owned docs, templates, and workflow tools.
-- Read canonical OpenKit docs from `.opencode/openkit/...`, not from repo-root `context/`, repo-root `AGENTS.md`, or repo-root `.opencode/`.
+- In the checked-in authoring repository, canonical docs live at repo-root paths such as `AGENTS.md`, `context/...`, `docs/...`, and `.opencode/workflow-state.json`.
+- Read canonical OpenKit docs from the path model that matches the active runtime surface; do not hardcode global-mode paths when running inside the checked-in authoring repository.
 - Use `.opencode/openkit/workflow-state.json` for resumable workflow state in global mode.
+- Use `.opencode/workflow-state.json` for resumable workflow state in the checked-in authoring repository unless the runtime provides an explicit override.
 - Use `node .opencode/openkit/workflow-state.js <command>` for workflow-state checks in global mode.
+- Use `node .opencode/workflow-state.js <command>` for workflow-state checks in the checked-in authoring repository unless the runtime provides an explicit override.
 - Treat `.opencode/work-items/` as the canonical work-item backing store in both checked-in and global modes.
 - `.opencode/openkit/work-items/` is compatibility-only when present; do not prefer it over `.opencode/work-items/` for authoritative reads or writes.
 - Use the target repository only for application code, project-native validation paths, and project-local docs.

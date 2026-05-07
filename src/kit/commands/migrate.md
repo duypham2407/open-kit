@@ -8,8 +8,8 @@ Use `/migrate` when work is primarily a project migration or upgrade effort such
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
-- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
+- Follow `context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
+- Follow `context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
 
 Core migration principle:
 
@@ -25,17 +25,17 @@ Core migration principle:
 
 ## Canonical docs to load
 
-- `.opencode/openkit/AGENTS.md`
-- `.opencode/openkit/context/navigation.md`
-- `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/lane-selection.md`
-- `.opencode/openkit/context/core/approval-gates.md`
-- `.opencode/openkit/context/core/project-config.md`
-- `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/docs/templates/migration-baseline-checklist.md`
-- `.opencode/openkit/docs/templates/migration-verify-checklist.md`
-- `.opencode/openkit/workflow-state.json` when resuming
-- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/openkit/work-items/` as compatibility-only when present
+- `AGENTS.md`
+- `context/navigation.md`
+- `context/core/workflow.md`
+- `context/core/lane-selection.md`
+- `context/core/approval-gates.md`
+- `context/core/project-config.md`
+- `context/core/runtime-surfaces.md`
+- `docs/templates/migration-baseline-checklist.md`
+- `docs/templates/migration-verify-checklist.md`
+- `.opencode/workflow-state.json` when resuming
+- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/work-items/` as compatibility-only when present
 
 For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
 

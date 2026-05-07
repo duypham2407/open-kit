@@ -40,6 +40,7 @@ export function createRuntimeInterface({
   skills,
   commands,
   commandExecutor,
+  commandOrchestrator = null,
   contextInjection,
 }) {
   const capabilityIds = capabilities.map((capability) => capability.id);
@@ -96,6 +97,7 @@ export function createRuntimeInterface({
       bypassLaneSelection: handler.bypassLaneSelection === true,
       validationSurface: 'runtime_tooling',
     })),
+    commandOrchestrator,
     contextInjection,
     runtimeState: {
       persistedSessions: managers.sessionStateManager?.list?.().length ?? 0,

@@ -1,6 +1,5 @@
 import { createCapabilityIndex, listRuntimeCapabilities } from './capability-registry.js';
-import { loadRuntimeCommands } from './commands/index.js';
-import { createRuntimeCommandExecutor } from './commands/index.js';
+import { createRuntimeCommandExecutor, executeEntryCommandOrchestration, loadRuntimeCommands } from './commands/index.js';
 import { createContextInjection } from './context/index.js';
 import { createRuntimeConfig } from './create-config.js';
 import { createHooks } from './create-hooks.js';
@@ -93,6 +92,16 @@ export function bootstrapRuntimeFoundation({ projectRoot, env = process.env, mod
     hooks,
     env,
   });
+  const commandOrchestrator = {
+    execute(commandName, { customStatePath = null } = {}) {
+      return executeEntryCommandOrchestration({
+        commandName,
+        workflowKernel: managers.workflowKernel,
+        delegationSupervisor: managers.delegationSupervisor,
+        customStatePath,
+      });
+    },
+  };
   const contextInjection = createContextInjection({ projectRoot, hooks: hooks.hooks });
   const runtimeInterface = createRuntimeInterface({
     projectRoot,
@@ -109,6 +118,7 @@ export function bootstrapRuntimeFoundation({ projectRoot, env = process.env, mod
     skills,
     commands,
     commandExecutor,
+    commandOrchestrator,
     contextInjection,
   });
 
@@ -123,6 +133,7 @@ export function bootstrapRuntimeFoundation({ projectRoot, env = process.env, mod
     skills,
     commands,
     commandExecutor,
+    commandOrchestrator,
     contextInjection,
     managers,
     mcpPlatform,

@@ -45,6 +45,28 @@ function resolveToolEnforcementPluginPath(runtimeStatus) {
   return candidatePaths.find((candidatePath) => fs.existsSync(candidatePath)) ?? null;
 }
 
+function renderPlanningDispatchLines(summary) {
+  if (!summary) {
+    return [];
+  }
+
+  const lines = [
+    `planning dispatches: ${summary.total ?? 0} total | ready ${summary.ready === true ? 'yes' : 'no'}`,
+  ];
+
+  for (const blocker of summary.blockers ?? []) {
+    lines.push(`planning blocker: ${blocker}`);
+  }
+
+  for (const entry of summary.readiness ?? []) {
+    lines.push(
+      `planning readiness: ${entry.role} @ ${entry.stage} -> ${entry.present ? (entry.completed ? 'completed' : 'running') : 'missing'}`
+    );
+  }
+
+  return lines;
+}
+
 export function inspectWorkflowDoctor(workflowKernel) {
   const runtimeStatus = workflowKernel?.showRuntimeStatusRelaxed?.() ?? workflowKernel?.showRuntimeStatus?.() ?? null;
   const runtimeContext = runtimeStatus?.runtimeContext ?? null;
@@ -76,6 +98,8 @@ export function inspectWorkflowDoctor(workflowKernel) {
     activeTasks,
     parallelization,
     backgroundRunSummary: runtimeContext?.backgroundRunSummary ?? null,
+    planningDispatchSummary: runtimeContext?.planningDispatchSummary ?? null,
+    planningDispatchLines: renderPlanningDispatchLines(runtimeContext?.planningDispatchSummary ?? null),
     verificationReadiness: runtimeContext?.verificationReadiness ?? null,
     issueTelemetry: runtimeContext?.issueTelemetry ?? null,
     orchestrationHealth,

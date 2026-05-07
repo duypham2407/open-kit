@@ -1521,6 +1521,87 @@ test('doctor surfaces migration slice readiness when review is blocked by incomp
   assert.match(result.runtimeDoctor.workflow.migrationSliceReadiness.blockers.join('\n'), /SLICE-909-ACTIVE/);
 });
 
+test('doctor renders planning dispatch summary lines for blocked planning handoffs', () => {
+  const projectRoot = makeTempDir();
+
+  materializeManagedInstall(projectRoot);
+  writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
+    model: 'managed-model',
+  });
+  const state = {
+    feature_id: 'FEATURE-910',
+    feature_slug: 'doctor-planning-dispatch',
+    mode: 'full',
+    mode_reason: 'doctor planning dispatch fixture',
+    routing_profile: {
+      work_intent: 'feature',
+      behavior_delta: 'extend',
+      dominant_uncertainty: 'product',
+      scope_shape: 'cross_boundary',
+      selection_reason: 'doctor planning dispatch fixture',
+    },
+    current_stage: 'full_product',
+    status: 'in_progress',
+    current_owner: 'ProductLead',
+    artifacts: {
+      task_card: null,
+      scope_package: 'docs/scope/fixture.md',
+      solution_package: null,
+      migration_report: null,
+      qa_report: null,
+      adr: [],
+    },
+    approvals: {
+      product_to_solution: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      solution_to_fullstack: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      fullstack_to_code_review: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      code_review_to_qa: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+      qa_to_done: { status: 'pending', approved_by: null, approved_at: null, notes: null },
+    },
+    issues: [],
+    verification_evidence: [],
+    retry_count: 0,
+    escalated_from: null,
+    escalation_reason: null,
+    updated_at: '2026-03-30T00:00:00.000Z',
+    work_item_id: 'feature-910',
+    parallelization: {
+      parallel_mode: 'none',
+      why: null,
+      safe_parallel_zones: [],
+      sequential_constraints: [],
+      integration_checkpoint: null,
+      max_active_execution_tracks: null,
+    },
+  };
+
+  writeJson(path.join(projectRoot, '.opencode', 'workflow-state.json'), state);
+  writeJson(path.join(projectRoot, '.opencode', 'work-items', 'index.json'), {
+    active_work_item_id: 'feature-910',
+    work_items: [
+      {
+        work_item_id: 'feature-910',
+        feature_id: 'FEATURE-910',
+        feature_slug: 'doctor-planning-dispatch',
+        mode: 'full',
+        status: 'in_progress',
+        state_path: '.opencode/work-items/feature-910/state.json',
+      },
+    ],
+  });
+  writeJson(path.join(projectRoot, '.opencode', 'work-items', 'feature-910', 'state.json'), state);
+
+  const result = inspectManagedDoctor({
+    projectRoot,
+    env: withAstGrepPath(projectRoot, {}),
+    isOpenCodeAvailable: () => true,
+  });
+
+  assert.ok(Array.isArray(result.runtimeDoctor.workflow.planningDispatchLines));
+  assert.ok(result.runtimeDoctor.workflow.planningDispatchLines.some((line) => /planning dispatches:/i.test(line)));
+  assert.ok(result.runtimeDoctor.workflow.planningDispatchLines.some((line) => /ProductLead @ full_product/i.test(line)));
+});
+
 test('doctor surfaces model-resolution trace for runtime category and specialist overrides', () => {
   const projectRoot = makeTempDir();
 
