@@ -6,7 +6,7 @@ const PACKAGE_NAME = '@duypham93/openkit';
 
 const VERSION_TARGETS = [
   'package.json',
-  'src/kit/registry.json',
+  'registry.json',
   '.opencode/install-manifest.json',
   '.opencode/tests/session-start-hook.test.js',
   '.opencode/tests/workflow-behavior.test.js',
@@ -42,7 +42,7 @@ export function getReleasePaths(repoRoot = process.cwd()) {
   return {
     repoRoot,
     packageJsonPath: path.join(repoRoot, 'package.json'),
-    registryPath: path.join(repoRoot, 'src', 'kit', 'registry.json'),
+    registryPath: path.join(repoRoot, 'registry.json'),
     installManifestPath: path.join(repoRoot, '.opencode', 'install-manifest.json'),
     releasesIndexPath: path.join(repoRoot, 'RELEASES.md'),
     releaseNotesDir: path.join(repoRoot, 'release-notes'),
@@ -176,7 +176,7 @@ export function verifyReleaseMetadata(repoRoot = process.cwd(), version = readCu
   const manifestVersion = JSON.parse(readText(getReleasePaths(repoRoot).installManifestPath)).kit.version;
 
   if (packageVersion !== version || registryVersion !== version || manifestVersion !== version) {
-    throw new Error('Version metadata is out of sync between package.json, src/kit/registry.json, and .opencode/install-manifest.json.');
+    throw new Error('Version metadata is out of sync between package.json, registry.json, and .opencode/install-manifest.json.');
   }
 
   const releaseStatus = readReleaseSummaryStatus(repoRoot, version);

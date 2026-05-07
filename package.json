@@ -1,6 +1,6 @@
 {
   "name": "@duypham93/openkit",
-  "version": "0.3.40",
+  "version": "0.3.36",
   "type": "module",
   "engines": {
     "node": ">=18"
@@ -24,18 +24,22 @@
     ".opencode/switch-profiles.js",
     ".opencode/README.md",
     ".opencode/workflow-state.js",
+    "agents/",
     "assets/",
     "bin/",
+    "commands/",
+    "context/",
     "docs/governance/",
     "docs/operator/",
     "docs/operations/README.md",
     "docs/operations/runbooks/",
     "docs/templates/",
+    "hooks/",
+    "skills/",
     "src/",
+    "AGENTS.md",
     "README.md",
-    "scripts/sync-install-bundle.mjs",
-    "scripts/verify-init-deep-direct-runtime.mjs",
-    "scripts/verify-install-bundle.mjs",
+    "registry.json",
     "scripts/verify-mcp-secret-package-readiness.mjs"
   ],
   "bin": {
@@ -45,7 +49,6 @@
   "scripts": {
     "sync:install-bundle": "node scripts/sync-install-bundle.mjs",
     "verify:install-bundle": "node scripts/verify-install-bundle.mjs",
-    "verify:init-deep-direct-runtime": "node scripts/verify-init-deep-direct-runtime.mjs",
     "verify:mcp-secret-package-readiness": "node scripts/verify-mcp-secret-package-readiness.mjs",
     "verify:runtime-foundation": "node --test tests/runtime/runtime-config-loader.test.js && node --test tests/runtime/capability-registry.test.js && node --test tests/runtime/runtime-bootstrap.test.js",
     "verify:governance": "node --test tests/runtime/governance-enforcement.test.js && node --test tests/runtime/registry-metadata.test.js && node --test \".opencode/tests/workflow-contract-consistency.test.js\"",

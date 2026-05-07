@@ -346,49 +346,4 @@ export class DelegationSupervisor {
       run,
     };
   }
-
-  dispatchPlanningStage({ workItemId = null, role, stage, artifactKind, title = null, customStatePath = null, requestedBy = 'MasterOrchestrator', output = null }) {
-    if (!role || !stage || !artifactKind) {
-      return {
-        dispatched: false,
-        reason: 'invalid-planning-dispatch-input',
-      };
-    }
-
-    const started = this.workflowKernel?.startPlanningDispatch?.({
-      role,
-      stage,
-      artifactKind,
-      title: title ?? `${role} planning handoff`,
-      requestedBy,
-      customStatePath,
-    }) ?? null;
-
-    if (!started?.run?.run_id) {
-      return {
-        dispatched: false,
-        reason: 'planning-dispatch-unavailable',
-        role,
-        stage,
-        artifactKind,
-        workItemId,
-      };
-    }
-
-    const completed = this.workflowKernel?.completePlanningDispatch?.({
-      runId: started.run.run_id,
-      output: output ?? { status: 'delegated' },
-      customStatePath,
-    }) ?? null;
-
-    return {
-      dispatched: Boolean(completed?.run?.run_id),
-      mode: 'planning-handoff',
-      role,
-      stage,
-      artifactKind,
-      workItemId,
-      run: completed?.run ?? started.run,
-    };
-  }
 }

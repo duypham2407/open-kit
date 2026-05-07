@@ -31,7 +31,7 @@ test("discoverProjectShape classifies an OpenKit additive local metadata project
       mode: "additive-non-destructive",
     },
   })
-  writeJson(path.join(projectRoot, "src", "kit", "registry.json"), {
+  writeJson(path.join(projectRoot, "registry.json"), {
     kit: {
       productSurface: {
         emerging: "global-openkit-install",
@@ -107,7 +107,7 @@ test("discoverProjectShape reports malformed additive metadata explicitly instea
     name: "runtime-only",
   })
   writeText(path.join(projectRoot, ".opencode", "install-manifest.json"), "{ invalid json\n")
-  writeText(path.join(projectRoot, "src", "kit", "registry.json"), "not-json\n")
+  writeText(path.join(projectRoot, "registry.json"), "not-json\n")
 
   const result = discoverProjectShape(projectRoot)
 

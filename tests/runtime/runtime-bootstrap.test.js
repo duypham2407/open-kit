@@ -43,14 +43,11 @@ test('bootstrapRuntimeFoundation builds config, capabilities, managers, tools, h
   assert.equal(result.managers.managers['manager.notifications'].enabled, true);
   assert.equal(result.managers.managers['manager.tmux'].enabled, true);
   assert.ok(result.tools.toolList.some((entry) => entry.id === 'tool.workflow-state'));
-  assert.ok(result.tools.toolList.some((entry) => entry.id === 'tool.command-runner'));
   assert.ok(result.hooks.hookList.some((entry) => entry.id === 'hook.resume-context'));
   assert.ok(result.categories.categories.some((entry) => entry.id === 'deep'));
   assert.ok(result.specialists.specialists.some((entry) => entry.id === 'specialist.oracle'));
   assert.equal(Array.isArray(result.skills.skills), true);
   assert.equal(Array.isArray(result.commands), true);
-  assert.ok(Array.isArray(result.runtimeInterface.runtimeCommands));
-  assert.ok(result.runtimeInterface.runtimeCommands.some((entry) => entry.name === '/init-deep'));
   assert.ok(result.mcpPlatform.builtin.some((entry) => entry.id === 'mcp.websearch'));
   assert.ok(result.capabilities.some((entry) => entry.id === 'capability.session-tooling'));
   assert.ok(result.capabilities.some((entry) => entry.id === 'capability.continuation-control'));

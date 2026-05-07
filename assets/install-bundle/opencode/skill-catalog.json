@@ -77,7 +77,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/using-skills/SKILL.md",
+        "source": "skills/using-skills/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -142,7 +142,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/brainstorming/SKILL.md",
+        "source": "skills/brainstorming/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -200,7 +200,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/writing-scope/SKILL.md",
+        "source": "skills/writing-scope/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -259,7 +259,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/writing-solution/SKILL.md",
+        "source": "skills/writing-solution/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -318,7 +318,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/subagent-driven-development/SKILL.md",
+        "source": "skills/subagent-driven-development/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -376,7 +376,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/test-driven-development/SKILL.md",
+        "source": "skills/test-driven-development/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -446,7 +446,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/systematic-debugging/SKILL.md",
+        "source": "skills/systematic-debugging/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -506,7 +506,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/code-review/SKILL.md",
+        "source": "skills/code-review/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -571,7 +571,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/verification-before-completion/SKILL.md",
+        "source": "skills/verification-before-completion/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -631,7 +631,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/find-skills/SKILL.md",
+        "source": "skills/find-skills/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -705,7 +705,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/codebase-exploration/SKILL.md",
+        "source": "skills/codebase-exploration/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -781,7 +781,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/deep-research/SKILL.md",
+        "source": "skills/deep-research/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -852,7 +852,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/refactoring/SKILL.md",
+        "source": "skills/refactoring/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -924,7 +924,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/frontend-ui-ux/SKILL.md",
+        "source": "skills/frontend-ui-ux/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -993,7 +993,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/dev-browser/SKILL.md",
+        "source": "skills/dev-browser/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -1061,7 +1061,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/browser-automation/SKILL.md",
+        "source": "skills/browser-automation/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -1126,7 +1126,7 @@
         "Git MCP support is policy-gated; destructive git operations remain confirmation-gated and are never silently allowed."
       ],
       "docs": {
-        "source": "src/kit/skills/git-master/SKILL.md",
+        "source": "skills/git-master/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -1204,7 +1204,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/vercel-react-best-practices/SKILL.md",
+        "source": "skills/vercel-react-best-practices/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -1266,7 +1266,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/vercel-composition-patterns/SKILL.md",
+        "source": "skills/vercel-composition-patterns/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     },
@@ -1332,7 +1332,7 @@
       },
       "limitations": [],
       "docs": {
-        "source": "src/kit/skills/vercel-react-native-skills/SKILL.md",
+        "source": "skills/vercel-react-native-skills/SKILL.md",
         "governance": "docs/governance/skill-metadata.md"
       }
     }

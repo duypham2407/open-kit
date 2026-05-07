@@ -9,7 +9,7 @@ import { bootstrapRuntimeFoundation } from '../../src/runtime/index.js';
 import { createMcpPlatform } from '../../src/runtime/mcp/index.js';
 import { createContextInjection } from '../../src/runtime/context/index.js';
 import { createSkillRegistry } from '../../src/runtime/skills/index.js';
-import { createRuntimeCommandExecutor, loadRuntimeCommands } from '../../src/runtime/commands/index.js';
+import { loadRuntimeCommands } from '../../src/runtime/commands/index.js';
 import { wrapToolExecution } from '../../src/runtime/tools/wrap-tool-execution.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -129,24 +129,21 @@ test('action model state manager tracks consecutive failures per action and rese
 });
 
 test('skill and command loaders discover added runtime surfaces', () => {
-  // Use a fake kitRoot to simulate global kit install; project root stays separate
-  const kitRoot = makeTempDir();
   const projectRoot = makeTempDir();
   writeText(path.join(projectRoot, 'README.md'), '# project');
   writeText(path.join(projectRoot, 'AGENTS.md'), '# agents');
-  writeText(path.join(kitRoot, 'src', 'kit', 'skills', 'custom-skill', 'SKILL.md'), '# custom-skill');
-  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'init-deep.md'), '# Command');
-  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'refactor.md'), '# Command');
-  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'start-work.md'), '# Command');
-  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'handoff.md'), '# Command');
-  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'stop-continuation.md'), '# Command');
-  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'browser-verify.md'), '# Command');
-  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'switch.md'), '# Command');
-  writeText(path.join(kitRoot, 'src', 'kit', 'commands', 'switch-profiles.md'), '# Command');
+  writeText(path.join(projectRoot, 'skills', 'custom-skill', 'SKILL.md'), '# custom-skill');
+  writeText(path.join(projectRoot, 'commands', 'init-deep.md'), '# Command');
+  writeText(path.join(projectRoot, 'commands', 'refactor.md'), '# Command');
+  writeText(path.join(projectRoot, 'commands', 'start-work.md'), '# Command');
+  writeText(path.join(projectRoot, 'commands', 'handoff.md'), '# Command');
+  writeText(path.join(projectRoot, 'commands', 'stop-continuation.md'), '# Command');
+  writeText(path.join(projectRoot, 'commands', 'browser-verify.md'), '# Command');
+  writeText(path.join(projectRoot, 'commands', 'switch.md'), '# Command');
+  writeText(path.join(projectRoot, 'commands', 'switch-profiles.md'), '# Command');
 
-  const env = { HOME: makeTempDir(), OPENKIT_KIT_ROOT: kitRoot };
-  const skillRegistry = createSkillRegistry({ projectRoot, env });
-  const commands = loadRuntimeCommands({ projectRoot, env });
+  const skillRegistry = createSkillRegistry({ projectRoot, env: { HOME: makeTempDir() } });
+  const commands = loadRuntimeCommands({ projectRoot });
   const context = createContextInjection({ projectRoot, mode: 'full', category: 'deep' });
 
   assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill'));
@@ -154,162 +151,10 @@ test('skill and command loaders discover added runtime surfaces', () => {
   assert.ok(commands.some((entry) => entry.name === '/browser-verify' && entry.compatibility === 'builtin-compatible'));
   assert.ok(commands.some((entry) => entry.name === '/switch' && entry.compatibility === 'builtin-compatible'));
   assert.ok(commands.some((entry) => entry.name === '/switch-profiles' && entry.compatibility === 'builtin-compatible'));
-  assert.ok(commands.some((entry) => entry.name === '/init-deep' && entry.runtimeBacked === true));
-  assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill' && entry.compatibility === 'kit-local'));
+  assert.ok(skillRegistry.skills.some((entry) => entry.name === 'custom-skill' && entry.compatibility === 'project-local'));
   assert.equal(context.agentsPath, path.join(projectRoot, 'AGENTS.md'));
   assert.equal(context.readmePath, path.join(projectRoot, 'README.md'));
   assert.equal(context.rules.mode, 'full');
-});
-
-test('runtime command executor runs init-deep and writes project-owned AGENTS.md', async () => {
-  const projectRoot = makeTempDir();
-  writeText(path.join(projectRoot, 'README.md'), '# Sample Product');
-  writeText(path.join(projectRoot, 'package.json'), JSON.stringify({
-    name: 'sample-product',
-    scripts: {
-      test: 'node --test'
-    }
-  }, null, 2));
-  writeText(path.join(projectRoot, '.opencode', 'openkit', 'src/kit/AGENTS.md'), '# openkit-agents');
-
-  const executor = createRuntimeCommandExecutor({ projectRoot });
-  const result = await executor.execute('/init-deep');
-
-  assert.equal(result.status, 'ok');
-  assert.equal(result.validation_surface, 'runtime_tooling');
-  assert.equal(result.agentsPath, path.join(projectRoot, 'AGENTS.md'));
-
-  const contents = fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8');
-  assert.match(contents, /# Project Agent Guide/);
-  assert.match(contents, /Sample Product/);
-  assert.match(contents, /\.opencode\/openkit\/AGENTS\.md/);
-  assert.match(contents, /Build: Unavailable/);
-  assert.match(contents, /Test: `node --test`/);
-});
-
-test('runtime command executor preserves existing project guidance sections when refreshing AGENTS.md', async () => {
-  const projectRoot = makeTempDir();
-  writeText(path.join(projectRoot, 'README.md'), '# Sample Product');
-  writeText(path.join(projectRoot, 'AGENTS.md'), `# Project Agent Guide
-
-Project-specific preamble that should survive refresh.
-
-## Project Identity
-
-Legacy identity note.
-
-## Repository Constraints
-
-- Custom constraint that should survive refresh.
-
-## Working Rules
-
-- Preserve this project rule.
-
-## OpenKit Workflow Overlay
-
-- Old overlay.
-`);
-
-  const executor = createRuntimeCommandExecutor({ projectRoot });
-  const result = await executor.execute('/init-deep');
-
-  assert.equal(result.status, 'ok');
-  assert.equal(result.analysis.preservedSectionCount >= 1, true);
-
-  const contents = fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8');
-  assert.match(contents, /## Preserved Project Notes/);
-  assert.match(contents, /Project-specific preamble that should survive refresh/);
-  assert.match(contents, /Legacy identity note/);
-  assert.match(contents, /## Repository Constraints/);
-  assert.match(contents, /Custom constraint that should survive refresh/);
-  assert.match(contents, /Preserve this project rule/);
-});
-
-test('runtime command executor returns structured unknown-command response', async () => {
-  const projectRoot = makeTempDir();
-  const executor = createRuntimeCommandExecutor({ projectRoot });
-  const result = await executor.execute('/unknown-command');
-
-  assert.equal(result.status, 'unknown-command');
-  assert.equal(result.validation_surface, 'runtime_tooling');
-});
-
-test('command runner tool dispatches runtime-backed init-deep execution', async () => {
-  const projectRoot = makeTempDir();
-  writeText(path.join(projectRoot, 'README.md'), '# Tool Driven Product');
-
-  const result = bootstrapRuntimeFoundation({
-    projectRoot,
-    env: { HOME: makeTempDir() },
-  });
-
-  const tool = result.tools.tools['tool.command-runner'];
-  const run = await tool.execute({ command: '/init-deep' });
-
-  assert.equal(run.status, 'ok');
-  assert.equal(run.requestedCommand, '/init-deep');
-  assert.equal(run.validation_surface, 'runtime_tooling');
-
-  const contents = fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8');
-  assert.match(contents, /Tool Driven Product/);
-});
-
-test('command runner tool returns the same runtime execution result surface for /init-deep', async () => {
-  const projectRoot = makeTempDir();
-  writeText(path.join(projectRoot, 'README.md'), '# Routed Product');
-
-  const result = bootstrapRuntimeFoundation({
-    projectRoot,
-    env: { HOME: makeTempDir() },
-  });
-
-  const tool = result.tools.tools['tool.command-runner'];
-  const run = await tool.execute({ command: '/init-deep' });
-
-  assert.equal(run.command, '/init-deep');
-  assert.equal(run.requestedCommand, '/init-deep');
-  assert.equal(run.message.includes('Root AGENTS.md was refreshed'), true);
-});
-
-test('command runner tool validates missing command input', async () => {
-  const projectRoot = makeTempDir();
-  const result = bootstrapRuntimeFoundation({
-    projectRoot,
-    env: { HOME: makeTempDir() },
-  });
-
-  const tool = result.tools.tools['tool.command-runner'];
-  const run = await tool.execute({});
-
-  assert.equal(run.status, 'invalid-input');
-  assert.equal(run.validation_surface, 'runtime_tooling');
-});
-
-test('runtime command executor reports write failures when AGENTS.md cannot be written', async () => {
-  const projectRoot = makeTempDir();
-  writeText(path.join(projectRoot, 'README.md'), '# Sample Product');
-  // Create a directory at the AGENTS.md path to trigger a write error
-  const agentsParent = path.join(projectRoot, 'AGENTS.md');
-  fs.mkdirSync(agentsParent, { recursive: true });
-
-  const executor = createRuntimeCommandExecutor({ projectRoot });
-  const result = await executor.execute('/init-deep');
-
-  assert.equal(result.status, 'error');
-  assert.equal(result.validation_surface, 'runtime_tooling');
-  assert.match(result.message, /Failed to write root AGENTS\.md/);
-});
-
-test('context injection falls back to the OpenKit compatibility AGENTS guide when root AGENTS.md is absent', () => {
-  const projectRoot = makeTempDir();
-  writeText(path.join(projectRoot, 'README.md'), '# project');
-  writeText(path.join(projectRoot, '.opencode', 'openkit', 'src/kit/AGENTS.md'), '# openkit-agents');
-
-  const context = createContextInjection({ projectRoot, mode: 'full', category: 'deep' });
-
-  assert.equal(context.agentsPath, path.join(projectRoot, '.opencode', 'openkit', 'src/kit/AGENTS.md'));
-  assert.equal(context.readmePath, path.join(projectRoot, 'README.md'));
 });
 
 test('mcp platform loads builtin mcps and optional config file', async () => {
@@ -508,7 +353,6 @@ test('runtime foundation exposes workflow-backed tools, supervisor, and persiste
   const runtimeSummaryResult = runtimeSummaryTool.execute({ customStatePath: statePath });
   assert.equal(runtimeSummaryResult.status, 'ok');
   assert.ok(runtimeSummaryResult.runtimeContext);
-  assert.equal(Array.isArray(runtimeSummaryResult.renderedLines), true);
   assert.equal(runtimeSummaryResult.runtimeContext.capabilityGuidance.validationSurface, 'runtime_tooling');
   assert.ok(runtimeSummaryResult.runtimeContext.capabilityGuidanceLines.some((line) => /advisory only; no skill or MCP was auto-activated/i.test(line)));
   assert.equal(runtimeSummaryResult.runtimeContext.capabilityGuidance.targetProjectValidation.status, 'unavailable');
@@ -639,118 +483,6 @@ test('runtime foundation exposes workflow-backed tools, supervisor, and persiste
     customStatePath: statePath,
   });
   assert.equal(dispatched.dispatched, false);
-
-  const planningDispatch = delegationTool.execute({
-    dispatchPlanningStage: true,
-    workItemId: status.state.work_item_id,
-    role: 'ProductLead',
-    stage: 'full_product',
-    artifactKind: 'scope_package',
-    title: 'Product scope handoff',
-    customStatePath: statePath,
-    output: { artifact: 'docs/scope/runtime-platform.md' },
-  });
-  assert.equal(planningDispatch.dispatched, true);
-
-  const updatedStatus = workflowStateTool.execute({ command: 'status', customStatePath: statePath });
-  assert.equal(updatedStatus.runtimeContext.planningDispatchSummary.ready, false);
-  assert.ok(updatedStatus.runtimeContext.planningDispatchSummary.readiness.some((entry) => entry.role === 'ProductLead'));
-});
-
-test('workflow kernel exposes planning dispatch helpers and workflow status surfaces show planning blockers', () => {
-  const { projectRoot, statePath, sourceRoot } = createIsolatedWorkflowStateRoot();
-  const result = bootstrapRuntimeFoundation({
-    projectRoot,
-    env: {
-      ...process.env,
-      HOME: makeTempDir(),
-      OPENKIT_KIT_ROOT: sourceRoot,
-      OPENKIT_WORKFLOW_STATE: statePath,
-    },
-  });
-
-  const workflowStateTool = result.tools.tools['tool.workflow-state'];
-  const kernel = result.managers.workflowKernel;
-
-  const started = kernel.startPlanningDispatch({
-    role: 'ProductLead',
-    stage: 'full_product',
-    artifactKind: 'scope_package',
-    title: 'Kernel product scope handoff',
-    customStatePath: statePath,
-  });
-  assert.ok(started.run.run_id);
-
-  const runningStatus = workflowStateTool.execute({ command: 'status', customStatePath: statePath });
-  assert.ok(runningStatus.runtimeContext.planningDispatchSummary.blockers.some((entry) => /ProductLead/.test(entry)));
-
-  const completed = kernel.completePlanningDispatch({
-    runId: started.run.run_id,
-    output: { artifact: 'docs/scope/kernel-platform.md' },
-    customStatePath: statePath,
-  });
-  assert.equal(completed.run.status, 'completed');
-
-  const doctor = workflowStateTool.execute({ command: 'doctor', customStatePath: statePath });
-  assert.equal(Array.isArray(doctor.runtime.runtimeContext.planningDispatchSummary.blockers), true);
-  assert.ok(result.runtimeInterface.runtimeState.workflowDoctor.planningDispatchLines.some((line) => /planning dispatches:/i.test(line)));
-});
-
-test('command orchestrator auto-emits planning dispatch telemetry for delivery and migrate entries', () => {
-  const { projectRoot, statePath, sourceRoot } = createIsolatedWorkflowStateRoot();
-  const result = bootstrapRuntimeFoundation({
-    projectRoot,
-    env: {
-      ...process.env,
-      HOME: makeTempDir(),
-      OPENKIT_KIT_ROOT: sourceRoot,
-      OPENKIT_WORKFLOW_STATE: statePath,
-    },
-  });
-
-  const deliveryState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-  deliveryState.mode = 'full';
-  deliveryState.current_stage = 'full_product';
-  deliveryState.current_owner = 'ProductLead';
-  fs.writeFileSync(statePath, `${JSON.stringify(deliveryState, null, 2)}\n`, 'utf8');
-  fs.writeFileSync(path.join(projectRoot, '.opencode', 'work-items', deliveryState.work_item_id, 'state.json'), `${JSON.stringify(deliveryState, null, 2)}\n`, 'utf8');
-
-  const workItemId = deliveryState.work_item_id;
-  const deliveryDispatch = result.commandOrchestrator.execute('/delivery', { customStatePath: statePath });
-  assert.equal(deliveryDispatch.status, 'ok');
-  assert.ok(Array.isArray(deliveryDispatch.actions));
-  assert.ok(deliveryDispatch.actions.some((entry) => entry.dispatched === true || entry.reason === 'already-complete'));
-
-  const deliveryRuns = result.managers.workflowKernel.listBackgroundRuns(statePath).runs.filter((run) => (
-    run.work_item_id === workItemId
-  ));
-  assert.ok(deliveryRuns.length >= 1);
-
-  const migrateState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-  migrateState.mode = 'migration';
-  migrateState.current_stage = 'migration_strategy';
-  migrateState.current_owner = 'SolutionLead';
-  migrateState.approvals = {
-    baseline_to_strategy: { status: 'approved', approved_by: 'MasterOrchestrator', approved_at: '2026-03-21', notes: 'Baseline approved' },
-    strategy_to_upgrade: { status: 'pending', approved_by: null, approved_at: null, notes: null },
-    upgrade_to_code_review: { status: 'pending', approved_by: null, approved_at: null, notes: null },
-    code_review_to_verify: { status: 'pending', approved_by: null, approved_at: null, notes: null },
-    migration_verified: { status: 'pending', approved_by: null, approved_at: null, notes: null },
-  };
-  migrateState.artifacts = {
-    ...migrateState.artifacts,
-    scope_package: null,
-    solution_package: 'docs/solution/migration-runtime-platform.md',
-    qa_report: null,
-  };
-  fs.writeFileSync(statePath, `${JSON.stringify(migrateState, null, 2)}\n`, 'utf8');
-  fs.writeFileSync(path.join(projectRoot, '.opencode', 'work-items', workItemId, 'state.json'), `${JSON.stringify(migrateState, null, 2)}\n`, 'utf8');
-
-  const migrateDispatch = result.commandOrchestrator.execute('/migrate', { customStatePath: statePath });
-  assert.ok(['ok', 'unavailable'].includes(migrateDispatch.status));
-  if (migrateDispatch.status === 'ok') {
-    assert.ok(migrateDispatch.actions.some((entry) => entry.role === 'SolutionLead' || entry.run?.payload?.dispatch?.role === 'SolutionLead' || entry.dispatched === true));
-  }
 });
 
 test('tool output truncation hook enforces configured string and array limits', () => {

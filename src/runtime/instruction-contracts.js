@@ -36,13 +36,6 @@ export const COMMAND_INSTRUCTION_CONTRACTS = {
     expectedOutputs: ['browser verification plan', 'scenario checklist', 'evidence-ready notes'],
     whenToUse: 'Use when acceptance depends on page behavior, interactive flows, or browser evidence.',
   },
-  'init-deep': {
-    command: '/init-deep',
-    purpose: 'Direct runtime repository-analysis command that refreshes project-owned AGENTS guidance.',
-    nextAction: 'Dispatch straight to the runtime-backed init-deep handler and let it inspect repository signals before any workflow interpretation.',
-    expectedOutputs: ['repository analysis summary', 'AGENTS refresh result', 'runtime_tooling evidence'],
-    whenToUse: 'Use when you want deep repository analysis and AGENTS synthesis; do not send this through Master Orchestrator lane selection.',
-  },
   switch: {
     command: '/switch',
     purpose: 'Inspect or quickly switch a runtime agent between configured model profiles.',

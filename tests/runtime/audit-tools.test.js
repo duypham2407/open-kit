@@ -330,7 +330,7 @@ test('rule-scan keeps non-JSON output as parse failure when captured output is n
 
   writeExecutable(
     path.join(toolingBin, 'semgrep'),
-    `#!/bin/sh\nnode -e "process.stderr.write('x'.repeat(64))"\n`
+    `#!/bin/sh\nnode -e "process.stderr.write('x'.repeat(4096))"\n`
   );
 
   const originalEnv = process.env;
@@ -338,7 +338,7 @@ test('rule-scan keeps non-JSON output as parse failure when captured output is n
     ...process.env,
     OPENCODE_HOME: tempHome,
     PATH: toolingBin,
-    OPENKIT_SEMGREP_MAX_BUFFER: '8192',
+    OPENKIT_SEMGREP_MAX_BUFFER: '128',
   };
 
   try {
@@ -346,11 +346,10 @@ test('rule-scan keeps non-JSON output as parse failure when captured output is n
     const result = tool.execute({ config: 'auto' });
 
     assert.equal(result.status, 'scan_failed');
-    assert.equal(result.capabilityState, 'degraded');
+    assert.equal(result.capabilityState, 'available');
     assert.equal(result.resultState, 'failed');
-    assert.equal(result.availability.state, 'degraded');
-    assert.equal(result.exitCode, null);
-    assert.equal(result.artifactRefs.length, 1);
+    assert.equal(result.availability.state, 'available');
+    assert.equal(result.artifactRefs.length, 0);
   } finally {
     process.env = originalEnv;
   }

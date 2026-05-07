@@ -27,7 +27,7 @@ test('MCP secret package readiness contract uses npm pack dry-run and names rele
     'docs/operator/supported-surfaces.md',
     'docs/operations/runbooks/mcp-secret-package-readiness.md',
     'assets/install-bundle/opencode/README.md',
-    'src/kit/registry.json',
+    'registry.json',
     'scripts/verify-mcp-secret-package-readiness.mjs',
     '.opencode/install-manifest.json',
     '.opencode/opencode.json',

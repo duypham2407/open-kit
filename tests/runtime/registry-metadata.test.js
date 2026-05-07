@@ -9,7 +9,7 @@ import { listCanonicalSkillMetadata } from '../../src/capabilities/skill-catalog
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..', '..');
-const registry = JSON.parse(fs.readFileSync(path.join(projectRoot, 'src', 'kit', 'registry.json'), 'utf8'));
+const registry = JSON.parse(fs.readFileSync(path.join(projectRoot, 'registry.json'), 'utf8'));
 const installManifest = JSON.parse(fs.readFileSync(path.join(projectRoot, '.opencode/install-manifest.json'), 'utf8'));
 
 test('registry agents include audience and mode metadata', () => {
@@ -63,7 +63,7 @@ test('registry docs include runtime surfaces reference', () => {
   const docs = registry.components.docs ?? [];
   const runtimeSurfaces = docs.find((entry) => entry.id === 'doc.runtime-surfaces');
   assert.ok(runtimeSurfaces);
-  assert.equal(runtimeSurfaces.path, 'src/kit/context/core/runtime-surfaces.md');
+  assert.equal(runtimeSurfaces.path, 'context/core/runtime-surfaces.md');
 });
 
 test('install manifest advertises generated bundled skill catalog metadata', () => {

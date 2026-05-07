@@ -39,8 +39,6 @@ export function createRuntimeInterface({
   modelRuntime,
   skills,
   commands,
-  commandExecutor,
-  commandOrchestrator = null,
   contextInjection,
 }) {
   const capabilityIds = capabilities.map((capability) => capability.id);
@@ -57,7 +55,6 @@ export function createRuntimeInterface({
     skillSummary: summarizeSkillCatalog(capabilityPackInventory.skills),
     keySummary: summarizeKeyState(capabilityPackInventory.mcps),
     guidance: capabilityGuidance,
-    readiness: managers.capabilityRegistryManager?.buildReadModel?.({ scope: 'openkit', maxNextActions: 5 }) ?? null,
   };
   const latestSession = managers.sessionStateManager?.latest?.() ?? null;
   const workflowDoctor = inspectWorkflowDoctor(managers.workflowKernel);
@@ -89,15 +86,6 @@ export function createRuntimeInterface({
     modelExecution: modelRuntime.executionState ?? [],
     skills: skills.skills,
     commands,
-    runtimeCommands: Object.values(commandExecutor?.handlers ?? {}).map((handler) => ({
-      id: handler.id,
-      name: handler.name,
-      description: handler.description ?? 'runtime-backed command',
-      executionPriority: handler.executionPriority ?? 'default',
-      bypassLaneSelection: handler.bypassLaneSelection === true,
-      validationSurface: 'runtime_tooling',
-    })),
-    commandOrchestrator,
     contextInjection,
     runtimeState: {
       persistedSessions: managers.sessionStateManager?.list?.().length ?? 0,

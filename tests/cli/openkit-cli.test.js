@@ -165,9 +165,9 @@ test('openkit install-global materializes global kit and profile files', () => {
   const profileRoot = path.join(tempHome, 'profiles', 'openkit');
 
   assert.equal(fs.existsSync(path.join(kitRoot, '.opencode', 'workflow-state.js')), true);
-  assert.equal(fs.existsSync(path.join(kitRoot, 'src', 'kit', 'commands', 'migrate.md')), true);
-  assert.equal(fs.existsSync(path.join(kitRoot, 'src', 'kit', 'commands', 'refactor.md')), true);
-  assert.equal(fs.existsSync(path.join(kitRoot, 'src', 'kit', 'skills', 'git-master', 'SKILL.md')), true);
+  assert.equal(fs.existsSync(path.join(kitRoot, 'commands', 'migrate.md')), true);
+  assert.equal(fs.existsSync(path.join(kitRoot, 'commands', 'refactor.md')), true);
+  assert.equal(fs.existsSync(path.join(kitRoot, 'skills', 'git-master', 'SKILL.md')), true);
   assert.equal(fs.existsSync(path.join(kitRoot, 'src', 'runtime', 'index.js')), true);
   assert.equal(fs.existsSync(path.join(kitRoot, 'assets', 'openkit.runtime.jsonc.template')), true);
   assert.equal(fs.existsSync(path.join(profileRoot, 'opencode.json')), true);
@@ -175,7 +175,7 @@ test('openkit install-global materializes global kit and profile files', () => {
   assert.equal(fs.existsSync(path.join(kitRoot, 'opencode.json')), true);
   assert.equal(fs.existsSync(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin', 'ast-grep')), true);
   assert.equal(readJson(path.join(kitRoot, 'install-state.json')).kit.version, getOpenKitVersion());
-  assert.match(readJson(path.join(profileRoot, 'hooks.json')).hooks.SessionStart[0].hooks[0].command, /src[\\/]kit[\\/]hooks[\\/]session-start\.js/);
+  assert.match(readJson(path.join(profileRoot, 'hooks.json')).hooks.SessionStart[0].hooks[0].command, /session-start\.js/);
   assert.deepEqual(readJson(path.join(tempHome, 'openkit', 'agent-models.json')).agentModels, {});
 });
 
@@ -259,7 +259,6 @@ test('openkit doctor reports healthy without mutating workspace metadata', () =>
   assert.match(result.stdout, /Recommended command: openkit run/);
   assert.match(result.stdout, /Default session entrypoint: \/task/);
   assert.match(result.stdout, /Next action after launch:/);
-  assert.match(result.stdout, /Planning dispatch:/);
   assert.equal(fs.existsSync(path.join(tempHome, 'workspaces')), false);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode')), false);
 });
@@ -326,14 +325,14 @@ process.stdout.write('mock opencode launched\\n');
   assert.match(invocation.workflowState, /workspaces\/.*\/openkit\/\.opencode\/workflow-state\.json$/);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
   assert.equal(invocation.path.startsWith(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin')), true);
-  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'src/kit/AGENTS.md')), true);
-  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'src', 'kit', 'context', 'core', 'workflow.md')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'context', 'core', 'workflow.md')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.json')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'workflow-state.js')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'profile-switch.js')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'switch-profiles.js')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'openkit', 'work-items')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'work-items')), true);
-  assert.equal(fs.existsSync(path.join(projectRoot, 'src/kit/AGENTS.md')), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, 'context', 'core', 'workflow.md')), true);
   assert.equal(fs.lstatSync(path.join(projectRoot, '.opencode', 'workflow-state.json')).isSymbolicLink() || fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.json')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'workflow-state.js')), true);
@@ -512,29 +511,7 @@ process.stdout.write('mock opencode launched after auto-install\\n');
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
   assert.equal(invocation.runtimeFoundation, '1');
   assert.equal(invocation.path.startsWith(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin')), true);
-  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'src/kit/AGENTS.md')), true);
-  assert.equal(fs.existsSync(path.join(projectRoot, 'src/kit/AGENTS.md')), false);
-});
-
-test('openkit run keeps root AGENTS.md project-owned and not runtime-managed', () => {
-  const tempHome = makeTempDir();
-  const projectRoot = makeTempDir();
-  const fakeBinDir = path.join(tempHome, 'bin');
-
-  writeExecutable(path.join(fakeBinDir, 'opencode'), '#!/bin/sh\nexit 0\n');
-
-  const result = runCli(['run'], {
-    cwd: projectRoot,
-    env: {
-      ...process.env,
-      OPENCODE_HOME: tempHome,
-      PATH: `${fakeBinDir}${path.delimiter}${process.env.PATH}`,
-    },
-  });
-
-  assert.equal(result.status, 0);
-  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'src/kit/AGENTS.md')), true);
-  assert.equal(fs.existsSync(path.join(projectRoot, 'src/kit/AGENTS.md')), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
 });
 
 test('openkit run does not overwrite existing repo-local workflow files when creating shims', () => {
@@ -544,8 +521,7 @@ test('openkit run does not overwrite existing repo-local workflow files when cre
 
   fs.mkdirSync(path.join(projectRoot, '.opencode'), { recursive: true });
   fs.mkdirSync(path.join(projectRoot, 'context', 'core'), { recursive: true });
-  fs.mkdirSync(path.join(projectRoot, 'src', 'kit'), { recursive: true });
-  fs.writeFileSync(path.join(projectRoot, 'src/kit/AGENTS.md'), 'project agents\n', 'utf8');
+  fs.writeFileSync(path.join(projectRoot, 'AGENTS.md'), 'project agents\n', 'utf8');
   fs.writeFileSync(path.join(projectRoot, 'context', 'core', 'workflow.md'), 'project workflow\n', 'utf8');
   fs.writeFileSync(path.join(projectRoot, '.opencode', 'workflow-state.json'), '{"project":true}\n', 'utf8');
   fs.writeFileSync(path.join(projectRoot, '.opencode', 'workflow-state.js'), '#!/usr/bin/env node\n', 'utf8');
@@ -562,12 +538,11 @@ test('openkit run does not overwrite existing repo-local workflow files when cre
   });
 
   assert.equal(result.status, 0);
-  assert.equal(fs.readFileSync(path.join(projectRoot, 'src/kit/AGENTS.md'), 'utf8'), 'project agents\n');
+  assert.equal(fs.readFileSync(path.join(projectRoot, 'AGENTS.md'), 'utf8'), 'project agents\n');
   assert.equal(fs.readFileSync(path.join(projectRoot, 'context', 'core', 'workflow.md'), 'utf8'), 'project workflow\n');
   assert.equal(fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.js'), 'utf8'), '#!/usr/bin/env node\n');
   assert.equal(fs.readFileSync(path.join(projectRoot, '.opencode', 'workflow-state.json'), 'utf8'), '{"project":true}\n');
-  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'src/kit/AGENTS.md')), true);
-  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'src', 'kit', 'context', 'core', 'workflow.md')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
 });
 
 test('openkit run refreshes managed wrappers when the workspace location changes', () => {
@@ -652,14 +627,14 @@ test('openkit run cleans root compatibility shims when created files are removed
   });
 
   assert.equal(result.status, 0);
-  assert.equal(fs.existsSync(path.join(projectRoot, 'src/kit/AGENTS.md')), false);
+  assert.equal(fs.existsSync(path.join(projectRoot, 'AGENTS.md')), true);
 
-  removePathIfPresent(path.join(projectRoot, 'src/kit/AGENTS.md'));
+  removePathIfPresent(path.join(projectRoot, 'AGENTS.md'));
   removePathIfPresent(path.join(projectRoot, 'context'));
   removePathIfPresent(path.join(projectRoot, '.opencode', 'workflow-state.json'));
   removePathIfPresent(path.join(projectRoot, '.opencode', 'workflow-state.js'));
 
-  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'src/kit/AGENTS.md')), true);
+  assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
 });
 
 test('openkit run creates CommonJS workflow wrappers without module-boundary warnings', () => {
@@ -730,11 +705,8 @@ test('openkit run creates CommonJS workflow wrappers without module-boundary war
     },
   });
 
-  assert.ok([0, 1].includes(switchProfilesRun.status ?? -1));
-  const combinedSwitchProfilesOutput = `${switchProfilesRun.stdout}${switchProfilesRun.stderr}`;
-  if (combinedSwitchProfilesOutput.length > 0) {
-    assert.match(combinedSwitchProfilesOutput, /No global agent model profiles are available to switch|requires OPENKIT_RUNTIME_SESSION_ID/);
-  }
+  assert.equal(switchProfilesRun.status, 0);
+  assert.match(switchProfilesRun.stdout, /No global agent model profiles are available to switch/);
   assert.doesNotMatch(switchProfilesRun.stderr, /MODULE_TYPELESS_PACKAGE_JSON/);
 });
 

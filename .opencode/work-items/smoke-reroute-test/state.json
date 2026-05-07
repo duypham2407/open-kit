@@ -1,0 +1,48 @@
+{
+  "work_item_id": "smoke-reroute-test",
+  "feature_id": "smoke-reroute-test",
+  "feature_slug": "Reroute smoke test",
+  "mode": "quick",
+  "mode_reason": "Testing design_flaw reroute in quick mode",
+  "routing_profile": {
+    "work_intent": "maintenance",
+    "behavior_delta": "preserve",
+    "dominant_uncertainty": "low_local",
+    "scope_shape": "local",
+    "selection_reason": "Testing design_flaw reroute in quick mode"
+  },
+  "parallelization": {
+    "parallel_mode": "none",
+    "why": null,
+    "safe_parallel_zones": [],
+    "sequential_constraints": [],
+    "integration_checkpoint": null,
+    "max_active_execution_tracks": null
+  },
+  "current_stage": "quick_test",
+  "status": "in_progress",
+  "current_owner": "QuickAgent",
+  "artifacts": {
+    "task_card": null,
+    "scope_package": null,
+    "solution_package": null,
+    "migration_report": null,
+    "qa_report": null,
+    "adr": []
+  },
+  "approvals": {
+    "quick_verified": {
+      "status": "pending",
+      "approved_by": null,
+      "approved_at": null,
+      "notes": null
+    }
+  },
+  "issues": [],
+  "verification_evidence": [],
+  "retry_count": 0,
+  "escalated_from": null,
+  "escalation_reason": null,
+  "last_auto_scaffold": null,
+  "updated_at": "2026-03-31T16:04:21.884Z"
+}

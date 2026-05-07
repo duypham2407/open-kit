@@ -23,15 +23,11 @@ export function createWorkflowStateTool({ projectRoot, workflowKernel }) {
         return workflowKernel.runDoctor(customStatePath);
       }
 
-        if (command === 'metrics') {
-          return workflowKernel.getWorkflowMetrics(customStatePath);
-        }
+      if (command === 'metrics') {
+        return workflowKernel.getWorkflowMetrics(customStatePath);
+      }
 
-        if (command === 'validate') {
-          return workflowKernel.showState(customStatePath);
-        }
-
-        return {
+      return {
         command,
         projectRoot,
         customStatePath,

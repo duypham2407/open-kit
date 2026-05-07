@@ -38,7 +38,6 @@ Current notable tool families include:
 - ast
 - graph
 - external
-- capability
 
 ## 3. Important Tool Groups
 
@@ -59,7 +58,6 @@ Read-model labeling rules:
 - browser verification remains `preview` `runtime_tooling` because it plans or captures evidence but does not close QA by itself
 - typecheck, lint, and test-run tools are `target_project_app` surfaces only when the target project provides the relevant config or framework; otherwise their `unavailable` status records a missing app-native validation path
 - graph, semantic search, syntax, AST, codemod, MCP, and background execution tools stay `runtime_tooling` unless a narrower implemented surface label is explicitly provided
-- capability graph, resolver, readiness dashboard, and decision-ledger tools stay `runtime_tooling`; when their summaries are rendered through workflow-state or session-resume surfaces, that wrapper is `compatibility_runtime` but the capability evidence remains runtime-tooling evidence
 - supervisor dialogue manager configuration and adapter health are `runtime_tooling`; persisted supervisor dialogue read models surfaced through workflow-state `status` or `resume-summary --json` are `compatibility_runtime`
 - bundled skill metadata is canonical in `src/capabilities/skill-catalog.js`; `tool.skill-index`, `tool.skill-mcp-bindings`, and skill routing expose it as `runtime_tooling`, while generated install-bundle skill metadata is validated on the `package` surface
 
@@ -133,50 +131,10 @@ Examples:
 - `tool.skill-index`
 - `tool.skill-mcp-bindings`
 - skill-aware `tool.capability-router`
-- `tool.capability-readiness`
-- `tool.capability-ledger`
 
 These read from canonical bundled skill metadata and expose skill maturity `status` (`stable`, `preview`, `experimental`) separately from runtime `capabilityState`. They also surface support level, provenance/source, roles, stages, triggers, limitations, packaging, docs refs, and advisory `recommended_mcps` with MCP status caveats. Router output is explainable and advisory; it recommends explicit skill loading and must not silently activate a skill.
 
 `src/runtime/tools/capability/capability-router-summary.js` builds the compact capability guidance model used by the session-start hook, runtime summaries, and explicit `tool.capability-router` summary calls. The builder is pure and bounded: it reads local workflow state, skill metadata, and MCP inventory/read models; it must not load skill bodies, call MCP-backed tools, perform provider/network health checks, mutate workflow state, or print raw secrets. Rendered guidance must keep startup snapshot/stale caveats, refresh routes, custom MCP origin labels, and unavailable `target_project_app` validation visible.
-
-### Capability graph, resolver, selection, and ledger tools
-
-The capability orchestration core is assembled through these source surfaces:
-
-- `src/capabilities/capability-graph.js` normalizes runtime tools, bundled MCPs, custom MCPs, loadable skills, metadata-only skills, browser/external capabilities, policy-gated capabilities, and target-project validation probes into graph nodes.
-- `src/runtime/managers/capability-registry-manager.js` is the facade for graph construction, `rankCapabilities()`, `selectCapability()`, read-model summaries, and ledger access.
-- `src/capabilities/activation-policy.js` classifies side-effect level and evaluates activation outcomes before use.
-- `src/capabilities/capability-decision-ledger.js` stores sanitized decision entries in a file-backed ledger when runtime root is writable, otherwise in a memory/degraded ledger.
-- `src/capabilities/capability-read-model.js` builds the bounded readiness dashboard read model.
-- `src/runtime/tools/capability/capability-readiness.js` exposes the dashboard as `tool.capability-readiness`.
-- `src/runtime/tools/capability/capability-ledger.js` exposes read-only ledger `list`, `get`, and `summary` actions as `tool.capability-ledger`.
-- `src/mcp-server/tool-schemas.js` defines MCP-server schemas for the new capability tools.
-
-Graph node families currently include `runtime_tool`, `bundled_mcp`, `custom_mcp`, `skill`, `metadata_only_skill`, `browser`, `external`, `policy_gated`, and `target_project_validation_probe`. Nodes carry ownership, state, validation surface, maturity, support level, loadability, side-effect level, locality, domain signals, roles, stages, freshness, caveats, next actions, and relationships such as `recommended_mcp`.
-
-The resolver protocol is deliberately split from activation:
-
-- Ranking is read-only and deterministic. It scores explicit skill/MCP requests, intent/domain/tag matches, current state, maturity, support level, role fit, stage fit, local/read-only preference, validation-surface fit, freshness, and requested preview/experimental allowances.
-- Ranking can return bounded `selected`, `downgraded`, `blocked`, `unavailable`, and `suppressed` groups with counts, reasons, caveats, policy gates, and next actions.
-- Ranking must not load skill bodies, execute MCPs/tools, invoke browser automation, call external providers, write files, mutate workflow state, or alter git/package/deploy/system state.
-- Selection evaluates whether one graph node is eligible for explicit activation. It can return `approved`, `blocked`, `needs_confirmation`, `degraded`, `unavailable`, or `not_applicable`, but it still does not activate the capability.
-- Actual activation remains the existing user-visible tool or `skill` invocation path and must respect normal workflow guards and command permission policy.
-
-Activation policy handles side-effect levels including `metadata_only`, `read_only`, `diagnostic`, `local_mutating`, `workflow_mutating`, `browser_read`, `browser_mutating`, `external_read`, `external_mutating`, `git_mutating`, `package_mutating`, `deploy_release`, `database_mutating`, `system_privileged`, and `destructive`. Browser and external capabilities require both relevance and explicit allowance; mutating and dangerous capabilities require policy gates and, for dangerous operations, explicit user intent plus existing safety checks.
-
-The readiness dashboard is a read model, not an activation result. It summarizes standard state distribution, family counts, policy-gated counts, metadata-only/unavailable skill counts, freshness labels, browser/external readiness, target-project validation availability, ownership split, ledger counts, and bounded next actions. Default output must remain compact and direct callers to `tool.capability-router`, `tool.capability-ledger`, `tool.capability-inventory`, `tool.capability-health`, `tool.mcp-doctor`, `tool.skill-index`, and `tool.skill-mcp-bindings` for detail.
-
-The decision ledger records sanitized capability decisions such as rank, select, skip, block, degrade, fail, load, and execute. It stores workflow context, capability identity, outcome, reason, caveats, freshness, policy gate, validation surface, and evidence/artifact references. It must not store raw secrets, tokens, auth headers, cookies, provider payloads, browser storage, raw command env maps, or sensitive stdout/stderr. Redacted key state must remain symbolic, for example `missing`, `needs_key`, `not_configured`, `present_redacted`, `unavailable`, or `unknown`.
-
-Validation-surface separation is mandatory:
-
-- `tool.capability-readiness`, `tool.capability-router`, `tool.capability-ledger`, graph/resolver/policy tests, and MCP-server schema tests are `runtime_tooling` validation.
-- `openkit doctor`, `openkit run`, and `openkit configure mcp ...` are `global_cli` or operator-readiness validation depending on the command.
-- Workflow-state status, resume, and evidence wrappers are `compatibility_runtime` validation.
-- `npm run verify:install-bundle`, `npm run verify:mcp-secret-package-readiness`, and `npm pack --dry-run --json` are `package` validation.
-- Documentation review and docs search are `documentation` validation.
-- Target-project app validation exists only when app-native build, lint, test, smoke, or regression commands/config are present and run. OpenKit runtime, package, doctor, browser, scan, or MCP readiness checks must not be reported as `target_project_app` evidence.
 
 ### External tooling tools
 

@@ -30,7 +30,7 @@ function loadSkillsFromDir(directory, scope) {
         path: filePath,
         scope,
         mcpRefs: parseSkillMcpRefs(filePath),
-        compatibility: scope === 'kit' ? 'kit-local' : scope === 'project' ? 'project-local' : scope === 'user' ? 'user-local' : 'opencode-local',
+        compatibility: scope === 'project' ? 'project-local' : scope === 'user' ? 'user-local' : 'opencode-local',
       };
     })
     .filter(Boolean);
@@ -39,7 +39,6 @@ function loadSkillsFromDir(directory, scope) {
 export function loadRuntimeSkills({ projectRoot = process.cwd(), env = process.env } = {}) {
   const scopes = getSkillScopes({ projectRoot, env });
   return [
-    ...loadSkillsFromDir(scopes.kit, 'kit'),
     ...loadSkillsFromDir(scopes.project, 'project'),
     ...loadSkillsFromDir(scopes.projectOpencode, 'project-opencode'),
     ...loadSkillsFromDir(scopes.user, 'user'),

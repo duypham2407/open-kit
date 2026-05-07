@@ -39,7 +39,7 @@ export const REQUIRED_PACKAGE_FILES = Object.freeze([
   'docs/operator/README.md',
   'docs/operations/runbooks/mcp-secret-package-readiness.md',
   'assets/install-bundle/opencode/README.md',
-  'src/kit/registry.json',
+  'registry.json',
   'scripts/verify-mcp-secret-package-readiness.mjs',
   '.opencode/install-manifest.json',
   '.opencode/opencode.json',
@@ -249,7 +249,7 @@ function runNpmPackDryRun(projectRoot) {
 }
 
 function isTextFile(filePath) {
-  if (filePath === 'package.json' || filePath === 'README.md' || filePath === 'src/kit/AGENTS.md' || filePath === 'registry.json') {
+  if (filePath === 'package.json' || filePath === 'README.md' || filePath === 'AGENTS.md' || filePath === 'registry.json') {
     return true;
   }
 

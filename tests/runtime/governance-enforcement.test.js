@@ -19,21 +19,21 @@ function listMarkdownFiles(relativeDir) {
 }
 
 test('agent prompts reference shared prompt contracts', () => {
-  for (const file of listMarkdownFiles('src/kit/agents')) {
+  for (const file of listMarkdownFiles('agents')) {
     const contents = read(file);
     assert.match(contents, /prompt-contracts\.md/);
   }
 });
 
 test('agents explicitly reference tooling-first substitution rules', () => {
-  for (const file of listMarkdownFiles('src/kit/agents')) {
+  for (const file of listMarkdownFiles('agents')) {
     const contents = read(file);
     assert.match(contents, /tool-substitution-rules\.md/);
   }
 });
 
 test('workflow command prompts reference shared prompt contracts except model configuration helper', () => {
-  for (const file of listMarkdownFiles('src/kit/commands')) {
+  for (const file of listMarkdownFiles('commands')) {
     if (file.endsWith('configure-agent-models.md')) {
       continue;
     }
@@ -46,7 +46,7 @@ test('workflow command prompts reference shared prompt contracts except model co
 });
 
 test('workflow command prompts explicitly reference tooling-first substitution rules', () => {
-  for (const file of listMarkdownFiles('src/kit/commands')) {
+  for (const file of listMarkdownFiles('commands')) {
     const contents = read(file);
     assert.match(contents, /tool-substitution-rules\.md/);
   }
@@ -54,14 +54,14 @@ test('workflow command prompts explicitly reference tooling-first substitution r
 
 test('high-risk skills reference tooling-first substitution rules', () => {
   const files = [
-    'src/kit/skills/code-review/SKILL.md',
-    'src/kit/skills/systematic-debugging/SKILL.md',
-    'src/kit/skills/test-driven-development/SKILL.md',
-    'src/kit/skills/verification-before-completion/SKILL.md',
-    'src/kit/skills/writing-solution/SKILL.md',
-    'src/kit/skills/brainstorming/SKILL.md',
-    'src/kit/skills/subagent-driven-development/SKILL.md',
-    'src/kit/skills/using-skills/SKILL.md',
+    'skills/code-review/SKILL.md',
+    'skills/systematic-debugging/SKILL.md',
+    'skills/test-driven-development/SKILL.md',
+    'skills/verification-before-completion/SKILL.md',
+    'skills/writing-solution/SKILL.md',
+    'skills/brainstorming/SKILL.md',
+    'skills/subagent-driven-development/SKILL.md',
+    'skills/using-skills/SKILL.md',
   ];
 
   for (const file of files) {
@@ -72,17 +72,17 @@ test('high-risk skills reference tooling-first substitution rules', () => {
 
 test('workflow-facing prompts reference runtime surface boundaries where relevant', () => {
   const files = [
-    'src/kit/agents/master-orchestrator.md',
-    'src/kit/agents/fullstack-agent.md',
-    'src/kit/agents/qa-agent.md',
-    'src/kit/commands/task.md',
-    'src/kit/commands/quick-task.md',
-    'src/kit/commands/migrate.md',
-    'src/kit/commands/delivery.md',
-    'src/kit/commands/write-solution.md',
-    'src/kit/commands/execute-solution.md',
-    'src/kit/commands/brainstorm.md',
-    'src/kit/commands/switch-profiles.md',
+    'agents/master-orchestrator.md',
+    'agents/fullstack-agent.md',
+    'agents/qa-agent.md',
+    'commands/task.md',
+    'commands/quick-task.md',
+    'commands/migrate.md',
+    'commands/delivery.md',
+    'commands/write-solution.md',
+    'commands/execute-solution.md',
+    'commands/brainstorm.md',
+    'commands/switch-profiles.md',
   ];
 
   for (const file of files) {
@@ -93,7 +93,7 @@ test('workflow-facing prompts reference runtime surface boundaries where relevan
 
 test('core docs expose the anti-hallucination validation split', () => {
   const readme = read('README.md');
-  const projectConfig = read('src/kit/context/core/project-config.md');
+  const projectConfig = read('context/core/project-config.md');
 
   assert.match(readme, /OpenKit is an AI software factory for OpenCode/);
   assert.match(readme, /reduce hallucinated completion claims through runtime checks and verification gates/);
@@ -103,8 +103,8 @@ test('core docs expose the anti-hallucination validation split', () => {
 });
 
 test('Fullstack and QA roles explicitly call the verification-before-completion skill', () => {
-  const fullstack = read('src/kit/agents/fullstack-agent.md');
-  const qa = read('src/kit/agents/qa-agent.md');
+  const fullstack = read('agents/fullstack-agent.md');
+  const qa = read('agents/qa-agent.md');
 
   assert.match(fullstack, /verification-before-completion/);
   assert.match(qa, /verification-before-completion/);
@@ -112,9 +112,9 @@ test('Fullstack and QA roles explicitly call the verification-before-completion 
 
 test('scan evidence reporting requirements stay explicit in role prompts and QA template', () => {
   const roleFiles = [
-    'src/kit/agents/fullstack-agent.md',
-    'src/kit/agents/code-reviewer.md',
-    'src/kit/agents/qa-agent.md',
+    'agents/fullstack-agent.md',
+    'agents/code-reviewer.md',
+    'agents/qa-agent.md',
   ];
 
   for (const file of roleFiles) {
@@ -142,8 +142,8 @@ test('scan evidence reporting requirements stay explicit in role prompts and QA 
 
 test('QA reporting contract requires FEATURE-940 supervisor dialogue evidence', () => {
   const qaTemplate = read('docs/templates/qa-report-template.md');
-  const projectConfig = read('src/kit/context/core/project-config.md');
-  const runtimeSurfaces = read('src/kit/context/core/runtime-surfaces.md');
+  const projectConfig = read('context/core/project-config.md');
+  const runtimeSurfaces = read('context/core/runtime-surfaces.md');
   const supportedSurfaces = read('docs/operator/supported-surfaces.md');
   const kitInternals = read('docs/kit-internals/04-tools-hooks-skills-and-mcps.md');
   const docs = [qaTemplate, projectConfig, runtimeSurfaces, supportedSurfaces, kitInternals].join('\n');
@@ -169,8 +169,8 @@ test('operator and maintainer docs describe scan evidence states and triage poli
     read('docs/operator/supported-surfaces.md'),
     read('docs/maintainer/test-matrix.md'),
     read('docs/kit-internals/04-tools-hooks-skills-and-mcps.md'),
-    read('src/kit/context/core/tool-substitution-rules.md'),
-    read('src/kit/context/core/approval-gates.md'),
+    read('context/core/tool-substitution-rules.md'),
+    read('context/core/approval-gates.md'),
   ].join('\n');
 
   assert.match(docs, /bundled rule packs/);
@@ -245,9 +245,9 @@ test('governance docs define canonical bundled skill metadata and package sync c
   const governance = read('docs/governance/README.md');
   const roleMatrix = read('docs/maintainer/role-skill-matrix.md');
   const supportedSurfaces = read('docs/operator/supported-surfaces.md');
-  const projectConfig = read('src/kit/context/core/project-config.md');
-  const runtimeSurfaces = read('src/kit/context/core/runtime-surfaces.md');
-  const workflowSchema = read('src/kit/context/core/workflow-state-schema.md');
+  const projectConfig = read('context/core/project-config.md');
+  const runtimeSurfaces = read('context/core/runtime-surfaces.md');
+  const workflowSchema = read('context/core/workflow-state-schema.md');
   const testMatrix = read('docs/maintainer/test-matrix.md');
   const kitInternals = read('docs/kit-internals/04-tools-hooks-skills-and-mcps.md');
   const docs = [skillMetadata, governance, roleMatrix, supportedSurfaces, projectConfig, runtimeSurfaces, workflowSchema, testMatrix, kitInternals].join('\n');
@@ -273,8 +273,8 @@ test('operator and maintainer docs describe session-start capability guidance bo
   const testMatrix = read('docs/maintainer/test-matrix.md');
   const roleSkillMatrix = read('docs/maintainer/role-skill-matrix.md');
   const kitInternals = read('docs/kit-internals/04-tools-hooks-skills-and-mcps.md');
-  const projectConfig = read('src/kit/context/core/project-config.md');
-  const runtimeSurfaces = read('src/kit/context/core/runtime-surfaces.md');
+  const projectConfig = read('context/core/project-config.md');
+  const runtimeSurfaces = read('context/core/runtime-surfaces.md');
   const skillMetadata = read('docs/governance/skill-metadata.md');
   const docs = [mcpDocs, operatorIndex, supportedSurfaces, testMatrix, roleSkillMatrix, kitInternals, projectConfig, runtimeSurfaces, skillMetadata].join('\n');
 
@@ -322,8 +322,8 @@ test('repository defines CI workflow for verification gates', () => {
 test('semgrep quality regression docs keep unavailability fail-closed', () => {
   const semgrepTest = read('tests/semgrep/quality-rules.test.js');
   const semgrepDocs = read('docs/operator/semgrep.md');
-  const projectConfig = read('src/kit/context/core/project-config.md');
-  const agentGuide = read('src/kit/AGENTS.md');
+  const projectConfig = read('context/core/project-config.md');
+  const agentGuide = read('AGENTS.md');
   const testMatrix = read('docs/maintainer/test-matrix.md');
 
   assert.match(semgrepTest, /OPENKIT_ALLOW_SEMGREP_QUALITY_SKIP/);
@@ -357,12 +357,12 @@ test('maintainer docs advertise one-command verification and workflow telemetry'
 });
 
 test('canonical docs expose role policy and package-first artifacts', () => {
-  const workflow = read('src/kit/context/core/workflow.md');
-  const schema = read('src/kit/context/core/workflow-state-schema.md');
+  const workflow = read('context/core/workflow.md');
+  const schema = read('context/core/workflow-state-schema.md');
   const policy = read('docs/maintainer/2026-03-26-role-operating-policy.md');
-  const activeContract = read('src/kit/context/core/active-contract.json');
-  const reviewSchema = read('src/kit/context/core/code-review-output-schema.json');
-  const qaSchema = read('src/kit/context/core/qa-output-schema.json');
+  const activeContract = read('context/core/active-contract.json');
+  const reviewSchema = read('context/core/code-review-output-schema.json');
+  const qaSchema = read('context/core/qa-output-schema.json');
 
   assert.match(workflow, /scope package/i);
   assert.match(workflow, /solution package/i);
@@ -377,7 +377,7 @@ test('canonical docs expose role policy and package-first artifacts', () => {
 });
 
 test('canonical docs keep the managed path model and environment anchors explicit', () => {
-  const agentsGuide = read('src/kit/AGENTS.md');
+  const agentsGuide = read('AGENTS.md');
   const readme = read('README.md');
   const operationsIndex = read('docs/operations/README.md');
   const dailyUsage = read('docs/operations/runbooks/openkit-daily-usage.md');
@@ -415,9 +415,9 @@ test('operator and runtime docs expose command reality, validation surfaces, and
   const operator = read('docs/operator/README.md');
   const surfaceContract = read('docs/operator/surface-contract.md');
   const supportedSurfaces = read('docs/operator/supported-surfaces.md');
-  const runtimeSurfaces = read('src/kit/context/core/runtime-surfaces.md');
-  const projectConfig = read('src/kit/context/core/project-config.md');
-  const workflow = read('src/kit/context/core/workflow.md');
+  const runtimeSurfaces = read('context/core/runtime-surfaces.md');
+  const projectConfig = read('context/core/project-config.md');
+  const workflow = read('context/core/workflow.md');
   const parallelMatrix = read('docs/maintainer/parallel-execution-matrix.md');
 
   assert.match(readme, /npm install -g @duypham93\/openkit/);

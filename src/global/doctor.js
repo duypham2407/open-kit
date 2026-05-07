@@ -441,14 +441,6 @@ export function renderGlobalDoctorSummary(result) {
         lines.push(`Long-running runs: ${workflow.backgroundRunSummary.longRunningRunIds.join(', ')}`);
       }
     }
-
-    if (Array.isArray(workflow.planningDispatchLines) && workflow.planningDispatchLines.length > 0) {
-      for (const line of workflow.planningDispatchLines) {
-        lines.push(`Planning dispatch: ${line}`);
-      }
-    } else {
-      lines.push('Planning dispatch: none active');
-    }
   }
 
   if (result.runtimeFoundation?.runtimeInterface?.runtimeState?.recovery) {

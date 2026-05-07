@@ -1,0 +1,67 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "openkit": {
+      "type": "local",
+      "command": ["node", "bin/openkit-mcp.js"],
+      "enabled": true,
+      "environment": {
+        "OPENKIT_PROJECT_ROOT": "{cwd}"
+      }
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "chrome-devtools-mcp@0.21.0"],
+      "enabled": true
+    }
+  },
+  "permission": {
+    "npm": "allow",
+    "task": "allow",
+    "bash": "allow",
+    "edit": "allow",
+    "read": "allow",
+    "write": "allow",
+    "glob": "allow",
+    "grep": "allow",
+    "list": "allow",
+    "skill": "allow",
+    "lsp": "allow",
+    "todoread": "allow",
+    "todowrite": "allow",
+    "webfetch": "allow",
+    "websearch": "allow",
+    "codesearch": "allow",
+    "external_directory": "allow",
+    "doom_loop": "allow",
+    "rm": "ask",
+    "rmdir": "ask",
+    "unlink": "ask",
+    "git status": "allow",
+    "git log": "allow",
+    "git diff": "allow",
+    "git reset --hard": "ask",
+    "git clean": "ask",
+    "git restore": "ask",
+    "git checkout": "ask",
+    "git push --force": "ask",
+    "git push --force-with-lease": "ask",
+    "npm publish": "ask",
+    "npm unpublish": "ask",
+    "openkit release publish": "ask",
+    "deploy": "ask",
+    "release publish": "ask",
+    "dropdb": "ask",
+    "truncate": "ask",
+    "db reset": "ask",
+    "db wipe": "ask",
+    "sudo": "ask",
+    "chmod": "ask",
+    "chown": "ask"
+  },
+  "instructions": [
+    "AGENTS.md",
+    "context/navigation.md",
+    "context/core/tool-substitution-rules.md"
+  ]
+}

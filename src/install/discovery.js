@@ -98,7 +98,7 @@ export function discoverProjectShape(projectRoot) {
   const runtimeManifestPath = path.join(projectRoot, ".opencode", "opencode.json")
   const rootInstallEntrypointPath = path.join(projectRoot, "opencode.json")
   const installManifestPath = path.join(projectRoot, ".opencode", "install-manifest.json")
-  const registryPath = path.join(projectRoot, "src", "kit", "registry.json")
+  const registryPath = path.join(projectRoot, "registry.json")
 
   const hasRuntimeManifest = fileExists(runtimeManifestPath)
   const hasRootInstallEntrypoint = fileExists(rootInstallEntrypointPath)

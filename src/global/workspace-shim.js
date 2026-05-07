@@ -128,13 +128,13 @@ export function ensureWorkspaceShim(paths) {
 
   createIfMissing(createdPaths, {
     linkPath: paths.workspaceShimAgentsPath,
-    targetPath: path.join(paths.kitRoot, 'src/kit/AGENTS.md'),
+    targetPath: path.join(paths.kitRoot, 'AGENTS.md'),
     type: 'file',
   });
 
   createIfMissing(createdPaths, {
     linkPath: paths.workspaceShimContextDir,
-    targetPath: path.join(paths.kitRoot, 'src', 'kit', 'context'),
+    targetPath: path.join(paths.kitRoot, 'context'),
     type: 'dir',
   });
 
@@ -242,6 +242,12 @@ process.exit(typeof result.status === 'number' ? result.status : 1);
   if (!workspaceSwitchProfilesExists) {
     createdPaths.push(workspaceSwitchProfilesPath);
   }
+
+  createIfMissing(createdPaths, {
+    linkPath: path.join(paths.projectRoot, 'AGENTS.md'),
+    targetPath: paths.workspaceShimAgentsPath,
+    type: 'file',
+  });
 
   createIfMissing(createdPaths, {
     linkPath: path.join(paths.projectRoot, 'context'),
