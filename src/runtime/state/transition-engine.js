@@ -1,5 +1,40 @@
 // src/runtime/state/transition-engine.js
 
+// Stage ordering arrays define the canonical forward progression for each mode.
+// These are the authoritative source for determining whether a transition is
+// "backward" (to an earlier stage) or "forward" (to a later stage).
+// The TRANSITION_RULES object must list stages in the same order as these arrays
+// so that Object.keys() ordering matches STAGE_ORDER when used as a fallback,
+// but STAGE_ORDER is always used explicitly for backward detection.
+const STAGE_ORDER = {
+  quick: [
+    'quick_intake',
+    'quick_brainstorm',
+    'quick_plan',
+    'quick_implement',
+    'quick_test',
+    'quick_done'
+  ],
+  full: [
+    'full_intake',
+    'full_product',
+    'full_solution',
+    'full_implementation',
+    'full_code_review',
+    'full_qa',
+    'full_done'
+  ],
+  migration: [
+    'migration_intake',
+    'migration_baseline',
+    'migration_strategy',
+    'migration_upgrade',
+    'migration_code_review',
+    'migration_verify',
+    'migration_done'
+  ]
+};
+
 const TRANSITION_RULES = {
   quick: {
     quick_intake: ['quick_brainstorm'],
@@ -69,7 +104,10 @@ export class TransitionEngine {
       };
     }
 
-    const stageOrder = Object.keys(modeRules);
+    // Use the explicit STAGE_ORDER array (not Object.keys) to reliably
+    // determine direction. Object key insertion order is implementation-defined
+    // in older environments and must not be relied on for semantic ordering.
+    const stageOrder = STAGE_ORDER[mode];
     const fromIndex = stageOrder.indexOf(fromStage);
     const toIndex = stageOrder.indexOf(toStage);
     const isBackward = toIndex < fromIndex;
@@ -87,7 +125,13 @@ export class TransitionEngine {
   }
 
   isTerminalStage(mode, stage) {
-    const nextStages = this.getNextStages(mode, stage);
-    return nextStages.length === 0;
+    const modeRules = this.rules[mode];
+    if (!modeRules) {
+      throw new Error(`Unknown mode: ${mode}`);
+    }
+    if (!(stage in modeRules)) {
+      throw new Error(`Unknown stage: ${stage}`);
+    }
+    return modeRules[stage].length === 0;
   }
 }

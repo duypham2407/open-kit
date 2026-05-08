@@ -57,4 +57,77 @@ describe('TransitionEngine', () => {
       assert.equal(engine.isTerminalStage('quick', 'quick_plan'), false);
     });
   });
+
+  describe('isTerminalStage — unknown input handling (I1)', () => {
+    it('throws for unknown mode', () => {
+      assert.throws(
+        () => engine.isTerminalStage('typo_mode', 'quick_done'),
+        /Unknown mode: typo_mode/
+      );
+    });
+
+    it('throws for unknown stage within a valid mode', () => {
+      assert.throws(
+        () => engine.isTerminalStage('quick', 'nonexistent_stage'),
+        /Unknown stage: nonexistent_stage/
+      );
+    });
+
+    it('does not throw for a known terminal stage', () => {
+      assert.doesNotThrow(() => engine.isTerminalStage('quick', 'quick_done'));
+    });
+
+    it('does not throw for a known non-terminal stage', () => {
+      assert.doesNotThrow(() => engine.isTerminalStage('full', 'full_intake'));
+    });
+  });
+
+  describe('getNextStages — edge cases', () => {
+    it('returns empty array for terminal stage quick_done', () => {
+      assert.deepEqual(engine.getNextStages('quick', 'quick_done'), []);
+    });
+
+    it('returns correct next stages for quick_plan (forward and backward)', () => {
+      assert.deepEqual(engine.getNextStages('quick', 'quick_plan'), ['quick_implement', 'quick_brainstorm']);
+    });
+
+    it('returns empty array for unknown mode', () => {
+      assert.deepEqual(engine.getNextStages('unknown_mode', 'quick_plan'), []);
+    });
+
+    it('returns empty array for unknown stage within valid mode', () => {
+      assert.deepEqual(engine.getNextStages('quick', 'no_such_stage'), []);
+    });
+  });
+
+  describe('backward detection reliability (I2)', () => {
+    it('correctly identifies backward transition in quick lane', () => {
+      const result = engine.validateTransition('quick', 'quick_implement', 'quick_plan');
+      assert.equal(result.valid, true);
+      assert.equal(result.backward, true);
+    });
+
+    it('correctly identifies forward transition in quick lane', () => {
+      const result = engine.validateTransition('quick', 'quick_plan', 'quick_implement');
+      assert.equal(result.valid, true);
+      assert.equal(result.backward, false);
+    });
+
+    it('correctly identifies backward transition in full lane', () => {
+      const result = engine.validateTransition('full', 'full_code_review', 'full_solution');
+      assert.equal(result.valid, false); // skipping is not valid even backward
+    });
+
+    it('correctly identifies backward transition in migration lane', () => {
+      const result = engine.validateTransition('migration', 'migration_verify', 'migration_upgrade');
+      assert.equal(result.valid, true);
+      assert.equal(result.backward, true);
+    });
+
+    it('forward transition is not marked backward', () => {
+      const result = engine.validateTransition('migration', 'migration_strategy', 'migration_upgrade');
+      assert.equal(result.valid, true);
+      assert.equal(result.backward, false);
+    });
+  });
 });
