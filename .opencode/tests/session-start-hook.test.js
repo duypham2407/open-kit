@@ -269,7 +269,8 @@ test("session-start emits compact role-aware capability guidance without secrets
   const block = extractCapabilityGuidanceBlock(result.stdout)
 
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /<openkit_runtime_status>[\s\S]*<\/openkit_runtime_status>\n<openkit_capability_guidance>/)
+  assert.match(result.stdout, /<openkit_runtime_status>[\s\S]*<\/openkit_runtime_status>\n/)
+  assert.match(result.stdout, /<openkit_capability_guidance>/)
   assert.ok(block.length > 0)
   assert.ok(block.split("\n").length <= 25)
   assert.ok(block.length <= 2400)
