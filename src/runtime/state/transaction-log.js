@@ -1,126 +1,132 @@
 // src/runtime/state/transaction-log.js
 //
-// Append-only, in-memory audit trail for all workflow state changes.
+// Append-only, file-based audit trail for all workflow state changes.
 //
 // Every mutation that goes through the WorkflowStateManager must produce a log
-// entry here.  The log is the canonical record for debugging, infinite-loop
-// detection, and future rollback/replay features.
+// entry here.  Entries are written to a JSONL file (one JSON object per line)
+// immediately upon append.
 //
 // Design goals:
 //   • Append-only  — entries can never be removed or mutated after insertion.
-//   • In-memory    — no filesystem dependency; the WorkflowStateManager is
-//                    responsible for persisting the state file.  The log lives
-//                    for the lifetime of the manager instance.
-//   • Queryable    — getHistory(filters?) returns a filtered, order-preserving
-//                    copy of the log (not a live reference).
+//   • File-based   — written to disk as JSONL for durability and debuggability.
+//   • Queryable    — query(filters) and getHistory(workItemId) return filtered
+//                    arrays from the on-disk log.
+
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
- * @typedef {'transition' | 'gate_change'} EntryType
- *
  * @typedef {Object} LogEntry
- * @property {string}    timestamp  - ISO-8601 creation time (UTC)
- * @property {EntryType} type       - Category of the state change
- * @property {string}    actor      - Agent / user / tool that triggered the change
- * @property {Object}    payload    - Change-specific data (varies by type)
- * @property {Object}    metadata   - Caller-supplied extra context
+ * @property {string} timestamp  - ISO-8601 creation time (UTC)
+ * @property {string} operation  - Name of the operation (e.g. 'advanceStage')
+ * @property {string} caller     - Agent / user / tool that triggered the change
+ * @property {string} workItemId - ID of the work item being modified
+ * @property {Object} before     - State snapshot before the operation
+ * @property {Object} after      - State snapshot after the operation
+ * @property {Object} metadata   - Caller-supplied extra context
  */
 
 export class TransactionLog {
-  constructor() {
-    /** @type {LogEntry[]} */
-    this._entries = [];
+  /**
+   * @param {string} logPath - Absolute path to the JSONL log file
+   */
+  constructor(logPath) {
+    this.logPath = logPath;
+
+    // Ensure the directory exists so appendFileSync never throws ENOENT.
+    const dir = path.dirname(logPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
   }
 
   // ── Writers ─────────────────────────────────────────────────────────────────
 
   /**
-   * Record a stage transition.
+   * Append a transaction entry to the log file.
    *
-   * @param {string} from      - Stage being left
-   * @param {string} to        - Stage being entered
-   * @param {string} actor     - Who triggered the transition
-   * @param {Object} [metadata={}] - Optional extra context
-   * @returns {LogEntry} The appended entry (read-only copy)
+   * @param {Object} opts
+   * @param {string} opts.operation  - Name of the operation
+   * @param {string} opts.workItemId - ID of the work item being modified
+   * @param {string} opts.caller     - Who triggered the operation
+   * @param {Object} opts.before     - State before the operation
+   * @param {Object} opts.after      - State after the operation
+   * @param {Object} [opts.metadata={}] - Optional extra context
+   * @returns {LogEntry} The written entry
    */
-  recordTransition(from, to, actor, metadata = {}) {
-    return this._append({
-      type: 'transition',
-      actor,
-      payload: { from, to },
+  append({ operation, workItemId, caller, before, after, metadata = {} }) {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      operation,
+      workItemId,
+      caller,
+      before,
+      after,
       metadata,
-    });
-  }
+    };
 
-  /**
-   * Record a gate value change.
-   *
-   * @param {string}  gateName - Dot-namespaced gate identifier, e.g. 'quick.verified'
-   * @param {boolean} newValue - The value the gate was set to
-   * @param {string}  actor    - Who set the gate
-   * @param {Object}  [metadata={}] - Optional extra context
-   * @returns {LogEntry} The appended entry (read-only copy)
-   */
-  recordGateChange(gateName, newValue, actor, metadata = {}) {
-    return this._append({
-      type: 'gate_change',
-      actor,
-      payload: { gateName, newValue },
-      metadata,
-    });
+    const line = JSON.stringify(entry) + '\n';
+    fs.appendFileSync(this.logPath, line, 'utf-8');
+
+    return entry;
   }
 
   // ── Readers ─────────────────────────────────────────────────────────────────
 
   /**
-   * Return a snapshot of the log, optionally filtered.
+   * Read all entries from the log file and filter them.
    *
    * Available filter keys (all optional, combined as AND):
-   *   type   {string} - 'transition' | 'gate_change'
-   *   actor  {string} - exact match on entry.actor
+   *   workItemId {string} - exact match on entry.workItemId
+   *   operation  {string} - exact match on entry.operation
+   *   caller     {string} - exact match on entry.caller
    *
    * @param {Object} [filters={}]
-   * @returns {LogEntry[]} Ordered array of matching entries (shallow copies)
+   * @returns {LogEntry[]} Ordered array of matching entries
    */
-  getHistory(filters = {}) {
-    let entries = this._entries;
-
-    if (filters.type !== undefined) {
-      entries = entries.filter(e => e.type === filters.type);
+  query(filters = {}) {
+    if (!fs.existsSync(this.logPath)) {
+      return [];
     }
 
-    if (filters.actor !== undefined) {
-      entries = entries.filter(e => e.actor === filters.actor);
-    }
+    const content = fs.readFileSync(this.logPath, 'utf-8');
+    const lines = content.split('\n').filter(line => line.trim().length > 0);
+    const entries = lines.map(line => JSON.parse(line));
 
-    // Return copies so callers cannot mutate internal state.
-    return entries.map(e => ({ ...e, payload: { ...e.payload }, metadata: { ...e.metadata } }));
-  }
-
-  /**
-   * Total number of entries in the log.
-   * @returns {number}
-   */
-  size() {
-    return this._entries.length;
-  }
-
-  // ── Private ──────────────────────────────────────────────────────────────────
-
-  /**
-   * @private
-   * @param {{ type: EntryType, actor: string, payload: Object, metadata: Object }} opts
-   * @returns {LogEntry}
-   */
-  _append({ type, actor, payload, metadata }) {
-    const entry = Object.freeze({
-      timestamp: new Date().toISOString(),
-      type,
-      actor,
-      payload: Object.freeze({ ...payload }),
-      metadata: Object.freeze({ ...metadata }),
+    return entries.filter(entry => {
+      if (filters.workItemId !== undefined && entry.workItemId !== filters.workItemId) {
+        return false;
+      }
+      if (filters.operation !== undefined && entry.operation !== filters.operation) {
+        return false;
+      }
+      if (filters.caller !== undefined && entry.caller !== filters.caller) {
+        return false;
+      }
+      return true;
     });
+  }
 
-    this._entries.push(entry);
-    return entry;
+  /**
+   * Return the full ordered history for a single work item.
+   *
+   * @param {string} workItemId
+   * @returns {LogEntry[]}
+   */
+  getHistory(workItemId) {
+    return this.query({ workItemId });
+  }
+
+  /**
+   * Replay all entries up to (and including) the given timestamp for the
+   * specified work item.  Returns the ordered slice for debugging.
+   *
+   * @param {string} workItemId
+   * @param {string} timestamp  - ISO-8601 cutoff timestamp (inclusive)
+   * @returns {LogEntry[]}
+   */
+  replayTo(workItemId, timestamp) {
+    const history = this.getHistory(workItemId);
+    return history.filter(entry => entry.timestamp <= timestamp);
   }
 }
