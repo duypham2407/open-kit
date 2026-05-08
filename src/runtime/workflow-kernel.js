@@ -65,6 +65,9 @@ function createUnavailableKernel(projectRoot) {
     getState() {
       return null;
     },
+    getWorkItem() {
+      return null;
+    },
     recordIssue() {
       return null;
     },
@@ -263,6 +266,13 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
     return stateManager.recordEvidence(evidence);
   }
 
+  function getWorkItem(workItemId) {
+    if (!stateManager) {
+      return null;
+    }
+    return stateManager.getWorkItem(workItemId);
+  }
+
   // ── End WorkflowStateManager delegation ───────────────────────────────────
 
   function listTasks(workItemId, customStatePath = null) {
@@ -338,6 +348,7 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
     advanceStage,
     setApproval,
     getState,
+    getWorkItem,
     recordIssue,
     resolveIssue,
     recordEvidence,
