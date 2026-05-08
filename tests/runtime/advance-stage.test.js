@@ -5,14 +5,31 @@ import { createAdvanceStageTool } from '../../src/runtime/tools/workflow/advance
 
 function createMockKernel(state) {
   const evidenceLog = [];
+  const advanceLog = [];
+  // Mutable ref so tests that rely on the same kernel instance can observe
+  // state updates made via advanceStage (mirrors what WorkflowStateManager does).
+  let currentStage = state?.current_stage ?? null;
+  let currentOwner = state?.current_owner ?? null;
+
   return {
     showState() {
-      return { state };
+      return { state: { ...state, current_stage: currentStage, current_owner: currentOwner } };
+    },
+    advanceStage(targetStage, newOwner, metadata) {
+      advanceLog.push({ targetStage, newOwner, metadata });
+      currentStage = targetStage;
+      currentOwner = newOwner;
+      return { stage: targetStage, owner: newOwner };
+    },
+    setApproval() {
+      // no-op in unit tests — gate pre-setting is tested in the integration suite
+      return {};
     },
     recordVerificationEvidence(entry) {
       evidenceLog.push(entry);
     },
     _evidenceLog: evidenceLog,
+    _advanceLog: advanceLog,
   };
 }
 
@@ -169,7 +186,10 @@ test('advance-stage succeeds: quick implement → test (no gate)', () => {
 
 // ── Transition record ───────────────────────────────────────────────────
 
-test('advance-stage records transition as verification evidence', () => {
+test('advance-stage calls advanceStage on kernel with correct args (persists state)', () => {
+  // Root Cause #1 fix: the tool now calls workflowKernel.advanceStage() so that
+  // state is persisted to disk via WorkflowStateManager, replacing the old
+  // recordVerificationEvidence() call that only wrote an audit log.
   const kernel = createMockKernel({
     mode: 'quick',
     current_stage: 'quick_intake',
@@ -180,13 +200,14 @@ test('advance-stage records transition as verification evidence', () => {
   const tool = createAdvanceStageTool({ workflowKernel: kernel });
   tool.execute({ targetStage: 'quick_brainstorm' });
 
-  assert.equal(kernel._evidenceLog.length, 1);
-  assert.equal(kernel._evidenceLog[0].type, 'stage_transition');
-  assert.equal(kernel._evidenceLog[0].transition.from, 'quick_intake');
-  assert.equal(kernel._evidenceLog[0].transition.to, 'quick_brainstorm');
+  assert.equal(kernel._advanceLog.length, 1);
+  assert.equal(kernel._advanceLog[0].targetStage, 'quick_brainstorm');
+  assert.equal(kernel._advanceLog[0].newOwner, 'QuickAgent');
+  assert.ok(kernel._advanceLog[0].metadata?.transition?.from === 'quick_intake');
+  assert.ok(kernel._advanceLog[0].metadata?.transition?.to === 'quick_brainstorm');
 });
 
-test('advance-stage includes handoffContext in transition', () => {
+test('advance-stage includes handoffContext in transition passed to advanceStage', () => {
   const kernel = createMockKernel({
     mode: 'full',
     current_stage: 'full_intake',
@@ -200,7 +221,7 @@ test('advance-stage includes handoffContext in transition', () => {
     handoffContext: 'User wants to add a dark mode feature',
   });
 
-  assert.equal(kernel._evidenceLog[0].transition.handoffContext, 'User wants to add a dark mode feature');
+  assert.equal(kernel._advanceLog[0].metadata.transition.handoffContext, 'User wants to add a dark mode feature');
 });
 
 // ── Response guidance quality ───────────────────────────────────────────

@@ -101,7 +101,7 @@ export function createAdvanceStageTool({ workflowKernel }) {
       };
 
       // 5. Attempt to update workflow state
-      const updateResult = updateWorkflowState(workflowKernel, state, targetStage, newOwner, transition);
+      const updateResult = updateWorkflowState(workflowKernel, state, targetStage, newOwner, transition, { ...evidence, ...gateOverrides });
 
       if (!updateResult.success) {
         return {
@@ -125,19 +125,72 @@ export function createAdvanceStageTool({ workflowKernel }) {
   };
 }
 
-function updateWorkflowState(workflowKernel, currentState, targetStage, newOwner, transition) {
-  // Use the workflow kernel's underlying controller if available
-  // The kernel adapter wraps workflow-state-controller.js which handles state mutations
+// Maps evidence keys (as passed by callers) to GateRegistry gate IDs.
+// Each entry also records the authority to use when calling setApproval,
+// which must match the gate definition in gate-registry.js.
+const EVIDENCE_TO_GATE = {
+  understanding_confirmed: { gate: 'quick.understanding_confirmed', authority: 'user' },
+  plan_confirmed:          { gate: 'quick.plan_confirmed',          authority: 'user' },
+  scope_package:           { gate: 'full.product_to_solution',      authority: 'user' },
+  solution_package:        { gate: 'full.solution_to_implementation', authority: 'user' },
+  review_completed:        [
+    { gate: 'full.code_review_passed',      authority: 'code-reviewer' },
+    { gate: 'migration.code_review_passed', authority: 'code-reviewer' },
+  ],
+  qa_passed:               { gate: 'full.qa_passed',               authority: 'qa-agent' },
+  baseline_captured:       { gate: 'migration.baseline_verified',  authority: 'solution-lead-agent' },
+  strategy_approved:       { gate: 'migration.strategy_approved',  authority: 'user' },
+  verification_passed:     { gate: 'migration.parity_verified',    authority: 'qa-agent' },
+};
+
+function updateWorkflowState(workflowKernel, currentState, targetStage, newOwner, transition, evidence = {}) {
   try {
-    // Record the transition as verification evidence for audit
-    workflowKernel.recordVerificationEvidence?.({
-      type: 'stage_transition',
-      description: `${transition.from} → ${transition.to} (${transition.previousOwner} → ${newOwner})`,
-      artifact_refs: [],
+    // 1. Persist any evidence-satisfied gates to state before advancing.
+    //    The GateRegistry inside WorkflowStateManager checks state.gates[gateId]
+    //    exclusively (it does not accept inline evidence). So when a caller
+    //    provides evidence keys we must record each corresponding gate first.
+    for (const [evidenceKey, value] of Object.entries(evidence)) {
+      if (value !== true) continue;
+      const mapping = EVIDENCE_TO_GATE[evidenceKey];
+      if (!mapping) continue;
+
+      const entries = Array.isArray(mapping) ? mapping : [mapping];
+      for (const { gate, authority } of entries) {
+        // Ignore errors from setApproval (e.g. unknown gate in a partially
+        // initialised registry, or gate already set). The advanceStage call
+        // below is the authoritative gate check — if gates are still unmet,
+        // it will throw and we'll surface the error properly.
+        try {
+          workflowKernel.setApproval?.(gate, true, authority, {
+            setBy: 'tool.advance-stage',
+            evidenceKey,
+          });
+        } catch {
+          // Intentionally swallowed — see comment above.
+        }
+      }
+    }
+
+    // 2. Persist the stage transition via WorkflowStateManager (Root Cause #1 fix).
+    //    workflowKernel.advanceStage() delegates to stateManager.advanceStage() which
+    //    writes the new stage + owner atomically to disk (primary state.json + mirror
+    //    workflow-state.json) and appends to the transaction log.
+    const result = workflowKernel.advanceStage?.(targetStage, newOwner, {
       transition,
+      caller: 'tool.advance-stage',
     });
 
-    return { success: true };
+    // When no stateManager is injected, advanceStage returns null.
+    // Treat a null result as a write failure so the tool never silently
+    // reports success without actually persisting anything.
+    if (result === null || result === undefined) {
+      return {
+        success: false,
+        reason: 'Workflow state could not be persisted: no state manager is configured.',
+      };
+    }
+
+    return { success: true, newState: result };
   } catch (err) {
     return { success: false, reason: err?.message ?? String(err) };
   }
