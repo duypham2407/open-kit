@@ -434,7 +434,7 @@ describe('WorkflowStateManager', () => {
       assert.ok(fs.existsSync(logPath));
       const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
       const entry = JSON.parse(lines[0]);
-      assert.equal(entry.operation, 'recordGate');
+      assert.equal(entry.operation, 'setApproval');
     });
   });
 
@@ -524,23 +524,488 @@ describe('WorkflowStateManager', () => {
       // Step 4: verify transaction log has both entries
       const logPath = path.join(tmpDir, 'work-items', 'scenario-1', 'state-transitions.log');
       const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
-      assert.equal(lines.length, 2, 'should have recordGate + advanceStage entries');
-      assert.equal(JSON.parse(lines[0]).operation, 'recordGate');
+      assert.equal(lines.length, 2, 'should have setApproval (via recordGate) + advanceStage entries');
+      assert.equal(JSON.parse(lines[0]).operation, 'setApproval');
       assert.equal(JSON.parse(lines[1]).operation, 'advanceStage');
+    });
+  });
+
+  // ── getCurrentState() ────────────────────────────────────────────────────
+
+  describe('getCurrentState()', () => {
+    it('is an alias for getState() and returns the same value', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'gcs-test', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      const fromGetState = mgr.getState();
+      const fromGetCurrentState = mgr.getCurrentState();
+
+      assert.deepEqual(fromGetCurrentState, fromGetState);
+    });
+
+    it('loads state from disk if not yet initialized in memory', () => {
+      const itemDir = path.join(tmpDir, 'work-items', 'gcs-disk');
+      fs.mkdirSync(itemDir, { recursive: true });
+      const storedState = makeInitialState({ stage: 'quick_plan' });
+      fs.writeFileSync(path.join(itemDir, 'state.json'), JSON.stringify(storedState));
+
+      const mgr = new WorkflowStateManager({ workItemId: 'gcs-disk', baseDir: tmpDir });
+      const state = mgr.getCurrentState();
+      assert.equal(state.stage, 'quick_plan');
+    });
+
+    it('returns a defensive copy', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'gcs-copy', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      const state = mgr.getCurrentState();
+      state.stage = 'mutated';
+
+      assert.notEqual(mgr.getCurrentState().stage, 'mutated');
+    });
+  });
+
+  // ── getWorkItem() ─────────────────────────────────────────────────────────
+
+  describe('getWorkItem()', () => {
+    it('returns migrated state for an existing work item', () => {
+      const itemDir = path.join(tmpDir, 'work-items', 'other-item');
+      fs.mkdirSync(itemDir, { recursive: true });
+      const storedState = makeInitialState({ stage: 'quick_plan' });
+      fs.writeFileSync(path.join(itemDir, 'state.json'), JSON.stringify(storedState));
+
+      const mgr = new WorkflowStateManager({ workItemId: 'gw-caller', baseDir: tmpDir });
+      const state = mgr.getWorkItem('other-item');
+      assert.equal(state.stage, 'quick_plan');
+    });
+
+    it('throws if work item does not exist', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'gw-caller', baseDir: tmpDir });
+      assert.throws(
+        () => mgr.getWorkItem('nonexistent-item'),
+        /State not found/i
+      );
+    });
+
+    it('migrates legacy state files', () => {
+      const itemDir = path.join(tmpDir, 'work-items', 'legacy-wi');
+      fs.mkdirSync(itemDir, { recursive: true });
+      const legacyState = {
+        mode: 'quick',
+        stage: 'quick_plan',
+        owner: 'quick-agent',
+        approvals: { quick_verified: true }
+      };
+      fs.writeFileSync(path.join(itemDir, 'state.json'), JSON.stringify(legacyState));
+
+      const mgr = new WorkflowStateManager({ workItemId: 'gw-caller2', baseDir: tmpDir });
+      const state = mgr.getWorkItem('legacy-wi');
+      assert.equal(state.version, '2.0.0');
+      assert.equal(state.gates['quick.verified'], true);
+    });
+
+    it('throws StateCorruptionError for malformed JSON', () => {
+      const itemDir = path.join(tmpDir, 'work-items', 'corrupt-wi');
+      fs.mkdirSync(itemDir, { recursive: true });
+      fs.writeFileSync(path.join(itemDir, 'state.json'), 'not valid json{{{');
+
+      const mgr = new WorkflowStateManager({ workItemId: 'gw-caller3', baseDir: tmpDir });
+      assert.throws(() => mgr.getWorkItem('corrupt-wi'), StateCorruptionError);
+    });
+  });
+
+  // ── setApproval() ─────────────────────────────────────────────────────────
+
+  describe('setApproval()', () => {
+    it('sets a gate to approved=true', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'sa-approve', baseDir: tmpDir });
+      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-approve'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-approve', 'state.json'), JSON.stringify(state));
+
+      const result = mgr.setApproval('quick.understanding_confirmed', true, 'user');
+      assert.equal(result.gates['quick.understanding_confirmed'], true);
+    });
+
+    it('sets a gate to approved=false (revocation)', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'sa-revoke', baseDir: tmpDir });
+      const state = makeInitialState({
+        stage: 'quick_brainstorm',
+        gates: { 'quick.understanding_confirmed': true }
+      });
+      fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-revoke'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-revoke', 'state.json'), JSON.stringify(state));
+
+      const result = mgr.setApproval('quick.understanding_confirmed', false, 'user');
+      assert.equal(result.gates['quick.understanding_confirmed'], false);
+    });
+
+    it('persists gate state to disk', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'sa-persist', baseDir: tmpDir });
+      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-persist'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-persist', 'state.json'), JSON.stringify(state));
+
+      mgr.setApproval('quick.understanding_confirmed', true, 'user');
+
+      const stateFile = path.join(tmpDir, 'work-items', 'sa-persist', 'state.json');
+      const onDisk = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+      assert.equal(onDisk.gates['quick.understanding_confirmed'], true);
+    });
+
+    it('stores approver and approved in gateMeta', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'sa-meta', baseDir: tmpDir });
+      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-meta'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-meta', 'state.json'), JSON.stringify(state));
+
+      const result = mgr.setApproval('quick.understanding_confirmed', true, 'user', { comment: 'lgtm' });
+      const meta = result.gateMeta?.['quick.understanding_confirmed'];
+      assert.ok(meta, 'gateMeta entry should exist');
+      assert.equal(meta.approver, 'user');
+      assert.equal(meta.approved, true);
+      assert.ok(meta.metAt, 'metAt should be set');
+    });
+
+    it('throws for an unknown gate name', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'sa-unknown', baseDir: tmpDir });
+      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-unknown'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-unknown', 'state.json'), JSON.stringify(state));
+
+      assert.throws(
+        () => mgr.setApproval('nonexistent.gate', true, 'user'),
+        /unknown gate/i
+      );
+    });
+
+    it('throws InsufficientAuthorityError when caller lacks authority', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'sa-auth', baseDir: tmpDir });
+      const state = makeInitialState({ stage: 'quick_test' });
+      fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-auth'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-auth', 'state.json'), JSON.stringify(state));
+
+      assert.throws(
+        () => mgr.setApproval('quick.verified', true, 'random-caller'),
+        InsufficientAuthorityError
+      );
+    });
+
+    it('writes a transaction log entry with operation setApproval', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'sa-log', baseDir: tmpDir });
+      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-log'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-log', 'state.json'), JSON.stringify(state));
+
+      mgr.setApproval('quick.understanding_confirmed', true, 'user');
+
+      const logPath = path.join(tmpDir, 'work-items', 'sa-log', 'state-transitions.log');
+      assert.ok(fs.existsSync(logPath));
+      const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
+      const entry = JSON.parse(lines[0]);
+      assert.equal(entry.operation, 'setApproval');
+      assert.equal(entry.metadata.gateName, 'quick.understanding_confirmed');
+      assert.equal(entry.metadata.approved, true);
+    });
+
+    it('emits gate-met event', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'sa-evt', baseDir: tmpDir });
+      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-evt'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-evt', 'state.json'), JSON.stringify(state));
+
+      let emitted = null;
+      mgr.on('gate-met', (data) => { emitted = data; });
+
+      mgr.setApproval('quick.understanding_confirmed', true, 'user');
+
+      assert.ok(emitted, 'gate-met event should be emitted');
+      assert.equal(emitted.gate, 'quick.understanding_confirmed');
+      assert.equal(emitted.approved, true);
+      assert.equal(emitted.approver, 'user');
+    });
+  });
+
+  // ── recordIssue() ─────────────────────────────────────────────────────────
+
+  describe('recordIssue()', () => {
+    it('adds an issue to the state', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'ri-ok', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      const result = mgr.recordIssue({ id: 'issue-1', description: 'Something went wrong' });
+      assert.ok(Array.isArray(result.issues));
+      assert.equal(result.issues.length, 1);
+      assert.equal(result.issues[0].id, 'issue-1');
+    });
+
+    it('sets resolved=false and recordedAt on new issues', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'ri-fields', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      const result = mgr.recordIssue({ id: 'issue-2', description: 'test issue' });
+      const issue = result.issues[0];
+      assert.equal(issue.resolved, false);
+      assert.ok(issue.recordedAt, 'recordedAt should be set');
+    });
+
+    it('persists issues to disk', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'ri-persist', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      mgr.recordIssue({ id: 'issue-3', description: 'persisted' });
+
+      const stateFile = path.join(tmpDir, 'work-items', 'ri-persist', 'state.json');
+      const onDisk = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+      assert.ok(Array.isArray(onDisk.issues));
+      assert.equal(onDisk.issues[0].id, 'issue-3');
+    });
+
+    it('throws if issue object lacks id', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'ri-noid', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      assert.throws(() => mgr.recordIssue({ description: 'no id' }), /id/);
+    });
+
+    it('accumulates multiple issues', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'ri-multi', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      mgr.recordIssue({ id: 'issue-a' });
+      const result = mgr.recordIssue({ id: 'issue-b' });
+      assert.equal(result.issues.length, 2);
+    });
+  });
+
+  // ── resolveIssue() ────────────────────────────────────────────────────────
+
+  describe('resolveIssue()', () => {
+    it('marks an issue as resolved with a resolution string', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'res-ok', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+      mgr.recordIssue({ id: 'issue-1', description: 'test' });
+
+      const result = mgr.resolveIssue('issue-1', 'Fixed the bug');
+      const issue = result.issues.find(i => i.id === 'issue-1');
+      assert.equal(issue.resolved, true);
+      assert.equal(issue.resolution, 'Fixed the bug');
+      assert.ok(issue.resolvedAt, 'resolvedAt should be set');
+    });
+
+    it('does not affect other issues', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'res-multi', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+      mgr.recordIssue({ id: 'issue-a' });
+      mgr.recordIssue({ id: 'issue-b' });
+
+      mgr.resolveIssue('issue-a', 'resolved a');
+      const state = mgr.getState();
+      assert.equal(state.issues.find(i => i.id === 'issue-b').resolved, false);
+    });
+
+    it('persists resolved state to disk', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'res-persist', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+      mgr.recordIssue({ id: 'issue-1' });
+      mgr.resolveIssue('issue-1', 'done');
+
+      const stateFile = path.join(tmpDir, 'work-items', 'res-persist', 'state.json');
+      const onDisk = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+      assert.equal(onDisk.issues[0].resolved, true);
+    });
+
+    it('throws if issue id does not exist', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'res-notfound', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      assert.throws(
+        () => mgr.resolveIssue('nonexistent-id', 'whatever'),
+        /not found/i
+      );
+    });
+  });
+
+  // ── recordEvidence() ──────────────────────────────────────────────────────
+
+  describe('recordEvidence()', () => {
+    it('adds evidence to the state', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 're-ok', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      const result = mgr.recordEvidence({ type: 'test-pass', description: 'All tests pass' });
+      assert.ok(Array.isArray(result.evidence));
+      assert.equal(result.evidence.length, 1);
+      assert.equal(result.evidence[0].type, 'test-pass');
+    });
+
+    it('sets recordedAt on evidence if not provided', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 're-ts', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      const result = mgr.recordEvidence({ type: 'review' });
+      assert.ok(result.evidence[0].recordedAt, 'recordedAt should be set');
+    });
+
+    it('preserves provided recordedAt', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 're-custts', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      const ts = '2026-01-01T00:00:00.000Z';
+      const result = mgr.recordEvidence({ type: 'review', recordedAt: ts });
+      assert.equal(result.evidence[0].recordedAt, ts);
+    });
+
+    it('persists evidence to disk', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 're-persist', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      mgr.recordEvidence({ type: 'test-pass' });
+
+      const stateFile = path.join(tmpDir, 'work-items', 're-persist', 'state.json');
+      const onDisk = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+      assert.ok(Array.isArray(onDisk.evidence));
+      assert.equal(onDisk.evidence[0].type, 'test-pass');
+    });
+
+    it('throws if evidence is not an object', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 're-invalid', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      assert.throws(() => mgr.recordEvidence('not an object'), /evidence object/i);
+    });
+
+    it('accumulates multiple evidence entries', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 're-multi', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      mgr.recordEvidence({ type: 'test-pass' });
+      const result = mgr.recordEvidence({ type: 'review-pass' });
+      assert.equal(result.evidence.length, 2);
+    });
+  });
+
+  // ── Transaction management ────────────────────────────────────────────────
+
+  describe('beginTransaction() / commitTransaction() / rollbackTransaction()', () => {
+    it('beginTransaction snapshots current state', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'tx-begin', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      // Should not throw
+      assert.doesNotThrow(() => mgr.beginTransaction());
+    });
+
+    it('commitTransaction clears the snapshot', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'tx-commit', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      mgr.beginTransaction();
+      assert.doesNotThrow(() => mgr.commitTransaction());
+    });
+
+    it('commitTransaction writes a log entry', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'tx-commit-log', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      mgr.beginTransaction();
+      mgr.commitTransaction();
+
+      const logPath = path.join(tmpDir, 'work-items', 'tx-commit-log', 'state-transitions.log');
+      assert.ok(fs.existsSync(logPath));
+      const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
+      const lastEntry = JSON.parse(lines[lines.length - 1]);
+      assert.equal(lastEntry.operation, 'commit');
+    });
+
+    it('rollbackTransaction restores state to pre-transaction snapshot', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'tx-rollback', baseDir: tmpDir });
+      const state = makeInitialState({ stage: 'quick_intake' });
+      fs.mkdirSync(path.join(tmpDir, 'work-items', 'tx-rollback'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'work-items', 'tx-rollback', 'state.json'), JSON.stringify(state));
+
+      mgr.beginTransaction();
+      mgr.advanceStage('quick_brainstorm', 'quick-agent');
+      assert.equal(mgr.getStage(), 'quick_brainstorm');
+
+      mgr.rollbackTransaction();
+      assert.equal(mgr.getStage(), 'quick_intake', 'stage should be rolled back');
+    });
+
+    it('rollbackTransaction re-persists rolled-back state to disk', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'tx-rollback-disk', baseDir: tmpDir });
+      const state = makeInitialState({ stage: 'quick_intake' });
+      fs.mkdirSync(path.join(tmpDir, 'work-items', 'tx-rollback-disk'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'work-items', 'tx-rollback-disk', 'state.json'), JSON.stringify(state));
+
+      mgr.beginTransaction();
+      mgr.advanceStage('quick_brainstorm', 'quick-agent');
+      mgr.rollbackTransaction();
+
+      const stateFile = path.join(tmpDir, 'work-items', 'tx-rollback-disk', 'state.json');
+      const onDisk = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+      assert.equal(onDisk.stage, 'quick_intake', 'disk should reflect rollback');
+    });
+
+    it('rollbackTransaction writes a rollback log entry', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'tx-rollback-log', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      mgr.beginTransaction();
+      mgr.rollbackTransaction();
+
+      const logPath = path.join(tmpDir, 'work-items', 'tx-rollback-log', 'state-transitions.log');
+      assert.ok(fs.existsSync(logPath));
+      const lines = fs.readFileSync(logPath, 'utf-8').trim().split('\n');
+      const lastEntry = JSON.parse(lines[lines.length - 1]);
+      assert.equal(lastEntry.operation, 'rollback');
+    });
+
+    it('throws if beginTransaction called when a transaction is already active', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'tx-double-begin', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      mgr.beginTransaction();
+      assert.throws(() => mgr.beginTransaction(), /Transaction already active/i);
+      mgr.rollbackTransaction(); // cleanup
+    });
+
+    it('throws if commitTransaction called without an active transaction', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'tx-commit-no-tx', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      assert.throws(() => mgr.commitTransaction(), /No active transaction/i);
+    });
+
+    it('throws if rollbackTransaction called without an active transaction', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'tx-rollback-no-tx', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      assert.throws(() => mgr.rollbackTransaction(), /No active transaction/i);
+    });
+
+    it('allows a new transaction after commit', () => {
+      const mgr = new WorkflowStateManager({ workItemId: 'tx-reuse', baseDir: tmpDir });
+      mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+
+      mgr.beginTransaction();
+      mgr.commitTransaction();
+      assert.doesNotThrow(() => mgr.beginTransaction());
+      mgr.rollbackTransaction(); // cleanup
     });
   });
 
   // ── Event emission ────────────────────────────────────────────────────────
 
   describe('event emission', () => {
-    it('emits stageAdvanced event when stage changes', () => {
+    it('emits stage-advanced event when stage changes', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'evt-stage', baseDir: tmpDir });
       const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'evt-stage'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'evt-stage', 'state.json'), JSON.stringify(state));
 
       let emittedData = null;
-      mgr.on('stageAdvanced', (data) => { emittedData = data; });
+      mgr.on('stage-advanced', (data) => { emittedData = data; });
 
       mgr.advanceStage('quick_brainstorm', 'quick-agent');
 
@@ -549,14 +1014,14 @@ describe('WorkflowStateManager', () => {
       assert.equal(emittedData.to, 'quick_brainstorm');
     });
 
-    it('emits gateMet event when gate is recorded', () => {
+    it('emits gate-met event when gate is recorded', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'evt-gate', baseDir: tmpDir });
       const state = makeInitialState({ stage: 'quick_brainstorm' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'evt-gate'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'evt-gate', 'state.json'), JSON.stringify(state));
 
       let emittedData = null;
-      mgr.on('gateMet', (data) => { emittedData = data; });
+      mgr.on('gate-met', (data) => { emittedData = data; });
 
       mgr.recordGate('quick.understanding_confirmed', 'user');
 

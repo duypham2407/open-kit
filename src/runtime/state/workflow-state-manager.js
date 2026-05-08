@@ -130,6 +130,44 @@ export class WorkflowStateManager extends EventEmitter {
     return this._snapshot();
   }
 
+  /**
+   * Alias for getState(). Returns the current workflow state.
+   *
+   * @returns {Object}
+   */
+  getCurrentState() {
+    return this.getState();
+  }
+
+  /**
+   * Load and return state for a specific work item by creating a temporary
+   * manager pointed at that work item's state file and reading it.
+   *
+   * @param {string} workItemId - The work item ID to load state for
+   * @returns {Object} The state for that work item
+   */
+  getWorkItem(workItemId) {
+    const stateFile = path.join(this.baseDir, 'work-items', workItemId, 'state.json');
+    if (!fs.existsSync(stateFile)) {
+      throw new Error(
+        `State not found for work item '${workItemId}'. ` +
+        'Ensure the work item has been initialized.'
+      );
+    }
+
+    let raw;
+    try {
+      raw = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
+    } catch (err) {
+      throw new StateCorruptionError({
+        reason: `Failed to parse state.json for work item '${workItemId}': ${err.message}`,
+        state: null
+      });
+    }
+
+    return migrateState(raw);
+  }
+
   /** @returns {string} Current stage */
   getStage() {
     return this.getState().stage;
@@ -249,24 +287,27 @@ export class WorkflowStateManager extends EventEmitter {
     });
 
     // 6. Emit event
-    this.emit('stageAdvanced', { from: fromStage, to: targetStage, owner: newOwner });
+    this.emit('stage-advanced', { from: fromStage, to: targetStage, owner: newOwner });
 
     return this._snapshot();
   }
 
   /**
-   * Record that a gate has been met.
-   * Validates gate existence and caller authority before writing.
+   * Set the approval status of a gate.
+   * Validates gate existence and approver authority before writing.
    * Persists to disk and writes a transaction log entry on success.
    *
+   * This is the spec-compliant method. See recordGate() for the legacy alias.
+   *
    * @param {string} gateName   - Registered gate id (e.g. 'quick.understanding_confirmed')
-   * @param {string} caller     - Identity of the actor setting the gate
+   * @param {boolean} approved  - Whether the gate is being approved (true) or revoked (false)
+   * @param {string} approver   - Identity of the actor setting the gate
    * @param {Object} [metadata={}] - Extra metadata stored with gate and log
    * @returns {Object} The updated state
    * @throws {Error} if gateName is unknown
-   * @throws {InsufficientAuthorityError} if caller lacks authority
+   * @throws {InsufficientAuthorityError} if approver lacks authority
    */
-  recordGate(gateName, caller, metadata = {}) {
+  setApproval(gateName, approved, approver, metadata = {}) {
     // Ensure state is loaded
     this.getState();
 
@@ -277,11 +318,11 @@ export class WorkflowStateManager extends EventEmitter {
     }
 
     // 2. Validate authority
-    if (gateDef.authority !== caller) {
+    if (gateDef.authority !== approver) {
       throw new InsufficientAuthorityError({
         gateName,
         requiredAuthority: gateDef.authority,
-        actualCaller: caller
+        actualCaller: approver
       });
     }
 
@@ -293,13 +334,14 @@ export class WorkflowStateManager extends EventEmitter {
       ...this._state,
       gates: {
         ...this._state.gates,
-        [gateName]: true
+        [gateName]: approved
       },
       gateMeta: {
         ...this._state.gateMeta,
         [gateName]: {
-          approver: caller,
+          approver,
           metAt: now,
+          approved,
           ...metadata
         }
       },
@@ -315,18 +357,266 @@ export class WorkflowStateManager extends EventEmitter {
     // 5. Log
     const log = this._getLog();
     log.append({
-      operation: 'recordGate',
+      operation: 'setApproval',
       workItemId: this.workItemId,
-      caller,
+      caller: approver,
       before: { gates: before.gates },
       after: { gates: this._state.gates },
-      metadata: { gateName, ...metadata }
+      metadata: { gateName, approved, ...metadata }
     });
 
     // 6. Emit event
-    this.emit('gateMet', { gate: gateName, caller });
+    this.emit('gate-met', { gate: gateName, approver, approved });
 
     return this._snapshot();
+  }
+
+  /**
+   * Legacy alias for setApproval(gateName, true, caller, metadata).
+   * Kept for backward compatibility with existing tests and code.
+   *
+   * @param {string} gateName   - Registered gate id
+   * @param {string} caller     - Identity of the actor setting the gate
+   * @param {Object} [metadata={}] - Extra metadata
+   * @returns {Object} The updated state
+   */
+  recordGate(gateName, caller, metadata = {}) {
+    return this.setApproval(gateName, true, caller, metadata);
+  }
+
+  /**
+   * Add an issue to the workflow state.
+   *
+   * @param {Object} issue - Issue object (must have at minimum an `id` field)
+   * @returns {Object} The updated state
+   */
+  recordIssue(issue) {
+    if (!issue || !issue.id) {
+      throw new Error('recordIssue requires an issue object with an id field');
+    }
+
+    // Ensure state is loaded
+    this.getState();
+
+    const before = this._snapshot();
+    const now = new Date().toISOString();
+
+    const issueWithTimestamp = {
+      ...issue,
+      recordedAt: issue.recordedAt || now,
+      resolved: false
+    };
+
+    this._state = {
+      ...this._state,
+      issues: [
+        ...(this._state.issues || []),
+        issueWithTimestamp
+      ],
+      metadata: {
+        ...this._state.metadata,
+        updated_at: now
+      }
+    };
+
+    // Persist
+    this._persist();
+
+    // Log
+    const log = this._getLog();
+    log.append({
+      operation: 'recordIssue',
+      workItemId: this.workItemId,
+      caller: issue.reporter || 'unknown',
+      before: { issues: before.issues || [] },
+      after: { issues: this._state.issues },
+      metadata: { issueId: issue.id }
+    });
+
+    return this._snapshot();
+  }
+
+  /**
+   * Mark an issue as resolved.
+   *
+   * @param {string} issueId    - The id of the issue to resolve
+   * @param {string} resolution - Description of the resolution
+   * @returns {Object} The updated state
+   * @throws {Error} if the issue is not found
+   */
+  resolveIssue(issueId, resolution) {
+    // Ensure state is loaded
+    this.getState();
+
+    const issues = this._state.issues || [];
+    const idx = issues.findIndex(i => i.id === issueId);
+    if (idx === -1) {
+      throw new Error(`Issue '${issueId}' not found`);
+    }
+
+    const before = this._snapshot();
+    const now = new Date().toISOString();
+
+    const updatedIssues = issues.map((issue, i) => {
+      if (i !== idx) return issue;
+      return {
+        ...issue,
+        resolved: true,
+        resolution,
+        resolvedAt: now
+      };
+    });
+
+    this._state = {
+      ...this._state,
+      issues: updatedIssues,
+      metadata: {
+        ...this._state.metadata,
+        updated_at: now
+      }
+    };
+
+    // Persist
+    this._persist();
+
+    // Log
+    const log = this._getLog();
+    log.append({
+      operation: 'resolveIssue',
+      workItemId: this.workItemId,
+      caller: 'unknown',
+      before: { issues: before.issues },
+      after: { issues: this._state.issues },
+      metadata: { issueId, resolution }
+    });
+
+    return this._snapshot();
+  }
+
+  /**
+   * Add evidence to the workflow state.
+   *
+   * @param {Object} evidence - Evidence object to record
+   * @returns {Object} The updated state
+   */
+  recordEvidence(evidence) {
+    if (!evidence || typeof evidence !== 'object') {
+      throw new Error('recordEvidence requires an evidence object');
+    }
+
+    // Ensure state is loaded
+    this.getState();
+
+    const before = this._snapshot();
+    const now = new Date().toISOString();
+
+    const evidenceWithTimestamp = {
+      ...evidence,
+      recordedAt: evidence.recordedAt || now
+    };
+
+    this._state = {
+      ...this._state,
+      evidence: [
+        ...(this._state.evidence || []),
+        evidenceWithTimestamp
+      ],
+      metadata: {
+        ...this._state.metadata,
+        updated_at: now
+      }
+    };
+
+    // Persist
+    this._persist();
+
+    // Log
+    const log = this._getLog();
+    log.append({
+      operation: 'recordEvidence',
+      workItemId: this.workItemId,
+      caller: evidence.caller || 'unknown',
+      before: { evidence: before.evidence || [] },
+      after: { evidence: this._state.evidence },
+      metadata: { evidence }
+    });
+
+    return this._snapshot();
+  }
+
+  // ── Transaction management ─────────────────────────────────────────────────
+
+  /**
+   * Begin a transaction by snapshotting the current state.
+   * Subsequent mutations can be rolled back via rollbackTransaction().
+   *
+   * @throws {Error} if a transaction is already active
+   */
+  beginTransaction() {
+    if (this._txSnapshot !== undefined) {
+      throw new Error('Transaction already active. Commit or rollback before beginning a new one.');
+    }
+
+    // Ensure state is loaded
+    this.getState();
+
+    // Snapshot current in-memory state for potential rollback
+    this._txSnapshot = JSON.parse(JSON.stringify(this._state));
+  }
+
+  /**
+   * Commit the active transaction, clearing the snapshot.
+   *
+   * @throws {Error} if no transaction is active
+   */
+  commitTransaction() {
+    if (this._txSnapshot === undefined) {
+      throw new Error('No active transaction to commit.');
+    }
+
+    const log = this._getLog();
+    log.append({
+      operation: 'commit',
+      workItemId: this.workItemId,
+      caller: 'transaction-manager',
+      before: this._txSnapshot,
+      after: this._state,
+      metadata: {}
+    });
+
+    this._txSnapshot = undefined;
+  }
+
+  /**
+   * Rollback the active transaction, restoring the pre-transaction snapshot
+   * and re-persisting the rolled-back state to disk.
+   *
+   * @throws {Error} if no transaction is active
+   */
+  rollbackTransaction() {
+    if (this._txSnapshot === undefined) {
+      throw new Error('No active transaction to rollback.');
+    }
+
+    const rolledBackFrom = JSON.parse(JSON.stringify(this._state));
+
+    // Restore snapshot
+    this._state = this._txSnapshot;
+    this._txSnapshot = undefined;
+
+    // Re-persist the rolled-back state
+    this._persist();
+
+    // Log the rollback
+    const log = this._getLog();
+    log.append({
+      operation: 'rollback',
+      workItemId: this.workItemId,
+      caller: 'transaction-manager',
+      before: rolledBackFrom,
+      after: this._state,
+      metadata: { reason: 'Transaction rolled back' }
+    });
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
