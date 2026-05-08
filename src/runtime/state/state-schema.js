@@ -1,6 +1,9 @@
 export const STATE_VERSION = '2.0.0';
 
 export function isLegacyState(state) {
+  if (!state || typeof state !== 'object') {
+    return true; // Treat invalid state as legacy (needs migration)
+  }
   return !state.version || state.version !== STATE_VERSION;
 }
 
@@ -31,7 +34,12 @@ export function migrateState(oldState) {
     return oldState;
   }
 
+  // Spread to preserve unknown top-level fields, then override known ones.
+  // Unknown keys in approvals/gates are intentionally dropped - the migration
+  // maps define the valid set; anything outside is either invalid data or from
+  // a newer version that shouldn't appear here.
   const newState = {
+    ...oldState,
     version: STATE_VERSION,
     mode: oldState.mode,
     stage: oldState.stage,
@@ -42,6 +50,10 @@ export function migrateState(oldState) {
       updated_at: new Date().toISOString()
     }
   };
+
+  // Remove legacy fields that have been replaced
+  delete newState.approvals;
+  delete newState.created_at;
 
   // Migrate old approvals
   if (oldState.approvals) {
