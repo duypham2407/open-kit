@@ -56,6 +56,24 @@ function createUnavailableKernel(projectRoot) {
     recordVerificationEvidence() {
       return null;
     },
+    advanceStage() {
+      return null;
+    },
+    setApproval() {
+      return null;
+    },
+    getState() {
+      return null;
+    },
+    recordIssue() {
+      return null;
+    },
+    resolveIssue() {
+      return null;
+    },
+    recordEvidence() {
+      return null;
+    },
     listTasks() {
       return { projectRoot, tasks: [] };
     },
@@ -92,7 +110,7 @@ function normalizeEvidenceEntry(entry = {}) {
   };
 }
 
-export function createWorkflowKernelAdapter({ projectRoot, env = process.env }) {
+export function createWorkflowKernelAdapter({ projectRoot, env = process.env, stateManager = null }) {
   const controllerPath = resolveControllerPath(projectRoot, env);
   const projectStatePath = path.join(projectRoot, '.opencode', 'workflow-state.json');
   const defaultStatePath = env.OPENKIT_WORKFLOW_STATE
@@ -201,6 +219,52 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env }) 
     return safeCall(() => controller.recordVerificationEvidence(normalizeEvidenceEntry(entry), withStatePath(customStatePath)), null);
   }
 
+  // ── WorkflowStateManager delegation ───────────────────────────────────────
+
+  function advanceStage(targetStage, newOwner, metadata = {}) {
+    if (!stateManager) {
+      return null;
+    }
+    return stateManager.advanceStage(targetStage, newOwner, metadata);
+  }
+
+  function setApproval(gateName, approved, approver, metadata = {}) {
+    if (!stateManager) {
+      return null;
+    }
+    return stateManager.setApproval(gateName, approved, approver, metadata);
+  }
+
+  function getState() {
+    if (!stateManager) {
+      return null;
+    }
+    return stateManager.getState();
+  }
+
+  function recordIssue(issue) {
+    if (!stateManager) {
+      return null;
+    }
+    return stateManager.recordIssue(issue);
+  }
+
+  function resolveIssue(issueId, resolution) {
+    if (!stateManager) {
+      return null;
+    }
+    return stateManager.resolveIssue(issueId, resolution);
+  }
+
+  function recordEvidence(evidence) {
+    if (!stateManager) {
+      return null;
+    }
+    return stateManager.recordEvidence(evidence);
+  }
+
+  // ── End WorkflowStateManager delegation ───────────────────────────────────
+
   function listTasks(workItemId, customStatePath = null) {
     if (!canReadState(customStatePath)) {
       return { projectRoot, tasks: [] };
@@ -271,6 +335,12 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env }) 
     completeBackgroundRun,
     cancelBackgroundRun,
     recordVerificationEvidence,
+    advanceStage,
+    setApproval,
+    getState,
+    recordIssue,
+    resolveIssue,
+    recordEvidence,
     listTasks,
     claimTask,
     assignQaOwner,
