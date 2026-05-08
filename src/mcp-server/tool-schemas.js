@@ -360,6 +360,30 @@ export const TOOL_SCHEMAS = {
     },
   },
 
+  'tool.set-approval': {
+    description:
+      'Set approval for a workflow gate. Validates gate existence and approver authority before writing state. ' +
+      'Use this to satisfy gate requirements before advancing stages.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        gateName: {
+          type: 'string',
+          description: 'Registered gate id (e.g. "quick.understanding_confirmed", "full.qa_passed")',
+        },
+        approved: {
+          type: 'boolean',
+          description: 'Whether to approve (true) or revoke (false) the gate',
+        },
+        approver: {
+          type: 'string',
+          description: 'Identity of the actor setting the gate (must match the gate\'s required authority)',
+        },
+      },
+      required: ['gateName', 'approved', 'approver'],
+    },
+  },
+
   'tool.check-action': {
     description:
       'Advisory check: Is a proposed action allowed for the current role and stage? ' +
