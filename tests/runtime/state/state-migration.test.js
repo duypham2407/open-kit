@@ -65,6 +65,48 @@ describe('State Schema', () => {
     assert.equal(migrated.gates['full.solution_to_implementation'], false);
   });
 
+  it('migrates migration lane gates', () => {
+    const legacyState = {
+      mode: 'migration',
+      stage: 'migration_verify',
+      owner: 'qa-agent',
+      approvals: {
+        baseline_verified: true,
+        strategy_approved: true,
+        migration_code_review_passed: false,
+        parity_verified: false
+      }
+    };
+
+    const migrated = migrateState(legacyState);
+
+    assert.equal(migrated.gates['migration.baseline_verified'], true);
+    assert.equal(migrated.gates['migration.strategy_approved'], true);
+    assert.equal(migrated.gates['migration.code_review_passed'], false);
+    assert.equal(migrated.gates['migration.parity_verified'], false);
+  });
+
+  it('migrates all full lane gates including code review and qa', () => {
+    const legacyState = {
+      mode: 'full',
+      stage: 'full_qa',
+      owner: 'qa-agent',
+      approvals: {
+        product_to_solution: true,
+        solution_to_implementation: true,
+        code_review_passed: true,
+        qa_passed: false
+      }
+    };
+
+    const migrated = migrateState(legacyState);
+
+    assert.equal(migrated.gates['full.product_to_solution'], true);
+    assert.equal(migrated.gates['full.solution_to_implementation'], true);
+    assert.equal(migrated.gates['full.code_review_passed'], true);
+    assert.equal(migrated.gates['full.qa_passed'], false);
+  });
+
   it('is idempotent - migrating twice produces same result', () => {
     const legacyState = {
       mode: 'quick',

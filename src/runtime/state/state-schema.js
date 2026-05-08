@@ -39,9 +39,7 @@ export function migrateState(oldState) {
     gates: {},
     metadata: {
       created_at: oldState.created_at || new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      state_version: 1,
-      migrated_from: oldState.version || '1.0.0'
+      updated_at: new Date().toISOString()
     }
   };
 
