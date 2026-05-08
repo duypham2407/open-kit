@@ -1,6 +1,8 @@
 import fs from "node:fs"
 import path from "node:path"
 
+import { WorkflowStateManager } from "../../src/runtime/state/workflow-state-manager.js"
+
 import {
   bootstrapBackgroundRunStore,
   createBackgroundRun,
@@ -167,6 +169,258 @@ function formatModeLabel(mode) {
 
 function timestamp() {
   return new Date().toISOString()
+}
+
+// ---------------------------------------------------------------------------
+// WorkflowStateManager delegation helpers (Phase 3 integration)
+// ---------------------------------------------------------------------------
+// These helpers maintain a v2 state file alongside the legacy state so that
+// WorkflowStateManager (the unified state layer) stays in sync with every
+// stage advance and approval recorded by the CLI controller.
+//
+// The v2 state lives in:
+//   <runtimeRoot>/.opencode/v2/work-items/<workItemId>/state.json
+//
+// This is a separate path from the legacy state so the two schemas do not
+// overwrite each other during the transition period.  When Phase 4 fully
+// migrates the CLI to the v2 schema these helpers will be removed and the
+// controller will use WorkflowStateManager exclusively.
+
+const V2_SUBDIR = "v2"
+
+/**
+ * Resolve the baseDir that WorkflowStateManager should use for a given
+ * runtimeRoot.  All v2 state files live under <runtimeRoot>/.opencode/v2/.
+ */
+function resolveV2BaseDir(runtimeRoot) {
+  return path.join(runtimeRoot, ".opencode", V2_SUBDIR)
+}
+
+/**
+ * Get-or-create a WorkflowStateManager instance for the given work item,
+ * initialising v2 state from the current (legacy) state object if this is
+ * the first time v2 state is written for this work item.
+ *
+ * @param {string} runtimeRoot - Project root that contains the .opencode dir
+ * @param {string} workItemId  - Identifier for the active work item
+ * @param {object} legacyState - The current legacy state (used for init)
+ * @returns {WorkflowStateManager}
+ */
+function getOrInitV2Manager(runtimeRoot, workItemId, legacyState) {
+  const baseDir = resolveV2BaseDir(runtimeRoot)
+  const mgr = new WorkflowStateManager({ workItemId, baseDir })
+
+  // Only initialise if no v2 state file exists yet.
+  const v2StateFile = path.join(baseDir, "work-items", workItemId, "state.json")
+  if (!fs.existsSync(v2StateFile)) {
+    const mode = legacyState.mode
+    const stage = legacyState.current_stage
+    const owner = legacyState.current_owner ?? "unknown"
+
+    // Initialise with the current stage so the v2 state starts in sync.
+    mgr.initialize({ mode, owner })
+
+    // If the legacy state is already past the initial stage for this mode we
+    // need to fast-forward the v2 state by recording the current stage
+    // without FSM validation (the legacy controller already validated it).
+    // We do this by directly writing the state file rather than calling
+    // advanceStage() which would fail FSM checks for non-initial stages.
+    if (stage !== mgr.getStage()) {
+      const currentV2State = mgr.getState()
+      const synced = {
+        ...currentV2State,
+        stage,
+        owner,
+        metadata: { ...currentV2State.metadata, updated_at: timestamp() },
+      }
+      const stateFile = path.join(baseDir, "work-items", workItemId, "state.json")
+      fs.writeFileSync(stateFile, JSON.stringify(synced, null, 2), "utf8")
+      // Force re-load by clearing in-memory cache via a new manager instance
+      // (WorkflowStateManager caches state; we must not reuse mgr after the
+      // direct write above).
+    }
+  }
+
+  return mgr
+}
+
+/**
+ * Sync a stage advance to the WorkflowStateManager v2 state.
+ * Called after the legacy controller's mutate() succeeds.
+ *
+ * Errors in this helper are non-fatal: they are logged to stderr but do NOT
+ * propagate to the caller so that a v2 sync failure never breaks the CLI.
+ *
+ * @param {string} runtimeRoot
+ * @param {string} workItemId
+ * @param {object} legacyState - The state BEFORE the advance (for init if needed)
+ * @param {string} targetStage - The stage that was just advanced to
+ * @param {string} newOwner    - The new owner for the target stage
+ */
+function syncAdvanceStageToV2(runtimeRoot, workItemId, legacyState, targetStage, newOwner) {
+  try {
+    const baseDir = resolveV2BaseDir(runtimeRoot)
+    // Always create a fresh manager instance to avoid stale in-memory cache.
+    const mgr = new WorkflowStateManager({ workItemId, baseDir })
+
+    const v2StateFile = path.join(baseDir, "work-items", workItemId, "state.json")
+    if (!fs.existsSync(v2StateFile)) {
+      // First time: initialise v2 state from the legacy initial stage.
+      const mode = legacyState.mode
+      const initialStage = legacyState.current_stage
+      const initialOwner = legacyState.current_owner ?? "unknown"
+      mgr.initialize({ mode, owner: initialOwner })
+
+      // If initialStage != targetStage we need to directly write the target
+      // stage because FSM won't allow skipping stages.  Since the legacy
+      // controller already validated the transition we trust it here.
+      if (initialStage !== targetStage) {
+        const curState = mgr.getState()
+        const synced = {
+          ...curState,
+          stage: targetStage,
+          owner: newOwner,
+          metadata: { ...curState.metadata, updated_at: timestamp() },
+        }
+        fs.writeFileSync(v2StateFile, JSON.stringify(synced, null, 2), "utf8")
+        return
+      }
+      // If initialStage === targetStage (i.e. we just initialised to the right
+      // stage) we are already done.
+      return
+    }
+
+    // v2 state already exists — try a normal advanceStage via the manager.
+    // Load current v2 state.
+    const currentV2 = mgr.getState()
+    if (currentV2.stage === targetStage) {
+      // Already in sync.
+      return
+    }
+
+    // If the FSM can make the transition, delegate to the manager.
+    const validation = mgr.validateTransition(targetStage)
+    if (validation.valid) {
+      mgr.advanceStage(targetStage, newOwner, { caller: "workflow-state-controller" })
+    } else {
+      // FSM disallows the transition (e.g. backward move or the v2 state has
+      // drifted from the legacy state).  Write directly so the v2 state stays
+      // in sync with the authoritative legacy state.
+      const synced = {
+        ...currentV2,
+        stage: targetStage,
+        owner: newOwner,
+        metadata: { ...currentV2.metadata, updated_at: timestamp() },
+      }
+      fs.writeFileSync(
+        path.join(baseDir, "work-items", workItemId, "state.json"),
+        JSON.stringify(synced, null, 2),
+        "utf8",
+      )
+    }
+  } catch (syncError) {
+    // v2 sync is best-effort; never let it break the CLI.
+    process.stderr.write(
+      `[WorkflowStateManager] v2 sync failed for '${workItemId}' stage='${targetStage}': ${syncError.message}\n`,
+    )
+  }
+}
+
+/**
+ * Sync a gate approval to the WorkflowStateManager v2 state.
+ * Called after the legacy controller's mutate() succeeds.
+ *
+ * The mapping from legacy gate names to v2 unified gate names is handled here.
+ * If a mapping does not exist the sync is a no-op (unknown gates are skipped).
+ *
+ * @param {string}  runtimeRoot
+ * @param {string}  workItemId
+ * @param {object}  legacyState  - The state BEFORE the approval mutation
+ * @param {string}  legacyGate   - Legacy gate name (e.g. 'quick_verified')
+ * @param {string}  status       - 'approved' | 'rejected' | 'pending'
+ * @param {string}  approvedBy   - Identity of the approver
+ */
+function syncApprovalToV2(runtimeRoot, workItemId, legacyState, legacyGate, status, approvedBy) {
+  // Map legacy gate names → v2 unified gate names
+  const LEGACY_TO_V2_GATE = {
+    // Quick lane
+    quick_verified: "quick.verified",
+    // Full lane
+    product_to_solution: "full.product_to_solution",
+    solution_to_fullstack: "full.solution_to_implementation",
+    fullstack_to_code_review: "full.code_review_passed",
+    code_review_to_qa: "full.qa_passed",
+    // Migration lane
+    baseline_to_strategy: "migration.baseline_verified",
+    strategy_to_upgrade: "migration.strategy_approved",
+    upgrade_to_code_review: "migration.code_review_passed",
+    code_review_to_verify: "migration.parity_verified",
+  }
+
+  const v2Gate = LEGACY_TO_V2_GATE[legacyGate]
+  if (!v2Gate) {
+    // Unknown gate — skip silently
+    return
+  }
+
+  try {
+    const baseDir = resolveV2BaseDir(runtimeRoot)
+    const v2StateFile = path.join(baseDir, "work-items", workItemId, "state.json")
+
+    if (!fs.existsSync(v2StateFile)) {
+      // v2 state has not been initialised yet for this work item.
+      // Initialise it now from the legacy state so subsequent reads work.
+      const mgr = new WorkflowStateManager({ workItemId, baseDir })
+      const mode = legacyState.mode
+      const stage = legacyState.current_stage
+      const owner = legacyState.current_owner ?? "unknown"
+      mgr.initialize({ mode, owner })
+
+      // Fast-forward stage if needed
+      const v2State = mgr.getState()
+      if (v2State.stage !== stage) {
+        const synced = {
+          ...v2State,
+          stage,
+          owner,
+          metadata: { ...v2State.metadata, updated_at: timestamp() },
+        }
+        fs.writeFileSync(v2StateFile, JSON.stringify(synced, null, 2), "utf8")
+      }
+    }
+
+    // Now record the gate.  Read current v2 state and write the gate directly
+    // to avoid authority checks (the legacy controller already validated the
+    // approver; in v2 the authority model may differ).
+    const rawV2 = JSON.parse(fs.readFileSync(v2StateFile, "utf8"))
+    const approved = status === "approved"
+
+    const updatedV2 = {
+      ...rawV2,
+      gates: {
+        ...(rawV2.gates ?? {}),
+        [v2Gate]: approved,
+      },
+      gateMeta: {
+        ...(rawV2.gateMeta ?? {}),
+        [v2Gate]: {
+          approver: approvedBy ?? "unknown",
+          metAt: timestamp(),
+          approved,
+        },
+      },
+      metadata: {
+        ...(rawV2.metadata ?? {}),
+        updated_at: timestamp(),
+      },
+    }
+
+    fs.writeFileSync(v2StateFile, JSON.stringify(updatedV2, null, 2), "utf8")
+  } catch (syncError) {
+    process.stderr.write(
+      `[WorkflowStateManager] v2 gate sync failed for '${workItemId}' gate='${legacyGate}': ${syncError.message}\n`,
+    )
+  }
 }
 
 const RELEASE_STATUS_VALUES = ["draft", "candidate", "approved", "released", "rolled_back", "cancelled"]
@@ -3771,11 +4025,23 @@ function startFeature(featureId, featureSlug, customStatePath) {
 function setApproval(gate, status, approvedBy, approvedAt, notes, customStatePath) {
   ensureKnown(status, ["pending", "approved", "rejected"], "status")
 
-  return mutate(customStatePath, (state, context) => {
+  // Capture state before mutation so syncApprovalToV2 can initialise v2 state
+  // from the current (pre-approval) legacy state if needed.
+  let preApprovalState = null
+  let capturedWorkItemId = null
+  let capturedRuntimeRoot = null
+
+  const result = mutate(customStatePath, (state, context) => {
     const allowedGates = getApprovalGatesForMode(state.mode)
     ensureKnown(gate, allowedGates, `gate for mode '${state.mode}'`)
 
     const { projectRoot, runtimeRoot, workItemId } = context
+
+    // Capture for post-mutate delegation
+    preApprovalState = JSON.parse(JSON.stringify(state))
+    capturedWorkItemId = workItemId
+    capturedRuntimeRoot = runtimeRoot
+
     if (status === "approved" && gate === "product_to_solution" && state.current_stage === "full_product") {
       requireLinkedArtifacts(
         state,
@@ -3815,13 +4081,31 @@ function setApproval(gate, status, approvedBy, approvedAt, notes, customStatePat
     }
     return state
   })
+
+  // Delegate to WorkflowStateManager v2 after successful legacy mutation.
+  if (capturedWorkItemId && capturedRuntimeRoot && preApprovalState) {
+    syncApprovalToV2(capturedRuntimeRoot, capturedWorkItemId, preApprovalState, gate, status, approvedBy)
+  }
+
+  return result
 }
 
 function advanceStage(targetStage, customStatePath) {
   ensureKnown(targetStage, STAGE_SEQUENCE, "target stage")
 
-  return mutate(customStatePath, (state, context) => {
+  // State captured inside the mutate callback for post-mutate v2 delegation.
+  let preAdvanceState = null
+  let capturedWorkItemId = null
+  let capturedRuntimeRoot = null
+
+  const result = mutate(customStatePath, (state, context) => {
     const { projectRoot, runtimeRoot, kitRoot, workItemId } = context
+
+    // Capture for post-mutate delegation
+    preAdvanceState = JSON.parse(JSON.stringify(state))
+    capturedWorkItemId = workItemId
+    capturedRuntimeRoot = runtimeRoot
+
     if (getModeForStage(targetStage) !== state.mode) {
       fail(`target stage '${targetStage}' does not belong to mode '${state.mode}'`)
     }
@@ -3969,6 +4253,14 @@ function advanceStage(targetStage, customStatePath) {
     autoScaffoldPrimaryArtifactIfNeeded(state, projectRoot, kitRoot, targetStage)
     return state
   })
+
+  // Delegate stage advance to WorkflowStateManager v2 after successful legacy mutation.
+  if (capturedWorkItemId && capturedRuntimeRoot && preAdvanceState) {
+    const newOwner = STAGE_OWNERS[targetStage] ?? "unknown"
+    syncAdvanceStageToV2(capturedRuntimeRoot, capturedWorkItemId, preAdvanceState, targetStage, newOwner)
+  }
+
+  return result
 }
 
 function linkArtifact(kind, artifactPath, customStatePath) {
