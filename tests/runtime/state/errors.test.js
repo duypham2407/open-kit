@@ -62,4 +62,101 @@ describe('State Errors', () => {
     assert.equal(error.name, 'StateCorruptionError');
     assert.match(error.message, /Missing required field/);
   });
+
+  it('StateCorruptionError exposes reason property', () => {
+    const error = new StateCorruptionError({
+      reason: 'Missing required field',
+      state: {}
+    });
+
+    assert.equal(error.reason, 'Missing required field');
+    assert.deepEqual(error.state, {});
+  });
+});
+
+describe('Error inheritance', () => {
+  it('all error types extend Error', () => {
+    const errors = [
+      new StateTransitionError({ currentStage: 'a', targetStage: 'b' }),
+      new GateNotMetError({ currentStage: 'a', targetStage: 'b' }),
+      new InsufficientAuthorityError({ gateName: 'g', requiredAuthority: 'r', actualCaller: 'c' }),
+      new StateCorruptionError({ reason: 'r', state: {} })
+    ];
+
+    errors.forEach(error => {
+      assert.ok(error instanceof Error);
+    });
+  });
+});
+
+describe('toJSON() serialization', () => {
+  it('StateTransitionError.toJSON() includes all fields', () => {
+    const error = new StateTransitionError({
+      currentStage: 'quick_done',
+      targetStage: 'quick_plan',
+      validNextStages: ['none']
+    });
+
+    const json = error.toJSON();
+
+    assert.equal(json.type, 'StateTransitionError');
+    assert.ok(json.message);
+    assert.equal(json.currentStage, 'quick_done');
+    assert.equal(json.targetStage, 'quick_plan');
+    assert.deepEqual(json.validNextStages, ['none']);
+  });
+
+  it('GateNotMetError.toJSON() includes recommendations', () => {
+    const error = new GateNotMetError({
+      currentStage: 'quick_brainstorm',
+      targetStage: 'quick_plan',
+      missingGates: [{
+        gate: 'quick.understanding_confirmed',
+        authority: 'user'
+      }]
+    });
+
+    const json = error.toJSON();
+
+    assert.equal(json.type, 'GateNotMetError');
+    assert.ok(Array.isArray(json.recommendations));
+    assert.equal(json.recommendations.length, 1);
+    assert.match(json.recommendations[0], /quick.understanding_confirmed/);
+  });
+
+  it('StateCorruptionError.toJSON() includes state', () => {
+    const corruptedState = { stage: 'invalid' };
+    const error = new StateCorruptionError({
+      reason: 'Missing mode',
+      state: corruptedState
+    });
+
+    const json = error.toJSON();
+
+    assert.equal(json.type, 'StateCorruptionError');
+    assert.equal(json.reason, 'Missing mode');
+    assert.deepEqual(json.state, corruptedState);
+  });
+});
+
+describe('Edge cases', () => {
+  it('StateTransitionError handles empty validNextStages', () => {
+    const error = new StateTransitionError({
+      currentStage: 'quick_done',
+      targetStage: 'quick_plan',
+      validNextStages: []
+    });
+
+    assert.match(error.message, /none/);
+  });
+
+  it('GateNotMetError handles empty missingGates', () => {
+    const error = new GateNotMetError({
+      currentStage: 'quick_plan',
+      targetStage: 'quick_implement',
+      missingGates: []
+    });
+
+    assert.match(error.message, /none/);
+  });
 });

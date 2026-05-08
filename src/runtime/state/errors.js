@@ -20,7 +20,7 @@ export class StateTransitionError extends Error {
 
 export class GateNotMetError extends Error {
   constructor({ currentStage, targetStage, missingGates = [] }) {
-    const gateNames = missingGates.map(g => g.gate).join(', ');
+    const gateNames = missingGates.map(g => g.gate).join(', ') || 'none';
     super(`Cannot advance from ${currentStage} to ${targetStage}: required gates not met: ${gateNames}`);
     this.name = 'GateNotMetError';
     this.currentStage = currentStage;
@@ -67,7 +67,7 @@ export class StateCorruptionError extends Error {
     super(`State corruption detected: ${reason}`);
     this.name = 'StateCorruptionError';
     this.reason = reason;
-    this.corruptedState = state;
+    this.state = state;
   }
 
   toJSON() {
@@ -75,7 +75,7 @@ export class StateCorruptionError extends Error {
       type: this.name,
       message: this.message,
       reason: this.reason,
-      state: this.corruptedState
+      state: this.state
     };
   }
 }
