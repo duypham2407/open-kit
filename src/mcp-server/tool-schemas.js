@@ -335,6 +335,69 @@ export const TOOL_SCHEMAS = {
     },
   },
 
+  'tool.advance-stage': {
+    description:
+      'Advance the workflow to the next stage. Validates FSM transitions and gate requirements. ' +
+      'Model MUST call this tool to change stages — direct state manipulation is not allowed. ' +
+      'Returns the new stage, new owner, valid next stages, and role-specific guidance.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        targetStage: {
+          type: 'string',
+          description: 'The stage to transition to (e.g., "quick_plan", "full_solution")',
+        },
+        evidence: {
+          type: 'object',
+          description: 'Evidence satisfying gate requirements for this transition',
+        },
+        handoffContext: {
+          type: 'string',
+          description: 'Context to pass to the next role owner during handoff',
+        },
+      },
+      required: ['targetStage'],
+    },
+  },
+
+  'tool.check-action': {
+    description:
+      'Advisory check: Is a proposed action allowed for the current role and stage? ' +
+      'Returns guidance without blocking. Use to validate before attempting an action.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          description: 'Action to check (e.g., "edit_code", "run_tests", "run_bash", "write_file", "lint", "type_check")',
+        },
+        description: {
+          type: 'string',
+          description: 'Optional description of what you want to do',
+        },
+      },
+      required: ['action'],
+    },
+  },
+
+  'tool.workflow-audit': {
+    description:
+      'Returns an audit log of workflow events: stage transitions, blocked tool calls, violations by role, and evidence captured.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Maximum number of events to return (default 50)',
+        },
+        filter: {
+          type: 'string',
+          description: 'Filter by status ("blocked", "allowed", "transition"), tool ID, or role name',
+        },
+      },
+    },
+  },
+
   // ── Capability pack tools ─────────────────────────────────────────────
   'tool.capability-inventory': {
     description: 'List bundled MCPs and skills with scope, status, key presence, dependency status, preview/policy labels, and redacted outputs.',

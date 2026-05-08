@@ -35,6 +35,7 @@
     "docs/operations/runbooks/",
     "docs/templates/",
     "hooks/",
+    "instructions/",
     "skills/",
     "src/",
     "AGENTS.md",

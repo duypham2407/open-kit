@@ -1,6 +1,7 @@
 import { createBashGuardHook } from './tool-guards/bash-guard-hook.js';
 import { createIssueClosureHook } from './tool-guards/issue-closure-hook.js';
 import { createParallelSafetyHook } from './tool-guards/parallel-safety-hook.js';
+import { createRoleGuardHook } from './tool-guards/role-guard-hook.js';
 import { createStageReadinessHook } from './tool-guards/stage-readiness-hook.js';
 import { createToolOutputTruncationHook } from './tool-guards/tool-output-truncation-hook.js';
 import { createVerificationClaimHook } from './tool-guards/verification-claim-hook.js';
@@ -26,6 +27,7 @@ export function createToolGuardHooks({ workflowKernel, config = {} }) {
       : resolveEnforcementLevel(workflowKernel);
 
   return [
+    createRoleGuardHook({ workflowKernel }),
     createStageReadinessHook({ workflowKernel }),
     createVerificationClaimHook({ workflowKernel }),
     createIssueClosureHook({ workflowKernel }),

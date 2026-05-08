@@ -284,6 +284,35 @@ print('show: node .opencode/workflow-state.js show');
 print('resume: node .opencode/workflow-state.js resume-summary');
 print('</openkit_runtime_status>');
 
+// --- Role boundaries injection ---
+if (stateResult.exists && stateResult.value) {
+  const currentOwner = stateResult.value.current_owner;
+  const currentStage = stateResult.value.current_stage;
+  const currentMode = stateResult.value.mode;
+  if (currentOwner) {
+    print('<openkit_role_boundaries>');
+    print(`current_owner: ${currentOwner}`);
+    print(`current_stage: ${currentStage ?? 'unknown'}`);
+    print(`current_mode: ${currentMode ?? 'unknown'}`);
+    print('ENFORCEMENT RULES:');
+    print('1. ALWAYS call tool.advance-stage to change stages. Direct state manipulation is forbidden.');
+    print('2. Your role permissions are enforced by the Role Guard Hook. Unauthorized tool calls will be blocked.');
+    print('3. Read openkit://active-role-instructions for your role-specific context.');
+    if (currentOwner === 'MasterOrchestrator') {
+      print('BLOCKED: You CANNOT edit files, run bash commands, create code, or run tests. You ONLY coordinate and dispatch.');
+    } else if (currentOwner === 'ProductLead') {
+      print('BLOCKED: You CANNOT edit code, run bash commands, or apply codemods. You ONLY define scope and acceptance criteria.');
+    } else if (currentOwner === 'SolutionLead') {
+      print('BLOCKED: You CANNOT edit code, run bash commands, or apply codemods. You ONLY design the technical solution.');
+    } else if (currentOwner === 'CodeReviewer') {
+      print('BLOCKED: You CANNOT edit code, write files, or run bash commands. You ONLY review and report findings.');
+    } else if (currentOwner === 'QAAgent') {
+      print('BLOCKED: You CANNOT edit code, write files, or apply codemods. You verify behavior and capture evidence.');
+    }
+    print('</openkit_role_boundaries>');
+  }
+}
+
 if (!process.env.OPENKIT_SESSION_START_NO_CAPABILITY_GUIDANCE) {
   renderCapabilityGuidance(await resolveCapabilityGuidance(kitRoot, stateResult.value));
 }

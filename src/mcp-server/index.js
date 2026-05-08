@@ -17,9 +17,14 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import {
   ListToolsRequestSchema,
   CallToolRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { bootstrapRuntimeFoundation } from '../runtime/index.js';
+import { loadRoleInstructions } from '../runtime/workflow/instruction-loader.js';
+import { getValidNextStages, getStageOwner } from '../runtime/workflow/state-machine.js';
+import { getAllowedTools } from '../runtime/workflow/role-permissions.js';
 import { parseServerArgs } from './args.js';
 import { TOOL_SCHEMAS, getMcpExposedToolIds } from './tool-schemas.js';
 
@@ -160,6 +165,7 @@ async function main() {
     {
       capabilities: {
         tools: {},
+        resources: {},
       },
     },
   );
@@ -171,6 +177,132 @@ async function main() {
       inputSchema: t.inputSchema,
     })),
   }));
+
+  // --- MCP Resources ---
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: [
+      {
+        uri: 'openkit://active-role-instructions',
+        name: 'Active Role Instructions',
+        description: 'Returns role-specific instructions for the current workflow stage and owner.',
+        mimeType: 'text/markdown',
+      },
+      {
+        uri: 'openkit://available-actions',
+        name: 'Available Actions',
+        description: 'Returns allowed tools and next stages for the current role.',
+        mimeType: 'application/json',
+      },
+      {
+        uri: 'openkit://workflow-status',
+        name: 'Workflow Status',
+        description: 'Returns current stage, owner, mode, and next steps.',
+        mimeType: 'application/json',
+      },
+    ],
+  }));
+
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const { uri } = request.params;
+    const workflowKernel = runtime.managers?.workflowKernel;
+    const stateResult = workflowKernel?.showState?.() ?? null;
+    const state = stateResult?.state ?? stateResult ?? null;
+
+    if (uri === 'openkit://active-role-instructions') {
+      if (!state || !state.current_stage || !state.current_owner) {
+        return {
+          contents: [{
+            uri,
+            mimeType: 'text/markdown',
+            text: '# No Active Workflow\n\nNo workflow state found. Start a workflow with /task, /quick-task, /migrate, or /delivery.',
+          }],
+        };
+      }
+
+      const instructions = loadRoleInstructions(
+        state.mode,
+        state.current_stage,
+        state.current_owner,
+        { kitRoot: projectRoot },
+      );
+
+      return {
+        contents: [{
+          uri,
+          mimeType: 'text/markdown',
+          text: instructions,
+        }],
+      };
+    }
+
+    if (uri === 'openkit://available-actions') {
+      if (!state || !state.current_owner) {
+        return {
+          contents: [{
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify({ status: 'no_workflow', allowedTools: [], nextStages: [] }, null, 2),
+          }],
+        };
+      }
+
+      const allowedTools = getAllowedTools(state.current_owner);
+      const nextStages = getValidNextStages(state.mode, state.current_stage);
+
+      return {
+        contents: [{
+          uri,
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            currentOwner: state.current_owner,
+            currentStage: state.current_stage,
+            mode: state.mode,
+            allowedTools,
+            nextStages,
+            nextStageOwners: nextStages.map((s) => ({ stage: s, owner: getStageOwner(state.mode, s) })),
+          }, null, 2),
+        }],
+      };
+    }
+
+    if (uri === 'openkit://workflow-status') {
+      if (!state) {
+        return {
+          contents: [{
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify({ status: 'no_workflow', message: 'No active workflow. Start one with /task, /quick-task, /migrate, or /delivery.' }, null, 2),
+          }],
+        };
+      }
+
+      const nextStages = getValidNextStages(state.mode, state.current_stage);
+
+      return {
+        contents: [{
+          uri,
+          mimeType: 'application/json',
+          text: JSON.stringify({
+            mode: state.mode,
+            currentStage: state.current_stage,
+            currentOwner: state.current_owner,
+            workItemId: state.work_item_id ?? null,
+            title: state.title ?? null,
+            validNextStages: nextStages,
+            guidance: `You are ${state.current_owner} in ${state.current_stage}. Call tool.advance-stage to proceed.`,
+          }, null, 2),
+        }],
+      };
+    }
+
+    return {
+      contents: [{
+        uri,
+        mimeType: 'text/plain',
+        text: `Unknown resource: ${uri}`,
+      }],
+    };
+  });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
