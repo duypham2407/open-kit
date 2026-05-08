@@ -68,6 +68,9 @@ export class WorkflowStateManager extends EventEmitter {
 
     // In-memory state cache (null = not yet loaded)
     this._state = null;
+
+    // Transaction snapshot (null = no active transaction)
+    this._txSnapshot = null;
   }
 
   // ── Initialization ─────────────────────────────────────────────────────────
@@ -318,6 +321,10 @@ export class WorkflowStateManager extends EventEmitter {
     }
 
     // 2. Validate authority
+    // NOTE: gate authorities are always simple string identifiers (see gate-registry.js).
+    // Strict equality is intentional — the registry does not use arrays or wildcards.
+    // If wildcard/array authority support is needed in the future, this check must be
+    // updated and corresponding tests added.
     if (gateDef.authority !== approver) {
       throw new InsufficientAuthorityError({
         gateName,
@@ -441,10 +448,11 @@ export class WorkflowStateManager extends EventEmitter {
    *
    * @param {string} issueId    - The id of the issue to resolve
    * @param {string} resolution - Description of the resolution
+   * @param {string} [resolvedBy='unknown'] - Identity of the actor resolving the issue
    * @returns {Object} The updated state
    * @throws {Error} if the issue is not found
    */
-  resolveIssue(issueId, resolution) {
+  resolveIssue(issueId, resolution, resolvedBy = 'unknown') {
     // Ensure state is loaded
     this.getState();
 
@@ -484,7 +492,7 @@ export class WorkflowStateManager extends EventEmitter {
     log.append({
       operation: 'resolveIssue',
       workItemId: this.workItemId,
-      caller: 'unknown',
+      caller: resolvedBy,
       before: { issues: before.issues },
       after: { issues: this._state.issues },
       metadata: { issueId, resolution }
@@ -553,7 +561,7 @@ export class WorkflowStateManager extends EventEmitter {
    * @throws {Error} if a transaction is already active
    */
   beginTransaction() {
-    if (this._txSnapshot !== undefined) {
+    if (this._txSnapshot !== null) {
       throw new Error('Transaction already active. Commit or rollback before beginning a new one.');
     }
 
@@ -570,7 +578,7 @@ export class WorkflowStateManager extends EventEmitter {
    * @throws {Error} if no transaction is active
    */
   commitTransaction() {
-    if (this._txSnapshot === undefined) {
+    if (this._txSnapshot === null) {
       throw new Error('No active transaction to commit.');
     }
 
@@ -584,7 +592,7 @@ export class WorkflowStateManager extends EventEmitter {
       metadata: {}
     });
 
-    this._txSnapshot = undefined;
+    this._txSnapshot = null;
   }
 
   /**
@@ -594,18 +602,21 @@ export class WorkflowStateManager extends EventEmitter {
    * @throws {Error} if no transaction is active
    */
   rollbackTransaction() {
-    if (this._txSnapshot === undefined) {
+    if (this._txSnapshot === null) {
       throw new Error('No active transaction to rollback.');
     }
 
     const rolledBackFrom = JSON.parse(JSON.stringify(this._state));
 
-    // Restore snapshot
+    // Restore snapshot (but keep _txSnapshot until persist succeeds
+    // so a failed persist leaves the transaction retryable)
     this._state = this._txSnapshot;
-    this._txSnapshot = undefined;
 
     // Re-persist the rolled-back state
     this._persist();
+
+    // Clear snapshot only after successful persist
+    this._txSnapshot = null;
 
     // Log the rollback
     const log = this._getLog();
@@ -659,9 +670,13 @@ export class WorkflowStateManager extends EventEmitter {
 
   /**
    * Persist the current in-memory state to disk (primary + mirror files).
-   * Creates directories as needed.
+   * Uses write-to-temp-then-rename for atomic writes on POSIX systems so that
+   * a process kill mid-write never leaves a corrupt file.
+   * Throws if either write fails so the caller can handle the error rather
+   * than silently diverging in-memory and on-disk state.
    *
    * @private
+   * @throws {Error} if either the primary or mirror write fails
    */
   _persist() {
     // Ensure item directory exists
@@ -670,14 +685,32 @@ export class WorkflowStateManager extends EventEmitter {
     }
 
     const serialized = JSON.stringify(this._state, null, 2);
-    fs.writeFileSync(this._stateFile, serialized, 'utf-8');
 
-    // Write compatibility mirror
+    // Atomic write to primary state file
+    const tmpState = `${this._stateFile}.${Date.now()}.tmp`;
+    try {
+      fs.writeFileSync(tmpState, serialized, 'utf8');
+      fs.renameSync(tmpState, this._stateFile);
+    } catch (err) {
+      // Clean up temp file if it exists, then re-throw so callers know the
+      // write failed and can avoid treating in-memory state as persisted.
+      try { fs.unlinkSync(tmpState); } catch { /* ignore cleanup error */ }
+      throw new Error(`Failed to persist state for work item '${this.workItemId}': ${err.message}`);
+    }
+
+    // Atomic write to compatibility mirror
     const mirrorDir = path.dirname(this._mirrorFile);
     if (!fs.existsSync(mirrorDir)) {
       fs.mkdirSync(mirrorDir, { recursive: true });
     }
-    fs.writeFileSync(this._mirrorFile, serialized, 'utf-8');
+    const tmpMirror = `${this._mirrorFile}.${Date.now()}.tmp`;
+    try {
+      fs.writeFileSync(tmpMirror, serialized, 'utf8');
+      fs.renameSync(tmpMirror, this._mirrorFile);
+    } catch (err) {
+      try { fs.unlinkSync(tmpMirror); } catch { /* ignore cleanup error */ }
+      throw new Error(`Failed to persist mirror state for work item '${this.workItemId}': ${err.message}`);
+    }
   }
 
   /**
