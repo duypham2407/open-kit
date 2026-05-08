@@ -57,16 +57,6 @@ describe('GateRegistry', () => {
     assert.equal(gate, null);
   });
 
-  it('getGateMetadata is an alias for getGate', () => {
-    const via_getGate = registry.getGate('quick.understanding_confirmed');
-    const via_metadata = registry.getGateMetadata('quick.understanding_confirmed');
-    assert.deepEqual(via_getGate, via_metadata);
-  });
-
-  it('getGateMetadata returns null for unknown gate', () => {
-    assert.equal(registry.getGateMetadata('does.not.exist'), null);
-  });
-
   // --- isGateMet() ---
 
   it('isGateMet returns true when gate is true in state', () => {
@@ -138,36 +128,6 @@ describe('GateRegistry', () => {
     assert.equal(gates[0], 'migration.strategy_approved');
   });
 
-  // --- checkGate() ---
-
-  it('checkGate returns met:true when gate is satisfied in context', () => {
-    const context = {
-      gates: { 'quick.understanding_confirmed': true }
-    };
-    const result = registry.checkGate('quick.understanding_confirmed', context);
-
-    assert.equal(result.met, true);
-  });
-
-  it('checkGate returns met:false with gate details when not satisfied', () => {
-    const context = {
-      gates: { 'quick.understanding_confirmed': false }
-    };
-    const result = registry.checkGate('quick.understanding_confirmed', context);
-
-    assert.equal(result.met, false);
-    assert.equal(result.gate, 'quick.understanding_confirmed');
-    assert.equal(result.authority, 'user');
-    assert.ok(result.description);
-  });
-
-  it('checkGate throws for unknown gate id', () => {
-    assert.throws(
-      () => registry.checkGate('does.not.exist', { gates: {} }),
-      /unknown gate/i
-    );
-  });
-
   // --- canTransition() ---
 
   it('allows transition when all required gates are met', () => {
@@ -230,67 +190,57 @@ describe('GateRegistry', () => {
     assert.equal(result.missingGates[0].gate, 'full.product_to_solution');
   });
 
-  // --- listGatesForTransition() ---
+  // --- recordGateMet() ---
 
-  it('listGatesForTransition returns gates for a transition', () => {
-    const gates = registry.listGatesForTransition('quick', 'quick_brainstorm', 'quick_plan');
-
-    assert.equal(gates.length, 1);
-    assert.equal(gates[0].id, 'quick.understanding_confirmed');
-    assert.equal(gates[0].authority, 'user');
-    assert.equal(gates[0].type, 'confirmation');
-    assert.ok(gates[0].description);
+  it('recordGateMet sets the gate to true in state.gates', () => {
+    const state = { gates: {} };
+    registry.recordGateMet(state, 'quick.understanding_confirmed', 'user');
+    assert.equal(state.gates['quick.understanding_confirmed'], true);
   });
 
-  it('listGatesForTransition returns empty array for gateless transition', () => {
-    const gates = registry.listGatesForTransition('quick', 'quick_intake', 'quick_brainstorm');
-    assert.equal(gates.length, 0);
+  it('recordGateMet creates state.gates if absent', () => {
+    const state = {};
+    registry.recordGateMet(state, 'quick.plan_confirmed', 'user');
+    assert.equal(state.gates['quick.plan_confirmed'], true);
   });
 
-  it('listGatesForTransition includes id field on each gate', () => {
-    const gates = registry.listGatesForTransition('full', 'full_qa', 'full_done');
-
-    assert.equal(gates.length, 1);
-    assert.equal(gates[0].id, 'full.qa_passed');
-    assert.equal(gates[0].stage, 'full_qa');
-    assert.equal(gates[0].targetStage, 'full_done');
+  it('recordGateMet stores approver and metAt in state.gateMeta', () => {
+    const state = { gates: {} };
+    registry.recordGateMet(state, 'quick.verified', 'quick-agent');
+    assert.ok(state.gateMeta, 'state.gateMeta should be created');
+    assert.equal(state.gateMeta['quick.verified'].approver, 'quick-agent');
+    assert.ok(state.gateMeta['quick.verified'].metAt, 'metAt timestamp should be set');
   });
 
-  it('listGatesForTransition returns empty array for unknown stages', () => {
-    const gates = registry.listGatesForTransition('quick', 'no_such_stage', 'another_stage');
-    assert.equal(gates.length, 0);
+  it('recordGateMet stores extra metadata fields alongside approver', () => {
+    const state = { gates: {} };
+    registry.recordGateMet(state, 'full.product_to_solution', 'user', { note: 'looks good' });
+    assert.equal(state.gateMeta['full.product_to_solution'].note, 'looks good');
+    assert.equal(state.gateMeta['full.product_to_solution'].approver, 'user');
   });
 
-  // --- listAllGates() ---
-
-  it('listAllGates returns all gate definitions', () => {
-    const all = registry.listAllGates();
-
-    // Should have gates for all three lanes
-    const ids = all.map(g => g.id);
-    assert.ok(ids.includes('quick.understanding_confirmed'));
-    assert.ok(ids.includes('quick.plan_confirmed'));
-    assert.ok(ids.includes('quick.verified'));
-    assert.ok(ids.includes('full.product_to_solution'));
-    assert.ok(ids.includes('full.solution_to_implementation'));
-    assert.ok(ids.includes('full.code_review_passed'));
-    assert.ok(ids.includes('full.qa_passed'));
-    assert.ok(ids.includes('migration.baseline_verified'));
-    assert.ok(ids.includes('migration.strategy_approved'));
-    assert.ok(ids.includes('migration.code_review_passed'));
-    assert.ok(ids.includes('migration.parity_verified'));
+  it('recordGateMet returns the state object', () => {
+    const state = { gates: {} };
+    const returned = registry.recordGateMet(state, 'quick.understanding_confirmed', 'user');
+    assert.equal(returned, state);
   });
 
-  it('each gate in listAllGates has id, stage, targetStage, authority, type, description', () => {
-    const all = registry.listAllGates();
+  it('recordGateMet makes isGateMet return true for the recorded gate', () => {
+    const state = { gates: {} };
+    registry.recordGateMet(state, 'migration.strategy_approved', 'user');
+    assert.equal(registry.isGateMet(state, 'migration.strategy_approved'), true);
+  });
 
-    for (const gate of all) {
-      assert.ok(gate.id, `gate.id missing on ${JSON.stringify(gate)}`);
-      assert.ok(gate.stage, `gate.stage missing on ${gate.id}`);
-      assert.ok(gate.targetStage, `gate.targetStage missing on ${gate.id}`);
-      assert.ok(gate.authority, `gate.authority missing on ${gate.id}`);
-      assert.ok(gate.type, `gate.type missing on ${gate.id}`);
-      assert.ok(gate.description, `gate.description missing on ${gate.id}`);
-    }
+  it('recordGateMet throws for unknown gate name', () => {
+    assert.throws(
+      () => registry.recordGateMet({ gates: {} }, 'does.not.exist', 'user'),
+      /unknown gate/i
+    );
+  });
+
+  it('recordGateMet works with metadata omitted (defaults to empty object)', () => {
+    const state = { gates: {} };
+    assert.doesNotThrow(() => registry.recordGateMet(state, 'quick.plan_confirmed', 'user'));
+    assert.equal(state.gates['quick.plan_confirmed'], true);
   });
 });

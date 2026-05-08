@@ -116,23 +116,6 @@ export class GateRegistry {
     return this.gates[gateId] ?? null;
   }
 
-  /**
-   * Alias for getGate() — returns gate definition (metadata) for gateId.
-   * @param {string} gateId
-   * @returns {GateDefinition|null}
-   */
-  getGateMetadata(gateId) {
-    return this.getGate(gateId);
-  }
-
-  /**
-   * Return all gate definitions as an array, each with its id included.
-   * @returns {Array<GateDefinition & {id: string}>}
-   */
-  listAllGates() {
-    return Object.entries(this.gates).map(([id, def]) => ({ id, ...def }));
-  }
-
   // ── Gate status checks ─────────────────────────────────────────────────────
 
   /**
@@ -147,32 +130,6 @@ export class GateRegistry {
     if (!this.gates[gateId]) return false;
     if (!state || !state.gates) return false;
     return state.gates[gateId] === true;
-  }
-
-  /**
-   * Validate a single gate against the provided context (state).
-   * Returns a result object instead of throwing — except for completely
-   * unknown gates, where it throws so callers can detect programming errors.
-   *
-   * @param {string} gateId
-   * @param {Object} context - Must contain a `gates` map
-   * @returns {{ met: boolean, gate: string, authority: string, description: string }}
-   * @throws {Error} if gateId is not registered
-   */
-  checkGate(gateId, context) {
-    const def = this.getGate(gateId);
-    if (!def) {
-      throw new Error(`Unknown gate: '${gateId}'`);
-    }
-
-    const met = this.isGateMet(context, gateId);
-
-    return {
-      met,
-      gate: gateId,
-      authority: def.authority,
-      description: def.description
-    };
   }
 
   // ── Transition gate queries ────────────────────────────────────────────────
@@ -193,22 +150,6 @@ export class GateRegistry {
       }
     }
     return required;
-  }
-
-  /**
-   * Return full gate objects (with id) for all gates that block the given
-   * transition. Useful for surfacing blocking gates to callers.
-   *
-   * @param {string} _mode  - Lane mode ('quick'|'full'|'migration') — currently
-   *                          used for forward-compatibility; gates are already
-   *                          implicitly scoped by lane via their id prefix.
-   * @param {string} fromStage
-   * @param {string} toStage
-   * @returns {Array<GateDefinition & {id: string}>}
-   */
-  listGatesForTransition(_mode, fromStage, toStage) {
-    const ids = this.getRequiredGates(fromStage, toStage);
-    return ids.map(id => ({ id, ...this.gates[id] }));
   }
 
   /**
@@ -241,5 +182,41 @@ export class GateRegistry {
       allowed: missingGates.length === 0,
       missingGates
     };
+  }
+
+  /**
+   * Record that a gate has been met in the state object.
+   * Sets `state.gates[gateName]` to `true` and stores approver and metadata
+   * under `state.gateMeta[gateName]`. Throws for unknown gate names.
+   *
+   * @param {Object} state       - Workflow state object (mutated in place and returned)
+   * @param {string} gateName    - Registered gate id (e.g. 'quick.understanding_confirmed')
+   * @param {string} approver    - Identity of the actor meeting the gate
+   * @param {Object} [metadata]  - Optional additional metadata to record
+   * @returns {Object} The updated state object
+   * @throws {Error} if gateName is not a registered gate
+   */
+  recordGateMet(state, gateName, approver, metadata = {}) {
+    if (!this.gates[gateName]) {
+      throw new Error(`Unknown gate: '${gateName}'`);
+    }
+
+    if (!state.gates) {
+      state.gates = {};
+    }
+
+    state.gates[gateName] = true;
+
+    if (!state.gateMeta) {
+      state.gateMeta = {};
+    }
+
+    state.gateMeta[gateName] = {
+      approver,
+      metAt: new Date().toISOString(),
+      ...metadata
+    };
+
+    return state;
   }
 }
