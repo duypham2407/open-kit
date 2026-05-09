@@ -21,7 +21,10 @@ import {
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 
+import path from 'node:path';
+
 import { bootstrapRuntimeFoundation } from '../runtime/index.js';
+import { startSessionLifecycle } from '../runtime/runtime-bootstrap.js';
 import { loadRoleInstructions } from '../runtime/workflow/instruction-loader.js';
 import { getValidNextStages, getStageOwner } from '../runtime/workflow/state-machine.js';
 import { getAllowedTools } from '../runtime/workflow/role-permissions.js';
@@ -139,6 +142,17 @@ async function main() {
     console.error('Failed to bootstrap OpenKit runtime:', err.message);
     process.exit(1);
   }
+
+  // Start the per-session heartbeat ticker and shutdown handlers. The launcher
+  // sets OPENKIT_SESSION_ID and pre-registers the sessions/index entry; we just
+  // keep it alive (heartbeat) and mark it closed on shutdown.
+  const sessionId = process.env.OPENKIT_SESSION_ID;
+  const sessionBaseDir = path.join(runtime.projectRoot, '.opencode');
+  startSessionLifecycle({
+    baseDir: sessionBaseDir,
+    sessionId,
+    pid: process.pid,
+  });
 
   const exposedIds = getMcpExposedToolIds();
   const toolMap = runtime.tools.tools;
