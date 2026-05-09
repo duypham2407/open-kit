@@ -21,6 +21,8 @@ import { parseRunOptions } from '../cli/commands/run-options.js';
 import { parseModelIdsFromOutput } from '../cli/commands/agent-model-selection.js';
 import { bootstrapRuntimeFoundation, createRuntimeFoundationEnvironment } from '../runtime/index.js';
 import { createRuntimeSessionId, normalizeRuntimeSessionId } from '../runtime/runtime-session-id.js';
+import { migrateOnStart } from '../runtime/sessions/migrate-on-start.js';
+import { listOpenKitWorktrees } from '../runtime/sessions/list-openkit-worktrees.js';
 import { selectActiveWorkItem, showWorkItemState } from '../../.opencode/lib/workflow-state-controller.js';
 
 function formatMissingOpenCodeError() {
@@ -544,7 +546,7 @@ function recordFailedGlobalRuntimeSession({ runtimeFoundation, runtimeSessionId,
   });
 }
 
-export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), env = process.env, spawn = spawnSync, stdio = 'inherit' } = {}) {
+export async function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), env = process.env, spawn = spawnSync, stdio = 'inherit' } = {}) {
   let parsedArgs;
   try {
     parsedArgs = normalizeLaunchRequest(args);
@@ -559,6 +561,12 @@ export function launchGlobalOpenKit(args = [], { projectRoot = process.cwd(), en
   }
 
   const paths = ensureWorkspaceBootstrap({ projectRoot, env });
+
+  await migrateOnStart({
+    baseDir: path.join(paths.projectRoot, '.opencode'),
+    listWorktrees: () => listOpenKitWorktrees(paths.projectRoot),
+  });
+
   let launchProjectRoot = paths.projectRoot;
   let launchSelection = null;
   const launcherNotices = [];

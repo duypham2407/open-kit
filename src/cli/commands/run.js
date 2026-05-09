@@ -148,7 +148,7 @@ export const runCommand = {
     }
 
     let launchRequest = parsedArgs;
-    let result = launchGlobalOpenKit(launchRequest, {
+    let result = await launchGlobalOpenKit(launchRequest, {
       projectRoot: process.cwd(),
       env: process.env,
     });
@@ -173,7 +173,7 @@ export const runCommand = {
         ...interactiveSelection,
       };
 
-      result = launchGlobalOpenKit(launchRequest, {
+      result = await launchGlobalOpenKit(launchRequest, {
         projectRoot: process.cwd(),
         env: process.env,
       });
