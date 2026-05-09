@@ -16,6 +16,7 @@ import { profilesCommand } from './commands/profiles.js';
 import { switchProfilesCommand } from './commands/switch-profiles.js';
 import { sessionsCommand } from './commands/sessions/index.js';
 import { dashboardCommand } from './commands/dashboard.js';
+import { finishCommand } from './commands/finish.js';
 
 const commands = {
   help: helpCommand,
@@ -36,6 +37,7 @@ const commands = {
   release: releaseCommand,
   sessions: sessionsCommand,
   dashboard: dashboardCommand,
+  finish: finishCommand,
   'internal-audit-vietnamese': detectVietnameseCommand,
 };
 
