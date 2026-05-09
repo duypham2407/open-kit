@@ -150,7 +150,14 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
   function safeCall(fn, fallback) {
     try {
       return fn();
-    } catch {
+    } catch (err) {
+      // Log the swallowed exception so a SQLite lock, disk full, malformed
+      // JSON, or any other controller-layer failure is observable to the
+      // operator. We still return the fallback to preserve caller behavior
+      // (callers treat null as "no value"), but silent swallowing was the
+      // root cause of audit finding [1-H-1].
+      const message = err?.message ?? String(err);
+      process.stderr.write(`[workflow-kernel] safeCall swallowed exception: ${message}\n`);
       return fallback;
     }
   }
