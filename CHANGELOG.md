@@ -65,6 +65,24 @@ guide. Manual QA is documented at
 - All `active_work_item_id` reads in `src/` and `.opencode/lib` were
   refactored to `resolveSession({ env, repoRoot }).workItemId`.
 
+### Fixed
+
+- **Runtime-sessions isolation**: Launcher now correctly bootstraps runtime
+  foundation with `workspaceRoot` so runtime-sessions use workspace-level
+  paths, while OPENKIT_SESSION_ID sessions are stored in repo root's
+  `.opencode/sessions/`. This fixes the conflation between the two session
+  systems.
+- **User workflow-state preservation**: Migration now only rotates files
+  that match OpenKit schema fields (mode, work_item_id, current_stage, etc.)
+  and explicitly excludes user-created files like `{"project":true}`.
+- **Async launcher calls**: All launcher test functions updated to properly
+  handle async `launchGlobalOpenKit()` calls.
+- **Governance compliance**: `/finish` command now references
+  `tool-substitution-rules.md` for proper git state inspection.
+- **Test output format**: Workflow-state CLI tests updated for v3 schema
+  output format ("Sessions: no current session in env" instead of
+  "Active work item: ...").
+
 ### Migration
 
 - Automatic on first `openkit run` after upgrade. Idempotent.
