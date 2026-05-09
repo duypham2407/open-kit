@@ -3554,3 +3554,97 @@ test("activate-work-item switches the active selection", () => {
   assert.match(result.stdout, /Active work item: feature-910/)
   assert.match(result.stdout, /\* feature-910 \| FEATURE-910 \| full \| in_progress/)
 })
+
+// ---------------------------------------------------------------------------
+// bootstrap subcommand
+// ---------------------------------------------------------------------------
+
+test("bootstrap subcommand creates fresh quick state on empty path", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openkit-wf-cli-bootstrap-"))
+  const statePath = path.join(dir, ".opencode", "workflow-state.json")
+  fs.mkdirSync(path.dirname(statePath), { recursive: true })
+
+  const env = { ...process.env }
+  delete env.OPENKIT_GLOBAL_MODE
+  delete env.OPENKIT_PROJECT_ROOT
+  delete env.OPENKIT_WORKFLOW_STATE
+
+  const result = spawnSync(
+    "node",
+    [
+      path.resolve(__dirname, "../workflow-state.js"),
+      "--state", statePath,
+      "bootstrap",
+      "--lane", "quick",
+      "--description", "test bootstrap task",
+    ],
+    { encoding: "utf8", env, cwd: dir },
+  )
+  assert.equal(result.status, 0, `stderr: ${result.stderr}\nstdout: ${result.stdout}`)
+  assert.ok(fs.existsSync(statePath))
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  assert.equal(state.mode, "quick")
+  assert.equal(state.current_stage, "quick_intake")
+  assert.equal(state.intake_payload?.description, "test bootstrap task")
+})
+
+test("bootstrap subcommand exits with 1 on conflict with active workflow", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openkit-wf-cli-bootstrap-"))
+  const statePath = path.join(dir, ".opencode", "workflow-state.json")
+  fs.mkdirSync(path.dirname(statePath), { recursive: true })
+
+  const env = { ...process.env }
+  delete env.OPENKIT_GLOBAL_MODE
+  delete env.OPENKIT_PROJECT_ROOT
+  delete env.OPENKIT_WORKFLOW_STATE
+
+  const spawnOpts = { encoding: "utf8", env, cwd: dir }
+  const cliPath = path.resolve(__dirname, "../workflow-state.js")
+
+  // First bootstrap
+  let result = spawnSync(
+    "node",
+    [cliPath, "--state", statePath, "bootstrap", "--lane", "quick", "--description", "first task"],
+    spawnOpts,
+  )
+  assert.equal(result.status, 0, `first bootstrap failed: ${result.stderr}`)
+
+  // Second bootstrap — should conflict
+  result = spawnSync(
+    "node",
+    [cliPath, "--state", statePath, "bootstrap", "--lane", "full", "--description", "second task"],
+    spawnOpts,
+  )
+  assert.notEqual(result.status, 0, "second bootstrap should exit non-zero on conflict")
+  assert.match(result.stdout + result.stderr, /conflict|active workflow/i)
+})
+
+test("bootstrap subcommand with --archive-prior creates fresh state", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "openkit-wf-cli-bootstrap-"))
+  const statePath = path.join(dir, ".opencode", "workflow-state.json")
+  fs.mkdirSync(path.dirname(statePath), { recursive: true })
+
+  const env = { ...process.env }
+  delete env.OPENKIT_GLOBAL_MODE
+  delete env.OPENKIT_PROJECT_ROOT
+  delete env.OPENKIT_WORKFLOW_STATE
+
+  const spawnOpts = { encoding: "utf8", env, cwd: dir }
+  const cliPath = path.resolve(__dirname, "../workflow-state.js")
+
+  spawnSync(
+    "node",
+    [cliPath, "--state", statePath, "bootstrap", "--lane", "quick", "--description", "first task"],
+    spawnOpts,
+  )
+
+  const result = spawnSync(
+    "node",
+    [cliPath, "--state", statePath, "bootstrap", "--lane", "migration", "--description", "second task", "--archive-prior"],
+    spawnOpts,
+  )
+  assert.equal(result.status, 0, `stderr: ${result.stderr}`)
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  assert.equal(state.mode, "migration")
+  assert.equal(state.current_stage, "migration_intake")
+})

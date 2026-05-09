@@ -11,6 +11,7 @@ import {
   appendPreservedInvariant,
   appendRollbackCheckpoint,
   advanceStage,
+  bootstrapWorkflow,
   clearIssues,
   clearVerificationEvidence,
   cleanupWorkItemWorktree,
@@ -186,6 +187,28 @@ function printUsage() {
   node .opencode/workflow-state.js [--state <path>] append-baseline-evidence <ref>
   node .opencode/workflow-state.js [--state <path>] append-rollback-checkpoint <checkpoint>
   node .opencode/workflow-state.js [--state <path>] append-compatibility-hotspot <hotspot>`)
+}
+
+/**
+ * Parse --key value or --key (boolean) flags from an args array.
+ * @param {string[]} args
+ * @returns {Record<string, string|boolean>}
+ */
+function parseKeyValueFlags(args) {
+  const flags = {}
+  for (let i = 0; i < args.length; i++) {
+    if (args[i].startsWith("--")) {
+      const key = args[i].slice(2)
+      const next = args[i + 1]
+      if (next !== undefined && !next.startsWith("--")) {
+        flags[key] = next
+        i++
+      } else {
+        flags[key] = true
+      }
+    }
+  }
+  return flags
 }
 
 function parseGlobalFlags(argv) {
@@ -1724,6 +1747,32 @@ async function main() {
       console.log(`Appended compatibility hotspot: '${rest[0]}'`)
       console.log(`State file: ${result.statePath}`)
       return
+    case "bootstrap": {
+      // Parse --lane, --description, --slug, --archive-prior flags
+      const bootstrapFlags = parseKeyValueFlags(rest)
+      if (!bootstrapFlags.lane) {
+        process.stderr.write("Error: --lane is required (quick|full|migration)\n")
+        process.exit(2)
+        return
+      }
+      if (!bootstrapFlags.description) {
+        process.stderr.write("Error: --description is required\n")
+        process.exit(2)
+        return
+      }
+      const bootstrapResult = bootstrapWorkflow({
+        lane: bootstrapFlags.lane,
+        description: bootstrapFlags.description,
+        featureSlug: bootstrapFlags.slug,
+        statePath,
+        archivePrior: bootstrapFlags["archive-prior"] === true || bootstrapFlags["archive-prior"] === "true",
+      })
+      console.log(JSON.stringify(bootstrapResult, null, 2))
+      if (bootstrapResult.status === "conflict") {
+        process.exit(1)
+      }
+      return
+    }
     case "help":
       printUsage()
       return
