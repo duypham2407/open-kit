@@ -116,11 +116,11 @@ function normalizeEvidenceEntry(entry = {}) {
 export function createWorkflowKernelAdapter({ projectRoot, env = process.env, stateManager = null }) {
   const controllerPath = resolveControllerPath(projectRoot, env);
   const projectStatePath = path.join(projectRoot, '.opencode', 'workflow-state.json');
+  // Always resolve to the project state path — bootstrap will create the file when needed.
+  // Previously this was null when the file didn't exist, which blocked bootstrap.
   const defaultStatePath = env.OPENKIT_WORKFLOW_STATE
     ? path.resolve(env.OPENKIT_WORKFLOW_STATE)
-    : fs.existsSync(projectStatePath)
-      ? projectStatePath
-      : null;
+    : projectStatePath;
   if (!controllerPath) {
     return createUnavailableKernel(projectRoot);
   }
@@ -137,7 +137,14 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
   }
 
   function canWriteState(customStatePath = null) {
-    return Boolean(withStatePath(customStatePath));
+    const statePath = withStatePath(customStatePath);
+    if (!statePath) {
+      return false;
+    }
+    // The state directory must exist for writes to be possible.
+    // This preserves the pre-Task7 guard while allowing bootstrap to create
+    // the file (bootstrap creates the directory itself if needed).
+    return fs.existsSync(path.dirname(statePath));
   }
 
   function safeCall(fn, fallback) {
@@ -337,14 +344,17 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
   /**
    * Bootstrap a new workflow for the given lane.
    * Works on fresh projects where no state file exists yet.
+   * Uses OPENKIT_WORKFLOW_STATE if set, otherwise the project state path.
    */
   function bootstrapWorkflow({ lane, description, featureSlug, archivePrior = false } = {}) {
-    // Always use the project state path (not defaultStatePath which may be null on fresh project)
+    // Use the resolved default path (respects OPENKIT_WORKFLOW_STATE env var),
+    // falling back to projectStatePath for fresh projects where defaultStatePath is null.
+    const statePath = defaultStatePath ?? projectStatePath;
     return controller.bootstrapWorkflow({
       lane,
       description,
       featureSlug,
-      statePath: projectStatePath,
+      statePath,
       archivePrior,
     });
   }
@@ -376,5 +386,6 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
     getOpsSummary,
     runDoctor,
     bootstrapWorkflow,
+    canWriteState,
   };
 }
