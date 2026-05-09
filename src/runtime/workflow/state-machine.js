@@ -1,13 +1,13 @@
 /**
- * Workflow Finite State Machine
+ * Workflow Finite State Machine — public API.
  *
- * Defines legal stage transitions, stage owners, and validation logic
- * for all three workflow modes: quick, full, and migration.
+ * Exposes the FSM helpers used by tool.advance-stage and the MCP
+ * openkit://available-actions resource: isValidTransition,
+ * getValidNextStages, getStageOwner, getInitialStage, etc.
  *
- * This is the single source of truth for:
- * - Which stages can follow which
- * - Which role owns each stage
- * - Whether a proposed transition is valid
+ * Stage transitions and stage owners are defined canonically in
+ * src/runtime/state/transitions.js. This module only exposes the
+ * functions that consume that canonical data.
  */
 
 import { TRANSITIONS, STAGE_OWNERS } from '../state/transitions.js';

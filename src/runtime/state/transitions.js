@@ -13,6 +13,9 @@
  * Merge policy when the two prior tables disagreed: take the more permissive
  * entry, with the explicit goal of allowing backward rework so the model can
  * recover from a stuck stage. Forward-only transitions remain unchanged.
+ *
+ * Consistency between this canonical source and its consumers is verified
+ * by tests/runtime/fsm-table-consistency.test.js.
  */
 
 export const TRANSITIONS = {

@@ -115,7 +115,8 @@ describe('TransitionEngine', () => {
 
     it('correctly identifies backward transition in full lane', () => {
       const result = engine.validateTransition('full', 'full_code_review', 'full_solution');
-      assert.equal(result.valid, false); // skipping is not valid even backward
+      assert.equal(result.valid, true);
+      assert.equal(result.backward, true);
     });
 
     it('correctly identifies backward transition in migration lane', () => {
