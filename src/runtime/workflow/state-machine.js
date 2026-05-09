@@ -10,66 +10,12 @@
  * - Whether a proposed transition is valid
  */
 
-const QUICK_TRANSITIONS = {
-  quick_intake: ['quick_plan'],
-  quick_plan: ['quick_implement'],
-  quick_implement: ['quick_test', 'quick_plan'],
-  quick_test: ['quick_done', 'quick_implement'],
-  quick_done: [],
-};
-
-const QUICK_STAGE_OWNERS = {
-  quick_intake: 'MasterOrchestrator',
-  quick_plan: 'QuickAgent',
-  quick_implement: 'QuickAgent',
-  quick_test: 'QuickAgent',
-  quick_done: 'QuickAgent',
-};
-
-const FULL_TRANSITIONS = {
-  full_intake: ['full_product'],
-  full_product: ['full_solution'],
-  full_solution: ['full_implementation'],
-  full_implementation: ['full_code_review', 'full_solution'],
-  full_code_review: ['full_qa', 'full_implementation', 'full_solution', 'full_product'],
-  full_qa: ['full_done', 'full_implementation', 'full_solution', 'full_product'],
-  full_done: [],
-};
-
-const FULL_STAGE_OWNERS = {
-  full_intake: 'MasterOrchestrator',
-  full_product: 'ProductLead',
-  full_solution: 'SolutionLead',
-  full_implementation: 'FullstackAgent',
-  full_code_review: 'CodeReviewer',
-  full_qa: 'QAAgent',
-  full_done: 'MasterOrchestrator',
-};
-
-const MIGRATION_TRANSITIONS = {
-  migration_intake: ['migration_baseline'],
-  migration_baseline: ['migration_strategy'],
-  migration_strategy: ['migration_upgrade'],
-  migration_upgrade: ['migration_code_review', 'migration_strategy'],
-  migration_code_review: ['migration_verify', 'migration_upgrade', 'migration_strategy'],
-  migration_verify: ['migration_done', 'migration_upgrade'],
-  migration_done: [],
-};
-
-const MIGRATION_STAGE_OWNERS = {
-  migration_intake: 'MasterOrchestrator',
-  migration_baseline: 'SolutionLead',
-  migration_strategy: 'SolutionLead',
-  migration_upgrade: 'FullstackAgent',
-  migration_code_review: 'CodeReviewer',
-  migration_verify: 'QAAgent',
-  migration_done: 'MasterOrchestrator',
-};
+import { TRANSITIONS, STAGE_OWNERS } from '../state/transitions.js';
 
 const MODE_CONFIG = {
-  quick: { transitions: QUICK_TRANSITIONS, owners: QUICK_STAGE_OWNERS },
-  full: { transitions: FULL_TRANSITIONS, owners: FULL_STAGE_OWNERS },
-  migration: { transitions: MIGRATION_TRANSITIONS, owners: MIGRATION_STAGE_OWNERS },
+  quick: { transitions: TRANSITIONS.quick, owners: STAGE_OWNERS.quick },
+  full: { transitions: TRANSITIONS.full, owners: STAGE_OWNERS.full },
+  migration: { transitions: TRANSITIONS.migration, owners: STAGE_OWNERS.migration },
 };
 
 /**

@@ -1,4 +1,5 @@
 // src/runtime/state/transition-engine.js
+import { TRANSITIONS as TRANSITION_RULES } from './transitions.js';
 
 // Stage ordering arrays define the canonical forward progression for each mode.
 // These are the authoritative source for determining whether a transition is
@@ -34,35 +35,6 @@ const STAGE_ORDER = {
   ]
 };
 
-const TRANSITION_RULES = {
-  quick: {
-    quick_intake: ['quick_plan'],
-    quick_plan: ['quick_implement'],
-    quick_implement: ['quick_test', 'quick_plan'],
-    quick_test: ['quick_done', 'quick_implement'],
-    quick_done: []
-  },
-
-  full: {
-    full_intake: ['full_product'],
-    full_product: ['full_solution'],
-    full_solution: ['full_implementation', 'full_product'],
-    full_implementation: ['full_code_review', 'full_solution'],
-    full_code_review: ['full_qa', 'full_implementation'],
-    full_qa: ['full_done', 'full_implementation'],
-    full_done: []
-  },
-
-  migration: {
-    migration_intake: ['migration_baseline'],
-    migration_baseline: ['migration_strategy'],
-    migration_strategy: ['migration_upgrade', 'migration_baseline'],
-    migration_upgrade: ['migration_code_review', 'migration_strategy'],
-    migration_code_review: ['migration_verify', 'migration_upgrade'],
-    migration_verify: ['migration_done', 'migration_upgrade'],
-    migration_done: []
-  }
-};
 
 export class TransitionEngine {
   constructor() {
