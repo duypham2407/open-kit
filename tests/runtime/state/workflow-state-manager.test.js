@@ -33,7 +33,7 @@ function makeInitialState(overrides = {}) {
   return {
     version: '2.0.0',
     mode: 'quick',
-    stage: 'quick_brainstorm',
+    stage: 'quick_intake',
     owner: 'quick-agent',
     gates: {},
     metadata: {
@@ -201,7 +201,7 @@ describe('WorkflowStateManager', () => {
   describe('validateTransition()', () => {
     it('returns valid=true for an allowed transition with gates met', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'vt-test', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm', gates: { 'quick.understanding_confirmed': true } });
+      const state = makeInitialState({ stage: 'quick_intake', gates: { 'quick.understanding_confirmed': true } });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'vt-test'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'vt-test', 'state.json'), JSON.stringify(state));
 
@@ -211,7 +211,7 @@ describe('WorkflowStateManager', () => {
 
     it('returns valid=false when FSM disallows the target stage', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'vt-fsm', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'vt-fsm'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'vt-fsm', 'state.json'), JSON.stringify(state));
 
@@ -222,23 +222,24 @@ describe('WorkflowStateManager', () => {
 
     it('returns valid=false with missingGates when gates are not met', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'vt-gates', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm', gates: {} });
+      // quick_plan → quick_implement requires quick.understanding_confirmed
+      const state = makeInitialState({ stage: 'quick_plan', gates: {} });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'vt-gates'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'vt-gates', 'state.json'), JSON.stringify(state));
 
-      const result = mgr.validateTransition('quick_plan');
+      const result = mgr.validateTransition('quick_implement');
       assert.equal(result.valid, false);
       assert.ok(Array.isArray(result.missingGates), 'should include missingGates array');
       assert.ok(result.missingGates.length > 0);
     });
 
-    it('allows transition with no gates required (e.g. quick_intake → quick_brainstorm)', () => {
+    it('allows transition with no gates required (e.g. quick_implement → quick_test)', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'vt-nogatez', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_intake', gates: {} });
+      const state = makeInitialState({ stage: 'quick_implement', gates: {} });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'vt-nogatez'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'vt-nogatez', 'state.json'), JSON.stringify(state));
 
-      const result = mgr.validateTransition('quick_brainstorm');
+      const result = mgr.validateTransition('quick_test');
       assert.equal(result.valid, true);
     });
   });
@@ -248,7 +249,7 @@ describe('WorkflowStateManager', () => {
   describe('advanceStage()', () => {
     it('advances stage when transition is valid and gates are met', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'as-ok', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm', gates: { 'quick.understanding_confirmed': true } });
+      const state = makeInitialState({ stage: 'quick_intake', gates: { 'quick.understanding_confirmed': true } });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'as-ok'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'as-ok', 'state.json'), JSON.stringify(state));
 
@@ -259,20 +260,20 @@ describe('WorkflowStateManager', () => {
 
     it('persists new stage to disk after advancing', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'as-persist', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_intake', gates: {} });
+      const state = makeInitialState({ stage: 'quick_plan', gates: { 'quick.understanding_confirmed': true } });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'as-persist'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'as-persist', 'state.json'), JSON.stringify(state));
 
-      mgr.advanceStage('quick_brainstorm', 'quick-agent');
+      mgr.advanceStage('quick_implement', 'quick-agent');
 
       const stateFile = path.join(tmpDir, 'work-items', 'as-persist', 'state.json');
       const onDisk = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
-      assert.equal(onDisk.stage, 'quick_brainstorm');
+      assert.equal(onDisk.stage, 'quick_implement');
     });
 
     it('throws StateTransitionError for invalid FSM transition', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'as-invalid', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'as-invalid'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'as-invalid', 'state.json'), JSON.stringify(state));
 
@@ -284,55 +285,57 @@ describe('WorkflowStateManager', () => {
 
     it('throws GateNotMetError when required gates are not satisfied', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'as-gate', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm', gates: {} });
+      // quick_plan → quick_implement requires quick.understanding_confirmed
+      const state = makeInitialState({ stage: 'quick_plan', gates: {} });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'as-gate'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'as-gate', 'state.json'), JSON.stringify(state));
 
       assert.throws(
-        () => mgr.advanceStage('quick_plan', 'quick-agent'),
+        () => mgr.advanceStage('quick_implement', 'quick-agent'),
         GateNotMetError
       );
     });
 
     it('does not mutate state on error (atomicity)', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'as-atomic', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm', gates: {} });
+      // quick_plan → quick_implement requires quick.understanding_confirmed
+      const state = makeInitialState({ stage: 'quick_plan', gates: {} });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'as-atomic'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'as-atomic', 'state.json'), JSON.stringify(state));
 
       try {
-        mgr.advanceStage('quick_plan', 'quick-agent');
+        mgr.advanceStage('quick_implement', 'quick-agent');
       } catch {
         // expected
       }
 
       const current = mgr.getState();
-      assert.equal(current.stage, 'quick_brainstorm', 'stage must not change on error');
+      assert.equal(current.stage, 'quick_plan', 'stage must not change on error');
 
       // Also verify disk is unchanged
       const stateFile = path.join(tmpDir, 'work-items', 'as-atomic', 'state.json');
       const onDisk = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
-      assert.equal(onDisk.stage, 'quick_brainstorm');
+      assert.equal(onDisk.stage, 'quick_plan');
     });
 
     it('updates metadata.updated_at on success', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'as-meta', baseDir: tmpDir });
       const oldTime = '2026-01-01T00:00:00.000Z';
-      const state = makeInitialState({ stage: 'quick_intake', metadata: { created_at: oldTime, updated_at: oldTime } });
+      const state = makeInitialState({ stage: 'quick_implement', metadata: { created_at: oldTime, updated_at: oldTime } });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'as-meta'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'as-meta', 'state.json'), JSON.stringify(state));
 
-      const result = mgr.advanceStage('quick_brainstorm', 'quick-agent');
+      const result = mgr.advanceStage('quick_test', 'quick-agent');
       assert.notEqual(result.metadata.updated_at, oldTime, 'updated_at should be refreshed');
     });
 
     it('writes a transaction log entry on success', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'as-log', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_intake', gates: {} });
+      const state = makeInitialState({ stage: 'quick_implement', gates: {} });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'as-log'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'as-log', 'state.json'), JSON.stringify(state));
 
-      mgr.advanceStage('quick_brainstorm', 'quick-agent');
+      mgr.advanceStage('quick_test', 'quick-agent');
 
       const logPath = path.join(tmpDir, 'work-items', 'as-log', 'state-transitions.log');
       assert.ok(fs.existsSync(logPath), 'log file should exist');
@@ -341,22 +344,22 @@ describe('WorkflowStateManager', () => {
       assert.equal(lines.length, 1);
       const entry = JSON.parse(lines[0]);
       assert.equal(entry.operation, 'advanceStage');
-      assert.equal(entry.before.stage, 'quick_intake');
-      assert.equal(entry.after.stage, 'quick_brainstorm');
+      assert.equal(entry.before.stage, 'quick_implement');
+      assert.equal(entry.after.stage, 'quick_test');
     });
 
-    it('allows backward transitions (e.g. quick_plan → quick_brainstorm)', () => {
+    it('allows backward transitions (e.g. quick_implement → quick_plan)', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'as-back', baseDir: tmpDir });
-      // quick_plan→quick_brainstorm: no gates required for backward
+      // quick_implement→quick_plan: no gates required for backward
       const state = makeInitialState({
-        stage: 'quick_plan',
-        gates: { 'quick.understanding_confirmed': true, 'quick.plan_confirmed': true }
+        stage: 'quick_implement',
+        gates: { 'quick.understanding_confirmed': true }
       });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'as-back'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'as-back', 'state.json'), JSON.stringify(state));
 
-      const result = mgr.advanceStage('quick_brainstorm', 'quick-agent');
-      assert.equal(result.stage, 'quick_brainstorm');
+      const result = mgr.advanceStage('quick_plan', 'quick-agent');
+      assert.equal(result.stage, 'quick_plan');
     });
   });
 
@@ -365,7 +368,7 @@ describe('WorkflowStateManager', () => {
   describe('recordGate()', () => {
     it('records a gate as met in state', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'rg-ok', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'rg-ok'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'rg-ok', 'state.json'), JSON.stringify(state));
 
@@ -375,7 +378,7 @@ describe('WorkflowStateManager', () => {
 
     it('persists gate state to disk', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'rg-persist', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'rg-persist'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'rg-persist', 'state.json'), JSON.stringify(state));
 
@@ -388,7 +391,7 @@ describe('WorkflowStateManager', () => {
 
     it('throws for an unknown gate name', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'rg-unknown', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'rg-unknown'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'rg-unknown', 'state.json'), JSON.stringify(state));
 
@@ -413,7 +416,7 @@ describe('WorkflowStateManager', () => {
 
     it('stores gate metadata (approver, metAt)', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'rg-meta', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'rg-meta'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'rg-meta', 'state.json'), JSON.stringify(state));
 
@@ -424,7 +427,7 @@ describe('WorkflowStateManager', () => {
 
     it('writes a transaction log entry for gate recording', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'rg-log', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'rg-log'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'rg-log', 'state.json'), JSON.stringify(state));
 
@@ -447,18 +450,20 @@ describe('WorkflowStateManager', () => {
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'mirror-test'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'mirror-test', 'state.json'), JSON.stringify(state));
 
-      mgr.advanceStage('quick_brainstorm', 'quick-agent');
+      // Set gate so the transition passes, then advance
+      mgr.setApproval('quick.understanding_confirmed', true, 'user', {});
+      mgr.advanceStage('quick_plan', 'quick-agent');
 
       const mirrorPath = path.join(tmpDir, 'workflow-state.json');
       assert.ok(fs.existsSync(mirrorPath), 'mirror file should exist');
 
       const mirror = JSON.parse(fs.readFileSync(mirrorPath, 'utf-8'));
-      assert.equal(mirror.stage, 'quick_brainstorm');
+      assert.equal(mirror.stage, 'quick_plan');
     });
 
     it('writes mirror file after recordGate', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'mirror-gate', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'mirror-gate'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'mirror-gate', 'state.json'), JSON.stringify(state));
 
@@ -501,16 +506,17 @@ describe('WorkflowStateManager', () => {
 
   // ── Full workflow scenario ────────────────────────────────────────────────
 
-  describe('full scenario: quick lane advance from brainstorm to plan', () => {
+  describe('full scenario: quick lane advance from plan to implement', () => {
     it('records gate then advances stage successfully', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'scenario-1', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm', gates: {} });
+      // quick_plan → quick_implement requires quick.understanding_confirmed
+      const state = makeInitialState({ stage: 'quick_plan', gates: {} });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'scenario-1'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'scenario-1', 'state.json'), JSON.stringify(state));
 
       // Step 1: try to advance without gate — should fail
       assert.throws(
-        () => mgr.advanceStage('quick_plan', 'quick-agent'),
+        () => mgr.advanceStage('quick_implement', 'quick-agent'),
         GateNotMetError
       );
 
@@ -518,8 +524,8 @@ describe('WorkflowStateManager', () => {
       mgr.recordGate('quick.understanding_confirmed', 'user');
 
       // Step 3: advance — should succeed now
-      const result = mgr.advanceStage('quick_plan', 'quick-agent');
-      assert.equal(result.stage, 'quick_plan');
+      const result = mgr.advanceStage('quick_implement', 'quick-agent');
+      assert.equal(result.stage, 'quick_implement');
 
       // Step 4: verify transaction log has both entries
       const logPath = path.join(tmpDir, 'work-items', 'scenario-1', 'state-transitions.log');
@@ -619,7 +625,7 @@ describe('WorkflowStateManager', () => {
   describe('setApproval()', () => {
     it('sets a gate to approved=true', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'sa-approve', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-approve'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-approve', 'state.json'), JSON.stringify(state));
 
@@ -630,7 +636,7 @@ describe('WorkflowStateManager', () => {
     it('sets a gate to approved=false (revocation)', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'sa-revoke', baseDir: tmpDir });
       const state = makeInitialState({
-        stage: 'quick_brainstorm',
+        stage: 'quick_intake',
         gates: { 'quick.understanding_confirmed': true }
       });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-revoke'), { recursive: true });
@@ -642,7 +648,7 @@ describe('WorkflowStateManager', () => {
 
     it('persists gate state to disk', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'sa-persist', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-persist'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-persist', 'state.json'), JSON.stringify(state));
 
@@ -655,7 +661,7 @@ describe('WorkflowStateManager', () => {
 
     it('stores approver and approved in gateMeta', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'sa-meta', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-meta'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-meta', 'state.json'), JSON.stringify(state));
 
@@ -669,7 +675,7 @@ describe('WorkflowStateManager', () => {
 
     it('throws for an unknown gate name', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'sa-unknown', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-unknown'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-unknown', 'state.json'), JSON.stringify(state));
 
@@ -693,7 +699,7 @@ describe('WorkflowStateManager', () => {
 
     it('writes a transaction log entry with operation setApproval', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'sa-log', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-log'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-log', 'state.json'), JSON.stringify(state));
 
@@ -710,7 +716,7 @@ describe('WorkflowStateManager', () => {
 
     it('emits gate-met event', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'sa-evt', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'sa-evt'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'sa-evt', 'state.json'), JSON.stringify(state));
 
@@ -920,31 +926,31 @@ describe('WorkflowStateManager', () => {
 
     it('rollbackTransaction restores state to pre-transaction snapshot', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'tx-rollback', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_intake' });
+      const state = makeInitialState({ stage: 'quick_implement' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'tx-rollback'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'tx-rollback', 'state.json'), JSON.stringify(state));
 
       mgr.beginTransaction();
-      mgr.advanceStage('quick_brainstorm', 'quick-agent');
-      assert.equal(mgr.getStage(), 'quick_brainstorm');
+      mgr.advanceStage('quick_test', 'quick-agent');
+      assert.equal(mgr.getStage(), 'quick_test');
 
       mgr.rollbackTransaction();
-      assert.equal(mgr.getStage(), 'quick_intake', 'stage should be rolled back');
+      assert.equal(mgr.getStage(), 'quick_implement', 'stage should be rolled back');
     });
 
     it('rollbackTransaction re-persists rolled-back state to disk', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'tx-rollback-disk', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_intake' });
+      const state = makeInitialState({ stage: 'quick_implement' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'tx-rollback-disk'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'tx-rollback-disk', 'state.json'), JSON.stringify(state));
 
       mgr.beginTransaction();
-      mgr.advanceStage('quick_brainstorm', 'quick-agent');
+      mgr.advanceStage('quick_test', 'quick-agent');
       mgr.rollbackTransaction();
 
       const stateFile = path.join(tmpDir, 'work-items', 'tx-rollback-disk', 'state.json');
       const onDisk = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
-      assert.equal(onDisk.stage, 'quick_intake', 'disk should reflect rollback');
+      assert.equal(onDisk.stage, 'quick_implement', 'disk should reflect rollback');
     });
 
     it('rollbackTransaction writes a rollback log entry', () => {
@@ -1007,16 +1013,18 @@ describe('WorkflowStateManager', () => {
       let emittedData = null;
       mgr.on('stage-advanced', (data) => { emittedData = data; });
 
-      mgr.advanceStage('quick_brainstorm', 'quick-agent');
+      // Set gate and advance
+      mgr.setApproval('quick.understanding_confirmed', true, 'user', {});
+      mgr.advanceStage('quick_plan', 'quick-agent');
 
       assert.ok(emittedData, 'event should have been emitted');
       assert.equal(emittedData.from, 'quick_intake');
-      assert.equal(emittedData.to, 'quick_brainstorm');
+      assert.equal(emittedData.to, 'quick_plan');
     });
 
     it('emits gate-met event when gate is recorded', () => {
       const mgr = new WorkflowStateManager({ workItemId: 'evt-gate', baseDir: tmpDir });
-      const state = makeInitialState({ stage: 'quick_brainstorm' });
+      const state = makeInitialState({ stage: 'quick_intake' });
       fs.mkdirSync(path.join(tmpDir, 'work-items', 'evt-gate'), { recursive: true });
       fs.writeFileSync(path.join(tmpDir, 'work-items', 'evt-gate', 'state.json'), JSON.stringify(state));
 
@@ -1073,7 +1081,13 @@ describe('WorkflowStateManager', () => {
       }
 
       const mgr = new WorkflowStateManager({ workItemId: 'io-err-primary', baseDir: tmpDir });
+      // Start from quick_plan (which requires quick.understanding_confirmed to advance to quick_implement)
       mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+      // Advance to quick_plan first (no gate required for intake → plan)
+      mgr.advanceStage('quick_plan', 'quick-agent');
+
+      // Set gate while dir is still writable
+      mgr.setApproval('quick.understanding_confirmed', true, 'user', {});
 
       // Make the item directory read-only so writes fail
       const itemDir = path.join(tmpDir, 'work-items', 'io-err-primary');
@@ -1081,7 +1095,7 @@ describe('WorkflowStateManager', () => {
 
       try {
         assert.throws(
-          () => mgr.advanceStage('quick_brainstorm', 'quick-agent'),
+          () => mgr.advanceStage('quick_implement', 'quick-agent'),
           /Failed to persist state/
         );
       } finally {
@@ -1098,6 +1112,10 @@ describe('WorkflowStateManager', () => {
 
       const mgr = new WorkflowStateManager({ workItemId: 'io-err-rollback', baseDir: tmpDir });
       mgr.initialize({ mode: 'quick', owner: 'quick-agent' });
+      // quick_intake → quick_plan has no gate: advance succeeds (disk write succeeds here)
+      mgr.advanceStage('quick_plan', 'quick-agent');
+      // Set gate for quick_plan → quick_implement while dir is still writable
+      mgr.setApproval('quick.understanding_confirmed', true, 'user', {});
 
       const stageBefore = mgr.getStage();
 
@@ -1105,7 +1123,7 @@ describe('WorkflowStateManager', () => {
       fs.chmodSync(itemDir, 0o444);
 
       try {
-        mgr.advanceStage('quick_brainstorm', 'quick-agent');
+        mgr.advanceStage('quick_implement', 'quick-agent');
       } catch {
         // expected disk error
       } finally {

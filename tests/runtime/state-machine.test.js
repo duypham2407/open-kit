@@ -9,12 +9,8 @@ import {
 
 // ── Quick Mode Transitions ──────────────────────────────────────────────
 
-test('quick: intake → brainstorm is valid', () => {
-  assert.equal(isValidTransition('quick', 'quick_intake', 'quick_brainstorm'), true);
-});
-
-test('quick: brainstorm → plan is valid', () => {
-  assert.equal(isValidTransition('quick', 'quick_brainstorm', 'quick_plan'), true);
+test('quick: intake → plan is valid (direct, no brainstorm)', () => {
+  assert.equal(isValidTransition('quick', 'quick_intake', 'quick_plan'), true);
 });
 
 test('quick: plan → implement is valid', () => {
@@ -29,11 +25,12 @@ test('quick: test → done is valid', () => {
   assert.equal(isValidTransition('quick', 'quick_test', 'quick_done'), true);
 });
 
-test('quick: brainstorm → implement is INVALID (skips plan)', () => {
-  assert.equal(isValidTransition('quick', 'quick_brainstorm', 'quick_implement'), false);
+test('quick: quick_brainstorm is no longer a valid stage', () => {
+  assert.equal(isValidTransition('quick', 'quick_intake', 'quick_brainstorm'), false);
+  assert.equal(isValidTransition('quick', 'quick_brainstorm', 'quick_plan'), false);
 });
 
-test('quick: intake → implement is INVALID (skips multiple stages)', () => {
+test('quick: intake → implement is INVALID (skips plan)', () => {
   assert.equal(isValidTransition('quick', 'quick_intake', 'quick_implement'), false);
 });
 
@@ -43,6 +40,10 @@ test('quick: test → plan is NOT valid (no back-transition to plan from test)',
 
 test('quick: test → implement is valid (back-transition)', () => {
   assert.equal(isValidTransition('quick', 'quick_test', 'quick_implement'), true);
+});
+
+test('quick: implement → plan is valid (back-transition)', () => {
+  assert.equal(isValidTransition('quick', 'quick_implement', 'quick_plan'), true);
 });
 
 // ── Full Mode Transitions ───────────────────────────────────────────────
@@ -80,6 +81,7 @@ test('full: product → implementation is INVALID (skips solution)', () => {
 });
 
 test('full: code_review → implementation is valid (back for fixes)', () => {
+  assert.equal(isValidTransition('full', 'full_code_review, full_implementation'), false);
   assert.equal(isValidTransition('full', 'full_code_review', 'full_implementation'), true);
 });
 
@@ -119,14 +121,25 @@ test('migration: intake → upgrade is INVALID', () => {
 
 // ── getValidNextStages ──────────────────────────────────────────────────
 
-test('getValidNextStages returns correct options for quick_brainstorm', () => {
-  const next = getValidNextStages('quick', 'quick_brainstorm');
+test('getValidNextStages returns correct options for quick_intake', () => {
+  const next = getValidNextStages('quick', 'quick_intake');
   assert.ok(Array.isArray(next));
   assert.ok(next.includes('quick_plan'));
-  assert.ok(!next.includes('quick_implement'));
+  assert.ok(!next.includes('quick_brainstorm'));
 });
 
 test('getValidNextStages returns correct options for full_code_review', () => {
+  const next = getValidNextStages('quick', 'quick_brainstorm');
+  assert.deepEqual(next, [], 'quick_brainstorm must not appear as a valid stage');
+});
+
+test('getValidNextStages returns correct options for quick_plan', () => {
+  const next = getValidNextStages('quick', 'quick_plan');
+  assert.ok(next.includes('quick_implement'));
+  assert.ok(!next.includes('quick_brainstorm'));
+});
+
+test('getValidNextStages returns correct for full_code_review back-transitions', () => {
   const next = getValidNextStages('full', 'full_code_review');
   assert.ok(next.includes('full_qa'));
   assert.ok(next.includes('full_implementation')); // back-transition
@@ -138,17 +151,25 @@ test('getValidNextStages returns empty for unknown stage', () => {
 });
 
 test('getValidNextStages returns empty for unknown mode', () => {
-  const next = getValidNextStages('nonexistent', 'quick_brainstorm');
+  const next = getValidNextStages('nonexistent', 'quick_plan');
   assert.deepEqual(next, []);
 });
 
 // ── getStageOwner ───────────────────────────────────────────────────────
 
-test('getStageOwner returns QuickAgent for all quick stages', () => {
-  assert.equal(getStageOwner('quick', 'quick_brainstorm'), 'QuickAgent');
+test('getStageOwner returns MasterOrchestrator for quick_intake', () => {
+  assert.equal(getStageOwner('quick', 'quick_intake'), 'MasterOrchestrator');
+});
+
+test('getStageOwner returns QuickAgent for quick_plan, implement, test, done', () => {
   assert.equal(getStageOwner('quick', 'quick_plan'), 'QuickAgent');
   assert.equal(getStageOwner('quick', 'quick_implement'), 'QuickAgent');
   assert.equal(getStageOwner('quick', 'quick_test'), 'QuickAgent');
+  assert.equal(getStageOwner('quick', 'quick_done'), 'QuickAgent');
+});
+
+test('getStageOwner returns null for quick_brainstorm (removed stage)', () => {
+  assert.equal(getStageOwner('quick', 'quick_brainstorm'), null);
 });
 
 test('getStageOwner returns MasterOrchestrator for full_intake', () => {
@@ -182,7 +203,7 @@ test('getStageOwner returns null for unknown stage', () => {
 // ── Edge Cases ──────────────────────────────────────────────────────────
 
 test('cross-mode transition is invalid (quick stage in full mode)', () => {
-  assert.equal(isValidTransition('full', 'quick_brainstorm', 'quick_plan'), false);
+  assert.equal(isValidTransition('full', 'quick_plan', 'quick_implement'), false);
 });
 
 test('same-stage transition is invalid', () => {

@@ -23,9 +23,8 @@ const EVIDENCE_RULES = {
 }
 
 const NEXT_ACTION_BY_STAGE = {
-  quick_intake: "Initialize workflow state and advance to brainstorm.",
-  quick_brainstorm: "Read the codebase deeply, clarify and align understanding, and obtain explicit user confirmation before any option analysis.",
-  quick_plan: "Analyze the solution space, present 3 options by default (or explain why fewer), wait for user option selection, create the selected-option execution plan, and wait for separate explicit plan confirmation.",
+  quick_intake: "Initialize workflow state and advance to quick_plan.",
+  quick_plan: "Read the codebase deeply, clarify and align understanding, obtain explicit user confirmation, then analyze the solution space, present 3 options by default (or explain why fewer), wait for user option selection, create the selected-option execution plan, and wait for separate explicit plan confirmation.",
   quick_implement: "Execute the plan step by step, staying within the agreed scope.",
   quick_test: "Run tests, verify acceptance points with real evidence, check regression, and approve quick_verified.",
   quick_done: "Summarize changes, evidence, and notes, then close the quick task.",
@@ -49,7 +48,7 @@ const ARTIFACT_RULES = {
   quick: [
     {
       id: "task_card",
-      availableFrom: "quick_brainstorm",
+      availableFrom: "quick_plan",
       requiredFrom: null,
       recommendedFrom: "quick_plan",
       optional: true,

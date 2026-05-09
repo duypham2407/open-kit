@@ -7,7 +7,7 @@
 
 const GATE_DEFINITIONS = {
   // Quick mode gates
-  'quick_brainstorm→quick_plan': {
+  'quick_intake→quick_plan': {
     requires: ['user_understanding_confirmed'],
     description: 'Quick Agent must confirm understanding of the codebase and problem before planning.',
   },

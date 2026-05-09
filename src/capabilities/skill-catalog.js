@@ -33,7 +33,6 @@ export const SKILL_ROLE_LABELS = [
 
 export const SKILL_STAGE_LABELS = [
   'quick_intake',
-  'quick_brainstorm',
   'quick_plan',
   'quick_implement',
   'quick_test',
@@ -57,7 +56,7 @@ export const SKILL_STAGE_LABELS = [
 
 const ALL_MODES = ['quick', 'migration', 'full'];
 const STAGES_BY_MODE = {
-  quick: ['quick_intake', 'quick_brainstorm', 'quick_plan', 'quick_implement', 'quick_test', 'quick_done'],
+  quick: ['quick_intake', 'quick_plan', 'quick_implement', 'quick_test', 'quick_done'],
   migration: ['migration_intake', 'migration_baseline', 'migration_strategy', 'migration_upgrade', 'migration_code_review', 'migration_verify', 'migration_done'],
   full: ['full_intake', 'full_product', 'full_solution', 'full_implementation', 'full_code_review', 'full_qa', 'full_done'],
 };
@@ -225,7 +224,7 @@ const WORKFLOW_SKILLS = [
     tags: ['workflow', 'planning', 'clarification'],
     roles: ['ProductLead', 'SolutionLead', 'QuickAgent', 'in_session_agent'],
     modes: ['quick', 'migration', 'full'],
-    stages: ['quick_brainstorm', 'migration_baseline', 'migration_strategy', 'full_product', 'full_solution'],
+    stages: ['quick_plan', 'migration_baseline', 'migration_strategy', 'full_product', 'full_solution'],
     triggers: [trigger('keyword', 'brainstorm'), trigger('phrase', 'clarify intent'), trigger('phrase', 'explore options')],
     recommended_mcps: [recommendedMcp('sequential-thinking', 'optional', 'Can support structured multi-step ideation when available.')],
     packaging: { installBundle: true },
@@ -307,7 +306,7 @@ const SOURCE_ONLY_SKILLS = [
   createEntry('codebase-exploration', {
     tags: ['code-intelligence', 'navigation', 'repository'],
     roles: ['MasterOrchestrator', 'SolutionLead', 'FullstackAgent', 'CodeReviewer', 'QuickAgent'],
-    stages: ['quick_brainstorm', 'quick_plan', 'migration_baseline', 'migration_strategy', 'migration_upgrade', 'full_solution', 'full_implementation', 'full_code_review'],
+    stages: ['quick_plan', 'migration_baseline', 'migration_strategy', 'migration_upgrade', 'full_solution', 'full_implementation', 'full_code_review'],
     triggers: [trigger('keyword', 'explore'), trigger('phrase', 'locate code'), trigger('phrase', 'trace behavior')],
     recommended_mcps: [recommendedMcp('openkit', 'primary', 'Provides graph, semantic search, syntax, and AST tools.'), recommendedMcp('augment_context_engine', 'optional', 'Optional dependency-aware context engine when locally available.')],
     packaging: { installBundle: true },
@@ -315,7 +314,7 @@ const SOURCE_ONLY_SKILLS = [
   createEntry('deep-research', {
     tags: ['research', 'documentation', 'evidence'],
     roles: ['ProductLead', 'SolutionLead', 'FullstackAgent', 'QAAgent'],
-    stages: ['quick_brainstorm', 'migration_baseline', 'migration_strategy', 'full_product', 'full_solution', 'full_qa'],
+    stages: ['quick_plan', 'migration_baseline', 'migration_strategy', 'full_product', 'full_solution', 'full_qa'],
     triggers: [trigger('keyword', 'research'), trigger('phrase', 'external references'), trigger('phrase', 'evidence-based')],
     recommended_mcps: [recommendedMcp('context7', 'supporting', 'Retrieves library docs and code examples when configured.'), recommendedMcp('grep_app', 'optional', 'Searches public code examples when configured.'), recommendedMcp('websearch', 'optional', 'Finds current external references when configured.')],
     packaging: { installBundle: true },

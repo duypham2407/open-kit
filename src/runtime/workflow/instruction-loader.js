@@ -41,7 +41,6 @@ function resolveInstructionsRoot(kitRoot) {
 const STAGE_TO_INSTRUCTION = {
   // Quick mode
   quick_intake: 'core/workflow-router.md',
-  quick_brainstorm: 'quick/brainstorm.md',
   quick_plan: 'quick/plan.md',
   quick_implement: 'quick/implement.md',
   quick_test: 'quick/test.md',

@@ -130,7 +130,7 @@ export function createAdvanceStageTool({ workflowKernel }) {
 // which must match the gate definition in gate-registry.js.
 const EVIDENCE_TO_GATE = {
   understanding_confirmed: { gate: 'quick.understanding_confirmed', authority: 'user' },
-  plan_confirmed:          { gate: 'quick.plan_confirmed',          authority: 'user' },
+  plan_confirmed:          { gate: 'quick.understanding_confirmed',  authority: 'user' },
   scope_package:           { gate: 'full.product_to_solution',      authority: 'user' },
   solution_package:        { gate: 'full.solution_to_implementation', authority: 'user' },
   review_completed:        [

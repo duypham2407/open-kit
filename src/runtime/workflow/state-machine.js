@@ -11,17 +11,15 @@
  */
 
 const QUICK_TRANSITIONS = {
-  quick_intake: ['quick_brainstorm'],
-  quick_brainstorm: ['quick_plan'],
-  quick_plan: ['quick_implement', 'quick_brainstorm'],
+  quick_intake: ['quick_plan'],
+  quick_plan: ['quick_implement'],
   quick_implement: ['quick_test', 'quick_plan'],
   quick_test: ['quick_done', 'quick_implement'],
   quick_done: [],
 };
 
 const QUICK_STAGE_OWNERS = {
-  quick_intake: 'QuickAgent',
-  quick_brainstorm: 'QuickAgent',
+  quick_intake: 'MasterOrchestrator',
   quick_plan: 'QuickAgent',
   quick_implement: 'QuickAgent',
   quick_test: 'QuickAgent',

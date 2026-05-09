@@ -70,20 +70,23 @@ test('advance-stage persists new stage to disk after successful transition', () 
   const tmpDir = makeTempDir();
   try {
     const stateManager = new WorkflowStateManager({ workItemId: 'wi-001', baseDir: tmpDir });
-    stateManager.initialize({ mode: 'quick', owner: 'QuickAgent' });
+    stateManager.initialize({ mode: 'quick', owner: 'MasterOrchestrator' });
 
     const kernel = createRealKernel(stateManager);
     const tool = createAdvanceStageTool({ workflowKernel: kernel });
 
-    const result = tool.execute({ targetStage: 'quick_brainstorm' });
+    const result = tool.execute({
+      targetStage: 'quick_plan',
+      evidence: { understanding_confirmed: true },
+    });
 
     assert.equal(result.status, 'ok', `Expected ok but got: ${JSON.stringify(result)}`);
-    assert.equal(result.newStage, 'quick_brainstorm');
+    assert.equal(result.newStage, 'quick_plan');
 
     // Confirm disk reflects the new stage
     const onDisk = readStateFromDisk(tmpDir);
     assert.ok(onDisk, 'workflow-state.json must exist after advance');
-    assert.equal(onDisk.stage, 'quick_brainstorm', `Disk stage should be 'quick_brainstorm', got '${onDisk.stage}'`);
+    assert.equal(onDisk.stage, 'quick_plan', `Disk stage should be 'quick_plan', got '${onDisk.stage}'`);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
@@ -122,12 +125,15 @@ test('advance-stage persists state so a second read returns the new stage', () =
   const tmpDir = makeTempDir();
   try {
     const stateManager = new WorkflowStateManager({ workItemId: 'wi-003', baseDir: tmpDir });
-    stateManager.initialize({ mode: 'quick', owner: 'QuickAgent' });
+    stateManager.initialize({ mode: 'quick', owner: 'MasterOrchestrator' });
 
     const kernel = createRealKernel(stateManager);
     const tool = createAdvanceStageTool({ workflowKernel: kernel });
 
-    tool.execute({ targetStage: 'quick_brainstorm' });
+    tool.execute({
+      targetStage: 'quick_plan',
+      evidence: { understanding_confirmed: true },
+    });
 
     // Simulate a "fresh read" by creating a NEW manager pointing at the same files
     const freshManager = new WorkflowStateManager({ workItemId: 'wi-003', baseDir: tmpDir });
@@ -135,8 +141,8 @@ test('advance-stage persists state so a second read returns the new stage', () =
 
     assert.equal(
       freshState.stage,
-      'quick_brainstorm',
-      `Fresh read should see 'quick_brainstorm' not 'quick_intake'. Got: '${freshState.stage}'`
+      'quick_plan',
+      `Fresh read should see 'quick_plan' not 'quick_intake'. Got: '${freshState.stage}'`
     );
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -168,7 +174,7 @@ test('advance-stage returns error status when stateManager.advanceStage throws',
   const tmpDir = makeTempDir();
   try {
     const stateManager = new WorkflowStateManager({ workItemId: 'wi-005', baseDir: tmpDir });
-    stateManager.initialize({ mode: 'quick', owner: 'QuickAgent' });
+    stateManager.initialize({ mode: 'quick', owner: 'MasterOrchestrator' });
 
     // Corrupt the kernel so advanceStage always throws
     const kernel = {
@@ -177,7 +183,7 @@ test('advance-stage returns error status when stateManager.advanceStage throws',
           state: {
             mode: 'quick',
             current_stage: 'quick_intake',
-            current_owner: 'QuickAgent',
+            current_owner: 'MasterOrchestrator',
             gates: {},
             verification_evidence: [],
           },
@@ -190,7 +196,11 @@ test('advance-stage returns error status when stateManager.advanceStage throws',
     };
 
     const tool = createAdvanceStageTool({ workflowKernel: kernel });
-    const result = tool.execute({ targetStage: 'quick_brainstorm' });
+    // quick_intake → quick_plan requires understanding_confirmed; use gateOverrides to bypass
+    const result = tool.execute({
+      targetStage: 'quick_plan',
+      gateOverrides: { understanding_confirmed: true },
+    });
 
     assert.equal(result.status, 'error');
     assert.ok(
@@ -213,7 +223,7 @@ test('advance-stage returns error when kernel has no stateManager (null advanceS
           state: {
             mode: 'quick',
             current_stage: 'quick_intake',
-            current_owner: 'QuickAgent',
+            current_owner: 'MasterOrchestrator',
             gates: {},
             verification_evidence: [],
           },
@@ -226,7 +236,10 @@ test('advance-stage returns error when kernel has no stateManager (null advanceS
     };
 
     const tool = createAdvanceStageTool({ workflowKernel: kernel });
-    const result = tool.execute({ targetStage: 'quick_brainstorm' });
+    const result = tool.execute({
+      targetStage: 'quick_plan',
+      gateOverrides: { understanding_confirmed: true },
+    });
 
     // With no stateManager, the tool must report failure — it must NOT silently
     // return { status: 'ok' } while nothing was persisted to disk.
@@ -240,31 +253,31 @@ test('advance-stage multiple transitions each persist to disk', () => {
   const tmpDir = makeTempDir();
   try {
     const stateManager = new WorkflowStateManager({ workItemId: 'wi-006', baseDir: tmpDir });
-    stateManager.initialize({ mode: 'quick', owner: 'QuickAgent' });
+    stateManager.initialize({ mode: 'quick', owner: 'MasterOrchestrator' });
 
     const kernel = createRealKernel(stateManager);
     const tool = createAdvanceStageTool({ workflowKernel: kernel });
 
-    // First transition: quick_intake → quick_brainstorm
-    const r1 = tool.execute({ targetStage: 'quick_brainstorm' });
-    assert.equal(r1.status, 'ok');
-    assert.equal(readStateFromDisk(tmpDir).stage, 'quick_brainstorm');
-
-    // Second transition: quick_brainstorm → quick_plan (needs gate)
-    const r2 = tool.execute({
+    // First transition: quick_intake → quick_plan (needs understanding_confirmed)
+    const r1 = tool.execute({
       targetStage: 'quick_plan',
       evidence: { understanding_confirmed: true },
     });
-    assert.equal(r2.status, 'ok');
+    assert.equal(r1.status, 'ok');
     assert.equal(readStateFromDisk(tmpDir).stage, 'quick_plan');
 
-    // Third transition: quick_plan → quick_implement (needs plan_confirmed gate)
-    const r3 = tool.execute({
+    // Second transition: quick_plan → quick_implement (needs plan_confirmed gate)
+    const r2 = tool.execute({
       targetStage: 'quick_implement',
       evidence: { plan_confirmed: true },
     });
-    assert.equal(r3.status, 'ok');
+    assert.equal(r2.status, 'ok');
     assert.equal(readStateFromDisk(tmpDir).stage, 'quick_implement');
+
+    // Third transition: quick_implement → quick_test (no gate)
+    const r3 = tool.execute({ targetStage: 'quick_test' });
+    assert.equal(r3.status, 'ok');
+    assert.equal(readStateFromDisk(tmpDir).stage, 'quick_test');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }

@@ -6,7 +6,7 @@ describe('State Schema', () => {
   it('detects legacy state (no version field)', () => {
     const legacyState = {
       mode: 'quick',
-      stage: 'quick_brainstorm',
+      stage: 'quick_intake',
       owner: 'quick-agent'
     };
 
@@ -17,7 +17,7 @@ describe('State Schema', () => {
     const newState = {
       version: STATE_VERSION,
       mode: 'quick',
-      stage: 'quick_brainstorm',
+      stage: 'quick_intake',
       owner: 'quick-agent',
       gates: {}
     };
@@ -31,7 +31,7 @@ describe('State Schema', () => {
     assert.equal(isLegacyState({}), true);
   });
 
-  it('migrates old approvals to unified gates', () => {
+  it('migrates old approvals and gates to unified gates', () => {
     const legacyState = {
       mode: 'quick',
       stage: 'quick_plan',
@@ -40,8 +40,7 @@ describe('State Schema', () => {
         quick_verified: false
       },
       gates: {
-        user_understanding_confirmed: true,
-        user_plan_confirmed: false
+        user_understanding_confirmed: true
       }
     };
 
@@ -50,8 +49,21 @@ describe('State Schema', () => {
     assert.equal(migrated.version, STATE_VERSION);
     assert.equal(migrated.gates['quick.verified'], false);
     assert.equal(migrated.gates['quick.understanding_confirmed'], true);
-    assert.equal(migrated.gates['quick.plan_confirmed'], false);
     assert.equal(migrated.approvals, undefined, 'old approvals field removed');
+  });
+
+  it('migrates user_plan_confirmed to quick.understanding_confirmed', () => {
+    const legacyState = {
+      mode: 'quick',
+      stage: 'quick_plan',
+      owner: 'quick-agent',
+      gates: {
+        user_plan_confirmed: true
+      }
+    };
+
+    const migrated = migrateState(legacyState);
+    assert.equal(migrated.gates['quick.understanding_confirmed'], true);
   });
 
   it('migrates full lane gates', () => {

@@ -97,7 +97,7 @@ test('workflow-state returns error when getState throws', () => {
 // ── Work item queries (with workItemId) ────────────────────────────────────
 
 test('workflow-state returns work item state when workItemId provided', () => {
-  const itemState = { ...MOCK_STATE, stage: 'quick_brainstorm' };
+  const itemState = { ...MOCK_STATE, stage: 'quick_plan' };
   const kernel = createMockKernel({ workItems: { 'wi-001': itemState } });
   const tool = createWorkflowStateTool({ workflowKernel: kernel });
 

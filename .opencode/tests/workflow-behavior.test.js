@@ -69,11 +69,7 @@ test("quick stage advancement preserves the canonical owner chain", () => {
   startTask("quick", "TASK-301", "owner-chain", "Follow quick-stage ownership", statePath)
   let result = validateState(statePath)
   assert.equal(result.state.current_stage, "quick_intake")
-  assert.equal(result.state.current_owner, "QuickAgent")
-
-  result = advanceStage("quick_brainstorm", statePath)
-  assert.equal(result.state.current_stage, "quick_brainstorm")
-  assert.equal(result.state.current_owner, "QuickAgent")
+  assert.equal(result.state.current_owner, "MasterOrchestrator")
 
   result = advanceStage("quick_plan", statePath)
   assert.equal(result.state.current_stage, "quick_plan")

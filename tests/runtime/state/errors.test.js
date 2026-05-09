@@ -11,20 +11,20 @@ describe('State Errors', () => {
   it('StateTransitionError includes transition details', () => {
     const error = new StateTransitionError({
       currentStage: 'quick_done',
-      targetStage: 'quick_brainstorm',
+      targetStage: 'quick_plan',
       validNextStages: []
     });
 
     assert.equal(error.name, 'StateTransitionError');
-    assert.match(error.message, /quick_done.*quick_brainstorm/);
+    assert.match(error.message, /quick_done.*quick_plan/);
     assert.equal(error.currentStage, 'quick_done');
-    assert.equal(error.targetStage, 'quick_brainstorm');
+    assert.equal(error.targetStage, 'quick_plan');
     assert.deepEqual(error.validNextStages, []);
   });
 
   it('GateNotMetError includes gate details', () => {
     const error = new GateNotMetError({
-      currentStage: 'quick_brainstorm',
+      currentStage: 'quick_intake',
       targetStage: 'quick_plan',
       missingGates: [
         {
@@ -108,7 +108,7 @@ describe('toJSON() serialization', () => {
 
   it('GateNotMetError.toJSON() includes recommendations', () => {
     const error = new GateNotMetError({
-      currentStage: 'quick_brainstorm',
+      currentStage: 'quick_intake',
       targetStage: 'quick_plan',
       missingGates: [{
         gate: 'quick.understanding_confirmed',

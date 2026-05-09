@@ -60,12 +60,12 @@ test('advance-stage errors when state is incomplete', () => {
 
 // ── Invalid transitions (FSM) ───────────────────────────────────────────
 
-test('advance-stage blocks invalid transition: quick brainstorm → implement', () => {
+test('advance-stage blocks invalid transition: quick intake → implement (skips plan)', () => {
   const tool = createAdvanceStageTool({
     workflowKernel: createMockKernel({
       mode: 'quick',
-      current_stage: 'quick_brainstorm',
-      current_owner: 'QuickAgent',
+      current_stage: 'quick_intake',
+      current_owner: 'MasterOrchestrator',
       verification_evidence: [],
     }),
   });
@@ -76,6 +76,21 @@ test('advance-stage blocks invalid transition: quick brainstorm → implement', 
   assert.ok(Array.isArray(result.validNextStages));
   assert.ok(result.validNextStages.includes('quick_plan'));
   assert.ok(result.guidance);
+});
+
+test('advance-stage blocks transition to quick_brainstorm (removed stage)', () => {
+  const tool = createAdvanceStageTool({
+    workflowKernel: createMockKernel({
+      mode: 'quick',
+      current_stage: 'quick_intake',
+      current_owner: 'MasterOrchestrator',
+      verification_evidence: [],
+    }),
+  });
+
+  const result = tool.execute({ targetStage: 'quick_brainstorm' });
+  assert.equal(result.status, 'blocked');
+  assert.ok(result.reason.includes('Invalid transition'));
 });
 
 test('advance-stage blocks invalid transition: full intake → implementation', () => {
@@ -95,12 +110,12 @@ test('advance-stage blocks invalid transition: full intake → implementation', 
 
 // ── Gate requirements ───────────────────────────────────────────────────
 
-test('advance-stage blocks when gate not satisfied: brainstorm → plan without confirmation', () => {
+test('advance-stage blocks when gate not satisfied: intake → plan without understanding_confirmed', () => {
   const tool = createAdvanceStageTool({
     workflowKernel: createMockKernel({
       mode: 'quick',
-      current_stage: 'quick_brainstorm',
-      current_owner: 'QuickAgent',
+      current_stage: 'quick_intake',
+      current_owner: 'MasterOrchestrator',
       verification_evidence: [],
     }),
   });
@@ -112,11 +127,11 @@ test('advance-stage blocks when gate not satisfied: brainstorm → plan without 
   assert.ok(result.guidance);
 });
 
-test('advance-stage passes when gate is satisfied with evidence', () => {
+test('advance-stage passes when gate is satisfied with evidence: intake → plan', () => {
   const kernel = createMockKernel({
     mode: 'quick',
-    current_stage: 'quick_brainstorm',
-    current_owner: 'QuickAgent',
+    current_stage: 'quick_intake',
+    current_owner: 'MasterOrchestrator',
     verification_evidence: [],
   });
 
@@ -133,19 +148,22 @@ test('advance-stage passes when gate is satisfied with evidence', () => {
 
 // ── Successful transitions ──────────────────────────────────────────────
 
-test('advance-stage succeeds: quick intake → brainstorm (no gate)', () => {
+test('advance-stage succeeds: quick intake → plan (with gate satisfied)', () => {
   const kernel = createMockKernel({
     mode: 'quick',
     current_stage: 'quick_intake',
-    current_owner: 'QuickAgent',
+    current_owner: 'MasterOrchestrator',
     verification_evidence: [],
   });
 
   const tool = createAdvanceStageTool({ workflowKernel: kernel });
-  const result = tool.execute({ targetStage: 'quick_brainstorm' });
+  const result = tool.execute({
+    targetStage: 'quick_plan',
+    evidence: { understanding_confirmed: true },
+  });
 
   assert.equal(result.status, 'ok');
-  assert.equal(result.newStage, 'quick_brainstorm');
+  assert.equal(result.newStage, 'quick_plan');
   assert.equal(result.newOwner, 'QuickAgent');
   assert.equal(result.mode, 'quick');
   assert.ok(Array.isArray(result.validNextStages));
@@ -193,18 +211,21 @@ test('advance-stage calls advanceStage on kernel with correct args (persists sta
   const kernel = createMockKernel({
     mode: 'quick',
     current_stage: 'quick_intake',
-    current_owner: 'QuickAgent',
+    current_owner: 'MasterOrchestrator',
     verification_evidence: [],
   });
 
   const tool = createAdvanceStageTool({ workflowKernel: kernel });
-  tool.execute({ targetStage: 'quick_brainstorm' });
+  tool.execute({
+    targetStage: 'quick_plan',
+    evidence: { understanding_confirmed: true },
+  });
 
   assert.equal(kernel._advanceLog.length, 1);
-  assert.equal(kernel._advanceLog[0].targetStage, 'quick_brainstorm');
+  assert.equal(kernel._advanceLog[0].targetStage, 'quick_plan');
   assert.equal(kernel._advanceLog[0].newOwner, 'QuickAgent');
   assert.ok(kernel._advanceLog[0].metadata?.transition?.from === 'quick_intake');
-  assert.ok(kernel._advanceLog[0].metadata?.transition?.to === 'quick_brainstorm');
+  assert.ok(kernel._advanceLog[0].metadata?.transition?.to === 'quick_plan');
 });
 
 test('advance-stage includes handoffContext in transition passed to advanceStage', () => {
@@ -260,19 +281,19 @@ test('success guidance includes role-specific hint', () => {
 
 // ── String input ────────────────────────────────────────────────────────
 
-test('advance-stage handles string input', () => {
+test('advance-stage handles string input for valid transition', () => {
   const kernel = createMockKernel({
-    mode: 'quick',
-    current_stage: 'quick_intake',
-    current_owner: 'QuickAgent',
+    mode: 'full',
+    current_stage: 'full_intake',
+    current_owner: 'MasterOrchestrator',
     verification_evidence: [],
   });
 
   const tool = createAdvanceStageTool({ workflowKernel: kernel });
-  const result = tool.execute('quick_brainstorm');
+  const result = tool.execute('full_product');
 
   assert.equal(result.status, 'ok');
-  assert.equal(result.newStage, 'quick_brainstorm');
+  assert.equal(result.newStage, 'full_product');
 });
 
 // ── Tool metadata ───────────────────────────────────────────────────────

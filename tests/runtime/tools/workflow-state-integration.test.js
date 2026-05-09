@@ -61,7 +61,9 @@ test('workflow-state reflects stage after advance via real WorkflowStateManager'
   try {
     const stateManager = new WorkflowStateManager({ workItemId: 'ws-002', baseDir: tmpDir });
     stateManager.initialize({ mode: 'quick', owner: 'QuickAgent' });
-    stateManager.advanceStage('quick_brainstorm', 'QuickAgent');
+    // Set gate before advancing (quick_intake → quick_plan requires understanding_confirmed)
+    stateManager.setApproval('quick.understanding_confirmed', true, 'user', {});
+    stateManager.advanceStage('quick_plan', 'QuickAgent');
 
     const kernel = createRealKernel(stateManager);
     const tool = createWorkflowStateTool({ workflowKernel: kernel });
@@ -69,7 +71,7 @@ test('workflow-state reflects stage after advance via real WorkflowStateManager'
     const result = tool.execute({});
 
     assert.ok(result, 'Result should not be null');
-    assert.equal(result.stage, 'quick_brainstorm');
+    assert.equal(result.stage, 'quick_plan');
     assert.equal(result.owner, 'QuickAgent');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -244,12 +246,7 @@ test('workflow-state accurately reflects state through full quick workflow', () 
     let state = tool.execute();
     assert.equal(state.stage, 'quick_intake');
 
-    // Advance to quick_brainstorm
-    stateManager.advanceStage('quick_brainstorm', 'QuickAgent');
-    state = tool.execute();
-    assert.equal(state.stage, 'quick_brainstorm');
-
-    // Set gate and advance to quick_plan
+    // Set gate and advance to quick_plan (quick_intake → quick_plan requires understanding_confirmed)
     stateManager.setApproval('quick.understanding_confirmed', true, 'user', {});
     stateManager.advanceStage('quick_plan', 'QuickAgent');
     state = tool.execute();

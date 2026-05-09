@@ -125,16 +125,16 @@ test('advanceStage writes v2 state that WorkflowStateManager can read', () => {
   const dir = createTempProject();
   try {
     const { statePath, workItemId } = setupQuickWorkItem(dir);
-    const result = advanceStage('quick_brainstorm', statePath);
+    const result = advanceStage('quick_plan', statePath);
 
     // Backward-compat: old schema still present in return value
-    assert.equal(result.state.current_stage, 'quick_brainstorm',
+    assert.equal(result.state.current_stage, 'quick_plan',
       'Return value must still use current_stage (backward compat)');
 
     // Forward integration: v2 state accessible via WorkflowStateManager
     const mgr = makeV2Manager(dir, workItemId);
     const v2State = mgr.getState();
-    assert.equal(v2State.stage, 'quick_brainstorm',
+    assert.equal(v2State.stage, 'quick_plan',
       'WorkflowStateManager must reflect the new stage after advanceStage');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -145,11 +145,11 @@ test('advanceStage persists v2 owner after delegation', () => {
   const dir = createTempProject();
   try {
     const { statePath, workItemId } = setupQuickWorkItem(dir);
-    advanceStage('quick_brainstorm', statePath);
+    advanceStage('quick_plan', statePath);
 
     const mgr = makeV2Manager(dir, workItemId);
     const v2State = mgr.getState();
-    // quick_brainstorm should be owned by QuickAgent (per STAGE_OWNERS)
+    // quick_plan should be owned by QuickAgent (per STAGE_OWNERS)
     assert.ok(v2State.owner, 'v2 state must have an owner field');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -160,12 +160,12 @@ test('advanceStage v2 state persists across fresh WorkflowStateManager reads', (
   const dir = createTempProject();
   try {
     const { statePath, workItemId } = setupQuickWorkItem(dir);
-    advanceStage('quick_brainstorm', statePath);
+    advanceStage('quick_plan', statePath);
 
     // Simulate a "fresh agent restart" by creating a NEW manager instance
     const freshMgr = makeV2Manager(dir, workItemId);
     const freshState = freshMgr.getState();
-    assert.equal(freshState.stage, 'quick_brainstorm',
+    assert.equal(freshState.stage, 'quick_plan',
       'After restart, fresh WorkflowStateManager should see persisted stage');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -177,15 +177,15 @@ test('multiple advanceStage calls each update v2 state correctly', () => {
   try {
     const { statePath, workItemId } = setupQuickWorkItem(dir);
 
-    // Step 1: quick_intake → quick_brainstorm
-    advanceStage('quick_brainstorm', statePath);
-    let v2State = makeV2Manager(dir, workItemId).getState();
-    assert.equal(v2State.stage, 'quick_brainstorm', 'After 1st advance: stage should be quick_brainstorm');
-
-    // Step 2: quick_brainstorm → quick_plan
+    // Step 1: quick_intake → quick_plan
     advanceStage('quick_plan', statePath);
+    let v2State = makeV2Manager(dir, workItemId).getState();
+    assert.equal(v2State.stage, 'quick_plan', 'After 1st advance: stage should be quick_plan');
+
+    // Step 2: quick_plan → quick_implement
+    advanceStage('quick_implement', statePath);
     v2State = makeV2Manager(dir, workItemId).getState();
-    assert.equal(v2State.stage, 'quick_plan', 'After 2nd advance: stage should be quick_plan');
+    assert.equal(v2State.stage, 'quick_implement', 'After 2nd advance: stage should be quick_implement');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -198,10 +198,10 @@ test('setApproval writes v2 gate that WorkflowStateManager can read', () => {
   try {
     const { statePath, workItemId } = setupQuickWorkItem(dir);
 
-    // Advance to quick_brainstorm first
-    advanceStage('quick_brainstorm', statePath);
+    // Advance to quick_plan first
+    advanceStage('quick_plan', statePath);
 
-    // Set approval for the understanding_confirmed gate
+    // Set approval for the quick_verified gate
     setApproval('quick_verified', 'approved', 'QuickAgent', '2026-05-08', 'Verified', statePath);
 
     const mgr = makeV2Manager(dir, workItemId);
@@ -223,7 +223,7 @@ test('advanceStage return value is backward compatible (old schema intact)', () 
   const dir = createTempProject();
   try {
     const { statePath } = setupQuickWorkItem(dir);
-    const result = advanceStage('quick_brainstorm', statePath);
+    const result = advanceStage('quick_plan', statePath);
 
     // Must return full context object
     assert.ok(result.statePath, 'result must have statePath');
@@ -236,7 +236,7 @@ test('advanceStage return value is backward compatible (old schema intact)', () 
     assert.ok('approvals' in result.state, 'result.state must have approvals');
     assert.ok('artifacts' in result.state, 'result.state must have artifacts');
 
-    assert.equal(result.state.current_stage, 'quick_brainstorm');
+    assert.equal(result.state.current_stage, 'quick_plan');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -246,7 +246,6 @@ test('setApproval return value is backward compatible (old schema intact)', () =
   const dir = createTempProject();
   try {
     const { statePath } = setupQuickWorkItem(dir);
-    advanceStage('quick_brainstorm', statePath);
     advanceStage('quick_plan', statePath);
     advanceStage('quick_implement', statePath);
     advanceStage('quick_test', statePath);
@@ -292,11 +291,11 @@ test('showState still returns old schema after advanceStage delegation', () => {
   const dir = createTempProject();
   try {
     const { statePath } = setupQuickWorkItem(dir);
-    advanceStage('quick_brainstorm', statePath);
+    advanceStage('quick_plan', statePath);
 
     const result = showState(statePath);
     assert.ok(result.state, 'showState must return state');
-    assert.equal(result.state.current_stage, 'quick_brainstorm',
+    assert.equal(result.state.current_stage, 'quick_plan',
       'showState must read back current_stage in old schema format');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
@@ -309,7 +308,7 @@ test('WorkflowStateManager v2 state mode matches controller state mode', () => {
   const dir = createTempProject();
   try {
     const { statePath, workItemId } = setupQuickWorkItem(dir, 'TEST-002', 'test-mode-sync');
-    advanceStage('quick_brainstorm', statePath);
+    advanceStage('quick_plan', statePath);
 
     const controllerResult = showState(statePath);
     const v2State = makeV2Manager(dir, workItemId).getState();

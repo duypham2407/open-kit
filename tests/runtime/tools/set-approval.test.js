@@ -123,13 +123,13 @@ test('set-approval returns ok status when revoking approval (approved: false)', 
   const tool = createSetApprovalTool({ workflowKernel: kernel });
 
   const result = tool.execute({
-    gateName: 'quick.plan_confirmed',
+    gateName: 'quick.understanding_confirmed',
     approved: false,
     approver: 'user',
   });
 
   assert.equal(result.status, 'ok');
-  assert.equal(result.gateName, 'quick.plan_confirmed');
+  assert.equal(result.gateName, 'quick.understanding_confirmed');
   assert.equal(result.approved, false);
 });
 

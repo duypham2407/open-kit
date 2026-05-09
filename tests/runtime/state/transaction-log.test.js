@@ -37,7 +37,7 @@ describe('TransactionLog', () => {
       operation: 'advanceStage',
       workItemId: 'test123',
       caller: 'tool.advance-stage',
-      before: { stage: 'quick_brainstorm' },
+      before: { stage: 'quick_intake' },
       after: { stage: 'quick_plan' },
       metadata: {},
     });
@@ -58,7 +58,7 @@ describe('TransactionLog', () => {
       operation: 'advanceStage',
       workItemId: 'abc123',
       caller: 'tool.advance-stage',
-      before: { stage: 'quick_brainstorm', owner: 'quick-agent' },
+      before: { stage: 'quick_intake', owner: 'quick-agent' },
       after: { stage: 'quick_plan', owner: 'quick-agent' },
       metadata: { reason: 'gate met' },
     });
@@ -69,7 +69,7 @@ describe('TransactionLog', () => {
     assert.equal(entry.operation, 'advanceStage');
     assert.equal(entry.workItemId, 'abc123');
     assert.equal(entry.caller, 'tool.advance-stage');
-    assert.deepEqual(entry.before, { stage: 'quick_brainstorm', owner: 'quick-agent' });
+    assert.deepEqual(entry.before, { stage: 'quick_intake', owner: 'quick-agent' });
     assert.deepEqual(entry.after, { stage: 'quick_plan', owner: 'quick-agent' });
     assert.deepEqual(entry.metadata, { reason: 'gate met' });
     assert.ok(entry.timestamp, 'entry has a timestamp');
@@ -113,7 +113,7 @@ describe('TransactionLog', () => {
       operation: 'advanceStage',
       workItemId: 'item1',
       caller: 'tool.advance-stage',
-      before: { stage: 'quick_brainstorm' },
+      before: { stage: 'quick_intake' },
       after: { stage: 'quick_plan' },
     });
 
@@ -140,7 +140,7 @@ describe('TransactionLog', () => {
       operation: 'advanceStage',
       workItemId: 'abc123',
       caller: 'tool.advance-stage',
-      before: { stage: 'quick_brainstorm' },
+      before: { stage: 'quick_intake' },
       after: { stage: 'quick_plan' },
     });
 
@@ -177,7 +177,7 @@ describe('TransactionLog', () => {
       operation: 'advanceStage',
       workItemId: 'item1',
       caller: 'tool.advance-stage',
-      before: { stage: 'quick_brainstorm' },
+      before: { stage: 'quick_intake' },
       after: { stage: 'quick_plan' },
     });
 
@@ -256,7 +256,7 @@ describe('TransactionLog', () => {
       operation: 'advanceStage',
       workItemId: 'item1',
       caller: 'tool.advance-stage',
-      before: { stage: 'quick_brainstorm' },
+      before: { stage: 'quick_intake' },
       after: { stage: 'quick_plan' },
     });
 

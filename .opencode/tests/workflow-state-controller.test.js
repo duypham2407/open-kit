@@ -525,7 +525,7 @@ test("startTask initializes quick mode with quick-only approvals", () => {
   assert.equal(result.state.mode, "quick")
   assert.equal(result.state.mode_reason, "Scoped text change")
   assert.equal(result.state.current_stage, "quick_intake")
-  assert.equal(result.state.current_owner, "QuickAgent")
+  assert.equal(result.state.current_owner, "MasterOrchestrator")
   assert.deepEqual(result.state.routing_profile, {
     work_intent: "maintenance",
     behavior_delta: "preserve",
@@ -539,21 +539,21 @@ test("startTask initializes quick mode with quick-only approvals", () => {
   assert.equal(result.state.escalation_reason, null)
 })
 
-test("quick mode requires quick_brainstorm before quick_implement", () => {
+test("quick mode requires quick_plan before quick_implement", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-129", "needs-plan", "Bounded quick work", statePath)
 
-  assert.throws(() => advanceStage("quick_implement", statePath), /immediate next stage 'quick_brainstorm'/)
+  assert.throws(() => advanceStage("quick_implement", statePath), /immediate next stage 'quick_plan'/)
 })
 
-test("quick_brainstorm becomes the next stage after quick_intake", () => {
+test("quick_plan becomes the next stage after quick_intake", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-130", "plan-stage", "Live quick plan stage", statePath)
-  const result = advanceStage("quick_brainstorm", statePath)
+  const result = advanceStage("quick_plan", statePath)
 
-  assert.equal(result.state.current_stage, "quick_brainstorm")
+  assert.equal(result.state.current_stage, "quick_plan")
   assert.equal(result.state.current_owner, "QuickAgent")
 })
 
@@ -690,7 +690,6 @@ test("quick_done requires quick_verified approval", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-124", "verify-copy", "Copy verification task", statePath)
-  advanceStage("quick_brainstorm", statePath)
   advanceStage("quick_plan", statePath)
   advanceStage("quick_implement", statePath)
   advanceStage("quick_test", statePath)
@@ -741,7 +740,6 @@ test("quick_done also requires verification evidence", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-131", "verify-evidence", "Quick QA evidence gate", statePath)
-  advanceStage("quick_brainstorm", statePath)
   advanceStage("quick_plan", statePath)
   advanceStage("quick_implement", statePath)
   advanceStage("quick_test", statePath)
@@ -1437,14 +1435,14 @@ test("failed authority writes do not append success supervisor events", () => {
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-F940-FAIL", "authority-fail", "Failed writes should not emit success events", statePath)
-  advanceStage("quick_brainstorm", statePath)
+  advanceStage("quick_plan", statePath)
   const baseline = readSupervisorEvents(statePath, "task-f940-fail").length
 
   assert.throws(
     () => setApproval("product_to_solution", "approved", "user", "2026-04-25", "Wrong gate", statePath),
     /mode 'quick'/,
   )
-  assert.throws(() => advanceStage("quick_test", statePath), /immediate next stage 'quick_plan'/)
+  assert.throws(() => advanceStage("quick_test", statePath), /immediate next stage 'quick_implement'/)
   assert.throws(
     () =>
       recordVerificationEvidence(
@@ -1568,10 +1566,10 @@ test("supervisor append failure degrades reporting without rolling back successf
   fs.mkdirSync(storeDir, { recursive: true })
   fs.writeFileSync(storePath, "not json", "utf8")
 
-  const result = advanceStage("quick_brainstorm", statePath)
+  const result = advanceStage("quick_plan", statePath)
 
-  assert.equal(result.state.current_stage, "quick_brainstorm")
-  assert.equal(workItemStore.readWorkItemState(projectRoot, "task-f940-degrade").current_stage, "quick_brainstorm")
+  assert.equal(result.state.current_stage, "quick_plan")
+  assert.equal(workItemStore.readWorkItemState(projectRoot, "task-f940-degrade").current_stage, "quick_plan")
 
   const repairedStore = readSupervisorDialogueStore(projectRoot, "task-f940-degrade")
   assert.equal(repairedStore.session.degraded_mode, true)
@@ -1727,7 +1725,7 @@ test("quick mode rejects skipping stages", () => {
 
   startTask("quick", "TASK-128", "skip-stage", "Quick stage ordering", statePath)
 
-  assert.throws(() => advanceStage("quick_test", statePath), /immediate next stage 'quick_brainstorm'/)
+  assert.throws(() => advanceStage("quick_test", statePath), /immediate next stage 'quick_plan'/)
 })
 
 test("full mode rejects quick stages", () => {
@@ -2561,13 +2559,13 @@ test("controller rolls back active-item writes when mirror refresh fails after t
   _overrideWorkItemStore({
     writeCompatibilityMirror(projectRoot) {
       const activeState = workItemStore.readWorkItemState(projectRoot, "task-801")
-      observedPrimaryWriteBeforeMirrorFailure ||= activeState.current_stage === "quick_brainstorm"
+      observedPrimaryWriteBeforeMirrorFailure ||= activeState.current_stage === "quick_plan"
       throw new Error("Simulated mirror write failure")
     },
   })
 
   try {
-    assert.throws(() => advanceStage("quick_brainstorm", statePath), /mirror/i)
+    assert.throws(() => advanceStage("quick_plan", statePath), /mirror/i)
   } finally {
     _resetWorkItemStore()
   }
@@ -2595,7 +2593,7 @@ test("controller restores primary and mirror state when index write fails late",
   })
 
   try {
-    assert.throws(() => advanceStage("quick_brainstorm", statePath), /index write failure/)
+    assert.throws(() => advanceStage("quick_plan", statePath), /index write failure/)
   } finally {
     _resetWorkItemStore()
   }
@@ -3456,7 +3454,6 @@ test("quick mode has no tool evidence gates on intermediate transitions", () => 
   const statePath = createTempStateFile()
 
   startTask("quick", "TASK-801", "quick-no-tool-gate", "Quick mode should not have tool gates on stages", statePath)
-  advanceStage("quick_brainstorm", statePath)
   advanceStage("quick_plan", statePath)
   advanceStage("quick_implement", statePath)
   advanceStage("quick_test", statePath)

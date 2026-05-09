@@ -5,21 +5,21 @@ import { checkGateRequirements } from '../../src/runtime/workflow/gate-requireme
 
 // ── Quick Mode Gates ────────────────────────────────────────────────────
 
-test('quick: brainstorm→plan without understanding_confirmed fails gate', () => {
-  const state = { mode: 'quick', current_stage: 'quick_brainstorm', verification_evidence: [] };
-  const result = checkGateRequirements('quick', 'quick_brainstorm', 'quick_plan', state);
+test('quick: intake→plan without understanding_confirmed fails gate', () => {
+  const state = { mode: 'quick', current_stage: 'quick_intake', verification_evidence: [] };
+  const result = checkGateRequirements('quick', 'quick_intake', 'quick_plan', state);
   assert.equal(result.passed, false);
   assert.ok(result.missing.length > 0);
 });
 
-test('quick: brainstorm→plan with understanding_confirmed passes gate', () => {
+test('quick: intake→plan with understanding_confirmed passes gate', () => {
   const state = {
     mode: 'quick',
-    current_stage: 'quick_brainstorm',
+    current_stage: 'quick_intake',
     verification_evidence: [],
   };
   const evidence = { understanding_confirmed: true };
-  const result = checkGateRequirements('quick', 'quick_brainstorm', 'quick_plan', state, evidence);
+  const result = checkGateRequirements('quick', 'quick_intake', 'quick_plan', state, evidence);
   assert.equal(result.passed, true);
 });
 
@@ -114,9 +114,10 @@ test('migration: verify→done without verification_passed fails gate', () => {
 
 // ── No gate transitions ─────────────────────────────────────────────────
 
-test('quick: intake→brainstorm has no gate (always passes)', () => {
+test('quick: quick_brainstorm→quick_plan has no gate (quick_brainstorm is removed)', () => {
+  // quick_brainstorm is no longer a stage; any transition from it has no gate (passes vacuously)
   const state = { mode: 'quick', current_stage: 'quick_intake', verification_evidence: [] };
-  const result = checkGateRequirements('quick', 'quick_intake', 'quick_brainstorm', state);
+  const result = checkGateRequirements('quick', 'quick_brainstorm', 'quick_plan', state);
   assert.equal(result.passed, true);
 });
 

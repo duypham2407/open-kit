@@ -26,7 +26,7 @@ const APPROVAL_MIGRATION_MAP = {
 
 const GATE_MIGRATION_MAP = {
   'user_understanding_confirmed': 'quick.understanding_confirmed',
-  'user_plan_confirmed': 'quick.plan_confirmed'
+  'user_plan_confirmed': 'quick.understanding_confirmed'
 };
 
 export function migrateState(oldState) {

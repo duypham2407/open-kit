@@ -79,14 +79,14 @@ test('set-approval disk state matches in-memory state after gate approval', () =
     const tool = createSetApprovalTool({ workflowKernel: kernel });
 
     tool.execute({
-      gateName: 'quick.plan_confirmed',
+      gateName: 'quick.understanding_confirmed',
       approved: true,
       approver: 'user',
     });
 
     // In-memory state should reflect gate
     const inMemory = stateManager.getState();
-    assert.equal(inMemory.gates['quick.plan_confirmed'], true);
+    assert.equal(inMemory.gates['quick.understanding_confirmed'], true);
 
     // Disk must match in-memory
     const onDisk = readStateFromDisk(tmpDir);
@@ -207,15 +207,15 @@ test('set-approval can set multiple gates independently', () => {
     assert.equal(r1.status, 'ok');
 
     const r2 = tool.execute({
-      gateName: 'quick.plan_confirmed',
+      gateName: 'quick.verified',
       approved: true,
-      approver: 'user',
+      approver: 'quick-agent',
     });
     assert.equal(r2.status, 'ok');
 
     const onDisk = readStateFromDisk(tmpDir);
     assert.equal(onDisk.gates['quick.understanding_confirmed'], true);
-    assert.equal(onDisk.gates['quick.plan_confirmed'], true);
+    assert.equal(onDisk.gates['quick.verified'], true);
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
@@ -268,15 +268,16 @@ test('gate set via tool.set-approval enables stateManager.advanceStage to pass g
     const stateManager = new WorkflowStateManager({ workItemId: 'sa-008', baseDir: tmpDir });
     stateManager.initialize({ mode: 'quick', owner: 'QuickAgent' });
 
+    // quick_intake → quick_plan has no gate: advance directly to quick_plan
+    stateManager.advanceStage('quick_plan', 'QuickAgent');
+
     const kernel = createRealKernel(stateManager);
     const tool = createSetApprovalTool({ workflowKernel: kernel });
 
-    // Advance to quick_brainstorm first (no gate required by stateManager FSM)
-    stateManager.advanceStage('quick_brainstorm', 'QuickAgent');
-
-    // Without the gate, stateManager.advanceStage to quick_plan should throw
+    // quick_plan → quick_implement requires understanding_confirmed gate
+    // Without the gate, stateManager.advanceStage to quick_implement should throw
     assert.throws(
-      () => stateManager.advanceStage('quick_plan', 'QuickAgent'),
+      () => stateManager.advanceStage('quick_implement', 'QuickAgent'),
       (err) => err.name === 'GateNotMetError' || err.message.includes('gate'),
       'Expected GateNotMetError before gate is set'
     );
@@ -290,12 +291,12 @@ test('gate set via tool.set-approval enables stateManager.advanceStage to pass g
     assert.equal(gateResult.status, 'ok');
 
     // Now stateManager.advanceStage should succeed
-    const newState = stateManager.advanceStage('quick_plan', 'QuickAgent');
-    assert.equal(newState.stage, 'quick_plan', `Expected stage to be quick_plan, got: ${newState.stage}`);
+    const newState = stateManager.advanceStage('quick_implement', 'QuickAgent');
+    assert.equal(newState.stage, 'quick_implement', `Expected stage to be quick_implement, got: ${newState.stage}`);
 
     // Disk should reflect the advanced stage
     const onDisk = readStateFromDisk(tmpDir);
-    assert.equal(onDisk.stage, 'quick_plan');
+    assert.equal(onDisk.stage, 'quick_implement');
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }

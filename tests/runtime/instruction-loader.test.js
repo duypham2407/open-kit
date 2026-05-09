@@ -13,18 +13,18 @@ const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), 
 
 // ── loadRoleInstructions ────────────────────────────────────────────────
 
-test('loadRoleInstructions returns content for quick_brainstorm', () => {
-  const result = loadRoleInstructions('quick', 'quick_brainstorm', 'QuickAgent', { kitRoot: PROJECT_ROOT });
-  assert.ok(result);
-  assert.ok(result.includes('Role Boundaries'));
-  assert.ok(result.includes('QuickAgent'));
-  assert.ok(result.includes('brainstorm') || result.includes('Brainstorm'));
-});
-
-test('loadRoleInstructions returns content for quick_plan', () => {
+test('loadRoleInstructions returns content for quick_plan (includes brainstorm inline)', () => {
   const result = loadRoleInstructions('quick', 'quick_plan', 'QuickAgent', { kitRoot: PROJECT_ROOT });
   assert.ok(result);
   assert.ok(result.includes('Plan'));
+});
+
+test('loadRoleInstructions returns null-path fallback for quick_brainstorm (removed stage)', () => {
+  // quick_brainstorm is no longer a known stage; loader falls back to generic instructions
+  const result = loadRoleInstructions('quick', 'quick_brainstorm', 'QuickAgent', { kitRoot: PROJECT_ROOT });
+  assert.ok(result);
+  assert.ok(result.includes('QuickAgent'));
+  assert.ok(result.includes('quick_brainstorm'));
 });
 
 test('loadRoleInstructions returns content for quick_implement', () => {
@@ -102,7 +102,7 @@ test('loadRoleInstructions returns content for migration_verify', () => {
 // ── Role boundaries always prepended ────────────────────────────────────
 
 test('loadRoleInstructions always includes role boundaries', () => {
-  const result = loadRoleInstructions('quick', 'quick_brainstorm', 'QuickAgent', { kitRoot: PROJECT_ROOT });
+  const result = loadRoleInstructions('quick', 'quick_plan', 'QuickAgent', { kitRoot: PROJECT_ROOT });
   assert.ok(result.includes('MasterOrchestrator'));
   assert.ok(result.includes('QuickAgent'));
   assert.ok(result.includes('FullstackAgent'));
@@ -119,10 +119,15 @@ test('loadRoleInstructions returns fallback for unknown stage', () => {
 
 // ── loadStageInstructions ───────────────────────────────────────────────
 
-test('loadStageInstructions returns content for valid stage', () => {
-  const result = loadStageInstructions('quick_brainstorm', { kitRoot: PROJECT_ROOT });
+test('loadStageInstructions returns content for quick_plan (brainstorm happens inline)', () => {
+  const result = loadStageInstructions('quick_plan', { kitRoot: PROJECT_ROOT });
   assert.ok(result);
-  assert.ok(result.includes('QuickAgent'));
+});
+
+test('loadStageInstructions returns null for quick_brainstorm (removed stage)', () => {
+  // quick_brainstorm is no longer in the stage-to-instruction map
+  const result = loadStageInstructions('quick_brainstorm', { kitRoot: PROJECT_ROOT });
+  assert.equal(result, null);
 });
 
 test('loadStageInstructions returns null for unknown stage', () => {
@@ -132,8 +137,12 @@ test('loadStageInstructions returns null for unknown stage', () => {
 
 // ── getInstructionPath ──────────────────────────────────────────────────
 
+test('getInstructionPath returns null for quick_brainstorm (removed)', () => {
+  assert.equal(getInstructionPath('quick_brainstorm'), null);
+});
+
 test('getInstructionPath returns path for known stages', () => {
-  assert.equal(getInstructionPath('quick_brainstorm'), 'quick/brainstorm.md');
+  assert.equal(getInstructionPath('quick_plan'), 'quick/plan.md');
   assert.equal(getInstructionPath('full_intake'), 'full/orchestrator-intake.md');
   assert.equal(getInstructionPath('migration_baseline'), 'migration/baseline.md');
 });
@@ -146,7 +155,7 @@ test('getInstructionPath returns null for unknown stage', () => {
 
 test('instruction content is under 5KB per stage', () => {
   const stages = [
-    'quick_brainstorm', 'quick_plan', 'quick_implement', 'quick_test',
+    'quick_plan', 'quick_implement', 'quick_test',
     'full_intake', 'full_product', 'full_solution', 'full_implementation', 'full_code_review', 'full_qa',
     'migration_baseline', 'migration_strategy', 'migration_upgrade', 'migration_verify',
   ];
