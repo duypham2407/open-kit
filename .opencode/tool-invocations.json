@@ -1,0 +1,1604 @@
+{
+  "entries": [
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:43.875Z"
+    },
+    {
+      "tool_id": "tool.import-graph",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:44.196Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 22,
+      "recorded_at": "2026-05-09T19:03:44.555Z"
+    },
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:45.289Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.189Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.190Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.190Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.191Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.191Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.191Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.191Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.221Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.221Z"
+    },
+    {
+      "tool_id": "tool.session-list",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.437Z"
+    },
+    {
+      "tool_id": "tool.session-search",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.437Z"
+    },
+    {
+      "tool_id": "tool.session-read",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:47.438Z"
+    },
+    {
+      "tool_id": "tool.continuation-start",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.438Z"
+    },
+    {
+      "tool_id": "tool.continuation-handoff",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.438Z"
+    },
+    {
+      "tool_id": "tool.continuation-status",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.439Z"
+    },
+    {
+      "tool_id": "tool.continuation-stop",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.439Z"
+    },
+    {
+      "tool_id": "tool.browser-verify",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.439Z"
+    },
+    {
+      "tool_id": "tool.hashline-edit",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.440Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 22,
+      "recorded_at": "2026-05-09T19:03:47.462Z"
+    },
+    {
+      "tool_id": "tool.syntax-context",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.463Z"
+    },
+    {
+      "tool_id": "tool.syntax-locate",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:47.464Z"
+    },
+    {
+      "tool_id": "tool.ast-search",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:47.465Z"
+    },
+    {
+      "tool_id": "tool.ast-replace",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.465Z"
+    },
+    {
+      "tool_id": "tool.lsp-symbols",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:47.467Z"
+    },
+    {
+      "tool_id": "tool.lsp-diagnostics",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.467Z"
+    },
+    {
+      "tool_id": "tool.lsp-goto-definition",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.468Z"
+    },
+    {
+      "tool_id": "tool.lsp-find-references",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.468Z"
+    },
+    {
+      "tool_id": "tool.lsp-prepare-rename",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.469Z"
+    },
+    {
+      "tool_id": "tool.lsp-rename",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:47.470Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:47.687Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:47.836Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:47.837Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 50,
+      "recorded_at": "2026-05-09T19:03:50.900Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:50.900Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:50.901Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:50.901Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:50.902Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:50.946Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:50.947Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:50.948Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:50.948Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:03:50.949Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:50.985Z"
+    },
+    {
+      "tool_id": "tool.syntax-context",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:03:51.016Z"
+    },
+    {
+      "tool_id": "tool.syntax-locate",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 2,
+      "recorded_at": "2026-05-09T19:03:51.018Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 2,
+      "recorded_at": "2026-05-09T19:03:51.070Z"
+    },
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:49.983Z"
+    },
+    {
+      "tool_id": "tool.import-graph",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 2,
+      "recorded_at": "2026-05-09T19:07:50.371Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 35,
+      "recorded_at": "2026-05-09T19:07:50.721Z"
+    },
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:51.300Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.022Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.022Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.023Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.023Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.024Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.025Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:53.026Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.043Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.044Z"
+    },
+    {
+      "tool_id": "tool.session-list",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:53.259Z"
+    },
+    {
+      "tool_id": "tool.session-search",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.259Z"
+    },
+    {
+      "tool_id": "tool.session-read",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.259Z"
+    },
+    {
+      "tool_id": "tool.continuation-start",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.260Z"
+    },
+    {
+      "tool_id": "tool.continuation-handoff",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.261Z"
+    },
+    {
+      "tool_id": "tool.continuation-status",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.261Z"
+    },
+    {
+      "tool_id": "tool.continuation-stop",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.262Z"
+    },
+    {
+      "tool_id": "tool.browser-verify",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.262Z"
+    },
+    {
+      "tool_id": "tool.hashline-edit",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:53.263Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 29,
+      "recorded_at": "2026-05-09T19:07:53.292Z"
+    },
+    {
+      "tool_id": "tool.syntax-context",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.293Z"
+    },
+    {
+      "tool_id": "tool.syntax-locate",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:53.294Z"
+    },
+    {
+      "tool_id": "tool.ast-search",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:53.295Z"
+    },
+    {
+      "tool_id": "tool.ast-replace",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.295Z"
+    },
+    {
+      "tool_id": "tool.lsp-symbols",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:53.296Z"
+    },
+    {
+      "tool_id": "tool.lsp-diagnostics",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.297Z"
+    },
+    {
+      "tool_id": "tool.lsp-goto-definition",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:53.298Z"
+    },
+    {
+      "tool_id": "tool.lsp-find-references",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.298Z"
+    },
+    {
+      "tool_id": "tool.lsp-prepare-rename",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.299Z"
+    },
+    {
+      "tool_id": "tool.lsp-rename",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:53.300Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:53.484Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:53.634Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:53.635Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 28,
+      "recorded_at": "2026-05-09T19:07:56.045Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:56.046Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:56.046Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:56.047Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 3,
+      "recorded_at": "2026-05-09T19:07:56.051Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:56.075Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:56.075Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:56.076Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:56.077Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:56.078Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:56.102Z"
+    },
+    {
+      "tool_id": "tool.syntax-context",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:56.123Z"
+    },
+    {
+      "tool_id": "tool.syntax-locate",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:07:56.123Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:07:56.149Z"
+    },
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:24.742Z"
+    },
+    {
+      "tool_id": "tool.import-graph",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:25.177Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 39,
+      "recorded_at": "2026-05-09T19:08:25.590Z"
+    },
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:26.564Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:27.878Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:27.880Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:27.880Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:27.881Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:27.881Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:27.882Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:27.882Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:27.917Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:27.917Z"
+    },
+    {
+      "tool_id": "tool.session-list",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:28.204Z"
+    },
+    {
+      "tool_id": "tool.session-search",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:28.204Z"
+    },
+    {
+      "tool_id": "tool.session-read",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.205Z"
+    },
+    {
+      "tool_id": "tool.continuation-start",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.206Z"
+    },
+    {
+      "tool_id": "tool.continuation-handoff",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:28.206Z"
+    },
+    {
+      "tool_id": "tool.continuation-status",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.207Z"
+    },
+    {
+      "tool_id": "tool.continuation-stop",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:28.207Z"
+    },
+    {
+      "tool_id": "tool.browser-verify",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:28.207Z"
+    },
+    {
+      "tool_id": "tool.hashline-edit",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:28.208Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 26,
+      "recorded_at": "2026-05-09T19:08:28.234Z"
+    },
+    {
+      "tool_id": "tool.syntax-context",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.235Z"
+    },
+    {
+      "tool_id": "tool.syntax-locate",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.236Z"
+    },
+    {
+      "tool_id": "tool.ast-search",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.237Z"
+    },
+    {
+      "tool_id": "tool.ast-replace",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.238Z"
+    },
+    {
+      "tool_id": "tool.lsp-symbols",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.239Z"
+    },
+    {
+      "tool_id": "tool.lsp-diagnostics",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.240Z"
+    },
+    {
+      "tool_id": "tool.lsp-goto-definition",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.241Z"
+    },
+    {
+      "tool_id": "tool.lsp-find-references",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:28.241Z"
+    },
+    {
+      "tool_id": "tool.lsp-prepare-rename",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.242Z"
+    },
+    {
+      "tool_id": "tool.lsp-rename",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.243Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:28.445Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:28.606Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:28.606Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 24,
+      "recorded_at": "2026-05-09T19:08:30.745Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:30.746Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:30.746Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:30.747Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:30.748Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:30.777Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:30.778Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:30.778Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:30.779Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:30.780Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:08:30.803Z"
+    },
+    {
+      "tool_id": "tool.syntax-context",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:30.833Z"
+    },
+    {
+      "tool_id": "tool.syntax-locate",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:30.834Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:08:30.860Z"
+    },
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:39.559Z"
+    },
+    {
+      "tool_id": "tool.import-graph",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:39.907Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 30,
+      "recorded_at": "2026-05-09T19:09:40.287Z"
+    },
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:41.093Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:42.917Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:42.917Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:42.918Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:42.918Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:42.919Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:42.919Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:42.920Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:42.939Z"
+    },
+    {
+      "tool_id": "tool.profile-switch",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:42.939Z"
+    },
+    {
+      "tool_id": "tool.session-list",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.152Z"
+    },
+    {
+      "tool_id": "tool.session-search",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.152Z"
+    },
+    {
+      "tool_id": "tool.session-read",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.153Z"
+    },
+    {
+      "tool_id": "tool.continuation-start",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.153Z"
+    },
+    {
+      "tool_id": "tool.continuation-handoff",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:43.154Z"
+    },
+    {
+      "tool_id": "tool.continuation-status",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.154Z"
+    },
+    {
+      "tool_id": "tool.continuation-stop",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.154Z"
+    },
+    {
+      "tool_id": "tool.browser-verify",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.155Z"
+    },
+    {
+      "tool_id": "tool.hashline-edit",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.155Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 22,
+      "recorded_at": "2026-05-09T19:09:43.177Z"
+    },
+    {
+      "tool_id": "tool.syntax-context",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:43.178Z"
+    },
+    {
+      "tool_id": "tool.syntax-locate",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.178Z"
+    },
+    {
+      "tool_id": "tool.ast-search",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 3,
+      "recorded_at": "2026-05-09T19:09:43.182Z"
+    },
+    {
+      "tool_id": "tool.ast-replace",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:43.184Z"
+    },
+    {
+      "tool_id": "tool.lsp-symbols",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:43.185Z"
+    },
+    {
+      "tool_id": "tool.lsp-diagnostics",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:43.186Z"
+    },
+    {
+      "tool_id": "tool.lsp-goto-definition",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:43.187Z"
+    },
+    {
+      "tool_id": "tool.lsp-find-references",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:43.188Z"
+    },
+    {
+      "tool_id": "tool.lsp-prepare-rename",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:43.189Z"
+    },
+    {
+      "tool_id": "tool.lsp-rename",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.190Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:43.370Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.519Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:43.520Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 35,
+      "recorded_at": "2026-05-09T19:09:46.877Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.878Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.879Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.880Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.880Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.903Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.904Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.904Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.905Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.905Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.929Z"
+    },
+    {
+      "tool_id": "tool.syntax-context",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:46.960Z"
+    },
+    {
+      "tool_id": "tool.syntax-locate",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-09T19:09:46.961Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 1,
+      "recorded_at": "2026-05-09T19:09:46.984Z"
+    }
+  ]
+}

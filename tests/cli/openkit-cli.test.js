@@ -322,7 +322,8 @@ process.stdout.write('mock opencode launched\\n');
   assert.equal(invocation.configDir, path.join(tempHome, 'kits', 'openkit'));
   assert.equal(invocation.runtimeFoundation, '1');
   assert.equal(invocation.runtimeFoundationVersion, '1');
-  assert.match(invocation.workflowState, /workspaces\/.*\/openkit\/\.opencode\/workflow-state\.json$/);
+  // With multi-session isolation, OPENKIT_WORKFLOW_STATE points to per-session mirror
+  assert.match(invocation.workflowState, /\.opencode\/sessions\/s_[0-9a-f]{6}\/workflow-state\.json$/);
   assert.equal(invocation.kitRoot, path.join(tempHome, 'kits', 'openkit'));
   assert.equal(invocation.path.startsWith(path.join(tempHome, 'openkit', 'tooling', 'node_modules', '.bin')), true);
   assert.equal(fs.existsSync(path.join(projectRoot, '.opencode', 'openkit', 'AGENTS.md')), true);
