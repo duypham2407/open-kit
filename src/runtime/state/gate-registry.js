@@ -17,18 +17,11 @@
 const UNIFIED_GATES = {
   // ── Quick lane ───────────────────────────────────────────────────────────
   'quick.understanding_confirmed': {
-    stage: 'quick_brainstorm',
-    targetStage: 'quick_plan',
-    authority: 'user',
-    type: 'confirmation',
-    description: 'User confirms understanding of task'
-  },
-  'quick.plan_confirmed': {
     stage: 'quick_plan',
     targetStage: 'quick_implement',
     authority: 'user',
     type: 'confirmation',
-    description: 'User approves execution plan'
+    description: 'User confirms understanding of task and approves plan'
   },
   'quick.verified': {
     stage: 'quick_test',

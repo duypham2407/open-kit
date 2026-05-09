@@ -11,20 +11,16 @@ describe('GateRegistry', () => {
   it('looks up gate by name (quick lane)', () => {
     const gate = registry.getGate('quick.understanding_confirmed');
 
-    assert.equal(gate.stage, 'quick_brainstorm');
-    assert.equal(gate.targetStage, 'quick_plan');
+    assert.equal(gate.stage, 'quick_plan');
+    assert.equal(gate.targetStage, 'quick_implement');
     assert.equal(gate.authority, 'user');
     assert.equal(gate.type, 'confirmation');
     assert.ok(gate.description, 'description should be present');
   });
 
-  it('looks up quick.plan_confirmed gate', () => {
+  it('quick.plan_confirmed gate no longer exists', () => {
     const gate = registry.getGate('quick.plan_confirmed');
-
-    assert.equal(gate.stage, 'quick_plan');
-    assert.equal(gate.targetStage, 'quick_implement');
-    assert.equal(gate.authority, 'user');
-    assert.equal(gate.type, 'confirmation');
+    assert.equal(gate, null);
   });
 
   it('looks up quick.verified gate', () => {
@@ -68,9 +64,9 @@ describe('GateRegistry', () => {
 
   it('isGateMet returns false when gate is false in state', () => {
     const state = {
-      gates: { 'quick.plan_confirmed': false }
+      gates: { 'quick.understanding_confirmed': false }
     };
-    assert.equal(registry.isGateMet(state, 'quick.plan_confirmed'), false);
+    assert.equal(registry.isGateMet(state, 'quick.understanding_confirmed'), false);
   });
 
   it('isGateMet returns false when gate is absent from state', () => {
@@ -89,23 +85,16 @@ describe('GateRegistry', () => {
 
   // --- getRequiredGates() ---
 
-  it('returns required gates for quick_brainstorm → quick_plan', () => {
-    const gates = registry.getRequiredGates('quick_brainstorm', 'quick_plan');
+  it('returns required gates for quick_plan → quick_implement', () => {
+    const gates = registry.getRequiredGates('quick_plan', 'quick_implement');
 
     assert.equal(gates.length, 1);
     assert.equal(gates[0], 'quick.understanding_confirmed');
   });
 
-  it('returns required gates for quick_plan → quick_implement', () => {
-    const gates = registry.getRequiredGates('quick_plan', 'quick_implement');
-
-    assert.equal(gates.length, 1);
-    assert.equal(gates[0], 'quick.plan_confirmed');
-  });
-
   it('returns empty array for transitions with no gates', () => {
-    // quick_intake → quick_brainstorm has no gate
-    const gates = registry.getRequiredGates('quick_intake', 'quick_brainstorm');
+    // quick_intake → quick_plan has no gate
+    const gates = registry.getRequiredGates('quick_intake', 'quick_plan');
     assert.equal(gates.length, 0);
   });
 
@@ -135,7 +124,7 @@ describe('GateRegistry', () => {
       gates: { 'quick.understanding_confirmed': true }
     };
 
-    const result = registry.canTransition(state, 'quick_brainstorm', 'quick_plan');
+    const result = registry.canTransition(state, 'quick_plan', 'quick_implement');
 
     assert.equal(result.allowed, true);
     assert.equal(result.missingGates.length, 0);
@@ -146,7 +135,7 @@ describe('GateRegistry', () => {
       gates: { 'quick.understanding_confirmed': false }
     };
 
-    const result = registry.canTransition(state, 'quick_brainstorm', 'quick_plan');
+    const result = registry.canTransition(state, 'quick_plan', 'quick_implement');
 
     assert.equal(result.allowed, false);
     assert.equal(result.missingGates.length, 1);
@@ -158,17 +147,17 @@ describe('GateRegistry', () => {
   it('blocks transition when required gate is absent', () => {
     const state = { gates: {} };
 
-    const result = registry.canTransition(state, 'quick_brainstorm', 'quick_plan');
+    const result = registry.canTransition(state, 'quick_plan', 'quick_implement');
 
     assert.equal(result.allowed, false);
     assert.equal(result.missingGates.length, 1);
   });
 
   it('allows transition when there are no required gates', () => {
-    // quick_intake → quick_brainstorm has no gate requirement
+    // quick_intake → quick_plan has no gate requirement
     const state = { gates: {} };
 
-    const result = registry.canTransition(state, 'quick_intake', 'quick_brainstorm');
+    const result = registry.canTransition(state, 'quick_intake', 'quick_plan');
 
     assert.equal(result.allowed, true);
     assert.equal(result.missingGates.length, 0);
@@ -200,8 +189,8 @@ describe('GateRegistry', () => {
 
   it('recordGateMet creates state.gates if absent', () => {
     const state = {};
-    registry.recordGateMet(state, 'quick.plan_confirmed', 'user');
-    assert.equal(state.gates['quick.plan_confirmed'], true);
+    registry.recordGateMet(state, 'quick.understanding_confirmed', 'user');
+    assert.equal(state.gates['quick.understanding_confirmed'], true);
   });
 
   it('recordGateMet stores approver and metAt in state.gateMeta', () => {
@@ -240,7 +229,7 @@ describe('GateRegistry', () => {
 
   it('recordGateMet works with metadata omitted (defaults to empty object)', () => {
     const state = { gates: {} };
-    assert.doesNotThrow(() => registry.recordGateMet(state, 'quick.plan_confirmed', 'user'));
-    assert.equal(state.gates['quick.plan_confirmed'], true);
+    assert.doesNotThrow(() => registry.recordGateMet(state, 'quick.understanding_confirmed', 'user'));
+    assert.equal(state.gates['quick.understanding_confirmed'], true);
   });
 });

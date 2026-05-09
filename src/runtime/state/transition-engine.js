@@ -9,7 +9,6 @@
 const STAGE_ORDER = {
   quick: [
     'quick_intake',
-    'quick_brainstorm',
     'quick_plan',
     'quick_implement',
     'quick_test',
@@ -37,9 +36,8 @@ const STAGE_ORDER = {
 
 const TRANSITION_RULES = {
   quick: {
-    quick_intake: ['quick_brainstorm'],
-    quick_brainstorm: ['quick_plan'],
-    quick_plan: ['quick_implement', 'quick_brainstorm'],
+    quick_intake: ['quick_plan'],
+    quick_plan: ['quick_implement'],
     quick_implement: ['quick_test', 'quick_plan'],
     quick_test: ['quick_done', 'quick_implement'],
     quick_done: []

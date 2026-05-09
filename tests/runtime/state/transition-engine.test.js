@@ -7,14 +7,14 @@ describe('TransitionEngine', () => {
   const engine = new TransitionEngine();
 
   describe('quick lane', () => {
-    it('allows forward transition from quick_brainstorm to quick_plan', () => {
-      const result = engine.validateTransition('quick', 'quick_brainstorm', 'quick_plan');
+    it('allows forward transition from quick_intake to quick_plan', () => {
+      const result = engine.validateTransition('quick', 'quick_intake', 'quick_plan');
       assert.equal(result.valid, true);
       assert.equal(result.backward, false);
     });
 
-    it('allows backward transition from quick_plan to quick_brainstorm', () => {
-      const result = engine.validateTransition('quick', 'quick_plan', 'quick_brainstorm');
+    it('allows backward transition from quick_implement to quick_plan', () => {
+      const result = engine.validateTransition('quick', 'quick_implement', 'quick_plan');
       assert.equal(result.valid, true);
       assert.equal(result.backward, true);
     });
@@ -87,8 +87,8 @@ describe('TransitionEngine', () => {
       assert.deepEqual(engine.getNextStages('quick', 'quick_done'), []);
     });
 
-    it('returns correct next stages for quick_plan (forward and backward)', () => {
-      assert.deepEqual(engine.getNextStages('quick', 'quick_plan'), ['quick_implement', 'quick_brainstorm']);
+    it('returns correct next stages for quick_plan (forward only)', () => {
+      assert.deepEqual(engine.getNextStages('quick', 'quick_plan'), ['quick_implement']);
     });
 
     it('returns empty array for unknown mode', () => {
