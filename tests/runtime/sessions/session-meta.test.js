@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { writeSessionMeta, readSessionMeta } from '../../../src/runtime/sessions/session-meta.js';
+import { writeSessionMeta, readSessionMeta, bindSessionMeta } from '../../../src/runtime/sessions/session-meta.js';
 import { SessionNotFoundError } from '../../../src/runtime/sessions/errors.js';
 
 let tmp;
@@ -43,5 +43,37 @@ describe('session-meta', () => {
     assert.equal(got.worktree_path, null);
     assert.equal(got.target_branch, null);
     assert.equal(got.feature_branch, null);
+  });
+
+  it('bindSessionMeta fills in work_item_id and lane on first bind', () => {
+    const launchMeta = { ...sample, workItemId: null, lane: null, worktreePath: null, targetBranch: null, featureBranch: null };
+    writeSessionMeta(tmp, launchMeta);
+    const bound = bindSessionMeta(tmp, 's_abcdef', {
+      workItemId: 'full-x', lane: 'full',
+      worktreePath: '/r/.claude/worktrees/full-x',
+      targetBranch: 'main', featureBranch: 'openkit/full-x',
+    });
+    assert.equal(bound.work_item_id, 'full-x');
+    assert.equal(bound.lane, 'full');
+    const reread = readSessionMeta(tmp, 's_abcdef');
+    assert.equal(reread.work_item_id, 'full-x');
+    assert.equal(reread.feature_branch, 'openkit/full-x');
+    assert.equal(reread.session_id, 's_abcdef');
+    assert.equal(reread.started_at, sample.startedAt);
+  });
+
+  it('bindSessionMeta refuses to bind a session that is already bound', () => {
+    writeSessionMeta(tmp, sample);
+    assert.throws(
+      () => bindSessionMeta(tmp, 's_abcdef', { workItemId: 'wi-other', lane: 'full' }),
+      /already bound/,
+    );
+  });
+
+  it('bindSessionMeta throws SessionNotFoundError when session does not exist', () => {
+    assert.throws(
+      () => bindSessionMeta(tmp, 's_missing', { workItemId: 'wi', lane: 'full' }),
+      (e) => e instanceof SessionNotFoundError,
+    );
   });
 });

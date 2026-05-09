@@ -30,3 +30,27 @@ export function readSessionMeta(baseDir, sessionId) {
   }
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
+
+export function bindSessionMeta(baseDir, sessionId, fields) {
+  const file = sessionMetaPath(baseDir, sessionId);
+  if (!fs.existsSync(file)) {
+    throw new SessionNotFoundError(sessionId);
+  }
+  const current = JSON.parse(fs.readFileSync(file, 'utf8'));
+  if (current.work_item_id !== null || current.lane !== null) {
+    throw new Error(`session ${sessionId} is already bound to work_item ${current.work_item_id} (lane=${current.lane})`);
+  }
+  const bound = {
+    ...current,
+    work_item_id: fields.workItemId,
+    lane: fields.lane,
+    worktree_path: fields.worktreePath ?? null,
+    target_branch: fields.targetBranch ?? null,
+    feature_branch: fields.featureBranch ?? null,
+  };
+  // tmp+rename to keep on-disk consistent if process crashes mid-write
+  const tmp = `${file}.tmp.${process.pid}.${Math.random().toString(36).slice(2, 8)}`;
+  fs.writeFileSync(tmp, `${JSON.stringify(bound, null, 2)}\n`);
+  fs.renameSync(tmp, file);
+  return bound;
+}
