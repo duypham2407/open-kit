@@ -22,7 +22,8 @@ test('tool.workflow-state schema documents workItemId, not command', () => {
 });
 
 test('tool.workflow-state workItemId property is a string with a description', () => {
-  const prop = TOOL_SCHEMAS['tool.workflow-state'].inputSchema.properties.workItemId;
+  const prop = TOOL_SCHEMAS['tool.workflow-state']?.inputSchema?.properties?.workItemId;
+  assert.ok(prop, 'workItemId property must exist before type/description checks');
   assert.equal(prop.type, 'string');
   assert.equal(typeof prop.description, 'string');
   assert.ok(prop.description.length > 0);

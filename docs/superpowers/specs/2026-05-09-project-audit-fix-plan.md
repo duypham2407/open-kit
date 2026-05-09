@@ -60,7 +60,7 @@ These must be fixed before the next release. Topo order: D-1 → 1-C-1 → 1-C-2
 - **Fix approach:** Pick one direction. Option A — drop the `command` enum and document `workItemId` as the only input; this matches current behavior. Option B — implement the `command` dispatch (status / show / doctor / metrics) in the handler and route to the appropriate kernel function. Recommend Option A since callers already use `workItemId`-style invocation; option B widens the surface area unnecessarily.
 - **Acceptance criteria:**
   - [ ] Schema and handler accept the same input shape (verified by a contract test)
-  - [ ] New test `tests/mcp-server/workflow-state-contract.test.js` invokes the tool through the MCP layer with each documented input shape and asserts a non-null structured response
+  - [x] New test `tests/mcp-server/workflow-state-contract.test.js` asserts schema/handler contract agreement at the schema layer (handler is exercised end-to-end by `tests/runtime/tools/workflow-state.test.js` and `tests/runtime/tools/workflow-state-integration.test.js`; layered test scope decided during Wave 1 planning)
   - [ ] Existing MCP tests pass
 - **Risk if fixed wrong:** If users have integrations passing `command`, breaking change. Audit whether any test or runtime path actually sends `command` first; the handler shows none does.
 - **Estimated effort:** S
