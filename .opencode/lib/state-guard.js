@@ -24,6 +24,22 @@ function sortJsonValue(value) {
   return value
 }
 
+/**
+ * Audit fix [1-L-3]: this revision hash is order-invariant on object
+ * keys (sortJsonValue) but uses JSON.stringify which has two known
+ * non-canonicalisations:
+ *   1. `undefined`-valued keys are dropped, so { x: undefined } and {}
+ *      hash identically. State writers should normalise undefined to
+ *      null before recording.
+ *   2. Floating-point values are stringified at full precision, so
+ *      semantically equal values that differ by IEEE-754 rounding will
+ *      produce different hashes. State writers should round numeric
+ *      values to a stable precision before recording if equivalence
+ *      across float representations matters.
+ * State currently contains no numeric fields where rounding matters,
+ * and `undefined` is not a normal value in JSON-loaded state, so this
+ * is a documentation note rather than an active bug.
+ */
 export function captureRevision(state) {
   return crypto.createHash("sha256").update(JSON.stringify(sortJsonValue(state))).digest("hex")
 }
