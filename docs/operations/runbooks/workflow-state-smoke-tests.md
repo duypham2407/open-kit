@@ -252,7 +252,6 @@ Expected outcome:
 
 ```bash
 node .opencode/workflow-state.js start-task quick TASK-900 copy-fix "Scoped text change"
-node .opencode/workflow-state.js advance-stage quick_brainstorm
 node .opencode/workflow-state.js advance-stage quick_plan
 node .opencode/workflow-state.js advance-stage quick_implement
 node .opencode/workflow-state.js advance-stage quick_test

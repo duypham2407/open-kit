@@ -33,7 +33,7 @@ Each bundled skill record uses `openkit/skill-catalog-entry@2` and must include:
 
 Roles must use current OpenKit labels: `MasterOrchestrator`, `ProductLead`, `SolutionLead`, `FullstackAgent`, `CodeReviewer`, `QAAgent`, `QuickAgent`, plus operational audiences `operator`, `maintainer`, `in_session_agent`, or metadata wildcard `all`.
 
-Stages must use current workflow stage labels such as `quick_intake`, `quick_brainstorm`, `quick_plan`, `quick_implement`, `quick_test`, `migration_strategy`, `migration_upgrade`, `migration_verify`, `full_product`, `full_solution`, `full_implementation`, `full_code_review`, and `full_qa`; `all` is a metadata wildcard, not a workflow-state enum.
+Stages must use current workflow stage labels such as `quick_intake`, `quick_plan`, `quick_implement`, `quick_test`, `migration_strategy`, `migration_upgrade`, `migration_verify`, `full_product`, `full_solution`, `full_implementation`, `full_code_review`, and `full_qa`; `all` is a metadata wildcard, not a workflow-state enum.
 
 ## Trigger, MCP, Provenance, And Support Rules
 

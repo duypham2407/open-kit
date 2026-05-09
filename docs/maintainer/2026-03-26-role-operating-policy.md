@@ -123,8 +123,7 @@ Use it to keep role boundaries sharp during daily work.
 ### Owns
 
 - the entire quick-mode lifecycle: `quick_intake` through `quick_done`
-- `quick_brainstorm` clarification + alignment and explicit user understanding confirmation before any option analysis
-- `quick_plan` solution analysis with default 3 options, user option selection, execution planning, and separate plan confirmation before implementation
+- `quick_plan` clarification + alignment, explicit user understanding confirmation, solution analysis with default 3 options, user option selection, execution planning, and separate plan confirmation before implementation (the brainstorm work folded into quick_plan in v0.5.1; quick_brainstorm stage was removed)
 - planning, implementation, testing, and verification within quick mode
 - `quick_verified` approval gate
 

@@ -260,7 +260,7 @@ Role labels:
 
 Stage labels:
 
-- Current stage names only: `quick_intake`, `quick_brainstorm`, `quick_plan`, `quick_implement`, `quick_test`, `quick_done`, `migration_intake`, `migration_baseline`, `migration_strategy`, `migration_upgrade`, `migration_code_review`, `migration_verify`, `migration_done`, `full_intake`, `full_product`, `full_solution`, `full_implementation`, `full_code_review`, `full_qa`, `full_done`.
+- Current stage names only: `quick_intake`, `quick_plan`, `quick_implement`, `quick_test`, `quick_done`, `migration_intake`, `migration_baseline`, `migration_strategy`, `migration_upgrade`, `migration_code_review`, `migration_verify`, `migration_done`, `full_intake`, `full_product`, `full_solution`, `full_implementation`, `full_code_review`, `full_qa`, `full_done`. (Note: this is a historical solution doc dated 2026-04-27; `quick_brainstorm` was removed from the stage set in v0.5.1 and is no longer a valid stage label.)
 - `all` is allowed only as a metadata wildcard meaning all current stages; it is not a new stage, lane, enum, or workflow-state value.
 
 Packaging `source`:
