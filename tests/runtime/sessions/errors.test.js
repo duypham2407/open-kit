@@ -29,4 +29,23 @@ describe('sessions/errors', () => {
     assert.match(err.message, /2000/);
     assert.equal(err.code, 'OK_INDEX_LOCK_TIMEOUT');
   });
+
+  it('SessionNotFoundError exposes sessionId', () => {
+    const err = new SessionNotFoundError('s_abc123');
+    assert.equal(err.sessionId, 's_abc123');
+    assert.equal(err.code, 'OK_SESSION_NOT_FOUND');
+  });
+
+  it('SessionAlreadyBoundError exposes workItemId and lane', () => {
+    const err = new SessionAlreadyBoundError('wi-foo', 'full');
+    assert.equal(err.workItemId, 'wi-foo');
+    assert.equal(err.lane, 'full');
+    assert.equal(err.code, 'OK_SESSION_ALREADY_BOUND');
+  });
+
+  it('WorktreeMissingError exposes worktreePath', () => {
+    const err = new WorktreeMissingError('/tmp/wt');
+    assert.equal(err.worktreePath, '/tmp/wt');
+    assert.equal(err.code, 'OK_WORKTREE_MISSING');
+  });
 });
