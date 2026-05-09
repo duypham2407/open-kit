@@ -2,8 +2,11 @@ import { execFileSync } from 'node:child_process';
 import os from 'node:os';
 
 import { redactedKeyState, redactKnownSecrets } from '../redaction.js';
+import { validateAbsolutePathPrefix } from '../command-safety.js';
 
 export const KEYCHAIN_STORE = 'keychain';
+const DEFAULT_SECURITY_CLI = '/usr/bin/security';
+const ALLOWED_SECURITY_CLI_PREFIXES = ['/usr/'];
 
 export function keychainRef({ mcpId, envVar, scope = 'openkit', kind = 'bundled' }) {
   return {
@@ -13,7 +16,7 @@ export function keychainRef({ mcpId, envVar, scope = 'openkit', kind = 'bundled'
   };
 }
 
-function normalizeRunner(runner = execFileSync, command = '/usr/bin/security') {
+function normalizeRunner(runner = execFileSync, command = DEFAULT_SECURITY_CLI) {
   return (args, options = {}) => runner(command, args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], ...options });
 }
 
@@ -22,8 +25,44 @@ function sanitize(error, secrets = []) {
   return redactKnownSecrets(message, { secrets });
 }
 
+/**
+ * Resolve the security CLI binary path. Honors OPENKIT_SECURITY_CLI but
+ * rejects any value that is not an absolute path under /usr/. Audit fix
+ * [4-H-3]: previous code accepted the env var verbatim, so a poisoned env
+ * (malicious .env propagated from a worktree, etc.) could substitute any
+ * binary that then received the keychain password as a CLI argument.
+ *
+ * Tests that need to substitute a fake security binary should use the
+ * adapter's `runner` constructor option (preferred) or set
+ * OPENKIT_SECURITY_CLI_ALLOW_UNSAFE=1 alongside OPENKIT_SECURITY_CLI to
+ * explicitly waive the prefix check. The waiver is intentionally noisy to
+ * keep accidental production use detectable.
+ */
+function resolveSecurityCli(env) {
+  const envValue = env.OPENKIT_SECURITY_CLI;
+  if (envValue === undefined || envValue === null || envValue === '') {
+    return DEFAULT_SECURITY_CLI;
+  }
+
+  if (env.OPENKIT_SECURITY_CLI_ALLOW_UNSAFE === '1') {
+    process.stderr.write(
+      `[keychain-adapter] OPENKIT_SECURITY_CLI_ALLOW_UNSAFE=1 — accepting OPENKIT_SECURITY_CLI=${envValue} without prefix check (test/dev override)\n`,
+    );
+    return envValue;
+  }
+
+  const result = validateAbsolutePathPrefix(envValue, ALLOWED_SECURITY_CLI_PREFIXES);
+  if (!result.ok) {
+    process.stderr.write(
+      `[keychain-adapter] OPENKIT_SECURITY_CLI rejected (${result.reason}); falling back to ${DEFAULT_SECURITY_CLI}\n`,
+    );
+    return DEFAULT_SECURITY_CLI;
+  }
+  return envValue;
+}
+
 export function createKeychainAdapter({ runner = execFileSync, platform = os.platform(), env = process.env } = {}) {
-  const run = normalizeRunner(runner, env.OPENKIT_SECURITY_CLI ?? '/usr/bin/security');
+  const run = normalizeRunner(runner, resolveSecurityCli(env));
   return {
     id: KEYCHAIN_STORE,
     availability() {

@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process';
 
+import { validateCommandSafety } from '../../global/mcp/command-safety.js';
+
 function clampTimeout(timeoutMs) {
   if (!Number.isFinite(timeoutMs)) {
     return 10_000;
@@ -178,6 +180,22 @@ function invokeStdioExternal(server, input) {
     });
   }
 
+  // Audit fix [4-H-2]: server.command and server.args come from .mcp.json
+  // / .opencode/mcp.json in the target project. An attacker with write
+  // access to those config files could otherwise execute arbitrary binaries
+  // when the operator runs OpenKit against that project. Apply the same
+  // shell-operator / launcher checks before spawning.
+  const safety = validateCommandSafety(server.command, server.args ?? []);
+  if (!safety.ok) {
+    return Promise.resolve({
+      status: 'unavailable',
+      reason: `External MCP '${server.name}' command rejected by safety policy: ${safety.reason}`,
+      transport: 'stdio',
+      source: 'external',
+      mcp: server.name,
+    });
+  }
+
   return new Promise((resolve) => {
     const timeoutMs = server.timeoutMs ?? 10_000;
     const child = spawn(server.command, server.args ?? [], {
@@ -186,6 +204,7 @@ function invokeStdioExternal(server, input) {
         ...(server.env ?? {}),
       },
       stdio: ['pipe', 'pipe', 'pipe'],
+      shell: false,
     });
 
     let settled = false;

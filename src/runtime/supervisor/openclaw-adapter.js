@@ -1,5 +1,7 @@
 import { spawn } from 'node:child_process';
 
+import { validateCommandSafety } from '../../global/mcp/command-safety.js';
+
 const FAILURE_STATUS_ALIASES = new Set(['error', 'failed', 'failure', 'unavailable']);
 
 function createUnavailableResult({ transport, error, reason }) {
@@ -36,10 +38,25 @@ function deliverCommand(settings, payload) {
     return Promise.resolve(createUnavailableResult({ transport: 'command', reason: 'OpenClaw command transport is missing command.' }));
   }
 
+  // Audit fix [4-H-1]: settings.command and settings.args come from the
+  // user's runtime config (.opencode/openkit.json or similar). Without
+  // validation, a target project repo could supply a crafted command that
+  // executes arbitrary binaries when the operator runs OpenKit against it.
+  // Apply the same shell-operator / launcher checks already enforced for
+  // custom MCP definitions before spawning.
+  const safety = validateCommandSafety(settings.command, settings.args);
+  if (!safety.ok) {
+    return Promise.resolve(createUnavailableResult({
+      transport: 'command',
+      reason: `OpenClaw command rejected by safety policy: ${safety.reason}`,
+    }));
+  }
+
   return new Promise((resolve) => {
     const child = spawn(settings.command, settings.args, {
       env: { ...process.env, ...settings.env },
       stdio: ['pipe', 'pipe', 'pipe'],
+      shell: false,
     });
     let stdout = '';
     let stderr = '';

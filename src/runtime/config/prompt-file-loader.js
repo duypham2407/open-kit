@@ -2,6 +2,33 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 
+/**
+ * Audit fix [4-H-4]: project-root boundary check. Previously
+ * resolveFileUri accepted file:///etc/passwd or file://~/sensitive without
+ * any boundary check, then passed the resolved path to fs.readFileSync —
+ * a malicious runtime config could exfiltrate any file readable by the
+ * process. Now every resolved path must lie inside projectRoot (after
+ * symlink resolution would not help here since the reader honors symlinks
+ * later; the intent is to keep the *configured* path string inside the
+ * project boundary).
+ */
+function assertInsideProjectRoot(resolvedPath, projectRoot, originalUri) {
+  if (typeof projectRoot !== 'string' || projectRoot.length === 0) {
+    throw new Error('projectRoot is required to resolve file:// prompt references safely.');
+  }
+  const projectRootAbs = path.resolve(projectRoot);
+  const candidateAbs = path.resolve(resolvedPath);
+  // Ensure prefix match with a separator so '/foo' does not match '/foobar'.
+  const sep = path.sep;
+  const prefix = projectRootAbs.endsWith(sep) ? projectRootAbs : projectRootAbs + sep;
+  if (candidateAbs !== projectRootAbs && !candidateAbs.startsWith(prefix)) {
+    throw new Error(
+      `file:// prompt reference '${originalUri}' resolves outside the project root (${projectRootAbs}); refusing to read.`,
+    );
+  }
+  return candidateAbs;
+}
+
 function resolveFileUri(value, { projectRoot, env = process.env } = {}) {
   if (typeof value !== 'string' || !value.startsWith('file://')) {
     return null;
@@ -12,23 +39,22 @@ function resolveFileUri(value, { projectRoot, env = process.env } = {}) {
     throw new Error('file:// prompt reference must include a path.');
   }
 
+  let resolvedPath;
   if (rawPath.startsWith('/')) {
-    return path.resolve(rawPath);
-  }
-
-  if (rawPath.startsWith('~/')) {
+    resolvedPath = path.resolve(rawPath);
+  } else if (rawPath.startsWith('~/')) {
     const homeDir = env.HOME ?? os.homedir();
     if (!homeDir) {
       throw new Error('HOME is required to resolve ~/ prompt references.');
     }
-    return path.join(homeDir, rawPath.slice(2));
+    resolvedPath = path.join(homeDir, rawPath.slice(2));
+  } else if (rawPath.startsWith('./') || rawPath.startsWith('../')) {
+    resolvedPath = path.resolve(projectRoot, rawPath);
+  } else {
+    throw new Error(`unsupported file:// prompt reference '${value}'. Use absolute paths, file://~/..., or file://./...`);
   }
 
-  if (rawPath.startsWith('./') || rawPath.startsWith('../')) {
-    return path.resolve(projectRoot, rawPath);
-  }
-
-  throw new Error(`unsupported file:// prompt reference '${value}'. Use absolute paths, file://~/..., or file://./...`);
+  return assertInsideProjectRoot(resolvedPath, projectRoot, value);
 }
 
 function loadPromptField(value, { projectRoot, env, warnings, label }) {

@@ -1006,7 +1006,17 @@ test('launchGlobalOpenKit loads keychain only when matching metadata is recorded
     const securityPath = path.join(fakeBinDir, 'security');
     const result = launchGlobalOpenKit(['status'], {
       projectRoot,
-      env: { ...env, PATH: process.env.PATH, OPENKIT_SECURITY_CLI: securityPath },
+      env: {
+        ...env,
+        PATH: process.env.PATH,
+        OPENKIT_SECURITY_CLI: securityPath,
+        // Audit fix [4-H-3]: OPENKIT_SECURITY_CLI is now restricted to
+        // /usr/-prefixed paths. Tests substitute a fake security binary
+        // outside /usr/ and use this explicit waiver to opt out of the
+        // prefix check. The waiver is intentionally noisy at runtime to
+        // keep accidental production use detectable.
+        OPENKIT_SECURITY_CLI_ALLOW_UNSAFE: '1',
+      },
       stdio: 'pipe',
       spawn: (command, args, options) => {
         spawnCall = { command, args, options };
