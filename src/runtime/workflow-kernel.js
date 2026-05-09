@@ -141,10 +141,10 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
     if (!statePath) {
       return false;
     }
-    // The state directory must exist for writes to be possible.
-    // This preserves the pre-Task7 guard while allowing bootstrap to create
-    // the file (bootstrap creates the directory itself if needed).
-    return fs.existsSync(path.dirname(statePath));
+    // Writes (other than bootstrap) require that a workflow state file already
+    // exists. Bootstrap is a separate code path that creates the file directly
+    // via the controller; see bootstrapWorkflow() in this module.
+    return fs.existsSync(statePath);
   }
 
   function safeCall(fn, fallback) {

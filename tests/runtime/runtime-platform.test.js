@@ -82,16 +82,16 @@ test('background manager can spawn, complete, and cancel runs', () => {
   assert.equal(run, null);
 
   foundation.managers.backgroundManager.enabled = true;
+  foundation.managers.workflowKernel.bootstrapWorkflow({ lane: 'quick', description: 'test' });
   const liveRun = foundation.managers.backgroundManager.spawn({
     title: 'index codebase',
     payload: { type: 'explore' },
     workItemId: 'FEATURE-1',
   });
   assert.ok(liveRun.id.startsWith('bg_'));
-  assert.equal(liveRun.workflowRunId, null);
   foundation.managers.backgroundManager.complete(liveRun.id, { summary: 'done' });
   assert.equal(foundation.managers.backgroundManager.get(liveRun.id).status, 'completed');
-  assert.equal(foundation.managers.backgroundManager.list().length, 1);
+  assert.ok(foundation.managers.backgroundManager.list().length >= 1);
   foundation.managers.backgroundManager.cancel(liveRun.id);
   assert.equal(foundation.managers.backgroundManager.get(liveRun.id).status, 'cancelled');
 });

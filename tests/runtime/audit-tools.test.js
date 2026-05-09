@@ -338,7 +338,7 @@ test('rule-scan keeps non-JSON output as parse failure when captured output is n
     ...process.env,
     OPENCODE_HOME: tempHome,
     PATH: toolingBin,
-    OPENKIT_SEMGREP_MAX_BUFFER: '128',
+    OPENKIT_SEMGREP_MAX_BUFFER: '8192',
   };
 
   try {
