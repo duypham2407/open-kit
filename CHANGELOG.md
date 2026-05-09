@@ -5,6 +5,74 @@ All notable changes to OpenKit will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-05-09
+
+### Multi-Session Workflow Isolation
+
+This release introduces per-session OpenKit isolation. Each `openkit run`
+tab now gets its own `s_<id>` session and its own per-session workflow
+mirror, so two tabs in the same repository may hold two different work
+items concurrently. The previous global `active_work_item_id` field is
+retired.
+
+This is a one-shot cutover with a v2 → v3 schema migration. The
+migration runs automatically on first `openkit run` after upgrade and is
+idempotent.
+
+See `release-notes/0.7.0.md` for the full release notes and migration
+guide. Manual QA is documented at
+`docs/superpowers/qa/2026-05-09-multi-session-isolation.md`.
+
+### Added
+
+- `src/runtime/sessions/` — full session subsystem: `session-id`,
+  `session-paths`, `session-meta`, `sessions-index`, `heartbeat`,
+  `orphan-scanner`, `synthetic-orphan`, `session-resolver`, `resume`,
+  `abandon`, `kill`, `finish`, `migrate-on-start`, `worktree-reconciler`,
+  `legacy-mirror-rotator`, `downgrade-index`, `work-items-index` v3
+  reader/writer + migrator, `atomic-json` write helper, and shared
+  `constants` / `errors`.
+- `src/cli/commands/sessions/` — CLI dispatcher and `list`, `show`,
+  `resume`, `abandon`, `kill`, `downgrade-index` subcommands.
+- `src/cli/commands/dashboard.js` — cross-session colored summary.
+- `src/cli/commands/finish.js` — `openkit finish` (also wired through
+  `commands/finish.md` as the `/finish` slash command).
+- Session-start banner update (`hooks/session-start*`) and statusline
+  tag (`assets/statusline*`) scoped by `OPENKIT_SESSION_ID`.
+- Five new `openkit doctor` checks via `src/runtime/doctor/sessions-doctor.js`.
+- Slash lane binding: `/quick-task`, `/delivery`, `/migrate` reject a
+  second lane invocation in an already-bound session
+  (`SessionAlreadyBoundError`).
+- Test surfaces: `tests/runtime/sessions/`, `tests/cli/sessions-cli.test.js`,
+  `tests/cli/dashboard.test.js`, `tests/cli/finish.test.js`,
+  `tests/hooks/session-banner.test.js`,
+  `tests/assets/statusline-session.test.js`,
+  `tests/commands/lane-binding.test.js`. New `verify:sessions` script
+  bundles the session-specific subset.
+- Runtime dependency: `proper-lockfile` (used by index writers).
+
+### Changed
+
+- `.opencode/work-items/index.json` schema is now
+  `openkit/work-items-index@3`. Each entry carries `lane`, `status`,
+  and `current_session_id`. The root `active_work_item_id` field is
+  removed.
+- `.opencode/workflow-state.json` becomes a forwarding stub
+  (`openkit/legacy-stub@1`). Live workflow state lives in the
+  per-session mirror under `OPENKIT_WORKFLOW_STATE`. Previous mirrors
+  are retained as `workflow-state.json.legacy.<timestamp>` with a
+  10-file rotation cap.
+- All `active_work_item_id` reads in `src/` and `.opencode/lib` were
+  refactored to `resolveSession({ env, repoRoot }).workItemId`.
+
+### Migration
+
+- Automatic on first `openkit run` after upgrade. Idempotent.
+- In-flight v2 items with managed worktrees become synthetic orphan
+  sessions (`s_orphan_<8hex>`); operator chooses `resume` or `abandon`
+  per item via `openkit dashboard`.
+- Rollback: `openkit sessions downgrade-index` (lossy, incident-only).
+
 ## [0.6.0] - 2026-05-09
 
 ### 🛡️ Audit Hardening Release

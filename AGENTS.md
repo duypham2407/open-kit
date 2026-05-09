@@ -199,7 +199,10 @@ The operating system layer is file-backed and should stay explicit.
 
 - Repository-local OpenCode config: `.opencode/opencode.json`
 - Repository-local OpenCode config for the checked-in authoring surface: `.opencode/opencode.json`
-- Active compatibility mirror: `.opencode/workflow-state.json`
+- Sessions index (v0.7.0+): `.opencode/sessions/index.json` (`openkit/sessions-index@1`)
+- Per-session directory: `.opencode/sessions/<session_id>/` containing `meta.json` (`openkit/session-meta@1`), `heartbeat.json`, and the per-session workflow-state mirror referenced by `OPENKIT_WORKFLOW_STATE`
+- Work items index (v0.7.0+): `.opencode/work-items/index.json` (`openkit/work-items-index@3` — adds `lane`, `status`, `current_session_id` per item; root `active_work_item_id` is removed)
+- Legacy compatibility stub: `.opencode/workflow-state.json` (`openkit/legacy-stub@1`); historical mirrors retained as `workflow-state.json.legacy.<timestamp>` with a 10-file rotation cap
 - Per-item backing store: `.opencode/work-items/`
 - Workflow-state CLI: `node .opencode/workflow-state.js ...`
 - Artifact templates: `docs/templates/`
@@ -242,6 +245,84 @@ Migration lane note:
 - migration mode is not TDD-first by default; validation centers on baseline evidence, regression checks, and compatibility verification
 - migration mode is behavior-preserving by default; refactor only to create seams or adapters that make the upgrade safe
 - migration mode still has no task board; execution task boards belong only to full-delivery work items
+
+## Sessions And Multi-Tab Workflow
+
+OpenKit v0.7.0 introduces per-session isolation. Each `openkit run` tab
+gets its own session id (`s_<6hex>`) and its own per-session
+workflow-state mirror. Two tabs in the same repository may bind two
+different work items at the same time without colliding.
+
+Key facts agents must respect:
+
+- `OPENKIT_SESSION_ID` is the truth for "which session am I in." The
+  launcher sets it in the spawned shell. Do not invent or rebind it.
+- `OPENKIT_WORKFLOW_STATE` points at the per-session workflow-state
+  mirror. Read live workflow state from there, not from
+  `.opencode/workflow-state.json` (which is now a forwarding stub).
+- Resolver: `resolveSession({ env, repoRoot })` from
+  `src/runtime/sessions/session-resolver.js` returns
+  `{ sessionId, workItemId, baseDir }`. All call sites that previously
+  read `active_work_item_id` use this resolver.
+- Lane binding: `/quick-task`, `/migrate`, `/delivery` bind the active
+  session to a work item. A second lane slash in the same session is
+  rejected with `SessionAlreadyBoundError`. To work on a different
+  item, open a new tab.
+- Heartbeat: each session writes `heartbeat.json` once per minute. If
+  heartbeats stop for ten minutes, the session becomes `orphan` and is
+  resumable from any tab.
+
+CLI surface (`bin/openkit.js` → `src/cli/commands/`):
+
+| Command | Purpose |
+| --- | --- |
+| `openkit sessions list [--status active\|orphan\|closed\|all]` | Default lists active + orphan. |
+| `openkit sessions show <id>` | Detailed view: meta, heartbeat, current stage. |
+| `openkit sessions resume <id>` | Re-attach to an orphan or accidentally-closed session. Emits shell exports (`OPENKIT_SESSION_ID`, `OPENKIT_WORKFLOW_STATE`, …). |
+| `openkit sessions abandon <id>` | Mark abandoned and clean up. |
+| `openkit sessions kill <id> [--abandon]` | Force-stop a hung session (SIGTERM → SIGKILL). |
+| `openkit sessions downgrade-index` | Maintainer-only v3 → v2 rollback. Lossy; incident only. |
+| `openkit dashboard` | Cross-session colored summary (active / orphan / closed). |
+| `openkit finish` | Run finish flow against the current `OPENKIT_SESSION_ID`. |
+
+Slash surface (`commands/`):
+
+- `/quick-task`, `/migrate`, `/delivery` — bind the work item to the
+  current session (one-shot per session).
+- `/finish` — wraps `openkit finish` and runs the lane-appropriate
+  closeout (see "Finish workflow" below).
+
+Dashboard usage:
+
+- Run `openkit dashboard` from the repo root to see all sessions
+  grouped by status, with lane, stage, and work-item slug.
+- Synthetic orphans created during the v2 → v3 migration appear as
+  `s_orphan_<8hex>` and are explicitly flagged as migration-derived.
+- Pair the dashboard with `openkit sessions resume <id>` or
+  `openkit sessions abandon <id>` to act on each entry.
+
+Finish workflow (per spec §6.8 in
+`docs/superpowers/specs/2026-05-09-multi-session-isolation-design.md`):
+
+- `/finish` (or `openkit finish`) verifies the lane's approval gate:
+  - quick → `quick_verified` approved
+  - full → `qa_to_done` approved
+  - migration → `migration_verified` approved
+- For full and migration: validates that the worktree exists, is on
+  `meta.feature_branch`, and is clean; that the repo root is on
+  `meta.target_branch`; runs `git merge --squash <feature_branch>`,
+  commits with subject `<lane>(<slug>): <summary>`, removes the
+  worktree, and deletes the feature branch.
+- For quick: marks the work item `done` and the session `closed`. No
+  git operation.
+- Refuses cleanly (no state mutation) on `OK_FINISH_GATE_NOT_MET`,
+  `OK_FINISH_WORKTREE_DIRTY`, `OK_FINISH_WORKTREE_MISSING`,
+  `OK_FINISH_BRANCH_MISMATCH`, `OK_FINISH_REPO_WRONG_BRANCH`, or
+  `OK_FINISH_MERGE_CONFLICT`. The operator reconciles manually and
+  re-runs `/finish`.
+
+Manual QA for this surface lives at
+`docs/superpowers/qa/2026-05-09-multi-session-isolation.md`.
 
 ## Single-Test Guidance
 

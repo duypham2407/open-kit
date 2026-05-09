@@ -2,20 +2,21 @@
 
 ## Latest
 
-- [`0.6.0`](release-notes/0.6.0.md) - Audit hardening release — 4 Critical, 15 High, and most Medium/Low audit findings fixed; 5 security boundaries closed; FSM and gate systems consolidated; atomic global upgrade
-- npm latest: `@duypham93/openkit@0.6.0`
-- git tag: `v0.6.0`
+- [`0.7.0`](release-notes/0.7.0.md) - Multi-session workflow isolation — per-session `s_<id>` sessions, schema v3 cutover, new `openkit sessions ...`, `openkit dashboard`, and `openkit finish` surfaces, legacy mirror deprecation, five new doctor checks
+- npm latest: `@duypham93/openkit@0.7.0`
+- git tag: `v0.7.0`
 
 ## Previous
 
-- [`0.5.1`](release-notes/0.5.1.md) - Lane bootstrap & brainstorm redesign — fixes 'no workflow' on fresh installs, removes /task and /brainstorm, MO becomes procedural conductor
-- npm: `@duypham93/openkit@0.5.1`
-- git tag: `v0.5.1`
+- [`0.6.0`](release-notes/0.6.0.md) - Audit hardening release — 4 Critical, 15 High, and most Medium/Low audit findings fixed; 5 security boundaries closed; FSM and gate systems consolidated; atomic global upgrade
+- npm: `@duypham93/openkit@0.6.0`
+- git tag: `v0.6.0`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.7.0`](release-notes/0.7.0.md) - Multi-session workflow isolation
 - [`0.6.0`](release-notes/0.6.0.md) - Audit hardening release
 - [`0.5.1`](release-notes/0.5.1.md) - Lane bootstrap & brainstorm redesign — fixes 'no workflow' on fresh installs, removes /task and /brainstorm, MO becomes procedural conductor
 - [`0.3.36`](release-notes/0.3.36.md) - add direct profile switch command

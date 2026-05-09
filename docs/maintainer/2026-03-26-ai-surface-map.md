@@ -92,8 +92,12 @@ Active skills:
 
 When resuming or mutating workflow state, AI should rely on:
 
-- `.opencode/workflow-state.json`
+- `OPENKIT_SESSION_ID` (env var; the launcher sets this) and the per-session mirror at `OPENKIT_WORKFLOW_STATE`
+- `.opencode/sessions/index.json` (`openkit/sessions-index@1`) and `.opencode/sessions/<id>/{meta.json,heartbeat.json}` (v0.7.0+)
+- `.opencode/work-items/index.json` (`openkit/work-items-index@3`; v0.7.0+ — the root `active_work_item_id` field is removed)
 - `.opencode/work-items/`
+- `.opencode/workflow-state.json` (forwarding stub `openkit/legacy-stub@1` after v0.7.0; live state is in the per-session mirror)
+- `src/runtime/sessions/session-resolver.js` for the canonical `(sessionId, workItemId, baseDir)` lookup
 - `.opencode/workflow-state.js`
 - `.opencode/lib/workflow-state-rules.js`
 - `.opencode/lib/workflow-state-controller.js`
