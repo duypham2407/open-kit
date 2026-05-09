@@ -144,13 +144,15 @@ export function ensureWorkspaceShim(paths) {
     type: 'dir',
   });
 
-  createIfMissing(createdPaths, {
-    linkPath: paths.workspaceShimWorkflowStatePath,
-    targetPath: paths.workflowStatePath,
-    type: 'file',
-  });
-
+  // Only create the link/copy when the source state file already exists.
+  // On fresh projects, MO will write state via tool.bootstrap-workflow first,
+  // and a subsequent shim run will create the mirror. This avoids dangling symlinks.
   if (fs.existsSync(paths.workflowStatePath)) {
+    createIfMissing(createdPaths, {
+      linkPath: paths.workspaceShimWorkflowStatePath,
+      targetPath: paths.workflowStatePath,
+      type: 'file',
+    });
     syncJsonMirror(paths.workspaceShimWorkflowStatePath, paths.workflowStatePath);
   }
 
