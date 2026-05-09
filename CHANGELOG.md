@@ -5,6 +5,30 @@ All notable changes to OpenKit will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING:** `/task` command removed. Users now pick a lane explicitly: `/quick-task`, `/delivery`, or `/migrate`.
+- **BREAKING:** `/brainstorm` command removed. Brainstorm is now stage 0 of each lane, owned by the first specialist agent (Quick Agent for quick, Product Lead for full, Solution Lead for migration).
+- FSM: `quick_brainstorm` stage removed; brainstorm folded into `quick_plan`.
+- `*_intake` stages are now MasterOrchestrator-owned and ephemeral. MO bootstraps state, advances immediately, never blocks for user input.
+- Master Orchestrator is now purely procedural: bootstraps state via `tool.bootstrap-workflow` on the first command, dispatches the specialist, routes between stages. MO no longer classifies lanes — the user picks the lane via command choice.
+
+### Added
+
+- `tool.bootstrap-workflow` MCP tool. Creates `workflow-state.json` for a fresh lane; handles archive/conflict on existing workflows.
+- `bootstrap` subcommand in `.opencode/workflow-state.js` CLI for shell-friendly bootstrap.
+- `kernel.bootstrapWorkflow()` and `kernel.canWriteState()` exposed on the workflow-kernel adapter.
+- Brainstorm storage: quick lane writes a 50-100 word summary inline to `state.brainstorm`; full and migration lanes capture brainstorm in scope/migration plan files as Appendix A (discovery notes) and Appendix B (decisions).
+- Lane re-check escalation: first specialist agent can ask MO to switch lanes during brainstorm; MO confirms with user before switching.
+
+### Fixed
+
+- "No workflow" error class on fresh global installs. `workflow-state.json` is now created on the first command, not lazily.
+- `workspace-shim.js` no longer crashes on dangling symlink when the workspace state file does not yet exist; the mirror is created on the next shim run after MO bootstrap.
+- `workflow-kernel.js` `defaultStatePath` always resolves to a writable path, allowing bootstrap to write state on a fresh project.
+
 ## [0.5.0] - 2026-05-08
 
 ### 🎉 Major Release: Unified State Management Architecture
