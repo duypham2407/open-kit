@@ -15,6 +15,7 @@ import { onboardCommand } from './commands/onboard.js';
 import { profilesCommand } from './commands/profiles.js';
 import { switchProfilesCommand } from './commands/switch-profiles.js';
 import { sessionsCommand } from './commands/sessions/index.js';
+import { dashboardCommand } from './commands/dashboard.js';
 
 const commands = {
   help: helpCommand,
@@ -34,6 +35,7 @@ const commands = {
   switch: switchProfilesCommand,
   release: releaseCommand,
   sessions: sessionsCommand,
+  dashboard: dashboardCommand,
   'internal-audit-vietnamese': detectVietnameseCommand,
 };
 

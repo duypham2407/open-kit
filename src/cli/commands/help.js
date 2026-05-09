@@ -24,6 +24,7 @@ function topLevelHelp() {
     '  switch    Alias for switch-profiles',
     '  release   Prepare, verify, and publish OpenKit releases',
     '  sessions  Inspect and manage OpenKit sessions (list, show, resume, abandon, kill)',
+    '  dashboard Cross-session view: active, orphan, and closed sessions',
     '',
     'Runtime foundation:',
     '  OpenKit now bootstraps runtime config, capabilities, managers, tools, hooks, MCP metadata, categories, specialists, and context injection under src/runtime/.',
