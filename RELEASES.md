@@ -2,20 +2,21 @@
 
 ## Latest
 
-- [`0.5.1`](release-notes/0.5.1.md) - Lane bootstrap & brainstorm redesign — fixes 'no workflow' on fresh installs, removes /task and /brainstorm, MO becomes procedural conductor
-- npm latest: `@duypham93/openkit@0.5.1`
-- git tag: `v0.5.1`
+- [`0.6.0`](release-notes/0.6.0.md) - Audit hardening release — 4 Critical, 15 High, and most Medium/Low audit findings fixed; 5 security boundaries closed; FSM and gate systems consolidated; atomic global upgrade
+- npm latest: `@duypham93/openkit@0.6.0`
+- git tag: `v0.6.0`
 
 ## Previous
 
-- `0.5.0` - Unified State Management Architecture (see CHANGELOG.md)
-- npm: `@duypham93/openkit@0.5.0`
-- git tag: `v0.5.0`
+- [`0.5.1`](release-notes/0.5.1.md) - Lane bootstrap & brainstorm redesign — fixes 'no workflow' on fresh installs, removes /task and /brainstorm, MO becomes procedural conductor
+- npm: `@duypham93/openkit@0.5.1`
+- git tag: `v0.5.1`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.6.0`](release-notes/0.6.0.md) - Audit hardening release
 - [`0.5.1`](release-notes/0.5.1.md) - Lane bootstrap & brainstorm redesign — fixes 'no workflow' on fresh installs, removes /task and /brainstorm, MO becomes procedural conductor
 - [`0.3.36`](release-notes/0.3.36.md) - add direct profile switch command
 - [`0.3.35`](release-notes/0.3.35.md) - fix switch profiles shim

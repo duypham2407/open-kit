@@ -5,6 +5,182 @@ All notable changes to OpenKit will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-05-09
+
+### 🛡️ Audit Hardening Release
+
+Outcome of a structured audit of the v0.5.1 surface (4 parallel
+read-only subagents + 5 cross-layer drift checks). The audit found 4
+Critical, 15 High, 22 Medium, 13 Low issues plus 1 macOS-only post-audit
+finding. This release ships fixes for every Critical and High and most
+Medium/Low items. `npm run verify:all` is fully green for the first time
+in several months (audit also surfaced 5 pre-existing test failures that
+were repaired as part of the baseline cleanup).
+
+No breaking API changes. Several behavior shifts are documented under
+**Changed** below — operators integrating with workflow internals (the
+gate system, workflow-kernel write methods, `tool.workflow-state` MCP
+schema) should re-verify their integrations.
+
+### Security
+
+- **[4-C-1] Shell injection in `tool.ast-grep-search`**:
+  `execSync(args.join(' '), …)` collapsed user-supplied `pattern` and
+  `lang` into a single shell-interpreted string. Replaced with
+  `spawnSync('ast-grep', argv, { shell: false })`.
+- **[4-H-1] / [4-H-2] Config-driven RCE**: spawn-able commands loaded
+  from `.opencode/openkit.json` (`supervisorDialogue.openclaw`) and
+  `.mcp.json` (external MCP stdio servers) are now validated through a
+  shared `validateCommandSafety` helper before `spawn`. Shell operators,
+  shell-launcher + `-c` patterns, and non-string args are rejected.
+- **[4-H-3] Env-var binary substitution**: `OPENKIT_SECURITY_CLI` is now
+  restricted to absolute paths under `/usr/`. Invalid values fall back to
+  `/usr/bin/security` with a stderr warning. Tests can opt out via
+  `OPENKIT_SECURITY_CLI_ALLOW_UNSAFE=1` (also logged to stderr).
+- **[4-H-4] Path traversal in `file://` prompt loader**: `file:///etc/passwd`
+  and `file://~/sensitive` are now rejected. Every resolved `file://`
+  path must lie inside the project root.
+- **[N-1] `switch-profiles` CLI silent no-op on macOS**: entry-point guard
+  now uses `realpathSync` on both sides so the body actually runs when
+  spawned from a symlinked path prefix.
+- **[4-M-3] Tool invocation log redaction**: a `redactSecrets` pass scrubs
+  common secret patterns (sk-/pk-/gh* tokens, JWTs, AWS access keys,
+  base64-ish strings) before flushing to `.opencode/tool-invocations.json`.
+- **[4-M-4] / [4-M-5] semgrep coverage**: 3 new rules
+  (`no-exec-shell-string-from-array`, `no-exec-shell-string-concat`,
+  `fs-read-without-path-join`) plus positive/negative test fixtures.
+
+### Changed
+
+- **[1-C-1] FSM transition tables consolidated**: `state-machine.js` and
+  `transition-engine.js` previously carried two divergent copies that
+  disagreed on 5 `full`/`migration` transitions. Both now import from
+  `src/runtime/state/transitions.js`. Merge policy chose the more
+  permissive form, so backward-rework paths that one table rejected are
+  now allowed by both. Notable: `full_solution → full_product`,
+  `full_code_review → full_solution|full_product`,
+  `migration_strategy → migration_baseline`.
+- **[1-H-2] Gate system consolidated on `GateRegistry`**:
+  `gate-requirements.js` was a parallel system with its own gate IDs
+  (`fromStage→toStage` style) and checker functions. It is now a thin
+  shim over `GateRegistry` (which uses `lane.snake_case` IDs and is
+  consulted by `WorkflowStateManager`). Operators querying gates by the
+  old `quick_intake→quick_plan` ID will see the gate is now absent — it
+  was semantically dead in the persistence layer (audit findings
+  [1-M-2], [1-L-4]).
+- **[1-C-2] `tool.workflow-state` MCP schema** now declares `workItemId`
+  (the property the handler actually reads) instead of the unused
+  `command` enum. Models calling with `{ command: 'show' }` previously
+  received a silent null; that input shape is no longer documented.
+- **[1-H-1] Workflow-kernel `safeCall`** now logs swallowed exceptions
+  to stderr with a `[workflow-kernel]` prefix. Return value is unchanged
+  (still returns the fallback) so callers are not affected.
+- **[1-M-3] Workflow-kernel write methods** (`startBackgroundRun`,
+  `completeBackgroundRun`, `cancelBackgroundRun`,
+  `recordVerificationEvidence`) emit a stderr "needs-bootstrap" hint
+  before returning null on a fresh project. Behavior unchanged for
+  bootstrapped projects.
+- **[2-H-1] Global install / upgrade is now atomic**.
+  `materializeGlobalInstall` renames the existing kit-root and
+  profiles-root aside, builds the new install, and either commits
+  (deletes the backup) on success or rolls back (restores the backup)
+  on any error. A mid-flight failure no longer leaves an empty
+  kit-root.
+- **[2-H-4] `openkit upgrade`** now wraps `materializeGlobalInstall` in
+  try/catch and emits a structured error message (with rollback
+  confirmation) on failure instead of an uncaught stack trace.
+- **[2-H-2] `openkit doctor`** now sets `canRunCleanly: false` when
+  `runtimeDoctor.workflow.status === 'unavailable'`. Previously the
+  sub-check failed silently while the top-level reported "healthy".
+- **[2-H-3] `mergeUniqueArray`** uses deep equality via `JSON.stringify`
+  for object/array items. The previous `Object.is` reference compare let
+  re-installs append duplicate entries indefinitely.
+- **[3-H-2] `/configure-embedding`** registered in `registry.json` and
+  enumerated in `AGENTS.md`.
+- **[3-H-3] `tool.heuristic-lsp`** references in `solution-lead-agent.md`
+  and `code-reviewer.md` replaced with `tool.lsp-symbols`. The non-existent
+  tool ID would have errored at runtime.
+- **[1-H-3] `tool.bootstrap-workflow`** schema added to MCP `TOOL_SCHEMAS`.
+  Previously registered in the runtime but filtered out by the MCP server
+  (no schema), so MasterOrchestrator could not reach it via MCP.
+- **3 missing workflow tools** (`tool.advance-stage`,
+  `tool.bootstrap-workflow`, `tool.set-approval`) are now registered in
+  `registry.json#runtimeTools`. They were implemented and runtime-registered
+  but absent from the registry document.
+- **[4-M-2] Direct dependencies pinned to exact versions** in
+  `package.json#dependencies`. Caret ranges previously admitted unreviewed
+  minor/patch upgrades on `npm update`.
+- **[1-L-3] `captureRevision`** documents `JSON.stringify` non-canonicalisations.
+- **[4-L-2] Session-start absolute-path printing** opt-out via
+  `OPENKIT_SESSION_START_HIDE_PATHS=1` for transcript privacy.
+
+### Added
+
+- `src/runtime/state/transitions.js`: canonical FSM transitions + stage
+  owners, single source of truth.
+- `src/global/mcp/command-safety.js`: shared `validateCommandSafety` and
+  `validateAbsolutePathPrefix` helpers used by openclaw, external-MCP, and
+  keychain spawn paths.
+- `npm run verify:audit-wave-1` script aggregating the four wave-1
+  regression test files.
+- 14 new test files covering version metadata consistency, FSM table
+  consistency, ast-grep injection, MCP schema/handler contracts,
+  agent→tool reference resolution, MCP tool-schema runtime parity,
+  workflow-kernel error propagation, doctor sub-check propagation,
+  upgrade atomicity, upgrade error handling, security boundaries
+  (command + path), switch-profiles entry-point guard, graph-indexer
+  E2E, and semgrep shell-string fixtures.
+- 7 SKILL.md files (`browser-automation`, `codebase-exploration`,
+  `deep-research`, `dev-browser`, `frontend-ui-ux`, `git-master`,
+  `refactoring`) gained YAML frontmatter (name + description).
+
+### Fixed
+
+- **[D-1] Version metadata drift**: `registry.json` and
+  `.opencode/install-manifest.json` were left at `0.3.36` while
+  `package.json` was at `0.5.1`. `openkit release verify` would have
+  hard-failed; `updateVersionMetadata` could not self-heal because it
+  string-replaced the *current* version. All three sources now agree.
+- **[2-M-1]** `openkit install` no longer prints "Installed OpenKit
+  globally" before the install actually runs.
+- **[2-M-2]** Deduplicate `bin` and `src/mcp-server` from
+  `GLOBAL_KIT_ASSETS`.
+- **[2-M-3]** Remove unused `src/install/runtime-migration.js` stub.
+- **[2-M-4]** Skip symlinks before recursing in
+  `validateBundledAssetFiles.collectFiles`.
+- **[2-M-5]** `verify-install-bundle.mjs` cross-checks
+  `package.json#files` covers the `assets/` install-bundle prefix.
+- **[2-M-6]** TOCTOU race in `materializeInstall`: hold an exclusive
+  `<installStatePath>.lock` (O_EXCL) around the install state read+write.
+- **[1-M-4] / [1-L-1]** Bound synchronous reads in `session-start.js` to
+  1 MiB; oversized files are skipped with a stderr warning.
+- **[1-L-2]** Cap `TransactionLog.query()` at 10 000 most-recent JSONL
+  lines.
+- **[2-L-3]** `bin/openkit-mcp.js` wraps the import in try/catch and
+  emits a structured stderr error on startup failure.
+- **[X-1]** Add `CHANGELOG.md` and `RELEASES.md` to `package.json#files`
+  so they ship in the npm tarball.
+- **[X-2]** New `fsm-table-consistency` regression test that would have
+  caught [1-C-1].
+- **5 pre-existing baseline test failures** discovered during the audit
+  (`audit-tools.test.js` rule-scan, `runtime-platform.test.js` background
+  spawn, `workflow-kernel-fresh.test.js` canWriteState assertion,
+  `doctor.test.js` "Default session entrypoint" missing, `openkit-cli.test.js`
+  switch-profiles wrapper stdout). All resolved.
+- **[4-H-5]** Add E2E coverage for `hooks/graph-indexer.js`.
+- Doc cleanup of stale `quick_brainstorm` references in
+  `docs/governance/skill-metadata.md`,
+  `docs/operations/runbooks/workflow-state-smoke-tests.md`,
+  `docs/maintainer/2026-03-26-role-operating-policy.md`,
+  `docs/solution/2026-04-27-standardize-bundled-skill-metadata.md`.
+
+### Deferred (audit-tracked, not in this release)
+
+- `3-L-3` historical-doc deprecation banners under
+  `docs/superpowers/plans/`, `docs/scope/`, `docs/qa/` — fix plan marked
+  optional since `AGENTS.md` already routes around archive.
+- `4-L-1` operator-doc note on `prebuild-install` transitive supply chain.
+
 ## [0.5.1] - 2026-05-09
 
 ### Changed
