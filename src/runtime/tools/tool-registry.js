@@ -65,7 +65,7 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
   const disabledTools = new Set(config?.disabled?.tools ?? []);
   const definitions = [
     createWorkflowStateTool({ projectRoot, workflowKernel: managers.workflowKernel }),
-    createBootstrapWorkflowTool({ workflowKernel: managers.workflowKernel }),
+    createBootstrapWorkflowTool({ workflowKernel: managers.workflowKernel, env, projectRoot }),
     createAdvanceStageTool({ workflowKernel: managers.workflowKernel }),
     createSetApprovalTool({ workflowKernel: managers.workflowKernel }),
     createActionGatewayTool({ workflowKernel: managers.workflowKernel }),
