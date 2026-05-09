@@ -52,6 +52,34 @@ function removePathIfPresent(targetPath) {
   fs.rmSync(targetPath, { recursive: true, force: true });
 }
 
+function generatePrevSuffix() {
+  return `.prev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function backupIfPresent(targetPath) {
+  if (!fs.existsSync(targetPath)) {
+    return null;
+  }
+  const backupPath = `${targetPath}${generatePrevSuffix()}`;
+  fs.renameSync(targetPath, backupPath);
+  return backupPath;
+}
+
+function commitBackup(backupPath) {
+  if (backupPath && fs.existsSync(backupPath)) {
+    fs.rmSync(backupPath, { recursive: true, force: true });
+  }
+}
+
+function rollbackBackup(targetPath, backupPath) {
+  if (fs.existsSync(targetPath)) {
+    fs.rmSync(targetPath, { recursive: true, force: true });
+  }
+  if (backupPath && fs.existsSync(backupPath)) {
+    fs.renameSync(backupPath, targetPath);
+  }
+}
+
 function copyAsset(sourcePath, targetPath) {
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
   const stats = fs.statSync(sourcePath);
@@ -162,11 +190,19 @@ export function materializeGlobalInstall({
     ? readAgentModelSettings(paths.agentModelSettingsPath)
     : createEmptyAgentModelSettings();
 
-  removePathIfPresent(paths.kitRoot);
-  removePathIfPresent(paths.profilesRoot);
+  // Audit fix [2-H-1]: make upgrade atomic via backup + rollback. Previously
+  // the kit-root and profiles-root were deleted unconditionally before the
+  // copy loop; a mid-flight crash (permission, disk full, ENOENT on a copy
+  // source) left an empty kit-root and OpenKit completely inoperable. We
+  // now rename the existing roots aside, do the build, and either commit
+  // (delete the backups) on success or roll back on any error.
+  const kitRootBackup = backupIfPresent(paths.kitRoot);
+  const profilesRootBackup = backupIfPresent(paths.profilesRoot);
 
   fs.mkdirSync(paths.kitRoot, { recursive: true });
   fs.mkdirSync(paths.profilesRoot, { recursive: true });
+
+  try {
 
   for (const relativeAsset of GLOBAL_KIT_ASSETS) {
     copyAsset(path.join(PACKAGE_ROOT, relativeAsset), path.join(paths.kitRoot, relativeAsset));
@@ -211,11 +247,21 @@ export function materializeGlobalInstall({
   const tooling = ensureAstGrep({ env });
   const semgrepTooling = ensureSemgrep({ env });
 
-  return {
-    ...paths,
-    installState,
-    runtimeDependencies,
-    tooling,
-    semgrepTooling,
-  };
+    // Materialize succeeded — discard backups.
+    commitBackup(kitRootBackup);
+    commitBackup(profilesRootBackup);
+
+    return {
+      ...paths,
+      installState,
+      runtimeDependencies,
+      tooling,
+      semgrepTooling,
+    };
+  } catch (err) {
+    // Materialize failed mid-flight — restore previous install from backups.
+    rollbackBackup(paths.kitRoot, kitRootBackup);
+    rollbackBackup(paths.profilesRoot, profilesRootBackup);
+    throw err;
+  }
 }
