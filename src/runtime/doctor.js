@@ -11,6 +11,7 @@ import { inspectCapabilityDoctor } from './doctor/capability-doctor.js';
 import { inspectInstallDoctor } from './doctor/install-doctor.js';
 import { inspectMcpDoctor } from './doctor/mcp-doctor.js';
 import { inspectModelDoctor } from './doctor/model-doctor.js';
+import { inspectSessionsDoctor } from './doctor/sessions-doctor.js';
 import { inspectWorkflowDoctor } from './doctor/workflow-doctor.js';
 import {
   buildOpenCodePermissionConfig,
@@ -378,6 +379,10 @@ export function inspectManagedDoctor({
       background: inspectBackgroundDoctor(runtimeFoundation?.managers?.backgroundManager, runtimeFoundation?.managers?.workflowKernel),
       mcp: inspectMcpDoctor(runtimeFoundation?.mcpPlatform),
       models: inspectModelDoctor(runtimeFoundation?.modelRuntime),
+      sessions: inspectSessionsDoctor({
+        baseDir: path.join(resolvedProjectRoot, '.opencode'),
+        repoRoot: resolvedProjectRoot,
+      }),
       continuation: runtimeFoundation?.runtimeInterface?.runtimeState?.recovery ?? null,
       toolFamilies: runtimeFoundation?.tools?.toolFamilies ?? [],
       commands: runtimeFoundation?.commands ?? [],
