@@ -6,6 +6,7 @@ import {
   SYNTHETIC_ORPHAN_HEX_LEN,
 } from './constants.js';
 
+// Prefixes must not contain regex metacharacters; constants.js owns that invariant.
 const RUNTIME_RE = new RegExp(`^${SESSION_ID_PREFIX}[0-9a-f]{${SESSION_ID_HEX_LEN}}$`);
 const ORPHAN_RE = new RegExp(`^${SYNTHETIC_ORPHAN_PREFIX}[0-9a-f]{${SYNTHETIC_ORPHAN_HEX_LEN}}$`);
 

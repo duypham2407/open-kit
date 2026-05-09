@@ -24,5 +24,7 @@ describe('session-id', () => {
   it('isSyntheticOrphanId distinguishes synthetic ids', () => {
     assert.equal(isSyntheticOrphanId('s_orphan_12345678'), true);
     assert.equal(isSyntheticOrphanId('s_abcdef'), false);
+    assert.equal(isSyntheticOrphanId(null), false);
+    assert.equal(isSyntheticOrphanId('s_orphan_1234567'), false);
   });
 });
