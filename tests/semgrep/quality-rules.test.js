@@ -20,6 +20,8 @@ const fixtures = {
   negativeTextMetadata: 'tests/fixtures/semgrep/quality/no-var-negative-text-metadata.js',
   mixed: 'tests/fixtures/semgrep/quality/no-var-mixed.js',
   securitySanity: 'tests/fixtures/semgrep/security/security-sanity.js',
+  execShellStringPositive: 'tests/fixtures/semgrep/security/exec-shell-string-positive.js',
+  execShellStringNegative: 'tests/fixtures/semgrep/security/exec-shell-string-negative.js',
 };
 
 function matchesRuleId(checkId, ruleId) {
@@ -242,4 +244,37 @@ test('security pack sanity still reports an OpenKit security finding', (t) => {
     securityFindings.some((finding) => matchesRuleId(finding.check_id, 'openkit.security.no-new-function')),
     `Expected openkit.security.no-new-function; got ${summarizeFindings(securityFindings)}`,
   );
+});
+
+// Audit fix [4-M-5]: positive/negative coverage for the new shell-string
+// exec rules added under [4-M-4].
+test('security pack flags execSync(args.join(...)) and exec(str+str) as ERROR', (t) => {
+  if (!requireSemgrepOrSkip(t)) {
+    return;
+  }
+
+  const output = runSemgrep(securityConfig, fixtures.execShellStringPositive);
+  const findings = output.results.filter((finding) => finding.check_id.includes('openkit.security.'));
+
+  assert.ok(
+    findings.some((f) => matchesRuleId(f.check_id, 'openkit.security.no-exec-shell-string-from-array')),
+    `Expected no-exec-shell-string-from-array; got ${summarizeFindings(findings)}`,
+  );
+  assert.ok(
+    findings.some((f) => matchesRuleId(f.check_id, 'openkit.security.no-exec-shell-string-concat')),
+    `Expected no-exec-shell-string-concat; got ${summarizeFindings(findings)}`,
+  );
+});
+
+test('security pack does NOT flag argv-form spawnSync', (t) => {
+  if (!requireSemgrepOrSkip(t)) {
+    return;
+  }
+
+  const output = runSemgrep(securityConfig, fixtures.execShellStringNegative);
+  const findings = output.results.filter((finding) =>
+    finding.check_id.includes('openkit.security.no-exec-shell-string'),
+  );
+
+  assert.equal(findings.length, 0, `argv-form spawnSync must not trigger the rule; got ${summarizeFindings(findings)}`);
 });

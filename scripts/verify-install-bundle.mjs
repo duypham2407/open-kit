@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -8,6 +9,27 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
 const validation = validateBundledAssetFiles(projectRoot);
+
+// Audit fix [2-M-5]: cross-check that the install-bundle output prefix
+// is covered by package.json#files. Without this, a future relocation of
+// the bundle output directory would silently produce a published tarball
+// missing the bundle.
+const pkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
+const filesField = pkg.files ?? [];
+const REQUIRED_BUNDLE_PREFIX = 'assets/';
+const bundlePrefixCovered = filesField.some((entry) => {
+  if (typeof entry !== 'string') return false;
+  if (entry === REQUIRED_BUNDLE_PREFIX) return true;
+  if (entry.startsWith(REQUIRED_BUNDLE_PREFIX)) return true;
+  return false;
+});
+if (!bundlePrefixCovered) {
+  process.stderr.write(
+    `package.json#files does not cover the install-bundle output prefix '${REQUIRED_BUNDLE_PREFIX}'. ` +
+      `Add an entry such as '${REQUIRED_BUNDLE_PREFIX}' so npm pack ships the bundled assets.\n`,
+  );
+  process.exitCode = 1;
+}
 
 if (
   validation.missingFiles.length > 0 ||

@@ -41,3 +41,46 @@ rules:
     message: "new Function() is similar to eval() and can enable code injection."
     languages: [javascript, typescript]
     severity: ERROR
+
+  # Audit fix [4-M-4]: catch the exact pattern that introduced [4-C-1]
+  # — collapsing an args array into a shell-interpreted string before
+  # exec/execSync.
+  - id: openkit.security.no-exec-shell-string-from-array
+    pattern-either:
+      - pattern: execSync($A.join(...))
+      - pattern: execSync($A.join(...), ...)
+      - pattern: exec($A.join(...))
+      - pattern: exec($A.join(...), ...)
+    message: "Passing args.join(...) to execSync/exec hands a single shell-interpreted string to the shell. Use spawnSync(cmd, argv, { shell: false }) with argv as an array."
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  # Audit fix [4-M-4]: catch shell-string concatenation forms which are
+  # equally vulnerable to injection through user-controlled fragments.
+  - id: openkit.security.no-exec-shell-string-concat
+    pattern-either:
+      - pattern: execSync($A + $B)
+      - pattern: execSync($A + $B, ...)
+      - pattern: exec($A + $B)
+      - pattern: exec($A + $B, ...)
+    message: "Passing a concatenated string to execSync/exec is a shell-injection vector when any fragment is user-controlled. Use argv-form spawnSync."
+    languages: [javascript, typescript]
+    severity: ERROR
+
+  # Audit fix [4-M-4]: flag fs.readFileSync calls whose path argument is
+  # not built via path.join (the canonical "rooted at projectRoot" idiom).
+  # This is a heuristic — it will produce false positives — so it's
+  # WARNING severity. Sites confirmed safe (e.g. fs.readFileSync(__filename))
+  # can suppress with a per-line nosemgrep comment.
+  - id: openkit.security.fs-read-without-path-join
+    patterns:
+      - pattern: fs.readFileSync($PATH, ...)
+      - pattern-not: fs.readFileSync(path.join(...), ...)
+      - pattern-not: fs.readFileSync(path.resolve(...), ...)
+      - pattern-not: fs.readFileSync(path.format(...), ...)
+      - pattern-not: fs.readFileSync(__filename, ...)
+      - pattern-not: fs.readFileSync(import.meta.url, ...)
+      - pattern-not: fs.readFileSync(fileURLToPath(...), ...)
+    message: "fs.readFileSync should receive a path produced by path.join/path.resolve so the boundary is explicit. Verify $PATH is rooted in a controlled directory before reading."
+    languages: [javascript, typescript]
+    severity: WARNING
