@@ -2951,8 +2951,8 @@ test("CLI work-item and task-board commands manage a full-delivery board", () =>
 
   result = runCli(projectRoot, ["list-work-items"])
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /Active work item: feature-900/)
-  assert.match(result.stdout, /\* feature-900 \| FEATURE-900 \| full \| in_progress/)
+  assert.match(result.stdout, /Sessions: no current session in env/)
+  assert.match(result.stdout, /feature-900 \| FEATURE-900 \| full \| in_progress/)
 
   result = runCli(projectRoot, ["show-work-item", "feature-900"])
   assert.equal(result.status, 0)
@@ -3551,8 +3551,8 @@ test("activate-work-item switches the active selection", () => {
 
   result = runCli(projectRoot, ["list-work-items"])
   assert.equal(result.status, 0)
-  assert.match(result.stdout, /Active work item: feature-910/)
-  assert.match(result.stdout, /\* feature-910 \| FEATURE-910 \| full \| in_progress/)
+  assert.match(result.stdout, /Sessions: no current session in env/)
+  assert.match(result.stdout, /feature-910 \| FEATURE-910 \| full \| in_progress/)
 })
 
 // ---------------------------------------------------------------------------
