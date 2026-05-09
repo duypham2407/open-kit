@@ -2,20 +2,21 @@
 
 ## Latest
 
-- [`0.3.36`](release-notes/0.3.36.md) - add direct profile switch command
-- npm latest: `@duypham93/openkit@0.3.36`
-- git tag: `v0.3.36`
+- [`0.5.1`](release-notes/0.5.1.md) - Lane bootstrap & brainstorm redesign — fixes 'no workflow' on fresh installs, removes /task and /brainstorm, MO becomes procedural conductor
+- npm latest: `@duypham93/openkit@0.5.1`
+- git tag: `v0.5.1`
 
 ## Previous
 
-- [`0.3.28`](release-notes/0.3.28.md) - add explicit retained worktree launch controls and fix verify/runtime status handling
-- npm latest: `@duypham93/openkit@0.3.28`
-- git tag: `v0.3.28`
+- `0.5.0` - Unified State Management Architecture (see CHANGELOG.md)
+- npm: `@duypham93/openkit@0.5.0`
+- git tag: `v0.5.0`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.5.1`](release-notes/0.5.1.md) - Lane bootstrap & brainstorm redesign — fixes 'no workflow' on fresh installs, removes /task and /brainstorm, MO becomes procedural conductor
 - [`0.3.36`](release-notes/0.3.36.md) - add direct profile switch command
 - [`0.3.35`](release-notes/0.3.35.md) - fix switch profiles shim
 - [`0.3.34`](release-notes/0.3.34.md) - fix managed kit module boundary
