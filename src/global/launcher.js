@@ -23,6 +23,10 @@ import { bootstrapRuntimeFoundation, createRuntimeFoundationEnvironment } from '
 import { createRuntimeSessionId, normalizeRuntimeSessionId } from '../runtime/runtime-session-id.js';
 import { migrateOnStart } from '../runtime/sessions/migrate-on-start.js';
 import { listOpenKitWorktrees } from '../runtime/sessions/list-openkit-worktrees.js';
+import { generateSessionId } from '../runtime/sessions/session-id.js';
+import { writeSessionMeta } from '../runtime/sessions/session-meta.js';
+import { addSessionEntry } from '../runtime/sessions/sessions-index.js';
+import { sessionMirrorPath } from '../runtime/sessions/session-paths.js';
 import { selectActiveWorkItem, showWorkItemState } from '../../.opencode/lib/workflow-state-controller.js';
 
 function formatMissingOpenCodeError() {
@@ -610,6 +614,34 @@ export async function launchGlobalOpenKit(args = [], { projectRoot = process.cwd
     launcherNotices.push(...(resolution.notices ?? []));
   }
 
+  // Generate per-tab OPENKIT_SESSION_ID. Meta is two-phase: launcher writes
+  // workItemId=null/lane=null; slash command later calls bindSessionMeta.
+  const openKitSessionId = generateSessionId();
+  // Choose baseDir: worktree's .opencode if launching into a worktree, otherwise repo's .opencode.
+  const sessionBaseDir = path.join(launchProjectRoot, '.opencode');
+  const sessionStartedAt = new Date().toISOString();
+  writeSessionMeta(sessionBaseDir, {
+    sessionId: openKitSessionId,
+    workItemId: null,
+    lane: null,
+    repoRoot: paths.projectRoot,
+    worktreePath: launchProjectRoot === paths.projectRoot ? null : launchProjectRoot,
+    targetBranch: null,
+    featureBranch: null,
+    startedAt: sessionStartedAt,
+  });
+  await addSessionEntry(sessionBaseDir, {
+    session_id: openKitSessionId,
+    work_item_id: null,
+    lane: null,
+    worktree_path: launchProjectRoot === paths.projectRoot ? null : launchProjectRoot,
+    repo_root: paths.projectRoot,
+    pid: process.pid,
+    status: 'active',
+    started_at: sessionStartedAt,
+    last_seen_at: sessionStartedAt,
+  });
+
   const runtimeSessionId = normalizeRuntimeSessionId(env.OPENKIT_RUNTIME_SESSION_ID) ?? createRuntimeSessionId();
   const sessionEnv = {
     ...env,
@@ -632,7 +664,8 @@ export async function launchGlobalOpenKit(args = [], { projectRoot = process.cwd
     OPENKIT_GLOBAL_MODE: '1',
     OPENKIT_PROJECT_ROOT: launchProjectRoot,
     OPENKIT_REPOSITORY_ROOT: paths.projectRoot,
-    OPENKIT_WORKFLOW_STATE: paths.workflowStatePath,
+    OPENKIT_WORKFLOW_STATE: sessionMirrorPath(sessionBaseDir, openKitSessionId),
+    OPENKIT_SESSION_ID: openKitSessionId,
     OPENKIT_KIT_ROOT: paths.kitRoot,
     OPENKIT_HOME: paths.openCodeHome,
     OPENCODE_CONFIG_DIR: paths.kitRoot,
