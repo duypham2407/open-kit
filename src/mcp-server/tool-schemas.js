@@ -296,14 +296,14 @@ export const TOOL_SCHEMAS = {
   // ── Workflow tools ───────────────────────────────────────────────────
   'tool.workflow-state': {
     description:
-      'Read governed workflow runtime state. Commands: "status", "show", "doctor", "metrics".',
+      'Read governed workflow runtime state. Returns the current workflow state when called without arguments, or a specific work item when workItemId is supplied.',
     inputSchema: {
       type: 'object',
       properties: {
-        command: {
+        workItemId: {
           type: 'string',
-          enum: ['status', 'show', 'doctor', 'metrics'],
-          description: 'Command to run (default: status)',
+          description:
+            'Optional. Returns the state for a specific work item by ID; when omitted, returns the current top-level workflow state.',
         },
       },
     },
