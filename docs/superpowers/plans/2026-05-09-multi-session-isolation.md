@@ -661,7 +661,9 @@ The plan continues. I'll write the rest in chunks. Tasks 5-7 finish Phase 1.
 
 ---
 
-### Task 5: Session meta (write-once)
+### Task 5: Session meta (two-phase: launch + bind)
+
+> **Plan revision (post-Task-5 review):** Meta is two-phase, not strict write-once. `writeSessionMeta` is called once at launch by Task 16 with `workItemId=null, lane=null`. `bindSessionMeta(baseDir, sessionId, fields)` is called once at slash-binding time by Task 30 to fill in `workItemId`, `lane`, `worktreePath`, `targetBranch`, `featureBranch`. Each phase is immutable after its write. Tasks 16 and 30 must use the appropriate function.
 
 **Files:**
 - Create: `src/runtime/sessions/session-meta.js`
