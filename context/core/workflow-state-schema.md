@@ -45,7 +45,6 @@ When `lane_source` is `user_explicit`, the Master Orchestrator must not reject, 
 ### Quick Task stages
 
 - `quick_intake`
-- `quick_brainstorm`
 - `quick_plan`
 - `quick_implement`
 - `quick_test`
@@ -128,8 +127,7 @@ Allowed values:
 
 | Stage | Default Owner |
 | --- | --- |
-| `quick_intake` | `Quick Agent` |
-| `quick_brainstorm` | `Quick Agent` |
+| `quick_intake` | `Master Orchestrator` |
 | `quick_plan` | `Quick Agent` |
 | `quick_implement` | `Quick Agent` |
 | `quick_test` | `Quick Agent` |

@@ -22,7 +22,6 @@
     ],
     "quick_stages": [
       "quick_intake",
-      "quick_brainstorm",
       "quick_plan",
       "quick_implement",
       "quick_test",

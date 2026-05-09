@@ -27,8 +27,7 @@ If `mode` is `quick`:
 - the Quick Agent is the sole owner of all quick stages — no other agent is involved
 - read the quick task card if `artifacts.task_card` is present
 - if there is no task card, treat missing recorded quick context as a repair need; resume only from inspectable repository state and recorded workflow evidence
-- if `current_stage` is `quick_brainstorm`, inspect any brainstorm notes or option analysis before resuming
-- if `current_stage` is `quick_plan`, inspect the execution plan, chosen option, and test strategy before resuming implementation
+- if `current_stage` is `quick_plan`, inspect the recorded understanding, chosen option, execution plan, and test strategy before resuming implementation
 - if `current_stage` is `quick_implement`, inspect the recorded plan and any partial implementation evidence before continuing
 - if `current_stage` is `quick_test`, inspect the latest test and verification evidence before continuing
 - if `current_stage` is `quick_done`, confirm `quick_verified` is approved and the closing evidence remains inspectable on resume

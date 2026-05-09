@@ -31,10 +31,9 @@ Use `/quick-task` when the user wants to enter the quick lane directly for daily
 
 - The Quick Agent receives the request directly — no Master Orchestrator involvement
 - Record `lane_source = user_explicit`, `mode = quick`, and `mode_reason` in workflow state
-- Initialize `quick_intake`, then advance immediately to `quick_brainstorm`
-- Follow the single-agent quick pipeline: `quick_brainstorm -> quick_plan -> quick_implement -> quick_test -> quick_done`
-- During `quick_brainstorm`: read the codebase deeply, clarify understanding, and obtain explicit user confirmation before any option analysis
-- During `quick_plan`: analyze solution space, present 3 options by default (or fewer only with explicit justification), wait for user option selection, produce execution plan, and require separate plan confirmation before `quick_implement`
+- Initialize `quick_intake`, then advance immediately to `quick_plan`
+- Follow the single-agent quick pipeline: `quick_intake -> quick_plan -> quick_implement -> quick_test -> quick_done`
+- During `quick_plan`: read the codebase deeply, clarify understanding, obtain explicit user confirmation of understanding before any option analysis, then present 3 options by default (or fewer only with explicit justification), wait for user option selection, produce execution plan, and require separate plan confirmation before `quick_implement`
 - Create an optional task card only when traceability is genuinely useful
 
 ## Lane authority

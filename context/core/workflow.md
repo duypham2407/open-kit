@@ -33,7 +33,7 @@ Important role boundary:
 
 Canonical stage sequence:
 
-`quick_intake -> quick_brainstorm -> quick_plan -> quick_implement -> quick_test -> quick_done`
+`quick_intake -> quick_plan -> quick_implement -> quick_test -> quick_done`
 
 Pipeline:
 
@@ -42,9 +42,7 @@ User Request
     ↓
 Quick Agent (single owner, no handoffs)
     ↓
-quick_brainstorm   ← deep codebase reading, clarify + align, explicit user confirmation of understanding
-    ↓
-quick_plan         ← solution analysis, default 3 options, user selects, execution plan, separate user plan confirmation
+quick_plan         ← deep codebase reading, clarify + align, explicit user confirmation of understanding, solution analysis, default 3 options, user selects, execution plan, separate user plan confirmation
     ↓
 quick_implement    ← execute plan step by step
     ↓
@@ -59,8 +57,8 @@ When the user invokes `/quick-task`, the Quick Agent receives the request direct
 
 Quick mode expectations:
 
-- deep codebase reading during `quick_brainstorm` before any solution analysis
-- `quick_brainstorm` is clarify-and-align only: ask follow-up questions, present draft understanding, and require explicit user confirmation of understanding
+- `quick_plan` owns both codebase understanding and solution analysis (brainstorm happens inline)
+- during `quick_plan`: deep codebase reading, ask follow-up questions, present draft understanding, and require explicit user confirmation of understanding before presenting any solution options
 - explicit confirmation requirement applies to every quick task, including tiny or seemingly obvious tasks
 - no solution options, approach comparison, recommendation, or execution planning before explicit understanding confirmation
 - `quick_plan` owns solution analysis and option comparison
@@ -71,7 +69,6 @@ Quick mode expectations:
 - user explicitly confirms the execution plan as a separate checkpoint before `quick_implement`
 - bounded implementation following the confirmed plan
 - real test evidence before claiming completion
-- no architecture exploration beyond what brainstorm requires
 - no full-delivery Product-Lead scope-package to Solution-Lead solution-package handoff requirement
 - no required code-review stage
 - no QA Agent involvement
@@ -292,8 +289,7 @@ Approval state should be recorded in the managed active work-item state before a
 
 - optional lightweight task card: `docs/tasks/YYYY-MM-DD-<task>.md`
 - source code changes
-- `quick_brainstorm` clarification/alignment with explicit user confirmation of understanding (in workflow communication)
-- `quick_plan` solution analysis with default 3 options (or explicit fewer-options justification), user option selection, execution plan, and separate user plan confirmation (in workflow communication)
+- `quick_plan` clarification/alignment with explicit user confirmation of understanding, then solution analysis with default 3 options (or explicit fewer-options justification), user option selection, execution plan, and separate user plan confirmation (all in workflow communication)
 - test and verification evidence with real command output
 - if the target project has no app-native build, lint, or test command, record that validation path as unavailable instead of substituting OpenKit runtime checks
 
