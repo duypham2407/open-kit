@@ -733,10 +733,16 @@ function printVersion(info) {
 }
 
 function printWorkItems(result) {
-  console.log(`Active work item: ${result.index.active_work_item_id ?? "none"}`)
+  // v3 schema replaces the global active_work_item_id pointer with per-session
+  // bindings. List each work item with its bound session (if any). Marker `*`
+  // indicates the work item bound to the current session via OPENKIT_SESSION_ID.
+  const currentSessionId = process.env.OPENKIT_SESSION_ID ?? null
+  console.log(`Sessions: ${currentSessionId ? `current=${currentSessionId}` : "no current session in env"}`)
   for (const item of result.workItems) {
-    const marker = item.work_item_id === result.index.active_work_item_id ? "*" : " "
-    console.log(`${marker} ${item.work_item_id} | ${item.feature_id} | ${item.mode} | ${item.status}`)
+    const marker = currentSessionId && item.current_session_id === currentSessionId ? "*" : " "
+    const lane = item.lane ?? item.mode ?? "?"
+    const sessionTag = item.current_session_id ? ` [${item.current_session_id}]` : ""
+    console.log(`${marker} ${item.work_item_id} | ${item.feature_id} | ${lane} | ${item.status}${sessionTag}`)
     if (item.next_action) {
       console.log(`  next action: ${item.next_action}`)
     }
