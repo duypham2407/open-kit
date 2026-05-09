@@ -89,7 +89,47 @@ function normalizeScanInvocationMetadata(result) {
   }
 }
 
+// Audit fix [4-M-3]: scrub secret-shaped values out of invocation log
+// entries before they are flushed to disk. The previous implementation
+// pulled scan-specific fields out of `result` only, but the entry was
+// then merged with `metadata` verbatim — so any tool that surfaced a
+// raw token/key in its metadata (or a future tool that inadvertently
+// included a secret in error_summary) would persist that secret to
+// .opencode/tool-invocations.json on disk indefinitely.
+const SECRET_PATTERNS = [
+  /\b(?:sk|pk|tk|gh[a-z]|ghp|ghs|ghu|gho|xoxp|xoxb)-[A-Za-z0-9_-]{16,}/g,
+  /\b[A-Za-z0-9_-]{40,}={0,2}\b/g,
+  /\bAKIA[0-9A-Z]{16}\b/g,
+  /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/g,
+]
+
+function redactSecrets(value) {
+  if (typeof value === "string") {
+    let scrubbed = value
+    for (const pattern of SECRET_PATTERNS) {
+      scrubbed = scrubbed.replace(pattern, "[REDACTED]")
+    }
+    return scrubbed
+  }
+  if (Array.isArray(value)) {
+    return value.map(redactSecrets)
+  }
+  if (value && typeof value === "object") {
+    const out = {}
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = redactSecrets(v)
+    }
+    return out
+  }
+  return value
+}
+
 function createInvocationEntry({ toolId, status, durationMs = null, stage = null, owner = null, result = null, metadata = null }) {
+  const safeMetadata = metadata && typeof metadata === "object" && !Array.isArray(metadata)
+    ? redactSecrets(metadata)
+    : {}
+  const safeScanFields = redactSecrets(normalizeScanInvocationMetadata(result))
+
   return {
     tool_id: toolId,
     status,
@@ -97,8 +137,8 @@ function createInvocationEntry({ toolId, status, durationMs = null, stage = null
     owner: owner ?? null,
     duration_ms: durationMs ?? null,
     recorded_at: new Date().toISOString(),
-    ...normalizeScanInvocationMetadata(result),
-    ...(metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata : {}),
+    ...safeScanFields,
+    ...safeMetadata,
   }
 }
 

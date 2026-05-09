@@ -317,30 +317,61 @@ if (!process.env.OPENKIT_SESSION_START_NO_CAPABILITY_GUIDANCE) {
   renderCapabilityGuidance(await resolveCapabilityGuidance(kitRoot, stateResult.value));
 }
 
-if (!process.env.OPENKIT_SESSION_START_NO_SKILL && fs.existsSync(metaSkillPath)) {
-  const metaSkill = fs.readFileSync(metaSkillPath, 'utf8');
-  print('<skill_system_instruction>');
-  print('You are running within the Open Kit AI Software Factory framework.');
-  print('Below are the rules for how you must discover and invoke your skills.');
-  print();
-  process.stdout.write(metaSkill);
-  if (!metaSkill.endsWith('\n')) {
-    print();
+// Audit fix [1-M-4] / [1-L-1]: previous reads of metaSkillPath /
+// toolSubstitutionRulesPath had no size cap. A pathological file could
+// block session startup arbitrarily long. Cap at 1 MiB which is
+// generous for the documented prose contents and prevents runaway disk
+// I/O on slow mounts.
+const SESSION_START_MAX_FILE_BYTES = 1024 * 1024;
+
+function readBoundedFile(filePath, label) {
+  let stat;
+  try {
+    stat = fs.statSync(filePath);
+  } catch {
+    return null;
   }
-  print('</skill_system_instruction>');
+  if (stat.size > SESSION_START_MAX_FILE_BYTES) {
+    process.stderr.write(
+      `[session-start] ${label} at ${filePath} exceeds ${SESSION_START_MAX_FILE_BYTES} bytes; skipping inclusion.\n`,
+    );
+    return null;
+  }
+  try {
+    return fs.readFileSync(filePath, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+if (!process.env.OPENKIT_SESSION_START_NO_SKILL && fs.existsSync(metaSkillPath)) {
+  const metaSkill = readBoundedFile(metaSkillPath, 'skill instruction file');
+  if (metaSkill !== null) {
+    print('<skill_system_instruction>');
+    print('You are running within the Open Kit AI Software Factory framework.');
+    print('Below are the rules for how you must discover and invoke your skills.');
+    print();
+    process.stdout.write(metaSkill);
+    if (!metaSkill.endsWith('\n')) {
+      print();
+    }
+    print('</skill_system_instruction>');
+  }
 }
 
 if (!process.env.OPENKIT_SESSION_START_NO_TOOL_RULES && fs.existsSync(toolSubstitutionRulesPath)) {
-  const toolRules = fs.readFileSync(toolSubstitutionRulesPath, 'utf8');
-  print('<openkit_tool_substitution_rules>');
-  print('IMPORTANT: The following tool substitution rules are enforced by the OpenKit runtime.');
-  print('Bash calls for blocked OS commands will be rejected.  Use the suggested tools instead.');
-  print();
-  process.stdout.write(toolRules);
-  if (!toolRules.endsWith('\n')) {
+  const toolRules = readBoundedFile(toolSubstitutionRulesPath, 'tool substitution rules file');
+  if (toolRules !== null) {
+    print('<openkit_tool_substitution_rules>');
+    print('IMPORTANT: The following tool substitution rules are enforced by the OpenKit runtime.');
+    print('Bash calls for blocked OS commands will be rejected.  Use the suggested tools instead.');
     print();
+    process.stdout.write(toolRules);
+    if (!toolRules.endsWith('\n')) {
+      print();
+    }
+    print('</openkit_tool_substitution_rules>');
   }
-  print('</openkit_tool_substitution_rules>');
 }
 
 if (jsonHelperStatus === 'ok' && !stateResult.malformed && stateResult.value) {

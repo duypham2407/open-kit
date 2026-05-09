@@ -190,8 +190,23 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
     return safeCall(() => controller.getBackgroundRuns(withStatePath(customStatePath)), { projectRoot, runs: [] });
   }
 
+  // Audit fix [1-M-3]: write methods on a fresh project (no
+  // workflow-state.json yet) used to silently return null. Callers had no
+  // way to distinguish "no value" from "needs bootstrap". The shared
+  // helper below logs a clear stderr line so an operator can diagnose;
+  // the return remains null for backward compatibility with existing
+  // callers that treat null as "write skipped". Tools should call
+  // tool.bootstrap-workflow first on a fresh project.
+  function noteNeedsBootstrap(callerLabel, customStatePath) {
+    const statePath = withStatePath(customStatePath);
+    process.stderr.write(
+      `[workflow-kernel] ${callerLabel} skipped: no workflow state at ${statePath}. Call tool.bootstrap-workflow first.\n`,
+    );
+  }
+
   function startBackgroundRun({ title, payload = {}, workItemId = null, taskId = null, customStatePath = null }) {
     if (!canWriteState(customStatePath)) {
+      noteNeedsBootstrap('startBackgroundRun', customStatePath);
       return null;
     }
     return safeCall(
@@ -209,6 +224,7 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
 
   function completeBackgroundRun({ runId, output = null, customStatePath = null }) {
     if (!canWriteState(customStatePath)) {
+      noteNeedsBootstrap('completeBackgroundRun', customStatePath);
       return null;
     }
     return safeCall(
@@ -224,6 +240,7 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
 
   function cancelBackgroundRun({ runId, customStatePath = null }) {
     if (!canWriteState(customStatePath)) {
+      noteNeedsBootstrap('cancelBackgroundRun', customStatePath);
       return null;
     }
     return safeCall(() => controller.cancelBackgroundRun(runId, withStatePath(customStatePath)), null);
@@ -231,6 +248,7 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
 
   function recordVerificationEvidence(entry, customStatePath = null) {
     if (!canWriteState(customStatePath)) {
+      noteNeedsBootstrap('recordVerificationEvidence', customStatePath);
       return null;
     }
     return safeCall(() => controller.recordVerificationEvidence(normalizeEvidenceEntry(entry), withStatePath(customStatePath)), null);

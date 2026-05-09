@@ -383,6 +383,11 @@ export const TOOL_SCHEMAS = {
           type: 'string',
           description: 'Context to pass to the next role owner during handoff',
         },
+        gateOverrides: {
+          type: 'object',
+          description:
+            'Audit fix [1-M-1]: explicit overrides for gate evaluation. Same shape as `evidence`; merged on top so callers can supply just the gate keys they want to satisfy without fabricating evidence content.',
+        },
       },
       required: ['targetStage'],
     },
