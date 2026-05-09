@@ -334,6 +334,21 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
     return safeCall(() => controller.runDoctor(withStatePath(customStatePath)), null);
   }
 
+  /**
+   * Bootstrap a new workflow for the given lane.
+   * Works on fresh projects where no state file exists yet.
+   */
+  function bootstrapWorkflow({ lane, description, featureSlug, archivePrior = false } = {}) {
+    // Always use the project state path (not defaultStatePath which may be null on fresh project)
+    return controller.bootstrapWorkflow({
+      lane,
+      description,
+      featureSlug,
+      statePath: projectStatePath,
+      archivePrior,
+    });
+  }
+
   return {
     available: true,
     projectRoot,
@@ -360,5 +375,6 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
     getWorkflowMetrics,
     getOpsSummary,
     runDoctor,
+    bootstrapWorkflow,
   };
 }

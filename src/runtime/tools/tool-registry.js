@@ -53,6 +53,7 @@ import { createTestRunTool } from './external/test-run.js';
 import { createExternalToolRunner } from './external/tool-runner.js';
 import { createActionGatewayTool } from './workflow/action-gateway.js';
 import { createAdvanceStageTool } from './workflow/advance-stage.js';
+import { createBootstrapWorkflowTool } from './workflow/bootstrap-workflow.js';
 import { createSetApprovalTool } from './workflow/set-approval.js';
 import { createAuditLogTool } from './workflow/audit-log.js';
 import { createEvidenceCaptureTool } from './workflow/evidence-capture.js';
@@ -64,6 +65,7 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
   const disabledTools = new Set(config?.disabled?.tools ?? []);
   const definitions = [
     createWorkflowStateTool({ projectRoot, workflowKernel: managers.workflowKernel }),
+    createBootstrapWorkflowTool({ workflowKernel: managers.workflowKernel }),
     createAdvanceStageTool({ workflowKernel: managers.workflowKernel }),
     createSetApprovalTool({ workflowKernel: managers.workflowKernel }),
     createActionGatewayTool({ workflowKernel: managers.workflowKernel }),
