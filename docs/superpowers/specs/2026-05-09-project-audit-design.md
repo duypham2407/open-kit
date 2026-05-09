@@ -228,10 +228,13 @@ Fix plan này là **spec**, không phải implementation plan. Sau approval, inv
 - Tổng hợp + verify: ~30-50K tokens
 - Tổng: ~150-200K tokens, ~30-60 phút wall-clock
 
-### 5.4. Stop conditions
-- Đã audit xong 4 vùng (mỗi vùng có sub-report)
-- Token usage của session tiến tới 80% context window → báo user, không tự tiếp tục
-- Phát hiện blocking issue khiến audit tiếp không ý nghĩa
+### 5.4. Stop conditions & context management
+- **Audit thành công**: đã đọc xong 4 vùng (mỗi vùng có sub-report), tổng hợp + cross-layer check xong, 2 file deliverable (report + fix plan) đã viết và commit.
+- **Auto-compact ở 80% context window**: khi token usage của main session tiến tới 80% context window, main agent **tự động compact** (giữ lại design spec + sub-reports + cross-layer findings; loại bỏ raw tool output, exploration noise, repeated reads), rồi **tiếp tục audit** mà không dừng. Không cần user can thiệp.
+  - Trước khi compact: ghi snapshot trạng thái (sub-report nào đã có, vùng nào còn lại) ra biến nội bộ / TodoWrite để recover sau compact.
+  - Sau compact: verify state (sub-reports, todos) còn nguyên, tiếp tục từ đúng bước đang làm.
+  - Subagents có context riêng, không bị ảnh hưởng bởi compact của main session.
+- **Hard stop** (báo user, không tự tiếp tục): chỉ khi phát hiện blocking issue khiến audit tiếp không ý nghĩa (vd: branch chưa merge gây lệch lớn, repo state corrupt).
 
 ### 5.5. Risks & mitigations
 | Risk | Mitigation |
@@ -240,6 +243,7 @@ Fix plan này là **spec**, không phải implementation plan. Sau approval, inv
 | Subagent dừng sớm, miss vùng | Sub-report ghi "đã đọc / skip", main check |
 | Cross-layer drift bị bỏ sót | 5 checks bắt buộc ở §3.2 |
 | Audit report quá dài, không review nổi | Executive summary < 1 trang, detail ở phụ lục |
+| Compact mất context giữa chừng | Trước compact: snapshot state (sub-reports đã có, todos) vào TodoWrite. Sau compact: verify recover được trước khi tiếp tục. |
 
 ### 5.6. Audit "thành công" khi
 - 4 vùng đã đọc (hoặc skip có lý do)
