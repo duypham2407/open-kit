@@ -89,8 +89,18 @@ export class TransactionLog {
       return [];
     }
 
+    // Audit fix [1-L-2]: cap the number of lines parsed in-memory. The
+    // log is JSONL and append-only; older entries become less interesting
+    // for query() use cases (which support workItemId / operation /
+    // caller filters and typically want recent activity). 10_000 lines is
+    // far above any realistic single work-item history but bounds the
+    // memory pressure on long-running projects.
+    const MAX_LINES = 10_000;
     const content = fs.readFileSync(this.logPath, 'utf-8');
-    const lines = content.split('\n').filter(line => line.trim().length > 0);
+    let lines = content.split('\n').filter(line => line.trim().length > 0);
+    if (lines.length > MAX_LINES) {
+      lines = lines.slice(lines.length - MAX_LINES);
+    }
     const entries = lines.map(line => JSON.parse(line));
 
     return entries.filter(entry => {

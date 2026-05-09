@@ -43,7 +43,7 @@ Preserve behavior first. Decouple blockers where necessary. Migrate incrementall
 ## Stage chain
 
 ```
-migration_intake (MO) → migration_baseline → migration_strategy (Solution Lead: brainstorm + plan) → migration_upgrade → migration_code_review → migration_verify → migration_done
+migration_intake (MO) → migration_baseline (Solution Lead) → migration_strategy (Solution Lead: brainstorm + plan) → migration_upgrade → migration_code_review → migration_verify → migration_done
 ```
 
 `migration_intake` is MO-only and ephemeral.

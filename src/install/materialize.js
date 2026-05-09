@@ -48,10 +48,78 @@ function removeFileIfPresent(filePath) {
   }
 }
 
+// Audit fix [2-M-6]: TOCTOU race in concurrent materializeInstall calls.
+// Two parallel `openkit install` invocations could both observe
+// existingInstallState === null and both proceed to write installStatePath
+// and rootManifestPath, with the second write silently overwriting the
+// first. Hold an exclusive lock file under the install state path's
+// directory while reading + writing.
+function acquireExclusiveLock(lockPath) {
+  fs.mkdirSync(path.dirname(lockPath), { recursive: true })
+  let fd
+  try {
+    fd = fs.openSync(lockPath, "wx")
+  } catch (err) {
+    if (err.code === "EEXIST") {
+      return { acquired: false, reason: `lock file ${lockPath} already exists` }
+    }
+    throw err
+  }
+  fs.writeSync(fd, `${process.pid}\n`)
+  fs.closeSync(fd)
+  return { acquired: true, lockPath }
+}
+
+function releaseExclusiveLock(lockPath) {
+  try {
+    fs.unlinkSync(lockPath)
+  } catch {
+    // best-effort
+  }
+}
+
 export function materializeInstall(projectRoot, { kitVersion = getOpenKitVersion(), now } = {}) {
   const desiredRootManifest = readTemplate("assets/opencode.json.template")
   const rootManifestPath = path.join(projectRoot, ROOT_MANIFEST_PATH)
   const installStatePath = path.join(projectRoot, INSTALL_STATE_PATH)
+
+  const lockPath = `${installStatePath}.lock`
+  const lock = acquireExclusiveLock(lockPath)
+  if (!lock.acquired) {
+    return {
+      rootManifestPath,
+      installStatePath,
+      managedAssets: [],
+      adoptedAssets: [],
+      warnings: [
+        `Another openkit install is already in progress (lock at ${lockPath}). If this is stale, delete the file and retry.`,
+      ],
+      conflicts: [
+        createMaterializationConflict({
+          assetId: INSTALL_STATE_ASSET_ID,
+          path: INSTALL_STATE_PATH,
+          reason: "concurrent-install-detected",
+          resolution: "wait-for-other-install-to-finish",
+        }),
+      ],
+    }
+  }
+
+  try {
+    return runMaterializeInstall({
+      projectRoot,
+      kitVersion,
+      now,
+      desiredRootManifest,
+      rootManifestPath,
+      installStatePath,
+    })
+  } finally {
+    releaseExclusiveLock(lockPath)
+  }
+}
+
+function runMaterializeInstall({ projectRoot, kitVersion, now, desiredRootManifest, rootManifestPath, installStatePath }) {
   const existingRootManifest = readExistingJson(rootManifestPath)
   const existingInstallState = readExistingJson(installStatePath)
 

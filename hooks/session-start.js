@@ -266,15 +266,21 @@ if (stateResult.malformed) {
   jsonHelperStatus = 'degraded';
 }
 
+// Audit fix [4-L-2]: absolute paths leak the operator's directory layout
+// to stdout (transcripts, captures). Default behavior unchanged for
+// debuggability; OPENKIT_SESSION_START_HIDE_PATHS=1 redacts to "<set>".
+const HIDE_PATHS = process.env.OPENKIT_SESSION_START_HIDE_PATHS === '1';
+const renderPath = (label, value) => `${label}: ${HIDE_PATHS ? '<set>' : value}`;
+
 print('<openkit_runtime_status>');
 print(`kit: ${kitName} v${kitVersion}`);
 print(`entry agent: ${entryAgent}`);
-print(`project root: ${projectRoot}`);
-print(`global kit root: ${kitRoot}`);
-print(`workspace root: ${workspaceRoot}`);
-print(`compatibility shim root: ${compatibilityShimRoot}`);
-print(`workspace shim root: ${workspaceShimRoot}`);
-print(`state file: ${statePath}`);
+print(renderPath('project root', projectRoot));
+print(renderPath('global kit root', kitRoot));
+print(renderPath('workspace root', workspaceRoot));
+print(renderPath('compatibility shim root', compatibilityShimRoot));
+print(renderPath('workspace shim root', workspaceShimRoot));
+print(renderPath('state file', statePath));
 print(`startup skill: ${skillStatus}`);
 print(`json helper: ${jsonHelperStatus}`);
 print('path model: config loads from the global kit root, runtime state lives under the workspace root, and project .opencode paths are compatibility shims.');
