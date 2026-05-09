@@ -73,7 +73,7 @@ Tools are classified by enforcement level. **MUST** tools are mandatory before t
 | Tool ID | Purpose | When to use |
 |---------|---------|-------------|
 | `tool.syntax-locate` | Find nodes by syntax type | Verifying structural patterns (exports, error handling, interface shape) |
-| `tool.heuristic-lsp` | Symbol references and rename impact | Tracing call sites or rename impact across files |
+| `tool.lsp-symbols` | Symbol references and rename impact | Tracing call sites or rename impact across files |
 
 ### Gate rule
 

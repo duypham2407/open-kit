@@ -561,6 +561,24 @@
         "status": "active"
       },
       {
+        "id": "tool.advance-stage",
+        "name": "Advance Stage Surface",
+        "path": "src/runtime/tools/workflow/advance-stage.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.bootstrap-workflow",
+        "name": "Bootstrap Workflow Surface",
+        "path": "src/runtime/tools/workflow/bootstrap-workflow.js",
+        "status": "active"
+      },
+      {
+        "id": "tool.set-approval",
+        "name": "Set Approval Surface",
+        "path": "src/runtime/tools/workflow/set-approval.js",
+        "status": "active"
+      },
+      {
         "id": "tool.session-list",
         "name": "Session List Surface",
         "path": "src/runtime/tools/session/session-list.js",

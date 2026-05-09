@@ -48,7 +48,7 @@ Solution Lead does not code, so enforcement is lighter. **SHOULD** tools are exp
 
 | Tool ID | Purpose | When to use |
 |---------|---------|-------------|
-| `tool.heuristic-lsp` | Symbol references and rename impact | Tracing symbol references to assess impact surface |
+| `tool.lsp-symbols` | Symbol references and rename impact | Tracing symbol references to assess impact surface |
 
 ### Recommendation
 
