@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 
 import { isInsideProjectRoot, resolveProjectPath } from '../shared/project-file-utils.js';
@@ -52,21 +52,28 @@ export function createAstGrepSearchTool({ projectRoot = process.cwd() } = {}) {
       }
 
       try {
-        const args = [
-          'ast-grep', 'run',
+        const spawnArgs = [
+          'run',
           '--pattern', pattern,
           '--lang', lang,
           '--json',
           targetPath || projectRoot,
         ];
 
-        const result = execSync(args.join(' '), {
+        const spawnResult = spawnSync('ast-grep', spawnArgs, {
           cwd: projectRoot,
           encoding: 'utf8',
           timeout: 30000,
           maxBuffer: 5 * 1024 * 1024,
           stdio: ['pipe', 'pipe', 'pipe'],
+          shell: false,
         });
+
+        if (spawnResult.error) {
+          throw spawnResult.error;
+        }
+
+        const result = spawnResult.stdout ?? '';
 
         let parsed;
         try {
