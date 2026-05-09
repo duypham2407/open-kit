@@ -4,6 +4,7 @@ import path from 'node:path';
 import { getWorkspacePaths } from './paths.js';
 import { ensureWorkspaceShim } from './workspace-shim.js';
 import { getOpenKitVersion } from '../version.js';
+import { WORK_ITEMS_INDEX_SCHEMA_V3 } from '../runtime/sessions/constants.js';
 
 const WORKSPACE_STATE_SCHEMA = 'openkit/workspace-state@1';
 
@@ -141,7 +142,10 @@ function shouldHydrateWorkspaceFromProject(paths) {
 
   try {
     const workspaceIndex = readJson(paths.workItemIndexPath);
-    return !workspaceIndex?.active_work_item_id && Array.isArray(workspaceIndex?.work_items) && workspaceIndex.work_items.length === 0;
+    // v3 schema: there is no active_work_item_id. The workspace is "empty"
+    // (and therefore eligible to hydrate from the legacy project mirror) only
+    // when there are no work_items recorded yet.
+    return Array.isArray(workspaceIndex?.work_items) && workspaceIndex.work_items.length === 0;
   } catch {
     return false;
   }
@@ -189,8 +193,11 @@ export function ensureWorkspaceBootstrap(options = {}) {
 
   if (!fs.existsSync(paths.workItemIndexPath)) {
     fs.mkdirSync(paths.workItemsDir, { recursive: true });
+    // Bootstrap directly into the v3 schema. Legacy v2 used `active_work_item_id`,
+    // but multi-session isolation replaces the global pointer with per-session
+    // bindings via `work_items[*].current_session_id`.
     writeJson(paths.workItemIndexPath, {
-      active_work_item_id: null,
+      schema: WORK_ITEMS_INDEX_SCHEMA_V3,
       work_items: [],
     });
   }

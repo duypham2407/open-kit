@@ -2,10 +2,10 @@ import { createRequire } from 'node:module';
 import { STANDARD_CAPABILITY_STATES, VALIDATION_SURFACES } from './capability-registry.js';
 import { createToolRegistry } from './tools/index.js';
 import { resolvePathContext } from '../../.opencode/lib/runtime-paths.js';
+import { resolveSession } from './sessions/session-resolver.js';
 
 const require = createRequire(import.meta.url);
 const { createInvocationLogger } = require('../../.opencode/lib/invocation-log.js');
-const { readWorkItemIndex } = require('../../.opencode/lib/work-item-store.js');
 
 function summarizeToolFamilies(toolList = []) {
   const families = new Map();
@@ -78,13 +78,14 @@ export function createTools({ config, capabilityIndex, projectRoot, managers, mc
   try {
     const pathContext = resolvePathContext(env.OPENKIT_WORKFLOW_STATE ?? null, env);
     // Use a dynamic getter so the invocation logger writes to the
-    // per-work-item log of the currently active work item.  This
+    // per-work-item log of the currently bound work item.  This
     // ensures runtime tool invocations are visible to the policy
     // engine which reads per-work-item logs during stage transitions.
+    // Resolve via the session resolver so each tab/process logs into
+    // its own work item rather than reading a global active pointer.
     function getActiveWorkItemId() {
       try {
-        const index = readWorkItemIndex(pathContext.runtimeRoot);
-        return index?.active_work_item_id ?? null;
+        return resolveSession({ env, repoRoot: pathContext.projectRoot })?.workItemId ?? null;
       } catch {
         return null;
       }
