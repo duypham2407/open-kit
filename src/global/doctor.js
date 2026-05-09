@@ -216,6 +216,16 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
       skills: runtimeFoundation?.skills?.skills ?? [],
       toolFamilies: runtimeFoundation?.tools?.toolFamilies ?? [],
     };
+
+    // Audit fix [2-H-2]: surface runtime-doctor sub-check failures into the
+    // top-level issues list so canRunCleanly can never be true when the
+    // workflow kernel is unavailable. Previously runtimeDoctor sub-results
+    // were rendered for human readers but never inspected here, so a broken
+    // workflow kernel produced canRunCleanly: true and exit code 0 — a
+    // false-green doctor report.
+    if (runtimeDoctor.workflow?.status === 'unavailable') {
+      issues.push('Workflow kernel is unavailable. Runtime tools that require workflow state will not function.');
+    }
   } catch (error) {
     issues.push(`Runtime foundation error: ${error.message}`);
   }
