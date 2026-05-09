@@ -1,162 +1,141 @@
 /**
- * Gate Requirements
+ * Gate Requirements — UI/messaging layer over GateRegistry.
  *
- * Defines conditions that must be met before a stage transition is allowed.
- * Each gate checks specific evidence or state conditions.
+ * Audit fix [1-H-2] / [1-M-2] / [1-L-4]: this file previously defined a
+ * second, separate gate system with its own GATE_DEFINITIONS, GATE_CHECKERS,
+ * and key naming ('quick_intake→quick_plan' style). It coexisted with
+ * src/runtime/state/gate-registry.js, which is what WorkflowStateManager
+ * consults at persistence time. The two systems disagreed on key naming and
+ * on which gates existed at all, so a transition that passed one check
+ * could be silently rejected by the other.
+ *
+ * The reform: GateRegistry is now the single source of truth for gate
+ * metadata and gate state. This module is a thin shim that:
+ *
+ * 1. Maps a (mode, fromStage, toStage) transition to the registry gate IDs
+ *    that block it.
+ * 2. Reads `state.gates[gateId]` to determine pass/fail.
+ * 3. Renders human-friendly missing-gate messages for the model.
+ *
+ * Evidence-driven gate setting (where a caller passes
+ * `{ understanding_confirmed: true }` and we record the gate as met) lives
+ * in src/runtime/tools/workflow/advance-stage.js — see EVIDENCE_TO_GATE
+ * and updateWorkflowState there. This module only checks; it does not
+ * write state.
  */
 
-const GATE_DEFINITIONS = {
-  // Quick mode gates
-  'quick_intake→quick_plan': {
-    requires: ['user_understanding_confirmed'],
-    description: 'Quick Agent must confirm understanding of the codebase and problem before planning.',
-  },
-  'quick_plan→quick_implement': {
-    requires: ['user_plan_confirmed'],
-    description: 'User must confirm the selected plan option before implementation starts.',
-  },
-  'quick_test→quick_done': {
-    requires: ['evidence_recorded'],
-    description: 'Test evidence must be recorded before marking quick task as done.',
-  },
+import { GateRegistry } from '../state/gate-registry.js';
 
-  // Full mode gates
-  'full_product→full_solution': {
-    requires: ['scope_package_exists'],
-    description: 'Product Lead must produce a scope package before Solution Lead begins.',
-  },
-  'full_solution→full_implementation': {
-    requires: ['solution_package_exists'],
-    description: 'Solution Lead must produce a solution package before implementation begins.',
-  },
-  'full_code_review→full_qa': {
-    requires: ['review_completed'],
-    description: 'Code Reviewer must complete review before QA verification.',
-  },
-  'full_qa→full_done': {
-    requires: ['qa_passed'],
-    description: 'QA must pass verification before marking feature as done.',
-  },
-
-  // Migration mode gates
-  'migration_baseline→migration_strategy': {
-    requires: ['baseline_captured'],
-    description: 'Baseline evidence must be captured before strategy formulation.',
-  },
-  'migration_strategy→migration_upgrade': {
-    requires: ['strategy_approved'],
-    description: 'Migration strategy must be approved before upgrade work begins.',
-  },
-  'migration_code_review→migration_verify': {
-    requires: ['review_completed'],
-    description: 'Code review must complete before verification.',
-  },
-  'migration_verify→migration_done': {
-    requires: ['verification_passed'],
-    description: 'Verification must pass before migration is marked done.',
-  },
-};
-
-/**
- * Gate checker functions.
- * Each returns { met: boolean, detail: string }.
- */
-const GATE_CHECKERS = {
-  user_understanding_confirmed(state, evidence) {
-    const met = evidence?.understanding_confirmed === true || state?.gates?.user_understanding_confirmed === true;
-    return { met, detail: met ? 'User confirmed understanding.' : 'User has not yet confirmed understanding. Present your analysis and ask for confirmation.' };
-  },
-  user_plan_confirmed(state, evidence) {
-    const met = evidence?.plan_confirmed === true || state?.gates?.user_plan_confirmed === true;
-    return { met, detail: met ? 'Plan confirmed by user.' : 'User has not confirmed the plan. Present options and ask for explicit confirmation.' };
-  },
-  evidence_recorded(state, evidence) {
-    const count = state?.verification_evidence?.length ?? evidence?.evidence_count ?? 0;
-    const met = count > 0;
-    return { met, detail: met ? `${count} evidence item(s) recorded.` : 'No verification evidence recorded. Run tests and capture results.' };
-  },
-  scope_package_exists(state, evidence) {
-    const met = evidence?.scope_package === true || state?.gates?.scope_package_exists === true;
-    return { met, detail: met ? 'Scope package exists.' : 'Product Lead must create scope package (docs/scope/) before handoff.' };
-  },
-  solution_package_exists(state, evidence) {
-    const met = evidence?.solution_package === true || state?.gates?.solution_package_exists === true;
-    return { met, detail: met ? 'Solution package exists.' : 'Solution Lead must create solution package (docs/solution/) before handoff.' };
-  },
-  review_completed(state, evidence) {
-    const met = evidence?.review_completed === true || state?.gates?.review_completed === true;
-    return { met, detail: met ? 'Code review completed.' : 'Code Reviewer has not completed review. Review must pass before proceeding.' };
-  },
-  qa_passed(state, evidence) {
-    const met = evidence?.qa_passed === true || state?.gates?.qa_passed === true;
-    return { met, detail: met ? 'QA passed.' : 'QA has not passed. Run verification and record evidence.' };
-  },
-  baseline_captured(state, evidence) {
-    const met = evidence?.baseline_captured === true || state?.gates?.baseline_captured === true;
-    return { met, detail: met ? 'Migration baseline captured.' : 'Capture current behavior baseline before proceeding.' };
-  },
-  strategy_approved(state, evidence) {
-    const met = evidence?.strategy_approved === true || state?.gates?.strategy_approved === true;
-    return { met, detail: met ? 'Migration strategy approved.' : 'Migration strategy must be approved before upgrade work.' };
-  },
-  verification_passed(state, evidence) {
-    const met = evidence?.verification_passed === true || state?.gates?.verification_passed === true;
-    return { met, detail: met ? 'Verification passed.' : 'Run verification tests and confirm behavior is preserved.' };
-  },
-};
+const registry = new GateRegistry();
 
 /**
  * Check all gate requirements for a specific transition.
  *
- * @param {string} mode - Workflow mode (quick, full, migration)
+ * @param {string} mode - Workflow mode (quick, full, migration). Currently
+ *   unused — gate IDs in the registry encode their stage already — but
+ *   accepted for backward-compatible call sites.
  * @param {string} fromStage - Current stage
  * @param {string} toStage - Target stage
- * @param {object} state - Current workflow state
- * @param {object} evidence - Optional evidence object passed with the transition request
+ * @param {object} state - Current workflow state (must have a `gates` map)
+ * @param {object} evidence - Evidence passed with the transition request.
+ *   Each evidence flag set to `true` is treated as if its corresponding
+ *   gate has been met for purposes of THIS check. The actual write to
+ *   state.gates happens in advance-stage.js before this function is called
+ *   on the persistence path; the in-memory union here lets callers verify
+ *   a transition will pass before attempting the state write.
  * @returns {{ passed: boolean, missing: Array<{ requirement: string, detail: string }>, gateDescription: string|null }}
  */
 export function checkGateRequirements(mode, fromStage, toStage, state = {}, evidence = {}) {
-  const key = `${fromStage}→${toStage}`;
-  const gate = GATE_DEFINITIONS[key];
+  const requiredGateIds = registry.getRequiredGates(fromStage, toStage);
 
-  // No gate defined for this transition → always passes
-  if (!gate) {
+  // No registered gates for this transition → always passes.
+  if (requiredGateIds.length === 0) {
     return { passed: true, missing: [], gateDescription: null };
   }
 
+  // Build an effective gate map: state.gates ∪ evidence-derived gates.
+  // EVIDENCE_TO_GATE in advance-stage.js handles writing real state, but the
+  // pre-check (this function) wants to know whether the transition WILL pass
+  // once those writes happen, so we union evidence into the read view.
+  const effectiveGates = { ...(state?.gates ?? {}) };
+  for (const [evidenceKey, value] of Object.entries(evidence)) {
+    if (value !== true) continue;
+    for (const registryId of evidenceKeyToRegistryIds(evidenceKey)) {
+      effectiveGates[registryId] = true;
+    }
+  }
+
   const missing = [];
-  for (const requirement of gate.requires) {
-    const checker = GATE_CHECKERS[requirement];
-    if (!checker) {
-      // Unknown requirement → treat as unmet
-      missing.push({ requirement, detail: `Unknown gate requirement: ${requirement}` });
-      continue;
+  let firstDescription = null;
+
+  for (const gateId of requiredGateIds) {
+    const def = registry.getGate(gateId);
+    if (firstDescription === null && def?.description) {
+      firstDescription = def.description;
     }
 
-    const result = checker(state, evidence);
-    if (!result.met) {
-      missing.push({ requirement, detail: result.detail });
+    if (effectiveGates[gateId] !== true) {
+      missing.push({
+        requirement: gateId,
+        detail: def?.description
+          ? `Gate '${gateId}' not met. ${def.description}. Authority: ${def.authority}.`
+          : `Gate '${gateId}' not met.`,
+      });
     }
   }
 
   return {
     passed: missing.length === 0,
     missing,
-    gateDescription: gate.description,
+    gateDescription: firstDescription,
   };
 }
 
 /**
- * Record a gate as met in the workflow state.
- * Returns a new gates object with the gate marked as true.
+ * Record a gate as met in the workflow state. Backward-compatible with
+ * older callers that constructed state objects locally; new callers should
+ * prefer GateRegistry.recordGateMet (which also records gateMeta).
  */
 export function recordGateMet(currentGates = {}, gateName) {
   return { ...currentGates, [gateName]: true };
 }
 
 /**
- * Get gate definition for a transition.
+ * Get gate definition for a transition. Returns the first registry gate
+ * that blocks the transition, or null if none.
  */
 export function getGateDefinition(fromStage, toStage) {
-  return GATE_DEFINITIONS[`${fromStage}→${toStage}`] ?? null;
+  const ids = registry.getRequiredGates(fromStage, toStage);
+  if (ids.length === 0) return null;
+  const def = registry.getGate(ids[0]);
+  return def ? { ...def, id: ids[0] } : null;
+}
+
+// Evidence-key → registry gate id(s) mapping. Mirrors EVIDENCE_TO_GATE in
+// advance-stage.js; kept here so the read-side check can union evidence into
+// state without depending on the tool layer.
+function evidenceKeyToRegistryIds(evidenceKey) {
+  switch (evidenceKey) {
+    case 'understanding_confirmed':
+    case 'plan_confirmed':
+      return ['quick.understanding_confirmed'];
+    case 'qa_passed':
+      return ['full.qa_passed'];
+    case 'verification_passed':
+      return ['migration.parity_verified'];
+    case 'review_completed':
+      return ['full.code_review_passed', 'migration.code_review_passed'];
+    case 'baseline_captured':
+      return ['migration.baseline_verified'];
+    case 'strategy_approved':
+      return ['migration.strategy_approved'];
+    case 'scope_package':
+      return ['full.product_to_solution'];
+    case 'solution_package':
+      return ['full.solution_to_implementation'];
+    case 'evidence_recorded':
+      return ['quick.verified'];
+    default:
+      return [];
+  }
 }

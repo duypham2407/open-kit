@@ -110,39 +110,44 @@ test('advance-stage blocks invalid transition: full intake → implementation', 
 
 // ── Gate requirements ───────────────────────────────────────────────────
 
-test('advance-stage blocks when gate not satisfied: intake → plan without understanding_confirmed', () => {
+test('advance-stage blocks when gate not satisfied: plan → implement without understanding_confirmed', () => {
+  // Audit fix [1-H-2]/[1-M-2]: the previous gate at quick_intake→quick_plan
+  // was duplicate-defined in two systems and semantically dead in the
+  // persistence layer. After the gate-system reform GateRegistry is the
+  // single source of truth, and the enforced gate is at
+  // quick_plan→quick_implement (id 'quick.understanding_confirmed').
   const tool = createAdvanceStageTool({
     workflowKernel: createMockKernel({
       mode: 'quick',
-      current_stage: 'quick_intake',
-      current_owner: 'MasterOrchestrator',
+      current_stage: 'quick_plan',
+      current_owner: 'QuickAgent',
       verification_evidence: [],
     }),
   });
 
-  const result = tool.execute({ targetStage: 'quick_plan' });
+  const result = tool.execute({ targetStage: 'quick_implement' });
   assert.equal(result.status, 'blocked');
   assert.ok(result.missingGates);
   assert.ok(result.missingGates.length > 0);
   assert.ok(result.guidance);
 });
 
-test('advance-stage passes when gate is satisfied with evidence: intake → plan', () => {
+test('advance-stage passes when gate is satisfied with evidence: plan → implement', () => {
   const kernel = createMockKernel({
     mode: 'quick',
-    current_stage: 'quick_intake',
-    current_owner: 'MasterOrchestrator',
+    current_stage: 'quick_plan',
+    current_owner: 'QuickAgent',
     verification_evidence: [],
   });
 
   const tool = createAdvanceStageTool({ workflowKernel: kernel });
   const result = tool.execute({
-    targetStage: 'quick_plan',
+    targetStage: 'quick_implement',
     evidence: { understanding_confirmed: true },
   });
 
   assert.equal(result.status, 'ok');
-  assert.equal(result.newStage, 'quick_plan');
+  assert.equal(result.newStage, 'quick_implement');
   assert.equal(result.newOwner, 'QuickAgent');
 });
 
