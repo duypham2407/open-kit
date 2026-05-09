@@ -211,3 +211,38 @@ test("applyOpenKitMergePolicy strips legacy OpenKit-only metadata without confli
   })
   assert.deepEqual(result.conflicts, [])
 })
+
+// Regression test for audit finding [2-H-3]: mergeUniqueArray previously used
+// Object.is() reference equality, so two structurally-identical objects from
+// separate JSON parses were never considered equal — every re-install
+// appended duplicate entries indefinitely.
+test("applyOpenKitMergePolicy dedupes structurally-equal object array items (no reference identity required)", () => {
+  const currentConfig = {
+    instructions: [
+      { type: "dir", path: "instructions/core" },
+      "local-note.md",
+    ],
+  }
+  const desiredConfig = {
+    // Fresh objects with identical shape — Object.is would treat these as
+    // different from the items already in currentConfig.
+    instructions: [
+      { type: "dir", path: "instructions/core" },
+      "local-note.md",
+      { type: "dir", path: "instructions/openkit" },
+    ],
+  }
+
+  const result = applyOpenKitMergePolicy({ currentConfig, desiredConfig })
+
+  assert.deepEqual(result.config.instructions, [
+    { type: "dir", path: "instructions/core" },
+    "local-note.md",
+    { type: "dir", path: "instructions/openkit" },
+  ])
+  assert.equal(
+    result.config.instructions.length,
+    3,
+    "structurally-identical objects must dedupe; expected 3 items, not 4 or 5",
+  )
+})

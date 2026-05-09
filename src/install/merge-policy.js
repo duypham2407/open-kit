@@ -23,13 +23,27 @@ function cloneValue(value) {
   return value
 }
 
+function isSameItem(a, b) {
+  // Primitives + same-reference objects: O(1).
+  if (Object.is(a, b)) return true
+  // Object/array values: dedupe by structural value, not by reference.
+  // Audit fix [2-H-3]: previous Object.is-only comparison let two parses
+  // of the same JSON config append duplicate entries on every re-install.
+  // JSON.stringify is order-sensitive on object keys; that's acceptable
+  // here because install templates control the key order at the source.
+  if (a !== null && b !== null && typeof a === "object" && typeof b === "object") {
+    return JSON.stringify(a) === JSON.stringify(b)
+  }
+  return false
+}
+
 function mergeUniqueArray(currentValue, desiredValue) {
   const currentItems = Array.isArray(currentValue) ? currentValue : []
   const desiredItems = Array.isArray(desiredValue) ? desiredValue : []
   const merged = [...currentItems]
 
   for (const item of desiredItems) {
-    if (!merged.some((existing) => Object.is(existing, item))) {
+    if (!merged.some((existing) => isSameItem(existing, item))) {
       merged.push(item)
     }
   }
