@@ -14,6 +14,7 @@ import { releaseCommand } from './commands/release.js';
 import { onboardCommand } from './commands/onboard.js';
 import { profilesCommand } from './commands/profiles.js';
 import { switchProfilesCommand } from './commands/switch-profiles.js';
+import { sessionsCommand } from './commands/sessions/index.js';
 
 const commands = {
   help: helpCommand,
@@ -32,6 +33,7 @@ const commands = {
   'switch-profiles': switchProfilesCommand,
   switch: switchProfilesCommand,
   release: releaseCommand,
+  sessions: sessionsCommand,
   'internal-audit-vietnamese': detectVietnameseCommand,
 };
 
@@ -56,7 +58,10 @@ export async function runCli(argv, io = defaultIo()) {
     return 1;
   }
 
-  if (rest.includes('--help') || rest.includes('-h')) {
+  // The `sessions` command is itself a subcommand dispatcher — let it handle
+  // --help routing so per-subcommand help (e.g. `openkit sessions list --help`)
+  // works. Other commands keep the legacy "any --help → top help" shortcut.
+  if (commandName !== 'sessions' && (rest.includes('--help') || rest.includes('-h'))) {
     return command.run(['--help'], io, { commands });
   }
 

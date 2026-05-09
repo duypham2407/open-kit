@@ -23,6 +23,7 @@ function topLevelHelp() {
     '  switch-profiles  Switch the current OpenKit runtime session profile',
     '  switch    Alias for switch-profiles',
     '  release   Prepare, verify, and publish OpenKit releases',
+    '  sessions  Inspect and manage OpenKit sessions (list, show, resume, abandon, kill)',
     '',
     'Runtime foundation:',
     '  OpenKit now bootstraps runtime config, capabilities, managers, tools, hooks, MCP metadata, categories, specialists, and context injection under src/runtime/.',
