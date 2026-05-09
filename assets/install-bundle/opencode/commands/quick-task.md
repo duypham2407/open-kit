@@ -41,6 +41,10 @@ quick_intake (MO) → quick_plan (Quick Agent: brainstorm + plan) → quick_impl
 
 `quick_intake` is MO-only and ephemeral. MO bootstraps state, advances immediately, never blocks for user input.
 
+## Quick Agent behavior during `quick_plan`
+
+During `quick_plan`: brainstorm to confirm understanding, then present 3 options by default (or fewer with explicit justification), wait for user option selection, produce execution plan, and require separate plan confirmation before `quick_implement`.
+
 ## Lane authority
 
 User picked `/quick-task`. Lane is locked unless brainstorm reveals scope is cross-boundary, in which case Quick Agent escalates to MO who asks the user (y/n) before switching to `/delivery`.

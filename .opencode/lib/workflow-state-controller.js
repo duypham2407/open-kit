@@ -2275,7 +2275,7 @@ function bootstrapWorkflow({ lane, description, featureSlug, statePath, archiveP
   }
 
   // startTask creates the work item, writes it to the store and mirror
-  startTask(lane, featureId, slug, modeReason, resolvedStatePath, { intakePayload })
+  startTask(lane, featureId, slug, modeReason, resolvedStatePath, { intakePayload, laneSource: "user_explicit" })
 
   return {
     status: "created",

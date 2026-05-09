@@ -38,7 +38,7 @@ When the user enters `/quick-task`, `/delivery`, or `/migrate`:
 5. **After bootstrap**, immediately call `tool.advance-stage` to advance from `<lane>_intake` to the first specialist stage:
    - quick: `quick_intake → quick_plan` (dispatches Quick Agent)
    - full: `full_intake → full_product` (dispatches Product Lead)
-   - migration: `migration_intake → migration_strategy` (dispatches Solution Lead)
+   - migration: `migration_intake → migration_baseline` (dispatches Solution Lead for baseline, then advances to migration_strategy for brainstorm + plan)
 
 6. **Tell the user** which agent is now active and what they will do.
 

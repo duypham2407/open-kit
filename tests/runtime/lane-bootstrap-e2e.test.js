@@ -47,6 +47,7 @@ test('quick lane: fresh project → bootstrap → quick_intake', () => {
   assert.equal(state.mode, 'quick');
   assert.equal(state.current_stage, 'quick_intake');
   assert.equal(state.intake_payload?.description, 'fix bug in CSV export');
+  assert.equal(state.lane_source, 'user_explicit');
 });
 
 // ─── Full lane ────────────────────────────────────────────────────────────────
@@ -65,6 +66,7 @@ test('full lane: fresh project → bootstrap → full_intake', () => {
   assert.equal(state.mode, 'full');
   assert.equal(state.current_stage, 'full_intake');
   assert.equal(state.intake_payload?.description, 'add enterprise approval workflow');
+  assert.equal(state.lane_source, 'user_explicit');
 });
 
 // ─── Migration lane ───────────────────────────────────────────────────────────
@@ -83,6 +85,7 @@ test('migration lane: fresh project → bootstrap → migration_intake', () => {
   assert.equal(state.mode, 'migration');
   assert.equal(state.current_stage, 'migration_intake');
   assert.equal(state.intake_payload?.description, 'upgrade React 18 to 19');
+  assert.equal(state.lane_source, 'user_explicit');
 });
 
 // ─── Multi-workflow conflict ──────────────────────────────────────────────────

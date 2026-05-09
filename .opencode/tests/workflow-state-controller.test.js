@@ -4195,6 +4195,7 @@ test("bootstrapWorkflow creates fresh quick state with intake_payload", () => {
   assert.equal(state.current_stage, "quick_intake")
   assert.equal(state.current_owner, "MasterOrchestrator")
   assert.equal(state.intake_payload?.description, "fix the broken header")
+  assert.equal(state.lane_source, "user_explicit")
 })
 
 test("bootstrapWorkflow creates fresh full state with intake_payload", () => {
@@ -4214,6 +4215,7 @@ test("bootstrapWorkflow creates fresh full state with intake_payload", () => {
   assert.equal(state.mode, "full")
   assert.equal(state.current_stage, "full_intake")
   assert.equal(state.intake_payload?.description, "build a dashboard v2")
+  assert.equal(state.lane_source, "user_explicit")
 })
 
 test("bootstrapWorkflow returns conflict when active workflow exists", () => {

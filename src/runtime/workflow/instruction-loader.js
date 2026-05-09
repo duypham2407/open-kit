@@ -9,7 +9,7 @@
  * Structure:
  *   instructions/core/workflow-router.md
  *   instructions/core/role-boundaries.md
- *   instructions/quick/{brainstorm,plan,implement,test}.md
+ *   instructions/quick/{plan,implement,test}.md
  *   instructions/full/{orchestrator-intake,product-lead,solution-lead,fullstack-implement,code-reviewer,qa-agent}.md
  *   instructions/migration/{baseline,strategy,upgrade,verify}.md
  */
