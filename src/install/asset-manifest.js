@@ -437,6 +437,15 @@ export function validateBundledAssetFiles(projectRoot) {
     for (const entry of fs.readdirSync(currentPath, { withFileTypes: true })) {
       const entryPath = path.join(currentPath, entry.name)
 
+      // Audit fix [2-M-4]: skip symlinks before recursing so a circular
+      // or out-of-tree symlinked directory cannot trap collectFiles in an
+      // infinite loop. We don't currently ship symlinks under
+      // assets/install-bundle/, but the recursive walk is unbounded
+      // without this guard.
+      if (entry.isSymbolicLink()) {
+        continue
+      }
+
       if (entry.isDirectory()) {
         collectFiles(entryPath)
         continue

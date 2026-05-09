@@ -17,12 +17,14 @@ import { getOpenKitVersion } from '../version.js';
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(MODULE_DIR, '../..');
 
+// Audit fix [2-M-2]: this list previously contained 'bin' and
+// 'src/mcp-server' twice each. fs.cpSync tolerated the duplicates by
+// re-overwriting, but it was wasted work and a copy/paste bug.
 const GLOBAL_KIT_ASSETS = [
   '.opencode',
   'bin',
   'agents',
   'assets',
-  'bin',
   'skills',
   'commands',
   'context',
@@ -39,7 +41,6 @@ const GLOBAL_KIT_ASSETS = [
   'src/install',
   'src/opencode',
   'src/permissions',
-  'src/mcp-server',
   'src/command-detection.js',
   'src/version.js',
   'package.json',

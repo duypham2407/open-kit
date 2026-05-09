@@ -66,9 +66,11 @@ export const installCommand = {
     const deps = { ...defaultInstallDeps, ...context.installDeps };
     const shouldVerify = args.includes('--verify');
 
-    // Step 1: Materialize the global kit
+    // Step 1: Materialize the global kit. Audit fix [2-M-1]: previously
+    // the success line "Installed OpenKit globally." was emitted BEFORE
+    // materialize ran, so a failure left the user with a misleading
+    // success message. Move the success message after the call.
     io.stdout.write('Installing OpenKit global kit...\n');
-    io.stdout.write('Installed OpenKit globally.\n');
 
     const installResult = deps.materialize({
       env: deps.env,
@@ -76,6 +78,7 @@ export const installCommand = {
       ensureSemgrep: deps.ensureSemgrep,
     });
 
+    io.stdout.write('Installed OpenKit globally.\n');
     io.stdout.write(`Kit root: ${installResult.kitRoot}\n`);
     io.stdout.write(`Profile root: ${installResult.profilesRoot}\n`);
 

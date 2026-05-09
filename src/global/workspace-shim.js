@@ -121,7 +121,33 @@ function syncJsonMirror(targetPath, sourcePath) {
   writeJson(targetPath, readJson(sourcePath));
 }
 
+/**
+ * Audit fix [4-M-1]: the workspace-shim generators write Node.js source
+ * files that include `${JSON.stringify(path.join(paths.kitRoot, ...))}`
+ * to embed paths. JSON.stringify already escapes shell metacharacters
+ * for JS string literals, so injection through path content is not
+ * possible — but if a path contains an embedded newline or U+2028 the
+ * generated JS file could be malformed in subtle ways. Assert paths
+ * are well-formed absolute strings before any code generation.
+ */
+function assertPathIsWellFormed(label, value) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`workspace-shim: ${label} must be a non-empty string (got ${typeof value})`);
+  }
+  if (!path.isAbsolute(value)) {
+    throw new Error(`workspace-shim: ${label} must be an absolute path (got '${value}')`);
+  }
+  if (/[\n\r\u2028\u2029]/.test(value)) {
+    throw new Error(`workspace-shim: ${label} contains a line-separator character; refusing to embed in generated JS`);
+  }
+}
+
 export function ensureWorkspaceShim(paths) {
+  assertPathIsWellFormed('paths.kitRoot', paths.kitRoot);
+  assertPathIsWellFormed('paths.projectRoot', paths.projectRoot);
+  assertPathIsWellFormed('paths.workspaceRoot', paths.workspaceRoot);
+  assertPathIsWellFormed('paths.workflowStatePath', paths.workflowStatePath);
+
   const createdPaths = [];
 
   fs.mkdirSync(paths.workspaceShimDir, { recursive: true });
