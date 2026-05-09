@@ -617,8 +617,8 @@ export async function launchGlobalOpenKit(args = [], { projectRoot = process.cwd
   // Generate per-tab OPENKIT_SESSION_ID. Meta is two-phase: launcher writes
   // workItemId=null/lane=null; slash command later calls bindSessionMeta.
   const openKitSessionId = generateSessionId();
-  // Choose baseDir: worktree's .opencode if launching into a worktree, otherwise repo's .opencode.
-  const sessionBaseDir = path.join(launchProjectRoot, '.opencode');
+  // Sessions always stored in repo root's .opencode (not worktree's), per spec.
+  const sessionBaseDir = path.join(paths.projectRoot, '.opencode');
   const sessionStartedAt = new Date().toISOString();
   writeSessionMeta(sessionBaseDir, {
     sessionId: openKitSessionId,
@@ -658,23 +658,26 @@ export async function launchGlobalOpenKit(args = [], { projectRoot = process.cwd
     appendUniqueNotices(launcherNotices, `OpenKit secrets.env was not loaded: ${error.message}`);
   }
   const secretEnv = resolveDeclaredSecretEnv({ env, loadedSecrets });
+  // Bootstrap runtime foundation without OPENKIT_WORKFLOW_STATE so runtime-sessions
+  // use workspace-level paths. Pass workspaceRoot so resolveRuntimeRoot uses workspace, not repo.
   const runtimeBootstrapEnv = {
     ...sessionEnv,
     ...secretEnv,
     OPENKIT_GLOBAL_MODE: '1',
     OPENKIT_PROJECT_ROOT: launchProjectRoot,
     OPENKIT_REPOSITORY_ROOT: paths.projectRoot,
-    OPENKIT_WORKFLOW_STATE: sessionMirrorPath(sessionBaseDir, openKitSessionId),
     OPENKIT_SESSION_ID: openKitSessionId,
     OPENKIT_KIT_ROOT: paths.kitRoot,
     OPENKIT_HOME: paths.openCodeHome,
     OPENCODE_CONFIG_DIR: paths.kitRoot,
   };
-  const runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot: launchProjectRoot, env: runtimeBootstrapEnv });
+  const runtimeFoundation = bootstrapRuntimeFoundation({ projectRoot: paths.workspaceRoot, env: runtimeBootstrapEnv });
   const runtimeEnv = createRuntimeFoundationEnvironment(runtimeFoundation);
+  // Now add OPENKIT_WORKFLOW_STATE for the spawned OpenCode process (session-specific path)
   const launcherEnv = {
     ...getToolingEnv(runtimeBootstrapEnv),
     ...runtimeEnv,
+    OPENKIT_WORKFLOW_STATE: sessionMirrorPath(sessionBaseDir, openKitSessionId),
     OPENCODE_CONFIG_CONTENT: Object.keys(layeredInlineConfig).length > 0
       ? JSON.stringify(layeredInlineConfig)
       : undefined,

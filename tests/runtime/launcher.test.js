@@ -1216,7 +1216,9 @@ test('launchGlobalOpenKit can target a managed worktree for a specific work item
   assert.equal(spawnCall.options.cwd, spawnCall.args[0]);
   assert.equal(spawnCall.options.env.OPENKIT_REPOSITORY_ROOT, projectRoot);
   assert.equal(spawnCall.options.env.OPENKIT_PROJECT_ROOT, spawnCall.args[0]);
-  assert.equal(spawnCall.options.env.OPENKIT_WORKFLOW_STATE, workspacePaths.workflowStatePath);
+  // With multi-session isolation, OPENKIT_WORKFLOW_STATE points to per-session mirror in repo root
+  assert.match(spawnCall.options.env.OPENKIT_WORKFLOW_STATE, /\.opencode\/sessions\/s_[0-9a-f]{6}\/workflow-state\.json$/);
+  assert.ok(spawnCall.options.env.OPENKIT_WORKFLOW_STATE.startsWith(projectRoot));
   assert.match(result.stdout, /Retained managed worktree:/);
   assert.match(result.stdout, /Recommended next mode: reuse/);
   assert.match(result.stdout, /Last env propagation mode: none/);
