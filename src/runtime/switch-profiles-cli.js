@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { createPromptAdapter, promptLine } from '../cli/commands/agent-model-selection.js';
 import { getWorkspacePaths } from '../global/paths.js';
 import { SessionProfileManager } from './managers/session-profile-manager.js';
@@ -114,7 +117,29 @@ export async function runSwitchProfilesCli({
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/**
+ * Audit fix [N-1]: previous entry-point guard compared
+ * `import.meta.url === \`file://${process.argv[1]}\``. Node resolves
+ * import.meta.url through symlinks (so on macOS it becomes
+ * file:///private/var/folders/... when the script lives under /var/folders/)
+ * but process.argv[1] keeps the raw path the shell handed in. The two
+ * strings disagreed and the CLI body was silently skipped — the process
+ * exited 0 with empty stdout. Compare resolved real paths instead, and
+ * fail safely (do nothing) on any error so an `import` of this module
+ * never accidentally runs the CLI.
+ */
+function isInvokedAsEntryPoint() {
+  if (!process.argv[1]) return false;
+  try {
+    const importMetaPath = fs.realpathSync(fileURLToPath(import.meta.url));
+    const argvPath = fs.realpathSync(process.argv[1]);
+    return importMetaPath === argvPath;
+  } catch {
+    return false;
+  }
+}
+
+if (isInvokedAsEntryPoint()) {
   runSwitchProfilesCli().then((exitCode) => {
     process.exitCode = exitCode;
   });
