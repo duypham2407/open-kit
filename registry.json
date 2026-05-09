@@ -184,6 +184,14 @@
         "modes": ["quick", "migration", "full"]
       },
       {
+        "id": "command.configure-embedding",
+        "name": "/configure-embedding",
+        "path": "commands/configure-embedding.md",
+        "audience": "operator",
+        "surface": "in-session",
+        "modes": ["quick", "migration", "full"]
+      },
+      {
         "id": "command.switch-profiles",
         "name": "/switch-profiles",
         "path": "commands/switch-profiles.md",

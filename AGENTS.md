@@ -24,7 +24,7 @@ The kit is structured into several core directories:
 
 - `agents/`: Definitions for the primary team roles plus helper subagents such as `code-reviewer.md` and `quick-agent.md`
 - `skills/`: Composable workflow procedures (TDD, brainstorming, planning, debugging)
-- `commands/`: User-facing triggers such as `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, and `/switch-profiles`
+- `commands/`: User-facing triggers such as `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, `/configure-embedding`, and `/switch-profiles`
 - `context/`: Shared intelligence (`navigation.md`, `core/code-quality.md`, `core/workflow.md`)
 - `hooks/`: Session bootstrap integration (`session-start`)
 - `.opencode/`: Configuration for the OpenCode environment
