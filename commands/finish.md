@@ -5,6 +5,7 @@ description: "Finish the current session: squash-merge the feature branch back i
 # Command: `/finish`
 
 - Follow `.opencode/openkit/context/core/prompt-contracts.md`.
+- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when inspecting git state or worktree paths. Prefer kit intelligence tools before basic built-in tools or OS commands.
 - Follow `.opencode/openkit/context/core/runtime-surfaces.md` so finish operates from explicit workflow-state surfaces only.
 - Use this command when the lane gate has been approved and you want to land the session back onto the target branch.
 
