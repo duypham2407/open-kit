@@ -31,7 +31,7 @@ function writeExecutable(filePath, content) {
   fs.chmodSync(filePath, 0o755);
 }
 
-test('buildOpenCodeLayering uses the managed config dir when no baseline config is set', () => {
+test('buildOpenCodeLayering uses the managed config dir when no baseline config is set', async () => {
   const projectRoot = makeTempDir();
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
@@ -48,7 +48,7 @@ test('buildOpenCodeLayering uses the managed config dir when no baseline config 
   assert.equal(result.baseline.hasConfigContent, false);
 });
 
-test('buildOpenCodeLayering preserves baseline config while layering managed content', () => {
+test('buildOpenCodeLayering preserves baseline config while layering managed content', async () => {
   const projectRoot = makeTempDir();
   const baselineConfigDir = path.join(projectRoot, 'user-config');
 
@@ -91,7 +91,7 @@ test('buildOpenCodeLayering preserves baseline config while layering managed con
   ]);
 });
 
-test('buildOpenCodeLayering only resolves instruction paths relative to the config dir', () => {
+test('buildOpenCodeLayering only resolves instruction paths relative to the config dir', async () => {
   const projectRoot = makeTempDir();
   const baselineConfigDir = path.join(projectRoot, 'user-config');
 
@@ -114,7 +114,7 @@ test('buildOpenCodeLayering only resolves instruction paths relative to the conf
   assert.equal(result.baseline.config.otherRelativePath, 'notes/local.md');
 });
 
-test('launchManagedOpenCode reports a clear error when opencode is unavailable', () => {
+test('launchManagedOpenCode reports a clear error when opencode is unavailable', async () => {
   const projectRoot = makeTempDir();
 
   writeJson(path.join(projectRoot, '.opencode', 'opencode.json'), {
@@ -137,7 +137,7 @@ test('launchManagedOpenCode reports a clear error when opencode is unavailable',
   assert.match(result.stderr, /supported launcher path is `openkit run`/i);
 });
 
-test('launchManagedOpenCode uses interactive stdio by default for the real launcher path', () => {
+test('launchManagedOpenCode uses interactive stdio by default for the real launcher path', async () => {
   const projectRoot = makeTempDir();
   let spawnCall = null;
 
@@ -160,7 +160,7 @@ test('launchManagedOpenCode uses interactive stdio by default for the real launc
   assert.equal(spawnCall.options.stdio, 'inherit');
 });
 
-test('launchManagedOpenCode forwards layered config to opencode on the supported path', () => {
+test('launchManagedOpenCode forwards layered config to opencode on the supported path', async () => {
   const projectRoot = makeTempDir();
   const fakeBinDir = path.join(projectRoot, 'bin');
   const fakeOpencodePath = path.join(fakeBinDir, 'opencode');
@@ -225,7 +225,7 @@ test('launchManagedOpenCode forwards layered config to opencode on the supported
   assert.equal(result.runtimeFoundation.runtimeInterface.environment.OPENKIT_RUNTIME_SESSION_ID, payload.runtimeSessionId);
 });
 
-test('launchManagedOpenCode records a runtime session snapshot', () => {
+test('launchManagedOpenCode records a runtime session snapshot', async () => {
   const projectRoot = makeTempDir();
   const fakeBinDir = path.join(projectRoot, 'bin');
 
@@ -255,7 +255,7 @@ test('launchManagedOpenCode records a runtime session snapshot', () => {
   assert.equal(result.runtimeFoundation.runtimeInterface.environment.OPENKIT_RUNTIME_SESSION_ID, sessions[0].session_id);
 });
 
-test('launchManagedOpenCode reuses caller-provided runtime session id for env and metadata', () => {
+test('launchManagedOpenCode reuses caller-provided runtime session id for env and metadata', async () => {
   const projectRoot = makeTempDir();
   const fakeBinDir = path.join(projectRoot, 'bin');
 
@@ -289,7 +289,7 @@ test('launchManagedOpenCode reuses caller-provided runtime session id for env an
   assert.equal(result.runtimeFoundation.runtimeInterface.environment.OPENKIT_RUNTIME_SESSION_ID, 'pre-generated-session');
 });
 
-test('launchGlobalOpenKit injects saved per-agent model overrides into inline config', () => {
+test('launchGlobalOpenKit injects saved per-agent model overrides into inline config', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let spawnCall = null;
@@ -335,7 +335,7 @@ test('launchGlobalOpenKit injects saved per-agent model overrides into inline co
     },
   });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: {
       OPENCODE_HOME: openCodeHome,
@@ -372,7 +372,7 @@ test('launchGlobalOpenKit injects saved per-agent model overrides into inline co
   ]);
 });
 
-test('launchGlobalOpenKit layers the configured global default profile over current model settings', () => {
+test('launchGlobalOpenKit layers the configured global default profile over current model settings', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let launchSpawnCall = null;
@@ -416,7 +416,7 @@ test('launchGlobalOpenKit layers the configured global default profile over curr
     },
   });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: {
       OPENCODE_HOME: openCodeHome,
@@ -466,7 +466,7 @@ test('launchGlobalOpenKit layers the configured global default profile over curr
   assert.deepEqual(sessions[0].activeAgentModelProfile.appliedAgentIds, ['product-lead-agent']);
 });
 
-test('launchGlobalOpenKit records running profile session before launch and updates it on exit', () => {
+test('launchGlobalOpenKit records running profile session before launch and updates it on exit', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
 
@@ -516,7 +516,7 @@ test('launchGlobalOpenKit records running profile session before launch and upda
     env: { OPENCODE_HOME: openCodeHome },
   });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: {
       OPENCODE_HOME: openCodeHome,
@@ -558,7 +558,7 @@ test('launchGlobalOpenKit records running profile session before launch and upda
   deleteAgentModelProfile(workspacePaths.agentModelProfilesPath, 'daily', { workspacesRoot: workspacePaths.workspacesRoot });
 });
 
-test('launchGlobalOpenKit marks pre-launch profile session failed when opencode spawn is unavailable', () => {
+test('launchGlobalOpenKit marks pre-launch profile session failed when opencode spawn is unavailable', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
 
@@ -598,7 +598,7 @@ test('launchGlobalOpenKit marks pre-launch profile session failed when opencode 
     env: { OPENCODE_HOME: openCodeHome },
   });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: {
       OPENCODE_HOME: openCodeHome,
@@ -641,7 +641,7 @@ test('launchGlobalOpenKit marks pre-launch profile session failed when opencode 
   deleteAgentModelProfile(workspacePaths.agentModelProfilesPath, 'daily', { workspacesRoot: workspacePaths.workspacesRoot });
 });
 
-test('launchGlobalOpenKit applies a valid default profile when another profile has invalid agent models', () => {
+test('launchGlobalOpenKit applies a valid default profile when another profile has invalid agent models', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let launchSpawnCall = null;
@@ -694,7 +694,7 @@ test('launchGlobalOpenKit applies a valid default profile when another profile h
     },
   });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: { OPENCODE_HOME: openCodeHome },
     stdio: 'pipe',
@@ -732,7 +732,7 @@ test('launchGlobalOpenKit applies a valid default profile when another profile h
   assert.deepEqual(sessions[0].activeAgentModelProfile.appliedAgentIds, ['product-lead-agent']);
 });
 
-test('launchGlobalOpenKit falls back when the configured default profile is missing', () => {
+test('launchGlobalOpenKit falls back when the configured default profile is missing', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let launchSpawnCall = null;
@@ -766,7 +766,7 @@ test('launchGlobalOpenKit falls back when the configured default profile is miss
     profiles: {},
   });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: { OPENCODE_HOME: openCodeHome },
     stdio: 'pipe',
@@ -799,7 +799,7 @@ test('launchGlobalOpenKit falls back when the configured default profile is miss
   assert.equal(sessions[0].activeAgentModelProfile, null);
 });
 
-test('launchGlobalOpenKit warns and skips a stale default profile without losing current settings', () => {
+test('launchGlobalOpenKit warns and skips a stale default profile without losing current settings', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let launchSpawnCall = null;
@@ -835,7 +835,7 @@ test('launchGlobalOpenKit warns and skips a stale default profile without losing
     },
   });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: { OPENCODE_HOME: openCodeHome },
     stdio: 'pipe',
@@ -869,7 +869,7 @@ test('launchGlobalOpenKit warns and skips a stale default profile without losing
   assert.equal(sessions[0].activeAgentModelProfile, null);
 });
 
-test('launchGlobalOpenKit warns and skips invalid default profile entries', () => {
+test('launchGlobalOpenKit warns and skips invalid default profile entries', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let launchSpawnCall = null;
@@ -907,7 +907,7 @@ test('launchGlobalOpenKit warns and skips invalid default profile entries', () =
     },
   });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: { OPENCODE_HOME: openCodeHome },
     stdio: 'pipe',
@@ -942,14 +942,14 @@ test('launchGlobalOpenKit warns and skips invalid default profile entries', () =
   assert.equal(sessions[0].activeAgentModelProfile, null);
 });
 
-test('launchGlobalOpenKit preserves shell env over saved local secrets', () => {
+test('launchGlobalOpenKit preserves shell env over saved local secrets', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let spawnCall = null;
   fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
   setSecretValue('CONTEXT7_API_KEY', 'local-secret', { env: { OPENCODE_HOME: openCodeHome } });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: { OPENCODE_HOME: openCodeHome, CONTEXT7_API_KEY: 'shell-secret' },
     stdio: 'pipe',
@@ -963,7 +963,7 @@ test('launchGlobalOpenKit preserves shell env over saved local secrets', () => {
   assert.equal(spawnCall.options.env.CONTEXT7_API_KEY, 'shell-secret');
 });
 
-test('launchGlobalOpenKit ignores unrecorded keychain items and falls back to local env file', () => {
+test('launchGlobalOpenKit ignores unrecorded keychain items and falls back to local env file', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let spawnCall = null;
@@ -973,7 +973,7 @@ test('launchGlobalOpenKit ignores unrecorded keychain items and falls back to lo
   setSecretValue('CONTEXT7_API_KEY', 'stale-keychain-secret', { env, store: 'keychain', mcpId: 'context7', bindingRef: ref, keychainAdapter: { set: () => ({ status: 'stored', ref }) } });
   setSecretValue('CONTEXT7_API_KEY', 'local-fallback-secret', { env });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env,
     stdio: 'pipe',
@@ -987,7 +987,7 @@ test('launchGlobalOpenKit ignores unrecorded keychain items and falls back to lo
   assert.equal(spawnCall.options.env.CONTEXT7_API_KEY, 'local-fallback-secret');
 });
 
-test('launchGlobalOpenKit loads keychain only when matching metadata is recorded', () => {
+test('launchGlobalOpenKit loads keychain only when matching metadata is recorded', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let spawnCall = null;
@@ -1004,7 +1004,7 @@ test('launchGlobalOpenKit loads keychain only when matching metadata is recorded
     writeExecutable(path.join(fakeBinDir, 'security'), '#!/bin/sh\nif [ "$1" = "list-keychains" ]; then exit 0; fi\nif [ "$1" = "find-generic-password" ]; then printf keychain-secret; exit 0; fi\nexit 0\n');
     process.env.PATH = `${fakeBinDir}${path.delimiter}${originalExecPath ?? ''}`;
     const securityPath = path.join(fakeBinDir, 'security');
-    const result = launchGlobalOpenKit(['status'], {
+    const result = await launchGlobalOpenKit(['status'], {
       projectRoot,
       env: {
         ...env,
@@ -1032,7 +1032,7 @@ test('launchGlobalOpenKit loads keychain only when matching metadata is recorded
   }
 });
 
-test('launchGlobalOpenKit falls back to local env when recorded keychain is unavailable', () => {
+test('launchGlobalOpenKit falls back to local env when recorded keychain is unavailable', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let spawnCall = null;
@@ -1042,7 +1042,7 @@ test('launchGlobalOpenKit falls back to local env when recorded keychain is unav
   recordSecretBinding('context7', ['CONTEXT7_API_KEY'], { env, store: 'keychain', envVar: 'CONTEXT7_API_KEY', ref });
   setSecretValue('CONTEXT7_API_KEY', 'local-fallback-secret', { env });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env,
     stdio: 'pipe',
@@ -1056,13 +1056,13 @@ test('launchGlobalOpenKit falls back to local env when recorded keychain is unav
   assert.equal(spawnCall.options.env.CONTEXT7_API_KEY, 'local-fallback-secret');
 });
 
-test('launchGlobalOpenKit records runtime sessions in the managed workspace root', () => {
+test('launchGlobalOpenKit records runtime sessions in the managed workspace root', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
 
   fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: {
       OPENCODE_HOME: openCodeHome,
@@ -1097,14 +1097,14 @@ test('launchGlobalOpenKit records runtime sessions in the managed workspace root
   assert.equal(result.runtimeFoundation.runtimeInterface.environment.OPENKIT_RUNTIME_SESSION_ID, sessions[0].session_id);
 });
 
-test('launchGlobalOpenKit passes runtime session id to OpenCode and records the same id', () => {
+test('launchGlobalOpenKit passes runtime session id to OpenCode and records the same id', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let launchSpawnCall = null;
 
   fs.mkdirSync(path.join(projectRoot, '.git'), { recursive: true });
 
-  const result = launchGlobalOpenKit(['status'], {
+  const result = await launchGlobalOpenKit(['status'], {
     projectRoot,
     env: {
       OPENCODE_HOME: openCodeHome,
@@ -1131,7 +1131,7 @@ test('launchGlobalOpenKit passes runtime session id to OpenCode and records the 
   assert.equal(sessions[0].session_id, 'global-session-a');
 });
 
-test('launchGlobalOpenKit can target a managed worktree for a specific work item', () => {
+test('launchGlobalOpenKit can target a managed worktree for a specific work item', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let spawnCall = null;
@@ -1197,7 +1197,7 @@ test('launchGlobalOpenKit can target a managed worktree for a specific work item
     },
   });
 
-  const result = launchGlobalOpenKit(['--work-item', workItemId, 'status'], {
+  const result = await launchGlobalOpenKit(['--work-item', workItemId, 'status'], {
     projectRoot,
     env: {
       OPENCODE_HOME: openCodeHome,
@@ -1223,7 +1223,7 @@ test('launchGlobalOpenKit can target a managed worktree for a specific work item
   assert.match(result.stdout, /cleanup-worktree task-710/);
 });
 
-test('launchGlobalOpenKit returns prompt_required when mode is missing and no retained worktree exists', () => {
+test('launchGlobalOpenKit returns prompt_required when mode is missing and no retained worktree exists', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   const workItemId = 'task-711';
@@ -1270,7 +1270,7 @@ test('launchGlobalOpenKit returns prompt_required when mode is missing and no re
     ],
   });
 
-  const result = launchGlobalOpenKit(['--work-item', workItemId, 'status'], {
+  const result = await launchGlobalOpenKit(['--work-item', workItemId, 'status'], {
     projectRoot,
     env: {
       OPENCODE_HOME: openCodeHome,
@@ -1287,7 +1287,7 @@ test('launchGlobalOpenKit returns prompt_required when mode is missing and no re
   assert.equal(result.runtimeFoundation, null);
 });
 
-test('launchGlobalOpenKit blocks explicit new when retained worktree already exists', () => {
+test('launchGlobalOpenKit blocks explicit new when retained worktree already exists', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   const workItemId = 'task-712';
@@ -1352,7 +1352,7 @@ test('launchGlobalOpenKit blocks explicit new when retained worktree already exi
     },
   });
 
-  const result = launchGlobalOpenKit(
+  const result = await launchGlobalOpenKit(
     {
       workItemId,
       worktreeMode: 'new',
@@ -1376,7 +1376,7 @@ test('launchGlobalOpenKit blocks explicit new when retained worktree already exi
   assert.match(result.stderr, /worktree-mode reuse\/reopen\/none/);
 });
 
-test('launchGlobalOpenKit blocks explicit reuse when the work item is already done', () => {
+test('launchGlobalOpenKit blocks explicit reuse when the work item is already done', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   const workItemId = 'task-713';
@@ -1442,7 +1442,7 @@ test('launchGlobalOpenKit blocks explicit reuse when the work item is already do
     },
   });
 
-  const result = launchGlobalOpenKit(
+  const result = await launchGlobalOpenKit(
     {
       workItemId,
       worktreeMode: 'reuse',
@@ -1466,7 +1466,7 @@ test('launchGlobalOpenKit blocks explicit reuse when the work item is already do
   assert.match(result.stderr, /use --worktree-mode reopen/);
 });
 
-test('launchGlobalOpenKit blocks explicit reopen when the work item is still active', () => {
+test('launchGlobalOpenKit blocks explicit reopen when the work item is still active', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   const workItemId = 'task-714';
@@ -1531,7 +1531,7 @@ test('launchGlobalOpenKit blocks explicit reopen when the work item is still act
     },
   });
 
-  const result = launchGlobalOpenKit(
+  const result = await launchGlobalOpenKit(
     {
       workItemId,
       worktreeMode: 'reopen',
@@ -1555,7 +1555,7 @@ test('launchGlobalOpenKit blocks explicit reopen when the work item is still act
   assert.match(result.stderr, /use --worktree-mode reuse/);
 });
 
-test('launchGlobalOpenKit reuses retained env propagation without conflict on repeated reuse launches', () => {
+test('launchGlobalOpenKit reuses retained env propagation without conflict on repeated reuse launches', async () => {
   const projectRoot = makeTempDir();
   const openCodeHome = makeTempDir();
   let spawnCallCount = 0;
@@ -1625,7 +1625,7 @@ test('launchGlobalOpenKit reuses retained env propagation without conflict on re
 
   fs.symlinkSync(path.join(projectRoot, '.env'), path.join(worktreePath, '.env'));
 
-  const firstResult = launchGlobalOpenKit(
+  const firstResult = await launchGlobalOpenKit(
     {
       workItemId,
       worktreeMode: 'reuse',
@@ -1645,7 +1645,7 @@ test('launchGlobalOpenKit reuses retained env propagation without conflict on re
     },
   );
 
-  const secondResult = launchGlobalOpenKit(
+  const secondResult = await launchGlobalOpenKit(
     {
       workItemId,
       worktreeMode: 'reuse',
