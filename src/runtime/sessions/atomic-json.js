@@ -25,6 +25,9 @@ export function atomicReadJson(filePath, defaultValue) {
 export async function atomicReadModifyWrite(filePath, mutator, opts = {}) {
   const { defaultValue } = opts;
   ensureDir(filePath);
+  // Pre-lock TOCTOU window: two callers may both observe a missing file and both
+  // write the same defaultValue here. The byte content is identical, so the second
+  // write is harmless. The actual read-modify-write happens under the lock below.
   if (!fs.existsSync(filePath)) {
     if (defaultValue === undefined) {
       throw new Error(`File missing and no defaultValue provided: ${filePath}`);
@@ -38,7 +41,10 @@ export async function atomicReadModifyWrite(filePath, mutator, opts = {}) {
       stale: INDEX_LOCK_TIMEOUT_MS * 5,
     });
   } catch (err) {
-    throw new IndexLockTimeoutError(filePath, INDEX_LOCK_TIMEOUT_MS);
+    if (err && (err.code === 'ELOCKED' || err.code === 'ECOMPROMISED')) {
+      throw Object.assign(new IndexLockTimeoutError(filePath, INDEX_LOCK_TIMEOUT_MS), { cause: err });
+    }
+    throw err;
   }
   try {
     const current = atomicReadJson(filePath, defaultValue);
