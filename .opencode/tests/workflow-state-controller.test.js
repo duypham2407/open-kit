@@ -11,6 +11,7 @@ import {
   advanceStage,
   assignQaOwner,
   addReleaseWorkItem,
+  bootstrapWorkflow,
   cleanupWorkItemWorktree,
   clearVerificationEvidence,
   claimTask,
@@ -4167,4 +4168,136 @@ test("getPolicyStatus detects manual override", () => {
 
   const result = getPolicyStatus(statePath)
   assert.equal(result.hasManualOverride, true)
+})
+
+// ---------------------------------------------------------------------------
+// bootstrapWorkflow
+// ---------------------------------------------------------------------------
+
+test("bootstrapWorkflow creates fresh quick state with intake_payload", () => {
+  const statePath = createTempStateFile()
+  // Delete the fixture state so we can bootstrap fresh
+  fs.unlinkSync(statePath)
+
+  const result = bootstrapWorkflow({
+    lane: "quick",
+    description: "fix the broken header",
+    featureSlug: "fix-broken-header",
+    statePath,
+  })
+
+  assert.equal(result.status, "created")
+  assert.ok(result.feature_id, "should return a feature_id")
+  assert.equal(result.lane, "quick")
+  assert.ok(fs.existsSync(statePath))
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  assert.equal(state.mode, "quick")
+  assert.equal(state.current_stage, "quick_intake")
+  assert.equal(state.current_owner, "MasterOrchestrator")
+  assert.equal(state.intake_payload?.description, "fix the broken header")
+})
+
+test("bootstrapWorkflow creates fresh full state with intake_payload", () => {
+  const statePath = createTempStateFile()
+  fs.unlinkSync(statePath)
+
+  const result = bootstrapWorkflow({
+    lane: "full",
+    description: "build a dashboard v2",
+    featureSlug: "dashboard-v2",
+    statePath,
+  })
+
+  assert.equal(result.status, "created")
+  assert.equal(result.lane, "full")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  assert.equal(state.mode, "full")
+  assert.equal(state.current_stage, "full_intake")
+  assert.equal(state.intake_payload?.description, "build a dashboard v2")
+})
+
+test("bootstrapWorkflow returns conflict when active workflow exists", () => {
+  const statePath = createTempStateFile()
+  // Bootstrap a quick workflow so we have an active in-progress state
+  fs.unlinkSync(statePath)
+  bootstrapWorkflow({
+    lane: "quick",
+    description: "first task",
+    featureSlug: "first-task",
+    statePath,
+  })
+  const existing = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  assert.equal(existing.current_stage, "quick_intake", "first bootstrap should be at quick_intake")
+
+  // Attempt a second bootstrap — must return conflict
+  const result = bootstrapWorkflow({
+    lane: "full",
+    description: "second task",
+    featureSlug: "second-task",
+    statePath,
+  })
+
+  assert.equal(result.status, "conflict")
+  assert.ok(result.activeWorkflow, "should return activeWorkflow info")
+  assert.equal(result.activeWorkflow.mode, "quick")
+  // State file should still be the first quick workflow
+  const afterState = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  assert.equal(afterState.current_stage, "quick_intake")
+})
+
+test("bootstrapWorkflow with archivePrior=true archives and creates fresh", () => {
+  const statePath = createTempStateFile()
+
+  const result = bootstrapWorkflow({
+    lane: "quick",
+    description: "replacement task",
+    featureSlug: "replacement",
+    statePath,
+    archivePrior: true,
+  })
+
+  assert.equal(result.status, "created")
+  assert.equal(result.archived, true)
+  assert.equal(result.lane, "quick")
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  assert.equal(state.mode, "quick")
+  assert.equal(state.current_stage, "quick_intake")
+})
+
+test("bootstrapWorkflow auto-archives when prior workflow is done", () => {
+  const statePath = createTempStateFile()
+  // The fixture state is at full_done / status:done — auto-archive should trigger
+
+  const result = bootstrapWorkflow({
+    lane: "quick",
+    description: "follow-on task",
+    featureSlug: "follow-on",
+    statePath,
+  })
+
+  assert.equal(result.status, "created")
+  assert.equal(result.archived, true)
+  const newState = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  assert.equal(newState.mode, "quick")
+  assert.equal(newState.current_stage, "quick_intake")
+})
+
+test("bootstrapWorkflow throws on invalid lane", () => {
+  const statePath = createTempStateFile()
+  fs.unlinkSync(statePath)
+
+  assert.throws(
+    () => bootstrapWorkflow({ lane: "invalid", description: "test", featureSlug: "test", statePath }),
+    /invalid lane/i,
+  )
+})
+
+test("bootstrapWorkflow throws when description is missing", () => {
+  const statePath = createTempStateFile()
+  fs.unlinkSync(statePath)
+
+  assert.throws(
+    () => bootstrapWorkflow({ lane: "quick", featureSlug: "test", statePath }),
+    /description is required/i,
+  )
 })

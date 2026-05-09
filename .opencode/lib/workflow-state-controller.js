@@ -1842,10 +1842,10 @@ function validateStateObject(state, options = {}) {
   return state
 }
 
-function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason, laneSource, updatedAt }) {
+function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason, laneSource, updatedAt, intakePayload }) {
   const initialStage = getInitialStageForMode(mode)
 
-  return {
+  const state = {
     work_item_id: workItemId,
     feature_id: featureId,
     feature_slug: featureSlug,
@@ -1868,6 +1868,12 @@ function createFreshState({ workItemId, mode, featureId, featureSlug, modeReason
     last_auto_scaffold: null,
     updated_at: updatedAt,
   }
+
+  if (intakePayload !== undefined) {
+    state.intake_payload = intakePayload
+  }
+
+  return state
 }
 
 function buildReadinessSummary(state, context = {}) {
@@ -2183,6 +2189,101 @@ function showWorkItemState(workItemId, customStatePath) {
 
 function createWorkItem(mode, featureId, featureSlug, modeReason, customStatePath) {
   return startTask(mode, featureId, featureSlug, modeReason, customStatePath)
+}
+
+/**
+ * Bootstrap a new workflow for a given lane.
+ *
+ * Atomically:
+ *   1. Checks for an existing active workflow at customStatePath.
+ *   2. If one exists and is not done, returns a conflict signal (unless archivePrior=true).
+ *   3. Creates a fresh work item with intake_payload.description set to the user's raw request.
+ *
+ * @param {object} opts
+ * @param {'quick'|'full'|'migration'} opts.lane
+ * @param {string} opts.description - The user's raw request description (stored in intake_payload).
+ * @param {string} [opts.featureSlug] - Optional slug; derived from description if omitted.
+ * @param {string} opts.statePath - Path to the workflow state file (compatibility mirror path).
+ * @param {boolean} [opts.archivePrior=false] - If true, archive any existing active workflow and proceed.
+ * @returns {{ status: 'created'|'conflict', archived?: boolean, feature_id?: string, lane?: string, activeWorkflow?: object }}
+ */
+function bootstrapWorkflow({ lane, description, featureSlug, statePath, archivePrior = false }) {
+  if (!["quick", "full", "migration"].includes(lane)) {
+    throw new Error(`Invalid lane: ${lane}`)
+  }
+  if (!description || typeof description !== "string") {
+    throw new Error("description is required")
+  }
+  if (!statePath) {
+    throw new Error("statePath is required")
+  }
+
+  const resolvedStatePath = path.resolve(statePath)
+  let archived = false
+
+  // Check for existing state
+  if (fs.existsSync(resolvedStatePath)) {
+    let existing = null
+    try {
+      existing = JSON.parse(fs.readFileSync(resolvedStatePath, "utf8"))
+    } catch {
+      existing = null
+    }
+
+    if (existing && existing.current_stage) {
+      const isDone = existing.status === "done" || (typeof existing.current_stage === "string" && existing.current_stage.endsWith("_done"))
+
+      if (!isDone && !archivePrior) {
+        return {
+          status: "conflict",
+          activeWorkflow: {
+            mode: existing.mode,
+            current_stage: existing.current_stage,
+            current_owner: existing.current_owner,
+            feature_id: existing.feature_id,
+            feature_slug: existing.feature_slug,
+          },
+        }
+      }
+
+      // Archive: remove the mirror so startTask creates a fresh work item as active
+      archived = true
+      fs.unlinkSync(resolvedStatePath)
+    }
+  }
+
+  // Derive slug from description if not provided
+  const slug =
+    featureSlug ||
+    description
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 50) ||
+    "task"
+
+  // Generate a unique feature ID
+  const featureId = `FEATURE-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`
+
+  const commandByLane = { quick: "quick-task", full: "delivery", migration: "migrate" }
+  const modeReason = `Bootstrapped from /${commandByLane[lane] ?? lane} command`
+
+  const intakePayload = {
+    description,
+    bootstrapped_at: new Date().toISOString(),
+    bootstrapped_by: "MasterOrchestrator",
+  }
+
+  // startTask creates the work item, writes it to the store and mirror
+  startTask(lane, featureId, slug, modeReason, resolvedStatePath, { intakePayload })
+
+  return {
+    status: "created",
+    archived,
+    feature_id: featureId,
+    feature_slug: slug,
+    lane,
+  }
 }
 
 function listWorkItems(customStatePath) {
@@ -3916,6 +4017,7 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath, op
   ensureString(modeReason, "mode_reason")
 
   const laneSource = options.laneSource ?? "orchestrator_routed"
+  const intakePayload = options.intakePayload ?? undefined
 
   const workItemId = deriveWorkItemId({ feature_id: featureId })
   const { statePath, projectRoot, runtimeRoot } = ensureWorkItemStoreReady(customStatePath)
@@ -3933,6 +4035,7 @@ function startTask(mode, featureId, featureSlug, modeReason, customStatePath, op
     modeReason,
     laneSource,
     updatedAt: timestamp(),
+    intakePayload,
   })
 
   validateStateObject(nextState)
@@ -4599,6 +4702,7 @@ export {
   appendRollbackCheckpoint,
   advanceStage,
   addReleaseWorkItem,
+  bootstrapWorkflow,
   assignMigrationQaOwner,
   assignQaOwner,
   cancelBackgroundRun,
