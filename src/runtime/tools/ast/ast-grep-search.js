@@ -73,11 +73,13 @@ export function createAstGrepSearchTool({ projectRoot = process.cwd() } = {}) {
           throw spawnResult.error;
         }
 
-        const result = spawnResult.stdout ?? '';
+        const stdoutOutput = spawnResult.stdout ?? '';
+        const stderrOutput = spawnResult.stderr ?? '';
+        const exitStatus = spawnResult.status;
 
         let parsed;
         try {
-          parsed = JSON.parse(result);
+          parsed = JSON.parse(stdoutOutput);
         } catch {
           return {
             status: 'ok',
@@ -86,7 +88,9 @@ export function createAstGrepSearchTool({ projectRoot = process.cwd() } = {}) {
             targetPath: targetPath ? path.relative(projectRoot, targetPath) : '.',
             matches: [],
             matchCount: 0,
-            rawOutput: result.slice(0, 500),
+            rawOutput: stdoutOutput.slice(0, 500),
+            stderrOutput: stderrOutput.slice(0, 500),
+            exitStatus,
           };
         }
 
@@ -107,24 +111,14 @@ export function createAstGrepSearchTool({ projectRoot = process.cwd() } = {}) {
           matchCount: matches.length,
         };
       } catch (error) {
-        // ast-grep exits with code 1 when no matches found (normal)
-        if (error.status === 1) {
-          return {
-            status: 'ok',
-            pattern,
-            lang,
-            targetPath: targetPath ? path.relative(projectRoot, targetPath) : '.',
-            matches: [],
-            matchCount: 0,
-          };
-        }
-
+        // With spawnSync, only spawn-level failures (ENOENT, ETIMEDOUT, etc.)
+        // throw via spawnResult.error rethrow above. Non-zero ast-grep exits
+        // are handled inside the JSON.parse fallback, not here.
         return {
           status: 'error',
+          reason: error?.message ?? String(error),
           pattern,
           lang,
-          reason: error.message?.slice(0, 200) ?? 'ast-grep execution failed',
-          stderr: error.stderr?.slice(0, 200) ?? '',
           matches: [],
           matchCount: 0,
         };
