@@ -80,9 +80,9 @@ These must be fixed before the next release. Topo order: D-1 → 1-C-1 → 1-C-2
 - **Estimated effort:** S
 - **Depends on:** none (semgrep rule from [4-M-4] is bonus, not a blocker)
 
-## Wave 2 — High (14 entries)
+## Wave 2 — High (15 entries)
 
-Topo order: contract drift first (so runtime work that follows lands on a clean contract), then runtime correctness, then security, then test coverage. Specifically:
+Topo order: contract drift first (so runtime work that follows lands on a clean contract), then runtime correctness, then security, then test coverage, then post-audit cleanup. Specifically:
 
 1. [D-1] is in Wave 1.
 2. **Contract drift:** [3-H-2], [3-H-3], [1-H-3] — clean up registry/agent contract before runtime fixes.
@@ -90,6 +90,7 @@ Topo order: contract drift first (so runtime work that follows lands on a clean 
 4. **Install/upgrade safety:** [2-H-1], [2-H-4]
 5. **Security boundary:** [4-H-1], [4-H-2], [4-H-3], [4-H-4]
 6. **Test coverage:** [4-H-5]
+7. **Post-audit:** [N-1] — switch-profiles CLI macOS symlink bug. Standalone, no dependencies; can land anywhere in Wave 2.
 
 ### [3-H-2] Add registry entry for /configure-embedding
 - **Priority:** High
@@ -268,6 +269,21 @@ Topo order: contract drift first (so runtime work that follows lands on a clean 
 - **Estimated effort:** M
 - **Depends on:** none
 
+### [N-1] Make switch-profiles CLI entry-point guard symlink-aware
+- **Priority:** High
+- **Location:** `src/runtime/switch-profiles-cli.js:117`
+- **Root cause:** Entry-point guard uses `import.meta.url === \`file://${process.argv[1]}\``. On macOS, `import.meta.url` resolves through symlinks (`/private/var/...`) while `process.argv[1]` retains the raw path (`/var/...`). The two strings disagree and the CLI body is skipped — the process exits 0 with empty stdout, no diagnostic. Affects any spawn from a symlinked path prefix (macOS system temp, some custom user setups).
+- **Fix approach:** Replace the URL-string comparison with a real-path comparison using `fs.realpathSync(fileURLToPath(import.meta.url)) === fs.realpathSync(process.argv[1])`. Wrap in a try/catch in case `process.argv[1]` is undefined or points at a non-existent file. Add a small fallback (do nothing on guard failure rather than throwing) to preserve the existing safety property: the file is also imported by `src/cli/commands/switch-profiles.js` and must not auto-run when imported.
+- **Acceptance criteria:**
+  - [ ] `tests/cli/openkit-cli.test.js:709` ("openkit run creates CommonJS workflow wrappers without module-boundary warnings") asserts `assert.match(switchProfilesRun.stdout, /No global agent model profiles are available to switch/)` and now passes on macOS.
+  - [ ] `npm run verify:all` exits 0 (no remaining backlog failure).
+  - [ ] New unit test under `tests/runtime/switch-profiles-cli.test.js` (or extension of existing) imports the module and confirms it does NOT execute the CLI body when imported (only when spawned as the process entry-point).
+  - [ ] Manual smoke: `node /tmp/<symlinked-path>/switch-profiles-cli.js` prints the empty-profile message instead of exiting silently.
+- **Risk if fixed wrong:** If `realpathSync` throws (e.g., file deleted between spawn and check), the guard could mistakenly run the CLI when imported. The try/catch + fallback to "do nothing" is the safe direction; never default to "run the CLI."
+- **Estimated effort:** S
+- **Depends on:** none — standalone fix, doesn't touch shared modules.
+- **Notes:** This finding was discovered during Wave 1 baseline investigation; the test (`tests/cli/openkit-cli.test.js:709`) already exists and currently fails. No new test infrastructure is needed.
+
 ## Wave 3 — Medium + Low
 
 May be batched into one or two PRs. Low-priority items can be deferred or done opportunistically alongside related work.
@@ -343,6 +359,7 @@ These were identified during audit but are explicitly **not** addressed in this 
 | [4-H-3]  | `tests/global/keychain-cli-validation.test.js` (new) |
 | [4-H-4]  | `tests/runtime/prompt-file-loader-boundary.test.js` (new) |
 | [4-H-5]  | `tests/runtime/graph-indexer-e2e.test.js` (new) |
+| [N-1]    | `tests/cli/openkit-cli.test.js:640-711` (existing, currently failing on macOS) + new `tests/runtime/switch-profiles-cli.test.js` for import-vs-spawn behavior |
 | Medium / Low / [X-*] | Existing suites + targeted small additions per entry |
 
 After every wave, run `npm run verify:all` and a manual smoke test of all 3 lanes on a fresh project before proceeding to the next wave.

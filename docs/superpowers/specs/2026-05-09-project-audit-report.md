@@ -19,6 +19,15 @@ package_version_audited: 0.5.1
 | Low      | 13    | 4 / 2 / 3 / 3              | 1 (X-2) |
 | **Total**| **52**| —                          | **2 new** |
 
+**Post-audit findings (added during Wave 1 execution)**:
+
+| Priority | Count | Source |
+|----------|------:|--------|
+| Critical | 0 | — |
+| High     | 1 | [N-1] discovered while investigating skipped baseline failure |
+
+The audit's read-only subagents could not execute CLI/test code, so 5 pre-existing test failures and 1 macOS-only CLI bug were initially missed. Four were repaired as Wave 0 baseline cleanup; the fifth ([N-1] below) was deeper than a quick fix and is queued for Wave 2.
+
 (One additional Subagent 3 finding, [3-L-2], was a clean "no action" observation and is excluded from the count above.)
 
 ### Top concerns
@@ -160,6 +169,17 @@ The other three checks were clean: stages in `registry.json` match the FSM `STAG
 - **Location:** `hooks/graph-indexer.js`
 - **Description:** The graph-indexer hook is spawned detached and fire-and-forget on every session start. It builds the in-memory project graph (critical for graph-tool accuracy), but no test in `tests/` or `.opencode/tests/` exercises the hook's binary entry point — only the DB layer is tested.
 - **Suggested fix:** add an integration test under `tests/runtime/` that spawns `graph-indexer.js` against a fixture project and asserts the DB is populated.
+
+### [N-1] switch-profiles CLI silently no-ops on macOS due to symlink-aware import.meta.url comparison (post-audit)
+- **Location:** `src/runtime/switch-profiles-cli.js:117`
+- **Source:** Discovered during Wave 1 baseline investigation when test `tests/cli/openkit-cli.test.js:709` failed with empty stdout.
+- **Description:** The entry-point guard reads `if (import.meta.url === \`file://${process.argv[1]}\`)`. Node.js resolves `import.meta.url` through symlinks (e.g., `file:///private/var/folders/...`), but `process.argv[1]` retains the raw path the shell passed (e.g., `/var/folders/...`). On macOS, the system temp directory `/var/folders/...` is a symlink to `/private/var/folders/...`, so the two strings disagree and the guard is false. The CLI body never runs. The process exits 0 with empty stdout — no error, no diagnostic. End users running `openkit switch-profiles` from any path under `/var/...` (or any other symlinked prefix) hit a silent no-op.
+- **Evidence/repro:**
+  - Direct probe: `import.meta.url` = `file:///private/var/folders/.../switch-profiles-cli.js`, `process.argv[1]` = `/var/folders/.../switch-profiles-cli.js`. The string concatenation yields `file:///var/folders/...`, which does not equal `import.meta.url`.
+  - Test reproduction: `tests/cli/openkit-cli.test.js:698-710` spawns the materialized wrapper at `<tempProject>/.opencode/switch-profiles.js`, which spawns the CLI from `<tempHome>/kits/openkit/src/runtime/switch-profiles-cli.js`. Both paths live under `/var/folders/...` on macOS. Wrapper returns exit 0, but stdout is empty (line 709 assertion fails).
+  - The guard pattern works on Linux (no `/private` symlink prefix) and on macOS when invoked through real-paths only — masking the bug from many environments.
+- **Suggested fix:** Replace the URL-string comparison with a real-path comparison: `realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])`. This handles symlink resolution on both sides. (See https://github.com/nodejs/node/issues/41072 for the underlying Node.js behavior.) The same regression test (`tests/cli/openkit-cli.test.js:698-710`) will then pass, restoring full `verify:all` green status.
+- **Why audit missed:** The four audit subagents were `Explore` (read-only). They did not run tests or invoke CLIs, so could not observe stdout/exit-code behavior. The wrapper code itself is structurally fine and didn't pattern-match any of the issue categories the subagents looked for.
 
 ## Medium
 
