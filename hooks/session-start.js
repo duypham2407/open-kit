@@ -5,6 +5,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
+import { runSessionBanner } from './session-banner.js';
 
 const require = createRequire(import.meta.url);
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -271,6 +272,23 @@ if (stateResult.malformed) {
 // debuggability; OPENKIT_SESSION_START_HIDE_PATHS=1 redacts to "<set>".
 const HIDE_PATHS = process.env.OPENKIT_SESSION_START_HIDE_PATHS === '1';
 const renderPath = (label, value) => `${label}: ${HIDE_PATHS ? '<set>' : value}`;
+
+// Spec §7.3: when OPENKIT_SESSION_ID is set, render the per-tab session
+// banner before the legacy runtime-status block so the box is the first
+// thing the user sees in a fresh tab. No-op when the env var is unset.
+if (process.env.OPENKIT_SESSION_ID && !process.env.OPENKIT_SESSION_START_NO_BANNER) {
+  try {
+    runSessionBanner({
+      env: process.env,
+      cwd: projectRoot,
+      stream: process.stdout,
+    });
+  } catch (error) {
+    if (process.env.OPENKIT_SESSION_START_DEBUG) {
+      process.stderr.write(`[session-banner] ${error instanceof Error ? error.message : String(error)}\n`);
+    }
+  }
+}
 
 print('<openkit_runtime_status>');
 print(`kit: ${kitName} v${kitVersion}`);
