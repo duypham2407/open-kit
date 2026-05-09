@@ -51,16 +51,23 @@ test('kernel.bootstrapWorkflow creates state on fresh project', () => {
   assert.equal(state.intake_payload?.description, 'bootstrap fresh project test');
 });
 
-test('kernel.canWriteState is true after fix (always resolves a path)', () => {
+test('kernel.canWriteState is false before bootstrap, true after', () => {
   const tempStatePath = makeTempStatePath();
   const kernel = createWorkflowKernelAdapter({
     projectRoot: PROJECT_ROOT,
     env: { ...process.env, OPENKIT_WORKFLOW_STATE: tempStatePath },
   });
 
-  // After Task 7 fix: canWriteState is exposed and returns true
+  // canWriteState is exposed for callers that need to short-circuit before
+  // attempting a write. Pre-bootstrap: returns false because the state file
+  // does not exist yet. Post-bootstrap: returns true because the file is
+  // present. bootstrapWorkflow itself bypasses this guard and goes directly
+  // to the controller, so it can run even when canWriteState is false.
   assert.equal(typeof kernel.canWriteState, 'function', 'canWriteState should be exposed');
-  assert.equal(kernel.canWriteState(), true, 'canWriteState should return true (path always resolves)');
+  assert.equal(kernel.canWriteState(), false, 'canWriteState should be false before bootstrap');
+
+  kernel.bootstrapWorkflow({ lane: 'quick', description: 'canWriteState test' });
+  assert.equal(kernel.canWriteState(), true, 'canWriteState should be true after bootstrap');
 });
 
 test('kernel.canReadState is false before bootstrap, true after', () => {

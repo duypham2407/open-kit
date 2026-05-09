@@ -468,7 +468,7 @@ export function renderGlobalDoctorSummary(result) {
     }
   }
 
-  const defaultEntry = getCommandInstructionContract('task');
+  const defaultEntry = getCommandInstructionContract('quick-task');
   if (defaultEntry) {
     lines.push(`Default session entrypoint: ${DEFAULT_ENTRY_COMMAND}`);
     lines.push(`Next action after launch: ${defaultEntry.nextAction}`);
