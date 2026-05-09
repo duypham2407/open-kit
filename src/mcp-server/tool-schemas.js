@@ -309,6 +309,34 @@ export const TOOL_SCHEMAS = {
     },
   },
 
+  'tool.bootstrap-workflow': {
+    description:
+      'Bootstrap workflow-state.json for a fresh lane. MasterOrchestrator must call this on the first command in a project to initialize state.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        lane: {
+          type: 'string',
+          enum: ['quick', 'full', 'migration'],
+          description: 'The lane to bootstrap (quick / full / migration).',
+        },
+        description: {
+          type: 'string',
+          description: "The user's raw task request text.",
+        },
+        featureSlug: {
+          type: 'string',
+          description: 'Optional. Stable slug used in feature_id; auto-generated when omitted.',
+        },
+        archivePrior: {
+          type: 'boolean',
+          description: 'Optional. When true, archives any existing in-progress workflow before bootstrapping the new one.',
+        },
+      },
+      required: ['lane', 'description'],
+    },
+  },
+
   'tool.runtime-summary': {
     description: 'Reads workflow-backed runtime summary including capabilities and tool availability.',
     inputSchema: {
