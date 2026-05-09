@@ -43,14 +43,11 @@ test("Quick Agent stage guidance enforces two explicit user confirmations", () =
 
 test("command and runtime guidance align to options-in-quick_plan contract", () => {
   const quickTaskCommand = readProjectFile("commands/quick-task.md")
-  const taskCommand = readProjectFile("commands/task.md")
   const instructionContracts = readProjectFile("src/runtime/instruction-contracts.js")
   const runtimeGuidance = readProjectFile(".opencode/lib/runtime-guidance.js")
 
   assert.match(quickTaskCommand, /During `quick_plan`:[^\n]*present 3 options by default/i)
   assert.match(quickTaskCommand, /require separate plan confirmation before `quick_implement`/i)
-
-  assert.match(taskCommand, /Quick Agent will first confirm understanding, then analyze options in quick_plan/i)
 
   assert.match(instructionContracts, /confirms understanding and analyzes options in quick_plan/i)
   assert.match(instructionContracts, /'understanding confirmation', 'solution options in quick_plan', 'selected-option execution plan', 'plan confirmation', 'test evidence'/i)

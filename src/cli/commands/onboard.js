@@ -49,7 +49,7 @@ function renderSurfaceGuidance() {
   return [
     'Surface boundaries:',
     '- Preferred product path (global_cli): `npm install -g @duypham93/openkit` -> `openkit doctor` -> `openkit run`; maintain with `openkit upgrade` and `openkit uninstall`.',
-    '- In-session workflow path (in_session): use `/task`, `/quick-task`, `/migrate`, or `/delivery` after OpenCode launches.',
+    '- In-session workflow path (in_session): use `/quick-task`, `/delivery`, or `/migrate` after OpenCode launches.',
     '- Compatibility runtime path (compatibility_runtime): use `node .opencode/workflow-state.js ...` for workflow-state inspection, resume, task-board, issue, and evidence diagnostics.',
     '- Validation split: OpenKit runtime checks are not target-project app validation; use target-project app validation only when that project defines build, lint, or test commands.',
   ].join('\n');

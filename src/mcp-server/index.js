@@ -214,7 +214,7 @@ async function main() {
           contents: [{
             uri,
             mimeType: 'text/markdown',
-            text: '# No Active Workflow\n\nNo workflow state found. Start a workflow with /task, /quick-task, /migrate, or /delivery.',
+            text: '# No Active Workflow\n\nNo workflow state found. Start a workflow with /quick-task, /delivery, or /migrate.',
           }],
         };
       }
@@ -271,7 +271,7 @@ async function main() {
           contents: [{
             uri,
             mimeType: 'application/json',
-            text: JSON.stringify({ status: 'no_workflow', message: 'No active workflow. Start one with /task, /quick-task, /migrate, or /delivery.' }, null, 2),
+            text: JSON.stringify({ status: 'no_workflow', message: 'No active workflow. Start one with /quick-task, /delivery, or /migrate.' }, null, 2),
           }],
         };
       }

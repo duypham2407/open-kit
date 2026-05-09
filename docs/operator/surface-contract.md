@@ -12,16 +12,15 @@ Use this document to decide which OpenKit surface to use for a given goal.
 - capability configuration: `openkit configure mcp ...` for bundled MCP discovery, local-only key storage, scope materialization, and MCP readiness checks
 - optional helper: `openkit onboard` for a dry onboarding summary before launch
 - use it for: launching OpenCode, checking global readiness, managing reusable global agent model profiles, and managing the installed kit
-- default path: `npm install -g @duypham93/openkit` -> `openkit doctor` -> `openkit run` -> `/task`
+- default path: `npm install -g @duypham93/openkit` -> `openkit doctor` -> `openkit run` -> pick lane (`/quick-task`, `/delivery`, or `/migrate`)
 - note: `openkit install` and `openkit install-global` are manual/compatibility setup helpers, not the preferred product onboarding path
 
 ### 2. In-Session Workflow Surface (`in_session`)
 
 - audience: operators inside OpenCode
 - validation label: `in_session`
-- primary commands: `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, `/switch-profiles`
+- primary commands: `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, `/switch-profiles`
 - use it for: choosing the lane, moving work through the workflow, invoking the mode-aware team, and switching the current session to an existing global agent model profile
-- default path: start with `/task` unless the lane is already obvious
 
 ### 3. Compatibility And Maintainer Runtime Surface (`compatibility_runtime`)
 
@@ -43,8 +42,7 @@ Use this document to decide which OpenKit surface to use for a given goal.
 | manage reusable global agent model profiles | product surface | `openkit profiles --list`, `--create`, `--edit`, `--set-default`, `--delete` |
 | directly switch the active profile for only the current runtime session | product surface | `openkit switch-profiles`, `openkit switch` |
 | inspect or configure bundled MCPs | product surface | `openkit configure mcp list`, `doctor`, `enable`, `disable`, `set-key`, `unset-key`, `test` |
-| choose the correct lane | in-session workflow surface | `/task` |
-| force a known lane | in-session workflow surface | `/quick-task`, `/migrate`, `/delivery` |
+| choose the lane | in-session workflow surface | `/quick-task`, `/migrate`, or `/delivery` |
 | request an in-session profile switch through a slash prompt template | in-session workflow surface | `/switch-profiles` |
 | inspect active workflow state | compatibility runtime surface | `node .opencode/workflow-state.js status` |
 | get a human-readable resume snapshot | compatibility runtime surface | `node .opencode/workflow-state.js resume-summary` |
@@ -84,7 +82,7 @@ Use this document to decide which OpenKit surface to use for a given goal.
 ## Permission Rule
 
 - The command permission policy source of truth is `assets/default-command-permission-policy.json`. Global kit/profile materialization projects it into the OpenKit-managed OpenCode configs used by `openkit run`; `.opencode/opencode.json` is an authoring/compatibility projection. OpenKit-only metadata such as `commandPermissionPolicy` must not be embedded as top-level keys in OpenCode-validated `opencode.json` files.
-- OpenKit's desired behavior is default allow for routine non-dangerous commands. Recommended routine examples include `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `openkit profiles --list`, `/task`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git status`, `git log`, `git diff`, and standard edit/write flows.
+- OpenKit's desired behavior is default allow for routine non-dangerous commands. Recommended routine examples include `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `openkit profiles --list`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git status`, `git log`, `git diff`, and standard edit/write flows.
 - Policy-listed dangerous commands must require explicit confirmation first. This covers deletion (`rm`, `rmdir`, `unlink`), destructive git/discard/force-push commands, publish/release/deploy commands, database destructive forms, and privileged/system-impacting commands represented in the policy.
 - Treat deletion and destructive git/release operations as confirmation-required even when the target looks generated or disposable; OpenKit's agent git/release safety protocol remains binding regardless of the permission map.
 - OpenCode default-allow plus exception support is currently unverified, so OpenKit reports the effective policy support as `degraded` and does not guarantee prompt-free execution when upstream still prompts.

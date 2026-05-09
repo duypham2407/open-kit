@@ -41,7 +41,7 @@ export function createAdvanceStageTool({ workflowKernel }) {
       if (!state) {
         return {
           status: 'error',
-          reason: 'No workflow state found. Initialize a workflow first via /task, /quick-task, /migrate, or /delivery.',
+          reason: 'No workflow state found. Initialize a workflow first via /quick-task, /delivery, or /migrate.',
         };
       }
 

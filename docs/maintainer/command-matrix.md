@@ -12,11 +12,10 @@ Use this matrix when you are unsure which OpenKit command surface owns a task.
 | refresh the managed global kit | operator | `openkit upgrade` |
 | remove the managed global kit | operator | `openkit uninstall` |
 | preview safest onboarding path | operator | `openkit onboard` |
-| choose the workflow lane in-session | operator | `/task` |
+| enter quick lane | operator | `/quick-task` |
+| enter migration lane | operator | `/migrate` |
+| enter full delivery lane | operator | `/delivery` |
 | plan browser verification in-session | operator | `/browser-verify` |
-| directly enter quick lane | operator | `/quick-task` |
-| directly enter migration lane | operator | `/migrate` |
-| directly enter full lane | operator | `/delivery` |
 | inspect active runtime summary | maintainer | `node .opencode/workflow-state.js status` |
 | inspect active runtime summary quickly | maintainer | `node .opencode/workflow-state.js status --short` |
 | inspect resumable context in plain language | maintainer | `node .opencode/workflow-state.js resume-summary` |
@@ -78,7 +77,7 @@ Use this sequence for normal product usage and new operator docs:
 
 - `openkit doctor` is not a replacement for `node .opencode/workflow-state.js doctor`
 - `node .opencode/workflow-state.js show` is not the preferred first command for operators
-- `/task` chooses the lane; it does not replace install or launch commands
+- `/quick-task`, `/migrate`, and `/delivery` choose the lane; they do not replace install or launch commands
 - `/browser-verify`, `/start-work`, `/handoff`, `/stop-continuation`, and `/refactor` are runtime/product ergonomics; they do not mutate workflow approvals or completion state by themselves
 - `openkit install` and `openkit install-global` are manual or compatibility setup paths, not the preferred operator onboarding path
 - OpenKit runtime commands do not prove target-project app build, lint, or test behavior unless that project declares the relevant commands

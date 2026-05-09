@@ -136,14 +136,6 @@
     ],
     "commands": [
       {
-        "id": "command.task",
-        "name": "/task",
-        "path": "commands/task.md",
-        "audience": "operator",
-        "surface": "in-session",
-        "modes": ["quick", "migration", "full"]
-      },
-      {
         "id": "command.quick-task",
         "name": "/quick-task",
         "path": "commands/quick-task.md",
@@ -166,14 +158,6 @@
         "audience": "operator",
         "surface": "in-session",
         "modes": ["full"]
-      },
-      {
-        "id": "command.brainstorm",
-        "name": "/brainstorm",
-        "path": "commands/brainstorm.md",
-        "audience": "operator",
-        "surface": "in-session",
-        "modes": ["migration", "full"]
       },
       {
         "id": "command.write-solution",

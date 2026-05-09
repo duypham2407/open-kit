@@ -45,7 +45,7 @@ test('MCP secret package readiness validation rejects missing files and runtime/
   const packageFiles = REQUIRED_PACKAGE_FILES
     .filter((filePath) => filePath !== 'src/global/mcp/secret-stores/keychain-adapter.js')
     .concat([
-      'assets/install-bundle/opencode/commands/task.md',
+      'assets/install-bundle/opencode/commands/quick-task.md',
       'assets/install-bundle/opencode/agents/FullstackAgent.md',
       '.opencode/workflow-state.json',
       'tmp/openkit/secrets.env',

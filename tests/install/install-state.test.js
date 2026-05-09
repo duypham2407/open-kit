@@ -82,7 +82,6 @@ test("asset manifest defines the explicit OpenCode-native phase 1 bundle", () =>
     "opencode.agent.QAAgent",
     "opencode.agent.QuickAgent",
     "opencode.agent.SolutionLead",
-    "opencode.command.brainstorm",
     "opencode.command.delivery",
     "opencode.command.execute-solution",
     "opencode.command.configure-agent-models",
@@ -90,7 +89,6 @@ test("asset manifest defines the explicit OpenCode-native phase 1 bundle", () =>
     "opencode.command.switch-profiles",
     "opencode.command.migrate",
     "opencode.command.quick-task",
-    "opencode.command.task",
     "opencode.command.write-solution",
     "opencode.context.lane-selection",
     "opencode.skill-catalog",
@@ -350,14 +348,14 @@ test("bundled asset manifest matches the derived asset bundle on disk", () => {
   assert.deepEqual(validation.missingSourceSkillCatalogEntries, [])
   assert.deepEqual(validation.repoBackedSkillCatalogEntriesMissingSourceFiles, [])
   assert.deepEqual(validation.sourceSkillsMissingInstallBundleDecision, [])
-  assert.equal(validation.bundleFileCount, 40)
+  assert.equal(validation.bundleFileCount, 38)
   assert.deepEqual(validation.extraBundledFiles, [])
 })
 
 test("bundled asset validator reports drift between source and derived copy", () => {
   const testDir = path.dirname(fileURLToPath(import.meta.url))
   const projectRoot = path.resolve(testDir, "../..")
-  const bundledFilePath = path.join(projectRoot, "assets/install-bundle/opencode/commands/task.md")
+  const bundledFilePath = path.join(projectRoot, "assets/install-bundle/opencode/commands/quick-task.md")
   const originalContents = fs.readFileSync(bundledFilePath, "utf8")
 
   fs.writeFileSync(bundledFilePath, `${originalContents}\n<!-- drift -->\n`, "utf8")
@@ -368,9 +366,9 @@ test("bundled asset validator reports drift between source and derived copy", ()
     assert.deepEqual(validation.missingFiles, [])
     assert.deepEqual(validation.mismatchedFiles, [
       {
-        id: "opencode.command.task",
-        sourcePath: "commands/task.md",
-        bundledPath: "assets/install-bundle/opencode/commands/task.md",
+        id: "opencode.command.quick-task",
+        sourcePath: "commands/quick-task.md",
+        bundledPath: "assets/install-bundle/opencode/commands/quick-task.md",
       },
     ])
   } finally {

@@ -65,6 +65,43 @@ When designing solution packages for migration or refactoring work, prefer using
 - keep repository realism intact; do not invent hidden tooling or infrastructure
 - if the user is really asking for an external capability or reusable workflow that OpenKit may not bundle yet, use `find-skills` before recommending a new skill source
 
+## Brainstorm-then-plan in migration_strategy
+
+When you receive control in `migration_strategy`, run a discovery dialogue focused on migration-specific concerns before producing the migration plan:
+
+1. **Discovery dialogue** with the user, covering:
+   - What stack/lib/version is being migrated and to what
+   - Preserved invariants: layouts, flows, contracts, core logic that MUST stay identical
+   - Baseline evidence: how do we prove the current behavior so we can compare after?
+   - Compatibility blockers: what's framework-coupled and must be decoupled?
+   - Risks and rollback plan
+   - Slice strategy: how to migrate incrementally vs big-bang
+
+2. **Build the migration plan** at `docs/solution/YYYY-MM-DD-<slug>.md` with this structure:
+   ```markdown
+   # Migration plan: <name>
+
+   ## Migration target
+   ## Preserved invariants
+   ## Baseline evidence
+   ## Migration slices (ordered)
+   ## Risks and rollback
+   ## Verification approach
+
+   ---
+
+   ## Appendix A: Discovery notes
+   ## Appendix B: Decisions made during discovery
+   ```
+
+3. **Curation rules:** same as Product Lead — main sections distill insights, Appendix B holds re-litigable decisions.
+
+4. **Lane re-check:** If brainstorm reveals significant new product behavior (not just preserve-and-swap), escalate to MO with the phrase: "Lane re-check: this looks more like /delivery."
+
+5. **Gate `migration.strategy_approved`:** Present main sections to user. User confirms → record via `tool.set-approval`. Loop back if more discovery needed.
+
+6. Record `state.artifacts.migration_plan = "docs/solution/YYYY-MM-DD-<slug>.md"`.
+
 ## Planning Discipline
 
 - optimize for execution clarity, not document completeness theater

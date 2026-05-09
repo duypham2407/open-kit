@@ -4,7 +4,7 @@ export const TOOL_ADAPTERS = [
     name: 'OpenCode',
     status: 'supported',
     delivery: 'managed global profile with repository-local compatibility runtime',
-    defaultEntryCommand: '/task',
+    defaultEntryCommand: '/quick-task',
     launchCommand: 'openkit run',
     notes: 'Current first-class delivery surface for OpenKit.',
   },

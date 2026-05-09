@@ -69,11 +69,9 @@ function setupTempRuntime(projectRoot) {
       },
         commands: {
           available: [
-            "commands/task.md",
             "commands/quick-task.md",
             "commands/migrate.md",
             "commands/delivery.md",
-            "commands/brainstorm.md",
             "commands/write-solution.md",
             "commands/execute-solution.md",
             "commands/configure-agent-models.md",
@@ -123,7 +121,7 @@ function setupTempRuntime(projectRoot) {
       "",
       "Quick Task+ is the live semantics of the quick lane, not a third lane.",
       "Mode enums remain `quick`, `migration`, and `full`.",
-      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/configure-agent-models`, and `/switch-profiles`.",
+      "Commands remain `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/configure-agent-models`, and `/switch-profiles`.",
       "Migration is the dedicated upgrade and modernization lane.",
       "Migration work must stay free of task boards.",
       "Migration must preserve behavior first and decouple blockers before broad upgrade work.",
@@ -184,7 +182,7 @@ function setupTempRuntime(projectRoot) {
     "utf8",
   )
 
-  for (const commandName of ["task", "quick-task", "migrate", "delivery", "brainstorm", "write-solution", "execute-solution", "configure-agent-models", "switch-profiles"]) {
+  for (const commandName of ["quick-task", "migrate", "delivery", "write-solution", "execute-solution", "configure-agent-models", "switch-profiles"]) {
     fs.writeFileSync(path.join(commandsDir, `${commandName}.md`), `# ${commandName}\n`, "utf8")
   }
 
@@ -261,7 +259,7 @@ test("doctor reports contract consistency failures when quick/task-board separat
       "",
       "Quick Task+ is the live semantics of the quick lane, not a third lane.",
       "Mode enums remain `quick`, `migration`, and `full`.",
-      "Commands remain `/task`, `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, and `/configure-agent-models`.",
+      "Commands remain `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, and `/configure-agent-models`.",
       "Quick stages: `quick_intake -> quick_plan -> quick_implement -> quick_test -> quick_done`.",
       "Migration work must stay free of task boards.",
       "Migration must preserve behavior first and decouple blockers before broad upgrade work.",

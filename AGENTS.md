@@ -24,7 +24,7 @@ The kit is structured into several core directories:
 
 - `agents/`: Definitions for the primary team roles plus helper subagents such as `code-reviewer.md` and `quick-agent.md`
 - `skills/`: Composable workflow procedures (TDD, brainstorming, planning, debugging)
-- `commands/`: User-facing triggers such as `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, and `/switch-profiles`
+- `commands/`: User-facing triggers such as `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, and `/switch-profiles`
 - `context/`: Shared intelligence (`navigation.md`, `core/code-quality.md`, `core/workflow.md`)
 - `hooks/`: Session bootstrap integration (`session-start`)
 - `.opencode/`: Configuration for the OpenCode environment
@@ -285,7 +285,7 @@ Use `context/core/workflow.md` as the canonical workflow reference and adapt it 
 - Use feedback loops. Implementation is not complete until validation has run or the lack of validation tooling has been called out clearly
 - Do not skip review or validation because a task looks simple
 - Route issues by type and by mode: quick bugs, design flaws, and requirement gaps stay in quick mode and are reported to the user by Quick Agent without auto-escalation; only repeated failures crossing the retry threshold trigger escalation to full delivery; migration bugs and compatibility flaws loop within migration mode, but product or requirement ambiguity must escalate to full delivery
-- Lane-lock rule: when the user explicitly invokes `/quick-task`, `/migrate`, or `/delivery`, set `lane_source = user_explicit`; Master Orchestrator must honor that choice and may only issue one advisory warning if it detects a mismatch; it must not override the lane
+- Lane-lock rule: when the user invokes `/quick-task`, `/migrate`, or `/delivery`, set `lane_source = user_explicit`; Master Orchestrator must honor that choice and may only issue one advisory warning if it detects a mismatch; it must not override the lane
 - Treat parallel support conservatively: only rely on task-board coordination, active-work-item switching, and task-level owner commands that the checked-in runtime actually enforces
 - Do not create commits unless the user explicitly asks for them, even if agent-level instructions mention frequent commit opportunities
 

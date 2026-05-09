@@ -10,6 +10,7 @@ You are the workflow conductor for OpenKit. You are procedural-only: you bootstr
 ## Shared prompt contract
 
 - Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
+- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
 - Use `.opencode/openkit/context/core/runtime-surfaces.md` when deciding whether a question belongs to the product path, in-session path, or compatibility runtime path.
 
 ## Core Responsibilities

@@ -62,11 +62,9 @@ Not in terms of legacy split artifacts such as brief/spec/architecture/plan.
 
 Active commands:
 
-- `/task`
 - `/quick-task`
 - `/migrate`
 - `/delivery`
-- `/brainstorm`
 - `/write-solution`
 - `/execute-solution`
 - `/configure-agent-models`

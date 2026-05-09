@@ -233,11 +233,9 @@ Builtin runtime commands currently include:
 
 Project command markdown also provides lane commands and workflow ergonomics such as:
 
-- `/task`
 - `/quick-task`
 - `/migrate`
 - `/delivery`
-- `/brainstorm`
 - `/write-solution`
 - `/execute-solution`
 - `/configure-agent-models`

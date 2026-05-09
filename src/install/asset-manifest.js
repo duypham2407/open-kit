@@ -63,12 +63,6 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     status: "active",
   },
   {
-    id: "opencode.command.brainstorm",
-    assetClass: "commands",
-    sourcePath: "commands/brainstorm.md",
-    bundledPath: "assets/install-bundle/opencode/commands/brainstorm.md",
-  },
-  {
     id: "opencode.command.delivery",
     assetClass: "commands",
     sourcePath: "commands/delivery.md",
@@ -109,12 +103,6 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     assetClass: "commands",
     sourcePath: "commands/quick-task.md",
     bundledPath: "assets/install-bundle/opencode/commands/quick-task.md",
-  },
-  {
-    id: "opencode.command.task",
-    assetClass: "commands",
-    sourcePath: "commands/task.md",
-    bundledPath: "assets/install-bundle/opencode/commands/task.md",
   },
   {
     id: "opencode.command.write-solution",

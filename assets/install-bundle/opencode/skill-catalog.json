@@ -17,7 +17,6 @@
       ],
       "stages": [
         "quick_intake",
-        "quick_brainstorm",
         "quick_plan",
         "quick_implement",
         "quick_test",
@@ -96,7 +95,7 @@
         "in_session_agent"
       ],
       "stages": [
-        "quick_brainstorm",
+        "quick_plan",
         "migration_baseline",
         "migration_strategy",
         "full_product",
@@ -651,7 +650,6 @@
         "QuickAgent"
       ],
       "stages": [
-        "quick_brainstorm",
         "quick_plan",
         "migration_baseline",
         "migration_strategy",
@@ -724,7 +722,7 @@
         "QAAgent"
       ],
       "stages": [
-        "quick_brainstorm",
+        "quick_plan",
         "migration_baseline",
         "migration_strategy",
         "full_product",

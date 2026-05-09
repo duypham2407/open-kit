@@ -15,7 +15,6 @@ You are operating within the OpenKit AI Software Factory.
 | **Quick** | `/quick-task` | Daily bounded tasks, single-agent lifecycle |
 | **Full Delivery** | `/delivery` | Feature work, multi-role pipeline with gates |
 | **Migration** | `/migrate` | Upgrades, modernization, compatibility work |
-| **Auto-route** | `/task` | Let the system classify and route |
 
 ## Classification Criteria
 

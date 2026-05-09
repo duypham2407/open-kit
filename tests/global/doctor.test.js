@@ -43,7 +43,7 @@ test('global doctor reports next steps for install-missing', () => {
   assert.match(output, /OpenKit version:/);
   assert.match(output, /Next: Run openkit run for first-time setup\./);
   assert.match(output, /Recommended command: openkit run/);
-  assert.match(output, /Default session entrypoint: \/task/);
+  assert.match(output, /Default session entrypoint: \/quick-task/);
 });
 
 test('global doctor reports next steps for healthy installs', () => {
@@ -85,7 +85,7 @@ test('global doctor reports next steps for healthy installs', () => {
 
   const output = renderGlobalDoctorSummary(result);
   assert.match(output, /OpenKit version:/);
-  assert.match(output, /Default session entrypoint: \/task/);
+  assert.match(output, /Default session entrypoint: \/quick-task/);
   assert.match(output, /Workspace state path:/);
   assert.match(output, /Compatibility shim root:/);
   assert.match(output, /Workspace shim root:/);

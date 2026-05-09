@@ -1,13 +1,6 @@
-export const DEFAULT_ENTRY_COMMAND = '/task';
+export const DEFAULT_ENTRY_COMMAND = '/quick-task';
 
 export const COMMAND_INSTRUCTION_CONTRACTS = {
-  task: {
-    command: '/task',
-    purpose: 'Default entrypoint that lets the Master Orchestrator choose the safest lane.',
-    nextAction: 'Summarize the request, classify the dominant uncertainty, and route into quick, migration, or full.',
-    expectedOutputs: ['mode choice', 'mode_reason', 'first stage initialized'],
-    whenToUse: 'Use this unless the lane is already obvious.',
-  },
   'quick-task': {
     command: '/quick-task',
     purpose: 'Direct quick-lane entry routed to Quick Agent with no Master Orchestrator involvement.',
@@ -78,7 +71,7 @@ export function getCommandInstructionContract(commandName) {
 }
 
 export function listPrimaryEntryContracts() {
-  return ['task', 'quick-task', 'migrate', 'delivery']
+  return ['quick-task', 'migrate', 'delivery']
     .map((commandName) => COMMAND_INSTRUCTION_CONTRACTS[commandName])
     .filter(Boolean);
 }

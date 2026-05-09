@@ -35,7 +35,6 @@ For the canonical workflow contract, including lane semantics, stage order, esca
 
 ## `lane_source` Values
 
-- `orchestrator_routed` — the Master Orchestrator chose the lane via `/task`
 - `user_explicit` — the user chose the lane directly via `/quick-task`, `/migrate`, or `/delivery`
 
 When `lane_source` is `user_explicit`, the Master Orchestrator must not reject, reroute, or auto-escalate the lane. It may issue a single advisory warning, but the user's choice is final unless the user explicitly requests a lane change.

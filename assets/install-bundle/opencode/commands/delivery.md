@@ -1,20 +1,27 @@
 ---
-description: "Starts the Full Delivery lane for feature work and higher-risk changes."
+description: "Starts the Full Delivery lane. Master Orchestrator bootstraps workflow state, then dispatches Product Lead for discovery brainstorm and scope."
 ---
 
 # Command: `/delivery`
 
-Use `/delivery` when work needs the full lane from the start or when quick or migration work has already escalated.
+Use `/delivery` for feature work where product behavior, requirements, or cross-boundary design needs deep discovery and explicit scoping.
+
+## What this command does
+
+1. Dispatches **Master Orchestrator** with `lane=full` and the user's request as `description`.
+2. MO calls `tool.bootstrap-workflow` to write `workflow-state.json` (or handles archive/conflict).
+3. MO calls `tool.advance-stage` to move from `full_intake` to `full_product`.
+4. **Product Lead** receives control in `full_product` and runs the brainstorm dialogue + scope package authorship.
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
+- Follow `.opencode/openkit/context/core/prompt-contracts.md` for shared runtime-path, verification, and tool-substitution rules.
 - Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
 
 ## Preconditions
 
-- The request satisfies one or more full-lane triggers in `context/core/workflow.md`
-- If this is resumed work, escalation context or the current full stage must be read from workflow state before continuing
+- The request is feature-shaped: product behavior, requirements, or cross-boundary solution design needs explicit discovery.
+- If brainstorm reveals the work is purely a stack/library swap, Product Lead escalates to MO who asks the user before switching to `/migrate`.
 
 ## Canonical docs to load
 
@@ -25,41 +32,40 @@ Use `/delivery` when work needs the full lane from the start or when quick or mi
 - `.opencode/openkit/context/core/approval-gates.md`
 - `.opencode/openkit/context/core/project-config.md`
 - `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/workflow-state.json` when resuming
-- `.opencode/work-items/` when managed work-item backing state is relevant; treat `.opencode/openkit/work-items/` as compatibility-only when present
+- `.opencode/openkit/workflow-state.json` after bootstrap
 
-For operator checks, use the current workflow-state utility surface: `status`, `doctor`, `show`, and `validate`.
+## Stage chain
 
-## Expected action
+```
+full_intake (MO) → full_product (Product Lead: brainstorm + scope) → full_solution → full_implementation → full_code_review → full_qa → full_done
+```
 
-- The user chose this lane explicitly; record `lane_source = user_explicit`, `mode = full`, and `mode_reason` in workflow state
-- Tell the user the next action in full-delivery language: initialize intake, route to `Product Lead` for `full_product`, then hand off to `Solution Lead` for `full_solution`
-- Initialize `full_intake`
-- Route to `Product Lead` to begin the Full Delivery chain defined in `context/core/workflow.md`
-- Track approval gates in workflow state before each stage advance
-- Use this lane when the dominant uncertainty is product behavior, requirements, or cross-boundary solution design rather than compatibility modernization
+`full_intake` is MO-only and ephemeral.
+
+## Scope package responsibility
+
+Product Lead writes the scope at `docs/scope/YYYY-MM-DD-<slug>.md` with main sections (problem, success criteria, constraints, acceptance criteria, out of scope, open questions) plus Appendix A (discovery notes) and Appendix B (decisions). Downstream agents read main sections by default; they read Appendix B for non-obvious decisions and Appendix A only when needed.
 
 ## Lane authority
 
-The user selected `/delivery` explicitly. This is a **lane lock**: the Master Orchestrator must honor the user's lane choice.
-
-- Do **not** reject, reroute, or override the lane to `quick` or `migration`
-- If the command is entered from an active quick or migration context, preserve escalation metadata while moving into `full_intake`
-- If the Master Orchestrator sees risk factors that suggest a different lane would be more appropriate (e.g. the work is behavior-preserving modernization that fits migration), it must issue a **single advisory warning** explaining the concern and the recommended alternative
-- After the warning, if the user does not change their mind, proceed in full delivery mode without further objection
-- If required full-mode context is missing or state is contradictory, stop at intake and report the mismatch instead of skipping a stage
-- Do not create a new lane, new stage, or alternate full-entry chain outside the canonical workflow doc
+User picked `/delivery`. Lane is locked unless brainstorm reveals migration shape, in which case Product Lead escalates to MO for user confirmation.
 
 ## Validation guidance
 
-- Use `node .opencode/openkit/workflow-state.js show` or `node .opencode/openkit/workflow-state.js validate` when resumable full-mode state needs confirmation
-- Keep implementation and QA validation honest to the repository's actual tooling
-- Do not overstate automation when the repository still lacks app-native build, lint, or test commands
+- Real app build/test/lint commands per `context/core/project-config.md`.
+- `node .opencode/openkit/workflow-state.js show` to inspect state when resuming.
 
 ## Example transcript
 
 ```text
-User: /delivery add a new approval workflow for enterprise billing
-OpenKit: This belongs in Full Delivery because the work changes product behavior and needs explicit product scope before technical direction.
-OpenKit: Next action: initialize full_intake, have Product Lead create the scope package in full_product, then hand that approved package to Solution Lead in full_solution.
+User: /delivery add an enterprise approval workflow for billing
+MO: Bootstrapping full workflow. Dispatching Product Lead.
+ProductLead: To scope this, let me ask: who triggers the approval today?
+User: Sales reps when discount > 20%.
+ProductLead: And who approves?
+User: VP Sales for <$50k, CFO above.
+... (more discovery)
+ProductLead: Scope package written to docs/scope/2026-05-09-enterprise-approval.md. Confirm to proceed?
+User: Confirmed.
+MO: Advancing to full_solution. Dispatching Solution Lead.
 ```

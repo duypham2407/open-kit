@@ -20,6 +20,7 @@ Preserve behavior first. Decouple blockers where necessary. Migrate incrementall
 ## Shared prompt contract
 
 - Follow `.opencode/openkit/context/core/prompt-contracts.md` for shared runtime-path, verification, and tool-substitution rules.
+- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
 
 ## Preconditions
 

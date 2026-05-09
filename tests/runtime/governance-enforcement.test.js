@@ -75,13 +75,11 @@ test('workflow-facing prompts reference runtime surface boundaries where relevan
     'agents/master-orchestrator.md',
     'agents/fullstack-agent.md',
     'agents/qa-agent.md',
-    'commands/task.md',
     'commands/quick-task.md',
     'commands/migrate.md',
     'commands/delivery.md',
     'commands/write-solution.md',
     'commands/execute-solution.md',
-    'commands/brainstorm.md',
     'commands/switch-profiles.md',
   ];
 

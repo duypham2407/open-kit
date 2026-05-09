@@ -51,7 +51,7 @@ quick_test         ← run tests, verify acceptance, check regression
 quick_done         ← summarize and close
 ```
 
-Quick mode is a **single-agent lane**. The Quick Agent owns every stage. Master Orchestrator does not participate except when `/task` routes to quick mode — after that single dispatch, Master disappears. QA Agent does not participate.
+Quick mode is a **single-agent lane**. The Quick Agent owns every stage. Master Orchestrator does not participate in the quick lane. QA Agent does not participate.
 
 When the user invokes `/quick-task`, the Quick Agent receives the request directly with no intermediary.
 
@@ -183,10 +183,9 @@ Canonical migration heuristic:
 
 ### Lane Authority
 
-Lane authority depends on which command the user invokes:
+Lane authority is always `user_explicit`:
 
-- `/task` -> the Master Orchestrator analyzes the request and selects the lane; `lane_source = orchestrator_routed`
-- `/quick-task`, `/migrate`, `/delivery` -> the user has explicitly chosen the lane; `lane_source = user_explicit`
+- `/quick-task`, `/migrate`, `/delivery` -> the user has chosen the lane; `lane_source = user_explicit`
 
 When `lane_source` is `user_explicit`:
 
@@ -194,11 +193,6 @@ When `lane_source` is `user_explicit`:
 - if risk factors suggest a different lane, the Master Orchestrator issues a **single advisory warning** with the concern and the recommended alternative, then proceeds with the user's choice
 - during execution, if a hard blocker or lane mismatch surfaces, the Master Orchestrator reports the problem to the user and waits for an explicit user decision before changing lanes
 - auto-escalation is disabled; only the user can authorize a lane change
-
-When `lane_source` is `orchestrator_routed`:
-
-- the Master Orchestrator applies the routing profile and tie-breaker rules as before
-- auto-escalation from `quick` or `migration` into `full` is permitted when the canonical escalation conditions are met
 
 Primary routing heuristic:
 
@@ -256,7 +250,7 @@ QA → (bug)             → migration_upgrade
    → (pass)            → migration_done
 ```
 
-When `lane_source` is `orchestrator_routed`, migration requirement gaps escalate to `full_intake` automatically.
+Migration requirement gaps that surface during execution should be reported to the user for a lane change decision.
 When `lane_source` is `user_explicit`, the finding is reported to the user; only the user can authorize escalation to `full_intake`.
 
 ## Approval Gates

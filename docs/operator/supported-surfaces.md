@@ -18,7 +18,7 @@ Use this document to understand which OpenKit surfaces are intended for end user
 | `openkit onboard` | available | `global_cli` | operators | getting the safest first-run path without launching immediately | onboarding helper |
 | `openkit install` / `openkit install-global` | compatibility_only | `global_cli` | maintainers/operators with manual setup needs | explicit provisioning or compatibility setup | not the preferred onboarding path |
 | `openkit release ...` | available | `global_cli` | maintainers | preparing, verifying, and publishing OpenKit releases | maintainer-only workflow |
-| `/task`, `/quick-task`, `/migrate`, `/delivery` | available | `in_session` | operators | lane selection and workflow entry | exactly three lanes: quick, migration, full |
+| `/quick-task`, `/migrate`, `/delivery` | available | `in_session` | operators | lane selection and workflow entry | exactly three lanes: quick, migration, full |
 | `/switch-profiles` | available | `in_session` | operators | prompt-template path for interactively switching the active global agent model profile for the current `openkit run` session only | OpenCode custom slash command files are prompt templates and true native executable slash command support is not currently documented; may be agent-mediated; does not mutate global profiles, the launch default, or other sessions |
 | `/browser-verify` | preview | `runtime_tooling` | operators | planning browser verification and evidence capture | depends on runtime/browser provider availability and does not declare QA complete |
 | Session-start capability guidance (`<openkit_capability_guidance>`) | available with degraded fallback | `global_cli` / `runtime_tooling` | operators/agents | compact role/stage-aware capability routes at startup | startup snapshot only; advisory; no skill body or MCP tool is auto-activated; refresh with explicit runtime/capability tools |
@@ -43,8 +43,8 @@ For everyday use, prefer this path:
 3. `openkit onboard` if you want a dry onboarding summary first
 4. optionally use `openkit profiles --list`, `--create`, or `--set-default` when you want reusable global agent model profiles before launch
 5. `openkit run`
-6. inside OpenCode, start with `/task`
-7. use `/quick-task`, `/migrate`, or `/delivery` only when the lane is already obvious; use `/switch-profiles` only to switch the current session to an existing global model profile
+6. inside OpenCode, pick the lane: `/quick-task` for daily bounded work, `/delivery` for feature work, `/migrate` for upgrades
+7. use `/switch-profiles` only to switch the current session to an existing global model profile
 8. use `openkit upgrade` or `openkit uninstall` later for global-kit lifecycle maintenance
 
 If workflow state already exists and you need the next safe action, use `node .opencode/workflow-state.js resume-summary`.
@@ -148,7 +148,7 @@ Full-delivery `product_to_solution` requires the scope package before Solution L
 - OpenKit's product intent is default allow for routine non-dangerous commands, backed by the machine-readable policy at `assets/default-command-permission-policy.json`.
 - Global install materialization projects that policy into the OpenKit-managed kit config and profile config used by `openkit run`; the checked-in `.opencode/opencode.json` is an authoring/compatibility mirror, not the only product target.
 - OpenCode-validated `opencode.json` files contain only OpenCode schema-valid keys. OpenKit-only policy metadata such as `commandPermissionPolicy` stays in `assets/default-command-permission-policy.json` or OpenKit-owned sidecars rather than inline config.
-- Common routine examples include `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `openkit profiles --list`, `/task`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git status`, `git log`, `git diff`, file edits, file writes, and normal non-delete `bash`/`npm` usage.
+- Common routine examples include `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `openkit profiles --list`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git status`, `git log`, `git diff`, file edits, file writes, and normal non-delete `bash`/`npm` usage.
 - Dangerous policy-listed commands must require explicit confirmation before they run. This includes deletion (`rm`, `rmdir`, `unlink`), destructive git (`git reset --hard`, `git clean`, discard-style checkout/restore, force pushes), package/release/deploy publishing, database drop/truncate/reset/wipe forms, and privileged/system-impacting commands such as `sudo`, `chmod`, and `chown` where represented.
 - Current OpenCode support for true `defaultAction: allow` with confirm-required exceptions is not verified by OpenKit. OpenKit therefore writes a compatible explicit permission map and `openkit doctor` reports the policy as `degraded` rather than guaranteeing all routine commands will be prompt-free.
 - Broad `bash` or `npm` allow behavior cannot prove safety for destructive commands hidden in `sh -c`, aliases, chained shell commands, or package scripts unless OpenCode upstream can inspect those forms. Doctor/docs surface this as an unsupported granularity caveat.

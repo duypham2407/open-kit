@@ -29,7 +29,7 @@ test('openkit onboard explains the default path and lane entry choices', () => {
 
   assert.equal(result.status, 0);
   assert.match(result.stdout, /OpenKit onboarding/);
-  assert.match(result.stdout, /Default entrypoint after launch: \/task/);
+  assert.match(result.stdout, /Default entrypoint after launch: \/quick-task/);
   assert.match(result.stdout, /Primary entry commands/);
   assert.match(result.stdout, /\/migrate/);
   assert.match(result.stdout, /resume-summary/);

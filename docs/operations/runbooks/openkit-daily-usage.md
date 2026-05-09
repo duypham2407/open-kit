@@ -38,8 +38,7 @@ openkit uninstall
 
 Then start work from the chat surface with one of these:
 
-- `/task` when you want the Master Orchestrator to choose the lane
-- `/quick-task` when the work is already clearly small, bounded, and low risk
+- `/quick-task` when the work is small, bounded, and low risk
 - `/migrate` when the work is primarily an upgrade or migration effort
 - `/delivery` when the work clearly needs the full multi-stage delivery flow
 - `/configure-agent-models` when you want to bind exact provider-qualified models to OpenKit agents
@@ -49,7 +48,7 @@ Then start work from the chat surface with one of these:
 Keep the three surfaces separate:
 
 - `global_cli`: install, readiness, launch, reusable model profile management, direct session profile picker, upgrade, uninstall, and product lifecycle (`npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles --list|--create|--edit|--set-default|--delete`, `openkit switch-profiles`, `openkit switch`, `openkit upgrade`, `openkit uninstall`)
-- `in_session`: lane selection, workflow execution, and current-session profile switching inside OpenCode (`/task`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`)
+- `in_session`: lane selection, workflow execution, and current-session profile switching inside OpenCode (`/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`)
 - `compatibility_runtime`: lower-level workflow-state inspection, resume, diagnostics, issues, task boards, and evidence (`node .opencode/workflow-state.js ...`)
 
 If you need to inspect the current state more closely inside this repository's compatibility runtime:
@@ -84,9 +83,7 @@ When paths look inconsistent, run `openkit doctor` first. It now prints the glob
 
 ## Choose The Right Entry Point
 
-Use `/task` by default. It is the safest starting point when you are not fully sure whether the request belongs in `Quick Task`, `Migration`, or `Full Delivery`.
-
-Use `/quick-task` only when all of these are already true:
+Use `/quick-task` when all of these are already true:
 
 - the scope is bounded
 - acceptance is already clear
@@ -206,7 +203,7 @@ Profile management and switching evidence stays on `global_cli` and `in_session`
 
 ### 3. Start or resume work
 
-If no work is active, start from chat with `/task`, `/quick-task`, `/migrate`, or `/delivery`.
+If no work is active, start from chat with `/quick-task`, `/migrate`, or `/delivery`.
 
 If work already exists, inspect it first:
 
@@ -224,7 +221,7 @@ Use `list-work-items` and `show-work-item` when you need to understand which man
 
 Quick lane flow:
 
-- `quick_intake -> quick_brainstorm -> quick_plan -> quick_implement -> quick_test -> quick_done`
+- `quick_intake -> quick_plan -> quick_implement -> quick_test -> quick_done`
 - use it for bounded daily work
 - `quick_plan` is required, even though a separate task card in `docs/tasks/` remains optional
 - Quick Agent owns all stages; verification happens in `quick_test` before `quick_done`
@@ -234,7 +231,7 @@ Full-delivery flow:
 - `full_intake -> full_product -> full_solution -> full_implementation -> full_code_review -> full_qa -> full_done`
 - use it for feature work and higher-risk changes
 - expect `Product Lead` to create the scope package in `docs/scope/`, then `Solution Lead` to create the solution package in `docs/solution/`, followed by QA evidence in `docs/qa/`
-- use `/brainstorm`, `/write-solution`, and `/execute-solution` only in this lane
+- use `/write-solution` and `/execute-solution` in this lane
 
 Migration flow:
 
@@ -242,7 +239,7 @@ Migration flow:
 - use it for framework upgrades, dependency modernization, and compatibility remediation
 - expect explicit baseline, migration solution package, and parity context before major edits
 - preserve behavior first, decouple only the blockers that make the migration unsafe, then upgrade in slices
-- use `/brainstorm`, `/write-solution`, and `/execute-solution` in this lane when strategy or staged execution is needed
+- use `/write-solution` and `/execute-solution` in this lane when strategy or staged execution is needed
 - use `docs/templates/migration-baseline-checklist.md` and `docs/templates/migration-verify-checklist.md` as repeatable checklists for baseline and verification
 - use `docs/templates/migration-report-template.md` when you want one running artifact for baseline, strategy, execution, and verification
 

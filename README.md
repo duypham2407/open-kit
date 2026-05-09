@@ -9,7 +9,7 @@ It helps OpenCode behave more like a real software team instead of a single chat
 - keep workflow state, approvals, issues, and evidence explicit
 - reduce hallucinated completion claims through runtime checks and verification gates
 
-If you are new, start here: install the global CLI, run the doctor check, launch OpenKit, then use `/task` inside OpenCode.
+If you are new, start here: install the global CLI, run the doctor check, launch OpenKit, then pick a lane with `/quick-task`, `/delivery`, or `/migrate` inside OpenCode.
 
 ## Install
 
@@ -104,13 +104,13 @@ Path model during managed launch:
 
 Treat those as different layers. `openkit run` uses the managed global kit plus the derived workspace state. The checked-in project `.opencode/` path remains a compatibility surface, not the default source of truth for managed runtime state.
 
-After launch, start most work with:
+After launch, pick the right lane:
 
 ```text
-/task <your request>
+/quick-task <request>   — bounded daily work
+/delivery <request>     — feature work and high-risk changes
+/migrate <request>      — upgrades and compatibility remediation
 ```
-
-Use `/quick-task`, `/migrate`, or `/delivery` only when the lane is already obvious.
 
 ## Daily commands
 
@@ -256,16 +256,14 @@ Use these slash commands inside an active `openkit run` session:
 
 | Command | Use |
 | --- | --- |
-| `/task <request>` | Default entrypoint. Master Orchestrator chooses the right lane. |
-| `/quick-task <request>` | Explicit quick lane for narrow, low-risk work. |
-| `/migrate <request>` | Explicit migration lane for upgrades, dependency modernization, and compatibility remediation. |
-| `/delivery <request>` | Explicit full-delivery lane for feature work or higher-risk changes. |
-| `/brainstorm <topic>` | Structured brainstorming before scope, solution, or implementation work. |
+| `/quick-task <request>` | Quick lane for narrow, low-risk work. Brainstorm happens inline in `quick_plan`. |
+| `/migrate <request>` | Migration lane for upgrades, dependency modernization, and compatibility remediation. |
+| `/delivery <request>` | Full-delivery lane for feature work or higher-risk changes. |
 | `/write-solution <request>` | Create or refine a solution package from approved scope or migration context. |
 | `/execute-solution <request>` | Execute approved solution work through the implementation path. |
 | `/switch-profiles` | Agent-mediated prompt template for switching to an existing global agent model profile for the current session only. Direct CLI picker: `openkit switch-profiles` or `openkit switch`. |
 
-Lane-lock note: when you explicitly use `/quick-task`, `/migrate`, or `/delivery`, OpenKit honors that lane choice unless you authorize a lane change after a reported blocker.
+Lane-lock note: when you use `/quick-task`, `/migrate`, or `/delivery`, OpenKit locks to that lane unless you authorize a lane change after a reported blocker.
 
 ## Troubleshooting and update notes
 
@@ -365,19 +363,13 @@ OpenKit has 3 workflow modes.
 ## How it works
 
 ```text
-User request
+User picks lane explicitly
    |
-   v
-/task
+   +--> /quick-task --> Quick Agent: confirm understanding -> brainstorm options in quick_plan -> plan -> implement -> test -> done
    |
-   v
-Master Orchestrator chooses mode
+   +--> /migrate -----> Master Orchestrator -> baseline -> strategy -> upgrade -> code review -> verify -> done
    |
-   +--> Quick ------> Quick Agent: brainstorm(3 options) -> plan -> implement -> test -> done
-   |
-   +--> Migration --> baseline -> strategy -> upgrade -> code review -> verify -> done
-   |
-   +--> Full -------> Product Lead(scope package) -> Solution Lead(solution package) -> Fullstack -> Code Reviewer -> QA -> done
+   +--> /delivery ----> Master Orchestrator -> Product Lead(scope package) -> Solution Lead(solution package) -> Fullstack -> Code Reviewer -> QA -> done
    |
    v
 Workflow state, approvals, issues, and evidence stored in managed workspace state and mirrored through project `.opencode/` compatibility surfaces
@@ -393,23 +385,23 @@ At runtime, OpenKit keeps the process explicit through:
 
 Example: you ask OpenKit to add a new feature.
 
-1. You launch OpenKit and start with `/task add export support to the dashboard`.
-2. `Master Orchestrator` inspects the request and chooses `Full` mode.
+1. You launch OpenKit and start with `/delivery add export support to the dashboard`.
+2. `Master Orchestrator` initializes `Full` mode and routes to `Product Lead`.
 3. `Product Lead` creates the scope package in `full_product` and gets it ready for approval.
 4. `Solution Lead` uses that approved scope package in `full_solution` to create the solution package.
 5. `Fullstack Agent` implements the approved work and records verification evidence.
 6. `Code Reviewer` checks scope compliance first and code quality second.
 7. `QA Agent` validates runtime behavior, routes any issues, and the workflow only closes when the gates are satisfied.
 
-For a narrow bugfix, the same entrypoint may route to `Quick`. For a framework upgrade, it may route to `Migration`.
+For a narrow bugfix, use `/quick-task`. For a framework upgrade, use `/migrate`.
 
 ## Concepts
 
 ### Orchestrator
 
-`Master Orchestrator` is the delivery router.
+`Master Orchestrator` is the delivery router for `/delivery` and `/migrate` lanes.
 
-It chooses the mode when `/task` is used, records state, controls handoffs and gates, tracks feedback loops, and keeps work moving through the right workflow.
+It records state, controls handoffs and gates, tracks feedback loops, and keeps work moving through the right workflow. In the quick lane (`/quick-task`), it does not participate — `Quick Agent` owns the full quick lifecycle.
 
 It does not code, define scope, design the solution, perform review, or make QA judgment. It is a procedural controller: route, dispatch, record, reroute, and close the loop only after the owning role has produced the required evidence.
 
@@ -455,7 +447,7 @@ Approvals alone are not enough for closure-sensitive stages. Verification eviden
 OpenKit has 3 main operator-facing surfaces:
 
 - product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit switch-profiles`, `openkit switch`, `openkit upgrade`, `openkit uninstall`
-- in-session path (`in_session`): `/task`, `/quick-task`, `/migrate`, `/delivery`, `/brainstorm`, `/write-solution`, `/execute-solution`, `/switch-profiles`
+- in-session path (`in_session`): `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/execute-solution`, `/switch-profiles`
 - compatibility runtime path (`compatibility_runtime`): `node .opencode/workflow-state.js ...`
 
 Use the product path for daily use. Use the lower-level runtime CLI for inspection, diagnostics, and maintainer workflows.

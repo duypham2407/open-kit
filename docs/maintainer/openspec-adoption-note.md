@@ -4,7 +4,7 @@ This note explains what OpenKit intentionally absorbed from OpenSpec and what it
 
 ## What OpenKit absorbed
 
-- clearer default-path framing so `/task` is the obvious first entrypoint
+- clearer default-path framing so the user picks an explicit lane (`/quick-task`, `/delivery`, `/migrate`) rather than relying on auto-routing
 - more action-oriented operator UX that tells the user the next action, not only the current lane or stage
 - transcript-style command examples to reduce onboarding friction
 - stronger operator-facing surface mapping so supported product surfaces are easier to discover

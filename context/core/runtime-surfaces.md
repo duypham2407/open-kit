@@ -5,7 +5,7 @@ Use this file to keep the product path, in-session path, and compatibility runti
 ## Surface Summary
 
 - product path (`global_cli`): `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit switch-profiles`, `openkit switch`, `openkit upgrade`, `openkit uninstall`
-- in-session path (`in_session`): `/task`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`, and related workflow commands inside OpenCode
+- in-session path (`in_session`): `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`, and related workflow commands inside OpenCode
 - compatibility runtime path (`compatibility_runtime`): `node .opencode/workflow-state.js ...` for lower-level state inspection and maintainer diagnostics
 - runtime tooling path (`runtime_tooling`): OpenKit tools for workflow state, evidence, graph, semantic search, syntax, AST, codemod, audit, browser, MCP, background execution, and external-tool probes
 - documentation path (`documentation`): roadmap, operator, maintainer, governance, and runbook artifacts
