@@ -1,20 +1,27 @@
 ---
-description: "Starts the Quick Task lane for daily work. Routes directly to Quick Agent with no intermediary."
+description: "Starts the Quick Task lane. Master Orchestrator bootstraps workflow state, then dispatches Quick Agent for brainstorm and plan."
 ---
 
 # Command: `/quick-task`
 
-Use `/quick-task` when the user wants to enter the quick lane directly for daily work. The Quick Agent receives the request directly — Master Orchestrator does not participate.
+Use `/quick-task` for daily, bounded work where the problem is small in scope and behavior is mostly clear.
+
+## What this command does
+
+1. Dispatches **Master Orchestrator** with `lane=quick` and the user's request as `description`.
+2. MO calls `tool.bootstrap-workflow` to write `workflow-state.json` (or handles archive/conflict if a workflow already exists).
+3. MO calls `tool.advance-stage` to move from `quick_intake` to `quick_plan`.
+4. **Quick Agent** receives control in `quick_plan` and runs the brainstorm-then-plan flow.
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path, verification, and tool-substitution rules.
-- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code. Prefer kit intelligence tools before basic built-in tools or OS commands.
+- Follow `.opencode/openkit/context/core/prompt-contracts.md` for shared runtime-path, verification, and tool-substitution rules.
+- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code.
 
 ## Preconditions
 
-- A user request exists with enough information to start brainstorming
-- If work is resuming, the current state must be compatible with continuing quick work or starting a new task
+- A user request exists with enough text to bootstrap (description is non-empty).
+- The user picked the quick lane explicitly. If brainstorm reveals the work is bigger, Quick Agent escalates to MO who asks the user before switching lanes.
 
 ## Canonical docs to load
 
@@ -24,46 +31,42 @@ Use `/quick-task` when the user wants to enter the quick lane directly for daily
 - `.opencode/openkit/context/core/project-config.md`
 - `.opencode/openkit/context/core/runtime-surfaces.md`
 - `.opencode/openkit/context/core/code-quality.md`
-- `.opencode/openkit/workflow-state.json` when resuming
-- `.opencode/work-items/` when managed work-item backing state is relevant
+- `.opencode/openkit/workflow-state.json` after bootstrap
 
-## Expected action
+## Stage chain
 
-- The Quick Agent receives the request directly — no Master Orchestrator involvement
-- Record `lane_source = user_explicit`, `mode = quick`, and `mode_reason` in workflow state
-- Initialize `quick_intake`, then advance immediately to `quick_plan`
-- Follow the single-agent quick pipeline: `quick_intake -> quick_plan -> quick_implement -> quick_test -> quick_done`
-- During `quick_plan`: read the codebase deeply, clarify understanding, obtain explicit user confirmation of understanding before any option analysis, then present 3 options by default (or fewer only with explicit justification), wait for user option selection, produce execution plan, and require separate plan confirmation before `quick_implement`
-- Create an optional task card only when traceability is genuinely useful
+```
+quick_intake (MO) → quick_plan (Quick Agent: brainstorm + plan) → quick_implement → quick_test → quick_done
+```
+
+`quick_intake` is MO-only and ephemeral. MO bootstraps state, advances immediately, never blocks for user input.
 
 ## Lane authority
 
-The user selected `/quick-task` explicitly. This is a **lane lock**.
-
-- No agent may reject, reroute, or override the lane to `migration` or `full`
-- If the Quick Agent encounters a problem that exceeds quick-mode boundaries, it reports to the user with options — the user decides whether to switch lanes
-- No auto-escalation
+User picked `/quick-task`. Lane is locked unless brainstorm reveals scope is cross-boundary, in which case Quick Agent escalates to MO who asks the user (y/n) before switching to `/delivery`.
 
 ## Validation guidance
 
-- Keep quick-task validation real, following `context/core/project-config.md`
-- If no app-native test or lint command exists, document the manual or artifact-based verification path clearly
-- Use `node .opencode/openkit/workflow-state.js validate` only for workflow-state checks, not as a substitute for application testing
+- Use real app build/test/lint commands per `context/core/project-config.md`.
+- Use `node .opencode/openkit/workflow-state.js validate` for state integrity, not as a substitute for app testing.
 
 ## Example transcript
 
 ```text
 User: /quick-task fix the CSV export that drops the header row
-QuickAgent: Let me read the codebase to understand the export logic...
-QuickAgent: Here is my understanding of the task and constraints. Please confirm before I analyze options.
-User: Confirmed.
-QuickAgent: Great — here are 3 options:
-  Option A: Fix the off-by-one in the slice() call (low effort, low risk)
-  Option B: Rewrite the export function with streaming (medium effort, medium risk)
-  Option C: Add a header template system (high effort, low risk)
-  I recommend Option A because the root cause is a simple off-by-one error.
-User: Go with A.
-QuickAgent: Here's the execution plan: [plan]. Confirm?
+MO: Bootstrapping quick workflow. Dispatching Quick Agent.
+QuickAgent: Let me read the export logic. (reads code)
+QuickAgent: 1) Is the missing header on all formats or just one?
+User: Just CSV.
+QuickAgent: 2) The fix should preserve the existing column order, right?
 User: Yes.
-QuickAgent: Done. Tests pass. Here's the summary: [summary].
+QuickAgent: Brainstorm summary written. Here are 3 options:
+  A: Off-by-one fix in the slice (low effort, low risk)
+  B: Rewrite with streaming (medium, medium)
+  C: Header template (high, low)
+  I recommend A.
+User: Go with A.
+QuickAgent: Plan. Confirm?
+User: Yes.
+QuickAgent: Done. Tests pass. Summary: ...
 ```
