@@ -715,7 +715,7 @@ Common issues:
 - Action: Check `.opencode/openkit.runtime.jsonc` for JSON syntax errors (trailing commas, unclosed braces)
 
 **Project detection fallback:**
-- Symptom: Diagnostic shows "Could not detect project root, using fallback"
+- Symptom: Diagnostic shows "No project root detected; falling back to startDir" (project detection fallback)
 - Action: Ensure your project has a `package.json` file, or OpenKit will use the current directory
 
 See [docs/operator/troubleshooting.md](docs/operator/troubleshooting.md) for detailed troubleshooting guide.

@@ -59,6 +59,7 @@ Then use the in-session path (`in_session`):
 - Runtime smoke tests: `docs/operations/runbooks/workflow-state-smoke-tests.md`
 - Semgrep integration: `docs/operator/semgrep.md`
 - Codemod integration: `docs/operator/codemod.md`
+- Troubleshooting and diagnostics: `docs/operator/troubleshooting.md`
 - Governance policy: `docs/governance/README.md`
 - Operations support: `docs/operations/README.md`
 

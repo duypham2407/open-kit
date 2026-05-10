@@ -340,7 +340,9 @@ node src/openkit-runtime/workflow-state.js resume-summary
 
 - README.md - product overview, installation, daily commands
 - docs/operator/README.md - operator path and surface selection
+- docs/operator/troubleshooting.md - operator troubleshooting and diagnostics guide (`openkit doctor --diagnostics`)
 - docs/maintainer/README.md - maintainer path and command matrix
+- docs/maintainer/error-codes.md - defensive error reasons and diagnostic categories
 - docs/configuration/code-intelligence.md - Multi-Layer Intelligence config reference
 - docs/features/multi-layer-intelligence.md - Multi-Layer Intelligence usage guide
 - src/context/core/workflow.md - canonical workflow contract

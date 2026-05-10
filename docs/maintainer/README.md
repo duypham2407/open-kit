@@ -33,6 +33,7 @@ Use it to find canonical repository docs and upkeep surfaces quickly. Do not tre
 - Conditional parallel execution boundary: `docs/maintainer/conditional-parallel-execution-note.md`
 - Parallel execution matrix: `docs/maintainer/parallel-execution-matrix.md`
 - Test matrix: `docs/maintainer/test-matrix.md`
+- Defensive error codes and diagnostic reasons: `docs/maintainer/error-codes.md`
 - Role and skill matrix: `docs/maintainer/role-skill-matrix.md`
 - Architecture overview: `docs/maintainer/architecture-overview.md`
 - Policy traceability: `docs/maintainer/policy-execution-traceability.md`

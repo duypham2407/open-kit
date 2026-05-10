@@ -18,11 +18,12 @@ Output shows:
 
 ### Diagnostic Categories
 
-- **config_loading** - Configuration file loading events
-- **project_detection** - Project root detection events
-- **runtime_bootstrap** - Runtime initialization events
-- **mcp_init** - MCP server connection events
-- **capability_registry** - Capability registration events
+Currently emitted by the runtime:
+
+- **config_loading** - Configuration file loading events (`src/runtime/runtime-config-loader.js`)
+- **project_detection** - Project root detection events (`src/global/paths.js`)
+
+Additional categories such as `runtime_bootstrap`, `mcp_init`, and `capability_registry` are planned but not yet emitted — diagnostic events under those categories will not appear today.
 
 ### Full Diagnostic Log
 
@@ -91,7 +92,7 @@ openkit doctor --diagnostics | grep project_detection
 3. Check full log: `.opencode/diagnostics.json`
 4. Report issue with diagnostic log attached
 
-**Note:** With defensive hardening (v0.9.1+), crashes due to config or project detection issues should not occur. If you experience crashes, please report them.
+**Note:** With defensive hardening (current main / upcoming release), crashes due to config or project detection issues should not occur. If you experience crashes, please report them.
 
 ## Reporting Issues
 

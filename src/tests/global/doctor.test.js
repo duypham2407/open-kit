@@ -7,6 +7,7 @@ import path from 'node:path';
 import { inspectGlobalDoctor, renderGlobalDoctorSummary, showDiagnostics } from '../../global/doctor.js';
 import { materializeGlobalInstall } from '../../global/materialize.js';
 import { logDiagnostic } from '../../runtime/lib/diagnostics.js';
+import { doctorCommand } from '../../cli/commands/doctor.js';
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-global-doctor-'));
@@ -1264,4 +1265,70 @@ test('showDiagnostics handles diagnostics file without events array', () => {
 
   // Cleanup
   fs.rmSync(tempDir, { recursive: true });
+});
+
+test('doctorCommand --diagnostics prints recent diagnostic events', async () => {
+  const tempDir = createTempDir();
+  const originalCwd = process.cwd();
+  process.chdir(tempDir);
+
+  try {
+    logDiagnostic('config_loading', 'warning', 'Config not found', { path: '/foo' }, tempDir);
+    logDiagnostic('project_detection', 'info', 'Project detected', { path: tempDir }, tempDir);
+
+    let stdout = '';
+    const io = {
+      stdout: { write: (chunk) => { stdout += chunk; } },
+      stderr: { write: () => {} },
+      stdin: process.stdin,
+    };
+
+    const exitCode = await doctorCommand.run(['--diagnostics'], io);
+
+    assert.equal(exitCode, 0);
+    assert.match(stdout, /Recent Diagnostics/);
+    assert.match(stdout, /config_loading.*Config not found/);
+    assert.match(stdout, /project_detection.*Project detected/);
+    assert.match(stdout, /Full diagnostic log:/);
+  } finally {
+    process.chdir(originalCwd);
+    fs.rmSync(tempDir, { recursive: true });
+  }
+});
+
+test('doctorCommand --diagnostics reports nothing when no events exist', async () => {
+  const tempDir = createTempDir();
+  const originalCwd = process.cwd();
+  process.chdir(tempDir);
+
+  try {
+    let stdout = '';
+    const io = {
+      stdout: { write: (chunk) => { stdout += chunk; } },
+      stderr: { write: () => {} },
+      stdin: process.stdin,
+    };
+
+    const exitCode = await doctorCommand.run(['--diagnostics'], io);
+
+    assert.equal(exitCode, 0);
+    assert.match(stdout, /No diagnostics recorded yet/);
+  } finally {
+    process.chdir(originalCwd);
+    fs.rmSync(tempDir, { recursive: true });
+  }
+});
+
+test('doctorCommand --help documents the --diagnostics flag', async () => {
+  let stdout = '';
+  const io = {
+    stdout: { write: (chunk) => { stdout += chunk; } },
+    stderr: { write: () => {} },
+    stdin: process.stdin,
+  };
+
+  const exitCode = await doctorCommand.run(['--help'], io);
+
+  assert.equal(exitCode, 0);
+  assert.match(stdout, /--diagnostics/);
 });
