@@ -118,6 +118,45 @@ export function parseRuntimeConfigContent(content, sourceLabel = 'runtime config
   }
 }
 
+export function validateConfigFile(configPath) {
+  // Check file exists
+  if (!fs.existsSync(configPath)) {
+    return {
+      valid: false,
+      reason: 'file_not_found',
+      data: null,
+    };
+  }
+
+  // Check file is readable
+  try {
+    fs.accessSync(configPath, fs.constants.R_OK);
+  } catch {
+    return {
+      valid: false,
+      reason: 'permission_denied',
+      data: null,
+    };
+  }
+
+  // Try parse JSONC
+  let parsed;
+  try {
+    const content = fs.readFileSync(configPath, 'utf8');
+    parsed = JSON.parse(stripJsonComments(content));
+  } catch (err) {
+    return {
+      valid: false,
+      reason: 'parse_error',
+      error: err.message,
+      data: null,
+    };
+  }
+
+  // For now, accept any valid JSON - schema validation comes next
+  return { valid: true, data: parsed };
+}
+
 function resolveUserConfigDir(env = process.env) {
   if (env.XDG_CONFIG_HOME) {
     return path.join(env.XDG_CONFIG_HOME, 'opencode');
