@@ -39,7 +39,7 @@ After FEATURE-941 and FEATURE-942, Code Review and QA repeatedly saw `tool.synta
 - Make the active project/repository source root distinct from:
   - global OpenKit kit/config roots;
   - managed workspace runtime-state roots;
-  - compatibility mirrors such as `.opencode/openkit/` when they are not the requested project source path.
+  - compatibility mirrors such as `src/openkit-runtime/openkit/` when they are not the requested project source path.
 - Ensure valid existing files under the active project/repository root are not reported as `invalid-path` or `missing-file` solely because of root-selection or normalization errors.
 - Preserve rejection for outside-root paths, unsafe traversal, directories, and real missing files.
 - Improve syntax-outline diagnostic/evidence quality so failure summaries distinguish path resolution, missing file, outside-root rejection, unsupported language, parse failure, and unavailable/degraded runtime tooling.
@@ -83,7 +83,7 @@ After FEATURE-941 and FEATURE-942, Code Review and QA repeatedly saw `tool.synta
 ### Allowed Roots And Boundary Behavior
 
 - The default allowed source root is the active target project/repository root for the session. For this work item, that repository root is `/Users/duypham/Code/open-kit`.
-- Project-local compatibility paths such as `.opencode/openkit/...` are valid only when they are physically inside the active project/repository root and are the requested path; they must not cause fallback into OpenCode home workspace state by inference.
+- Project-local compatibility paths such as `src/openkit-runtime/openkit/...` are valid only when they are physically inside the active project/repository root and are the requested path; they must not cause fallback into OpenCode home workspace state by inference.
 - Managed workspace runtime-state roots and global kit/config roots must remain separate from project source roots. They must not be used as fallback bases for a project-relative syntax-outline request.
 - Absolute paths outside the allowed source root must be rejected even if the file exists.
 - Symlinked paths must not allow reads outside approved roots after canonical resolution.
@@ -117,7 +117,7 @@ After FEATURE-941 and FEATURE-942, Code Review and QA repeatedly saw `tool.synta
 - **Given** an existing supported source file under the active project/repository root is requested using a project-relative path, **when** `tool.syntax-outline` runs, **then** the tool does not return `invalid-path` or `missing-file` because of path resolution.
 - **Given** the same existing source file is requested using an absolute path under the active project/repository root, **when** `tool.syntax-outline` runs, **then** the path-resolution result matches the project-relative request.
 - **Given** a project-relative request uses safe `./` prefixes, `.` segments, or redundant separators, **when** normalization resolves the path inside the active source root, **then** the tool checks the normalized target file rather than failing before existence checks.
-- **Given** a file exists under `.opencode/openkit/...` inside the active project/repository root, **when** that exact project-local path is requested, **then** the tool treats it as a project-local file and does not confuse it with an OpenCode home workspace mirror.
+- **Given** a file exists under `src/openkit-runtime/openkit/...` inside the active project/repository root, **when** that exact project-local path is requested, **then** the tool treats it as a project-local file and does not confuse it with an OpenCode home workspace mirror.
 
 ### Boundaries And Rejections Stay Safe
 
@@ -144,7 +144,7 @@ After FEATURE-941 and FEATURE-942, Code Review and QA repeatedly saw `tool.synta
 ## Edge Cases
 
 - Paths copied with leading `./`, duplicate slashes, trailing whitespace, or mixed relative path forms.
-- Project-relative paths that include `.opencode/openkit/...` as project-local compatibility files.
+- Project-relative paths that include `src/openkit-runtime/openkit/...` as project-local compatibility files.
 - Absolute paths inside the project root versus similarly named absolute paths in the global kit root or OpenCode workspace state root.
 - Requests made while the process current working directory is not the active project/repository root.
 - Paths containing `..` that normalize inside the root versus paths that escape the root.

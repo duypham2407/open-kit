@@ -29,10 +29,10 @@ Execute FEATURE-950 as a sequential capability-maturity program that first norma
 
 This is enough because the repository already contains the necessary foundations:
 
-- MCP configuration and custom MCP lifecycle surfaces under `src/global/mcp/`, `src/capabilities/mcp-catalog.js`, `bin/openkit.js`, and `src/cli/commands/configure.js`.
+- MCP configuration and custom MCP lifecycle surfaces under `src/global/mcp/`, `src/capabilities/mcp-catalog.js`, `src/bin/openkit.js`, and `src/cli/commands/configure.js`.
 - Runtime capability inventory, router, and health tools under `src/runtime/tools/capability/`, `src/runtime/managers/capability-registry-manager.js`, and `src/runtime/capability-registry.js`.
 - Code-intelligence surfaces under `src/runtime/analysis/`, `src/runtime/tools/graph/`, `src/runtime/tools/syntax/`, `src/runtime/tools/codemod/`, `src/runtime/tools/lsp/`, and `src/runtime/tools/external/`.
-- Compatibility runtime read models and evidence surfaces under `.opencode/lib/`, `.opencode/workflow-state.js`, and `src/runtime/tools/workflow/`.
+- Compatibility runtime read models and evidence surfaces under `src/openkit-runtime/lib/`, `src/openkit-runtime/workflow-state.js`, and `src/runtime/tools/workflow/`.
 - Existing validation commands in `package.json`, including `npm run verify:all`, `npm run verify:runtime-foundation`, `npm run verify:governance`, `npm run verify:semgrep-quality`, and targeted `node --test ...` suites.
 
 The implementation should harden and align existing surfaces. It should not introduce a second capability platform, a new registry format unrelated to current runtime metadata, a background autonomy layer, or target-project app validation defaults.
@@ -64,9 +64,9 @@ The implementation should harden and align existing surfaces. It should not intr
 - `src/runtime/tools/capability/mcp-doctor.js`
 - `src/runtime/tools/capability/capability-health.js`
 - `src/runtime/tools/capability/capability-inventory.js`
-- `bin/openkit.js`, `src/cli/index.js`, and `src/cli/commands/configure.js`
-- `docs/operator/mcp-configuration.md`, `docs/operator/supported-surfaces.md`, `docs/operator/README.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `context/core/project-config.md`, `context/core/runtime-surfaces.md`, and `AGENTS.md` only where command reality changes.
-- Tests: `tests/cli/configure-mcp.test.js`, `tests/cli/configure-mcp-custom.test.js`, `tests/cli/configure-mcp-interactive.test.js`, `tests/global/custom-mcp-store.test.js`, `tests/global/custom-mcp-validation.test.js`, `tests/global/mcp-config-store.test.js`, `tests/global/mcp-profile-materializer.test.js`, `tests/global/mcp-interactive-wizard.test.js`, `tests/global/mcp-secret-manager.test.js`, `tests/install/mcp-secret-package-readiness.test.js`, and `tests/runtime/capability-tools.test.js`.
+- `src/bin/openkit.js`, `src/cli/index.js`, and `src/cli/commands/configure.js`
+- `docs/operator/mcp-configuration.md`, `docs/operator/supported-surfaces.md`, `docs/operator/README.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `src/context/core/project-config.md`, `src/context/core/runtime-surfaces.md`, and `AGENTS.md` only where command reality changes.
+- Tests: `src/tests/cli/configure-mcp.test.js`, `src/tests/cli/configure-mcp-custom.test.js`, `src/tests/cli/configure-mcp-interactive.test.js`, `src/tests/global/custom-mcp-store.test.js`, `src/tests/global/custom-mcp-validation.test.js`, `src/tests/global/mcp-config-store.test.js`, `src/tests/global/mcp-profile-materializer.test.js`, `src/tests/global/mcp-interactive-wizard.test.js`, `src/tests/global/mcp-secret-manager.test.js`, `src/tests/install/mcp-secret-package-readiness.test.js`, and `src/tests/runtime/capability-tools.test.js`.
 
 ### Phase 2 — Code Intelligence Hardening
 
@@ -98,11 +98,11 @@ The implementation should harden and align existing surfaces. It should not intr
 - `src/runtime/tools/external/typecheck.js`, `src/runtime/tools/external/lint.js`, and `src/runtime/tools/external/test-run.js`
 - `src/runtime/tools/tool-registry.js`, `src/runtime/create-tools.js`, `src/runtime/create-managers.js`, and `src/runtime/create-runtime-interface.js`
 - `src/mcp-server/tool-schemas.js` and `src/mcp-server/index.js` if tool schema/readiness metadata changes.
-- Docs/tests: `docs/operator/supported-surfaces.md`, `docs/maintainer/test-matrix.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `context/core/tool-substitution-rules.md`, `context/core/project-config.md`, `context/core/runtime-surfaces.md`, `tests/runtime/project-graph-manager.test.js`, `tests/runtime/import-graph-builder.test.js`, `tests/runtime/graph-db.test.js`, `tests/runtime/graph-tools.test.js`, `tests/runtime/graph-navigation-tools.test.js`, `tests/runtime/syntax-path-resolution.test.js`, `tests/runtime/codemod-tools.test.js`, `tests/runtime/lsp-graph-integration.test.js`, `tests/runtime/semantic-memory.test.js`, `tests/runtime/embedding-pipeline.test.js`, `tests/runtime/language-support.test.js`, and `tests/runtime/external-tools.test.js`.
+- Docs/tests: `docs/operator/supported-surfaces.md`, `docs/maintainer/test-matrix.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `src/context/core/tool-substitution-rules.md`, `src/context/core/project-config.md`, `src/context/core/runtime-surfaces.md`, `src/tests/runtime/project-graph-manager.test.js`, `src/tests/runtime/import-graph-builder.test.js`, `src/tests/runtime/graph-db.test.js`, `src/tests/runtime/graph-tools.test.js`, `src/tests/runtime/graph-navigation-tools.test.js`, `src/tests/runtime/syntax-path-resolution.test.js`, `src/tests/runtime/codemod-tools.test.js`, `src/tests/runtime/lsp-graph-integration.test.js`, `src/tests/runtime/semantic-memory.test.js`, `src/tests/runtime/embedding-pipeline.test.js`, `src/tests/runtime/language-support.test.js`, and `src/tests/runtime/external-tools.test.js`.
 
 ### Phase 3 — Capability-Aware Orchestration
 
-- `hooks/session-start.js` and `hooks/session-start`
+- `src/hooks/session-start.js` and `src/hooks/session-start`
 - `src/runtime/tools/capability/capability-router.js`
 - `src/runtime/tools/capability/capability-router-summary.js`
 - `src/runtime/managers/capability-registry-manager.js`
@@ -110,20 +110,20 @@ The implementation should harden and align existing surfaces. It should not intr
 - `src/runtime/tools/workflow/runtime-summary.js`
 - `src/runtime/tools/workflow/workflow-state.js`
 - `src/runtime/tools/workflow/evidence-capture.js`
-- `.opencode/lib/runtime-summary.js`
-- `.opencode/lib/runtime-guidance.js`
-- `.opencode/lib/workflow-state-controller.js`
-- `.opencode/workflow-state.js`
+- `src/openkit-runtime/lib/runtime-summary.js`
+- `src/openkit-runtime/lib/runtime-guidance.js`
+- `src/openkit-runtime/lib/workflow-state-controller.js`
+- `src/openkit-runtime/workflow-state.js`
 - `src/runtime/hooks/tool-guards/stage-readiness-hook.js`
 - `src/runtime/hooks/tool-guards/parallel-safety-hook.js`
 - `src/runtime/hooks/tool-guards/verification-claim-hook.js`
-- `agents/fullstack-agent.md`, `agents/code-reviewer.md`, `agents/qa-agent.md`, `agents/solution-lead.md`, and corresponding install-bundle copies only if prompt guidance changes.
-- Docs/tests: `context/core/workflow.md`, `context/core/project-config.md`, `context/core/runtime-surfaces.md`, `context/core/approval-gates.md`, `docs/templates/solution-package-template.md`, `docs/templates/qa-report-template.md`, `docs/operator/supported-surfaces.md`, `docs/maintainer/test-matrix.md`, `.opencode/tests/session-start-hook.test.js`, `.opencode/tests/workflow-state-cli.test.js`, `.opencode/tests/workflow-state-controller.test.js`, `.opencode/tests/workflow-contract-consistency.test.js`, `tests/runtime/capability-tools.test.js`, `tests/runtime/runtime-platform.test.js`, `tests/runtime/governance-enforcement.test.js`, and `tests/runtime/invocation-logging.test.js`.
+- `src/agents/fullstack-agent.md`, `src/agents/code-reviewer.md`, `src/agents/qa-agent.md`, `src/agents/solution-lead.md`, and corresponding install-bundle copies only if prompt guidance changes.
+- Docs/tests: `src/context/core/workflow.md`, `src/context/core/project-config.md`, `src/context/core/runtime-surfaces.md`, `src/context/core/approval-gates.md`, `docs/templates/solution-package-template.md`, `docs/templates/qa-report-template.md`, `docs/operator/supported-surfaces.md`, `docs/maintainer/test-matrix.md`, `src/openkit-runtime/tests/session-start-hook.test.js`, `src/openkit-runtime/tests/workflow-state-cli.test.js`, `src/openkit-runtime/tests/workflow-state-controller.test.js`, `src/openkit-runtime/tests/workflow-contract-consistency.test.js`, `src/tests/runtime/capability-tools.test.js`, `src/tests/runtime/runtime-platform.test.js`, `src/tests/runtime/governance-enforcement.test.js`, and `src/tests/runtime/invocation-logging.test.js`.
 
 ## Boundaries And Component Decisions
 
 - **Capability status vocabulary stays canonical.** Use `available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, and `not_configured`; do not add synonyms such as `ready-ish`, `active`, or `maybe`.
-- **Validation-surface labels stay canonical.** Use `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, `package`, and `target_project_app` exactly as defined in `context/core/project-config.md` and `context/core/runtime-surfaces.md`.
+- **Validation-surface labels stay canonical.** Use `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, `package`, and `target_project_app` exactly as defined in `src/context/core/project-config.md` and `src/context/core/runtime-surfaces.md`.
 - **Phase artifacts must be inspectable in both docs and affected runtime/diagnostic/read-model surfaces.** Documentation-only hardening is insufficient when the phase claims to harden runtime behavior.
 - **Capability summaries are read models, not authority grants.** They may guide routing, tool choice, diagnostics, and evidence interpretation, but they must not approve gates, mutate workflow state, load skills, execute MCP tools, or assign role ownership.
 - **Global, in-session, compatibility runtime, and target app surfaces remain distinct.** A healthy `openkit doctor` result cannot prove graph indexing behavior; a passing workflow-state doctor cannot prove target app tests.
@@ -209,7 +209,7 @@ They must not say:
 ### [ ] Slice 0: Baseline capability map and phase gate scaffolding
 
 - **Phase**: Cross-phase prerequisite.
-- **Files**: `context/core/project-config.md`, `context/core/runtime-surfaces.md`, `docs/maintainer/test-matrix.md`, `docs/operator/supported-surfaces.md`, `.opencode/lib/runtime-summary.js`, `.opencode/workflow-state.js`, `src/runtime/tools/workflow/evidence-capture.js` if evidence/read-model shape changes.
+- **Files**: `src/context/core/project-config.md`, `src/context/core/runtime-surfaces.md`, `docs/maintainer/test-matrix.md`, `docs/operator/supported-surfaces.md`, `src/openkit-runtime/lib/runtime-summary.js`, `src/openkit-runtime/workflow-state.js`, `src/runtime/tools/workflow/evidence-capture.js` if evidence/read-model shape changes.
 - **Goal**: capture the current MCP/extensibility, code-intelligence, and orchestration capability map before hardening begins, and define the phase completion evidence shape used to unlock later phases.
 - **Validation Command**: `node --test .opencode/tests/workflow-state-cli.test.js .opencode/tests/workflow-contract-consistency.test.js` plus documentation review. Target-project app validation is unavailable.
 - **Details**:
@@ -231,7 +231,7 @@ They must not say:
 ### [ ] Slice 2: Phase 1 CLI/operator diagnostics and setup boundary hardening
 
 - **Phase**: Phase 1 — MCP / Extensibility Platform Hardening.
-- **Files**: `bin/openkit.js`, `src/cli/index.js`, `src/cli/commands/configure.js`, `src/global/mcp/mcp-configurator.js`, `src/global/mcp/interactive-wizard.js`, `src/global/mcp/profile-materializer.js`, `src/global/mcp/redaction.js`, `docs/operator/mcp-configuration.md`, `docs/operator/supported-surfaces.md`, `context/core/project-config.md`, `AGENTS.md` if command reality changes.
+- **Files**: `src/bin/openkit.js`, `src/cli/index.js`, `src/cli/commands/configure.js`, `src/global/mcp/mcp-configurator.js`, `src/global/mcp/interactive-wizard.js`, `src/global/mcp/profile-materializer.js`, `src/global/mcp/redaction.js`, `docs/operator/mcp-configuration.md`, `docs/operator/supported-surfaces.md`, `src/context/core/project-config.md`, `AGENTS.md` if command reality changes.
 - **Goal**: ensure operator-facing MCP diagnostics, guided setup, custom MCP lifecycle, and profile materialization expose real readiness and safety boundaries.
 - **Validation Command**: `node --test tests/cli/configure-mcp.test.js tests/cli/configure-mcp-custom.test.js tests/cli/configure-mcp-interactive.test.js tests/global/mcp-interactive-wizard.test.js tests/global/mcp-profile-materializer.test.js tests/install/mcp-secret-package-readiness.test.js` and `npm run verify:mcp-secret-package-readiness`.
 - **Details**:
@@ -266,7 +266,7 @@ They must not say:
 ### [ ] Slice 5: Phase 3 orchestration advisory consumption of capability state
 
 - **Phase**: Phase 3 — Capability-Aware Orchestration. Requires Phase 2 completion record.
-- **Files**: `src/runtime/tools/capability/capability-router.js`, `src/runtime/tools/capability/capability-router-summary.js`, `src/runtime/managers/capability-registry-manager.js`, `src/runtime/capability-registry.js`, `hooks/session-start.js`, `src/runtime/tools/workflow/runtime-summary.js`, `.opencode/lib/runtime-summary.js`, `.opencode/lib/runtime-guidance.js`, `.opencode/workflow-state.js`.
+- **Files**: `src/runtime/tools/capability/capability-router.js`, `src/runtime/tools/capability/capability-router-summary.js`, `src/runtime/managers/capability-registry-manager.js`, `src/runtime/capability-registry.js`, `src/hooks/session-start.js`, `src/runtime/tools/workflow/runtime-summary.js`, `src/openkit-runtime/lib/runtime-summary.js`, `src/openkit-runtime/lib/runtime-guidance.js`, `src/openkit-runtime/workflow-state.js`.
 - **Goal**: let orchestration and startup/readiness guidance use hardened capability summaries as advisory context while preserving role boundaries and explicit caveats.
 - **Validation Command**: `node --test .opencode/tests/session-start-hook.test.js .opencode/tests/workflow-state-cli.test.js tests/runtime/capability-tools.test.js tests/runtime/runtime-platform.test.js tests/runtime/capability-registry.test.js`.
 - **Details**:
@@ -277,7 +277,7 @@ They must not say:
 ### [ ] Slice 6: Phase 3 workflow guardrails, docs, and final evidence alignment
 
 - **Phase**: Phase 3 — Capability-Aware Orchestration.
-- **Files**: `context/core/workflow.md`, `context/core/approval-gates.md`, `context/core/project-config.md`, `context/core/runtime-surfaces.md`, `context/core/tool-substitution-rules.md`, `docs/templates/solution-package-template.md`, `docs/templates/qa-report-template.md`, `docs/operator/supported-surfaces.md`, `docs/maintainer/test-matrix.md`, `agents/fullstack-agent.md`, `agents/code-reviewer.md`, `agents/qa-agent.md`, install-bundle copies if prompts/templates are packaged, `.opencode/lib/workflow-state-controller.js`, `src/runtime/hooks/tool-guards/stage-readiness-hook.js`, `src/runtime/hooks/tool-guards/parallel-safety-hook.js`, `src/runtime/hooks/tool-guards/verification-claim-hook.js` only if guard behavior changes.
+- **Files**: `src/context/core/workflow.md`, `src/context/core/approval-gates.md`, `src/context/core/project-config.md`, `src/context/core/runtime-surfaces.md`, `src/context/core/tool-substitution-rules.md`, `docs/templates/solution-package-template.md`, `docs/templates/qa-report-template.md`, `docs/operator/supported-surfaces.md`, `docs/maintainer/test-matrix.md`, `src/agents/fullstack-agent.md`, `src/agents/code-reviewer.md`, `src/agents/qa-agent.md`, install-bundle copies if prompts/templates are packaged, `src/openkit-runtime/lib/workflow-state-controller.js`, `src/runtime/hooks/tool-guards/stage-readiness-hook.js`, `src/runtime/hooks/tool-guards/parallel-safety-hook.js`, `src/runtime/hooks/tool-guards/verification-claim-hook.js` only if guard behavior changes.
 - **Goal**: align workflow docs, prompts, templates, guards, and evidence expectations so capability-aware orchestration cannot be mistaken for new lanes, hidden approvals, or undocumented parallel autonomy.
 - **Validation Command**: `npm run verify:governance`, `npm run verify:install-bundle`, `node --test tests/runtime/governance-enforcement.test.js tests/runtime/invocation-logging.test.js`, and final `npm run verify:all` before handoff to Code Review if implementation changes runtime/package surfaces broadly.
 - **Details**:
@@ -340,7 +340,7 @@ Final implementation should run the strongest available repository validation be
 - Phase 2 rollback must not delete project graph databases or embedding config. Make new readiness fields optional and tolerate missing index data.
 - Phase 3 rollback should remove advisory orchestration consumption while leaving hardened Phase 1/2 status surfaces intact.
 - Keep schema changes backward-compatible where possible. If a persisted schema must change, include versioning and migration/compatibility notes in the implementation evidence.
-- Guard against documentation drift by updating `context/core/project-config.md`, `context/core/runtime-surfaces.md`, `AGENTS.md`, and maintainer/operator docs in the same phase as command or surface changes.
+- Guard against documentation drift by updating `src/context/core/project-config.md`, `src/context/core/runtime-surfaces.md`, `AGENTS.md`, and maintainer/operator docs in the same phase as command or surface changes.
 
 ## Task Slicing Guidance For Fullstack
 

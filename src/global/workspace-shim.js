@@ -160,7 +160,7 @@ export function ensureWorkspaceShim(paths) {
 
   createIfMissing(createdPaths, {
     linkPath: paths.workspaceShimContextDir,
-    targetPath: path.join(paths.kitRoot, 'context'),
+    targetPath: path.join(paths.kitRoot, 'src', 'context'),
     type: 'dir',
   });
 
@@ -194,7 +194,7 @@ const aliasMap = new Map([
   ['-h', 'help'],
 ]);
 const normalizedArgs = rawArgs.length === 0 ? ['help'] : [aliasMap.get(command) ?? command, ...rawArgs.slice(1)];
-const result = spawnSync(process.execPath, [${JSON.stringify(path.join(paths.kitRoot, '.opencode', 'workflow-state.js'))}, '--state', ${JSON.stringify(paths.workflowStatePath)}, ...normalizedArgs], {
+const result = spawnSync(process.execPath, [${JSON.stringify(path.join(paths.kitRoot, 'src', 'openkit-runtime', 'workflow-state.js'))}, '--state', ${JSON.stringify(paths.workflowStatePath)}, ...normalizedArgs], {
   stdio: 'inherit',
   env: {
     ...process.env,
@@ -307,7 +307,7 @@ const aliasMap = new Map([
   ['-h', 'help'],
 ]);
 const normalizedArgs = rawArgs.length === 0 ? ['help'] : [aliasMap.get(command) ?? command, ...rawArgs.slice(1)];
-const result = spawnSync(process.execPath, [${JSON.stringify(path.join(paths.kitRoot, '.opencode', 'workflow-state.js'))}, '--state', ${JSON.stringify(paths.workflowStatePath)}, ...normalizedArgs], {
+const result = spawnSync(process.execPath, [${JSON.stringify(path.join(paths.kitRoot, 'src', 'openkit-runtime', 'workflow-state.js'))}, '--state', ${JSON.stringify(paths.workflowStatePath)}, ...normalizedArgs], {
   stdio: 'inherit',
   env: {
     ...process.env,

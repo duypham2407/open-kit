@@ -161,7 +161,7 @@ node --test tests/runtime/*.test.js
 ```
 
 Thêm test mới:
-- `tests/runtime/source-extensions.test.js` — verify `.cts`/`.mts` có trong cả
+- `src/tests/runtime/source-extensions.test.js` — verify `.cts`/`.mts` có trong cả
   `SOURCE_EXTENSIONS` và `EXTENSION_TO_LANGUAGE`.
 - Thêm test case cho `.cts` file trong `import-graph-builder.test.js`.
 - Thêm test case verify `phase3Errors` counter hoạt động.
@@ -388,9 +388,9 @@ Mở rộng `EXTENSION_TO_LANGUAGE` (từ shared constants) và `getLanguageInst
    - heuristic LSP giữ scope JS/TS family
    - file watcher giữ scope JS/TS family để không thay đổi hành vi ngoài ý muốn
 5. Thêm test:
-   - `tests/runtime/language-support.test.js`
-   - mở rộng `tests/runtime/import-graph-builder.test.js`
-   - cập nhật `tests/runtime/source-extensions.test.js`
+   - `src/tests/runtime/language-support.test.js`
+   - mở rộng `src/tests/runtime/import-graph-builder.test.js`
+   - cập nhật `src/tests/runtime/source-extensions.test.js`
 
 Lưu ý thực thi:
 - Phase này dùng lightweight parsing cho non-JS/TS thay vì tree-sitter grammar
@@ -798,7 +798,7 @@ Lưu ý thực thi:
    - Tools self-gate via project config detection — unused tools return `unavailable` without side effects
 
 6. Test coverage:
-   - `tests/runtime/external-tools.test.js` — 44 tests covering:
+   - `src/tests/runtime/external-tools.test.js` — 44 tests covering:
      - tool-runner: spawn, stderr, exit code, timeout, missing command, PATH prepend
      - typecheck: tsc line parsing, multi-line output, tsconfig detection, status gating
      - lint: config detection (eslint/biome/package.json), output parsing, status gating
@@ -834,8 +834,8 @@ Lưu ý thực thi:
    - thêm `tools` allowlist
    - registry hydrate `systemPrompt` text từ `src/runtime/specialists/prompts/`
 5. Bổ sung test coverage:
-   - `tests/runtime/mcp-dispatch.test.js`
-   - cập nhật `tests/runtime/runtime-platform.test.js`
+   - `src/tests/runtime/mcp-dispatch.test.js`
+   - cập nhật `src/tests/runtime/runtime-platform.test.js`
 6. Kiểm chứng regression:
    - toàn bộ runtime test suite pass (`node --test tests/runtime/*.test.js`).
 

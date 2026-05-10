@@ -21,14 +21,14 @@
 | `src/runtime/state/transitions.js` | **Create** | Canonical TRANSITIONS map (per-mode) and STAGE_OWNERS. Single source of truth for legal stage transitions. |
 | `src/runtime/workflow/state-machine.js` | Modify | Import TRANSITIONS/STAGE_OWNERS instead of defining duplicates. Public exports `isValidTransition`, `getValidNextStages`, `getStageOwner`, `getStageOrder` keep their existing signatures. |
 | `src/runtime/state/transition-engine.js` | Modify | Import TRANSITIONS instead of defining `TRANSITION_RULES`. Keep `STAGE_ORDER` here (it's used internally for backward-detection). |
-| `tests/runtime/fsm-table-consistency.test.js` | **Create** | Asserts both modules read the same per-mode transitions; covers `[X-2]` from the audit. |
+| `src/tests/runtime/fsm-table-consistency.test.js` | **Create** | Asserts both modules read the same per-mode transitions; covers `[X-2]` from the audit. |
 | `src/mcp-server/tool-schemas.js` | Modify | Replace the `command` enum on `tool.workflow-state` with the `workItemId` property the handler actually accepts. |
-| `tests/mcp-server/workflow-state-contract.test.js` | **Create** | Contract test that the schema input shape and handler input shape agree. |
+| `src/tests/mcp-server/workflow-state-contract.test.js` | **Create** | Contract test that the schema input shape and handler input shape agree. |
 | `src/runtime/tools/ast/ast-grep-search.js` | Modify | Replace `execSync(args.join(' '), …)` with `spawnSync('ast-grep', args, …)` (argv form, no shell). |
-| `tests/runtime/ast-grep-search-injection.test.js` | **Create** | Asserts shell metacharacters in `pattern` do not execute. |
-| `tests/release/version-metadata-consistency.test.js` | **Create** | Asserts `package.json#version === registry.kit.version === install-manifest.kit.version`. |
+| `src/tests/runtime/ast-grep-search-injection.test.js` | **Create** | Asserts shell metacharacters in `pattern` do not execute. |
+| `src/tests/release/version-metadata-consistency.test.js` | **Create** | Asserts `package.json#version === registry.kit.version === install-manifest.kit.version`. |
 | `registry.json` | Modify | Bump `kit.version` from `0.3.36` to `0.5.1`. |
-| `.opencode/install-manifest.json` | Modify | Bump `kit.version` from `0.3.36` to `0.5.1`. |
+| `src/openkit-runtime/install-manifest.json` | Modify | Bump `kit.version` from `0.3.36` to `0.5.1`. |
 | `package.json` | Modify | Add `"verify:audit-wave-1"` script that runs the four new test files plus existing FSM/registry suites. |
 
 Each task below corresponds to one Critical (or to the safety net). Tasks are ordered so each commit leaves the tree green.
@@ -108,13 +108,13 @@ Topo order from the fix plan: D-1 → 1-C-1 → 1-C-2 → 4-C-1. D-1 first becau
 ### Task 2: Fix [D-1] — resync version metadata across the three files
 
 **Files:**
-- Create: `tests/release/version-metadata-consistency.test.js`
+- Create: `src/tests/release/version-metadata-consistency.test.js`
 - Modify: `registry.json:6`
-- Modify: `.opencode/install-manifest.json:6`
+- Modify: `src/openkit-runtime/install-manifest.json:6`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `tests/release/version-metadata-consistency.test.js`:
+Create `src/tests/release/version-metadata-consistency.test.js`:
 
 ```javascript
 import test from 'node:test';
@@ -168,9 +168,9 @@ Open `registry.json`. Locate the `kit` object near the top:
 
 Change `"version": "0.3.36"` to `"version": "0.5.1"`. Do not change any other field.
 
-- [ ] **Step 4: Fix `.opencode/install-manifest.json` kit.version**
+- [ ] **Step 4: Fix `src/openkit-runtime/install-manifest.json` kit.version**
 
-Open `.opencode/install-manifest.json`. Locate:
+Open `src/openkit-runtime/install-manifest.json`. Locate:
 
 ```json
 "kit": {
@@ -223,7 +223,7 @@ Expected: commit succeeds.
 - Create: `src/runtime/state/transitions.js`
 - Modify: `src/runtime/workflow/state-machine.js:13-73`
 - Modify: `src/runtime/state/transition-engine.js:37-65`
-- Create: `tests/runtime/fsm-table-consistency.test.js`
+- Create: `src/tests/runtime/fsm-table-consistency.test.js`
 
 The merged truth chosen per the fix plan:
 
@@ -233,7 +233,7 @@ The merged truth chosen per the fix plan:
 
 - [ ] **Step 1: Write the failing consistency test**
 
-Create `tests/runtime/fsm-table-consistency.test.js`:
+Create `src/tests/runtime/fsm-table-consistency.test.js`:
 
 ```javascript
 import test from 'node:test';
@@ -462,13 +462,13 @@ Expected: commit succeeds.
 
 **Files:**
 - Modify: `src/mcp-server/tool-schemas.js:297-310`
-- Create: `tests/mcp-server/workflow-state-contract.test.js`
+- Create: `src/tests/mcp-server/workflow-state-contract.test.js`
 
 The handler at `src/runtime/tools/workflow/workflow-state.js:23-39` reads only `workItemId`. Per the fix plan we choose Option A — drop the `command` enum and document `workItemId` as the input. This is a low-risk surface change because no callsite was actually passing `command` (the audit confirmed this).
 
 - [ ] **Step 1: Write the failing contract test**
 
-Create `tests/mcp-server/workflow-state-contract.test.js`:
+Create `src/tests/mcp-server/workflow-state-contract.test.js`:
 
 ```javascript
 import test from 'node:test';
@@ -577,11 +577,11 @@ Expected: commit succeeds.
 
 **Files:**
 - Modify: `src/runtime/tools/ast/ast-grep-search.js:1, 54-69`
-- Create: `tests/runtime/ast-grep-search-injection.test.js`
+- Create: `src/tests/runtime/ast-grep-search-injection.test.js`
 
 - [ ] **Step 1: Write the failing injection regression test**
 
-Create `tests/runtime/ast-grep-search-injection.test.js`:
+Create `src/tests/runtime/ast-grep-search-injection.test.js`:
 
 ```javascript
 import test from 'node:test';
@@ -797,7 +797,7 @@ npm pack --dry-run --json > /tmp/audit-pack-wave1.json
 diff /tmp/audit-pack-baseline.json /tmp/audit-pack-wave1.json | head -30
 ```
 
-Expected: differences are limited to the 6 files modified/added in this plan (`registry.json`, `.opencode/install-manifest.json`, `package.json`, the 4 new test files, `src/runtime/state/transitions.js`, the two FSM modules, `src/mcp-server/tool-schemas.js`, `src/runtime/tools/ast/ast-grep-search.js`). New test files under `tests/` should NOT appear in the pack output (tests are not in `pkg.files`).
+Expected: differences are limited to the 6 files modified/added in this plan (`registry.json`, `src/openkit-runtime/install-manifest.json`, `package.json`, the 4 new test files, `src/runtime/state/transitions.js`, the two FSM modules, `src/mcp-server/tool-schemas.js`, `src/runtime/tools/ast/ast-grep-search.js`). New test files under `src/tests/` should NOT appear in the pack output (tests are not in `pkg.files`).
 
 If unexpected files appear or expected files are missing, investigate before continuing.
 
@@ -832,7 +832,7 @@ When all tasks above are complete:
 
 - [ ] 4 Critical findings resolved: [D-1], [1-C-1], [1-C-2], [4-C-1]
 - [ ] Audit cross-layer finding [X-2] also resolved (consistency test added in Task 3)
-- [ ] 4 new tests under `tests/release/`, `tests/runtime/`, `tests/mcp-server/`
+- [ ] 4 new tests under `src/tests/release/`, `src/tests/runtime/`, `src/tests/mcp-server/`
 - [ ] 1 new source module: `src/runtime/state/transitions.js`
 - [ ] 5 commits on `main` (wave-0 setup + 4 Critical fixes)
 - [ ] `npm run verify:all` and `npm run verify:audit-wave-1` both green

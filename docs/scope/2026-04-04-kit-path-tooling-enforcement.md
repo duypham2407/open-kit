@@ -38,7 +38,7 @@ A prior scope package (`docs/scope/2026-04-04-full-lane-path-scaffold-fix.md`) d
 
 ### Problem 3 — Tool-substitution rules are documented but not enforced at runtime
 
-`context/core/tool-substitution-rules.md` declares that OS commands (`grep`, `find`, `cat`, `head`, `tail`, `sed`, `awk`, `wc`, `echo > file`) are **blocked** on source code files in `strict` mode (the default for quick and full work). `AGENTS.md` repeats this rule. However, agents routinely use these OS commands without runtime interception or rejection. The enforcement is purely advisory — there is no runtime mechanism that intercepts Bash tool calls, detects banned commands, and blocks or warns. The gap between "documented as blocked" and "actually allowed" erodes trust in the tool-substitution contract and means kit intelligence tools (semantic search, AST search, symbol navigation, etc.) are underused.
+`src/context/core/tool-substitution-rules.md` declares that OS commands (`grep`, `find`, `cat`, `head`, `tail`, `sed`, `awk`, `wc`, `echo > file`) are **blocked** on source code files in `strict` mode (the default for quick and full work). `AGENTS.md` repeats this rule. However, agents routinely use these OS commands without runtime interception or rejection. The enforcement is purely advisory — there is no runtime mechanism that intercepts Bash tool calls, detects banned commands, and blocks or warns. The gap between "documented as blocked" and "actually allowed" erodes trust in the tool-substitution contract and means kit intelligence tools (semantic search, AST search, symbol navigation, etc.) are underused.
 
 ## In Scope
 
@@ -167,7 +167,7 @@ A prior scope package (`docs/scope/2026-04-04-full-lane-path-scaffold-fix.md`) d
 
 3. **Source-file detection heuristic:** How does the enforcement mechanism distinguish `grep pattern src/file.js` (should block) from `grep pattern` on piped input (should allow)? **Assumption:** A reasonable heuristic based on command arguments and file path patterns is sufficient. Perfect accuracy is not required for v1 — false negatives (missed blocks) are more acceptable than false positives (blocking legitimate usage).
 
-4. **Compatibility mirror sync for feature-006:** The compatibility mirror at `.opencode/workflow-state.json` still shows FEATURE-001 data even after `activate-work-item feature-006`. The managed state in the workspace root is correct. Is the compatibility mirror sync broken, or is this a consequence of the same project-root mislabelling? **Assumption:** This is likely part of Problem 1 and should be verified during implementation.
+4. **Compatibility mirror sync for feature-006:** The compatibility mirror at `src/openkit-runtime/workflow-state.json` still shows FEATURE-001 data even after `activate-work-item feature-006`. The managed state in the workspace root is correct. Is the compatibility mirror sync broken, or is this a consequence of the same project-root mislabelling? **Assumption:** This is likely part of Problem 1 and should be verified during implementation.
 
 ## Success Signal
 
@@ -179,7 +179,7 @@ A prior scope package (`docs/scope/2026-04-04-full-lane-path-scaffold-fix.md`) d
 ## Handoff Notes For Solution Lead
 
 - **Scope Area 1** has a prior diagnosis in `docs/scope/2026-04-04-full-lane-path-scaffold-fix.md` with specific root-cause analysis pointing to `readManagedState` in `workflow-state-controller.js`. Use that analysis as a starting point but verify against current code — the fix may have been attempted and partially landed.
-- **Scope Area 2** is narrow: update regex patterns in `.opencode/lib/contract-consistency.js` and remove stale file references to `docs/specs/` and `docs/plans/`. The existing test at `.opencode/tests/workflow-contract-consistency.test.js` (line ~290) has a passing variant that shows what wording the check should accept.
+- **Scope Area 2** is narrow: update regex patterns in `src/openkit-runtime/lib/contract-consistency.js` and remove stale file references to `docs/specs/` and `docs/plans/`. The existing test at `src/openkit-runtime/tests/workflow-contract-consistency.test.js` (line ~290) has a passing variant that shows what wording the check should accept.
 - **Scope Area 3** is the largest design surface. The product requirement is behavioral (block/warn/allow), not architectural. Solution Lead should decide the interception mechanism. Key constraint: no false positives on legitimate Bash (git, npm, build tools, system ops).
 - The three scope areas are independently deliverable. Solution Lead may sequence them as separate slices if that reduces risk.
 - Preserve existing local-only mode behavior — all fixes must be no-ops when runtimeRoot equals projectRoot.

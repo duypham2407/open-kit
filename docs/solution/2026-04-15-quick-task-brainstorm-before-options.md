@@ -25,22 +25,22 @@ This is the simplest adequate path because the accepted scope is a behavior-cont
 ## Impacted Surfaces
 
 ### Canonical workflow and role contract
-- `context/core/workflow.md`
+- `src/context/core/workflow.md`
 - `docs/maintainer/2026-03-26-role-operating-policy.md`
 
 ### Quick-lane execution surfaces
-- `agents/quick-agent.md`
-- `commands/quick-task.md`
-- `commands/task.md`
+- `src/agents/quick-agent.md`
+- `src/commands/quick-task.md`
+- `src/commands/task.md`
 
 ### Runtime guidance and summary surfaces
 - `src/runtime/instruction-contracts.js`
-- `.opencode/lib/runtime-guidance.js`
+- `src/openkit-runtime/lib/runtime-guidance.js`
 
 ### Verification surfaces
-- `.opencode/tests/workflow-contract-consistency.test.js`
-- `.opencode/tests/workflow-state-controller.test.js`
-- `.opencode/tests/quick-lane-contract.test.js` (new targeted contract test)
+- `src/openkit-runtime/tests/workflow-contract-consistency.test.js`
+- `src/openkit-runtime/tests/workflow-state-controller.test.js`
+- `src/openkit-runtime/tests/quick-lane-contract.test.js` (new targeted contract test)
 
 ### Derived global-install bundle surfaces
 - `assets/install-bundle/opencode/agents/QuickAgent.md`
@@ -65,9 +65,9 @@ This is the simplest adequate path because the accepted scope is a behavior-cont
 - Quick-mode task-board prohibition
 
 ### Files that should remain untouched unless implementation proves otherwise
-- `.opencode/lib/workflow-state-rules.js`
-- `.opencode/lib/workflow-state-controller.js`
-- `context/core/active-contract.json`
+- `src/openkit-runtime/lib/workflow-state-rules.js`
+- `src/openkit-runtime/lib/workflow-state-controller.js`
+- `src/context/core/active-contract.json`
 
 These surfaces already encode the approved unchanged parts: stage names, owner chain, and gate model. Editing them would be scope drift unless a concrete validation gap appears.
 
@@ -100,7 +100,7 @@ These surfaces already encode the approved unchanged parts: stage names, owner c
   7. wait for **separate explicit plan confirmation** before `quick_implement`
 
 ### Runtime summary contract
-- `src/runtime/instruction-contracts.js` and `.opencode/lib/runtime-guidance.js` must describe the same stage semantics as the canonical docs.
+- `src/runtime/instruction-contracts.js` and `src/openkit-runtime/lib/runtime-guidance.js` must describe the same stage semantics as the canonical docs.
 - The `/task` and `/quick-task` entry surfaces must no longer promise options in `quick_brainstorm`.
 
 ### Bundle contract
@@ -150,9 +150,9 @@ Do **not** add new quick-state fields, new approvals, or new stage transitions u
 
 ### Slice 1: Add quick-lane contract guardrails first
 - **Files**:
-  - `.opencode/tests/quick-lane-contract.test.js` (new)
-  - `.opencode/tests/workflow-contract-consistency.test.js`
-  - `.opencode/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/tests/quick-lane-contract.test.js` (new)
+  - `src/openkit-runtime/tests/workflow-contract-consistency.test.js`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
 - **Goal**: lock in the new quick-lane behavior while proving the old runtime stage/gate model remains unchanged.
 - **Validation Command**:
   - `node --test ".opencode/tests/quick-lane-contract.test.js"`
@@ -169,7 +169,7 @@ Do **not** add new quick-state fields, new approvals, or new stage transitions u
 
 ### Slice 2: Rewrite the canonical quick-lane contract
 - **Files**:
-  - `context/core/workflow.md`
+  - `src/context/core/workflow.md`
   - `docs/maintainer/2026-03-26-role-operating-policy.md`
 - **Goal**: make the source-of-truth quick-stage responsibilities match the approved scope without changing the stage model.
 - **Validation Command**:
@@ -185,24 +185,24 @@ Do **not** add new quick-state fields, new approvals, or new stage transitions u
 
 ### Slice 3: Align Quick Agent and command/runtime guidance surfaces
 - **Files**:
-  - `agents/quick-agent.md`
-  - `commands/quick-task.md`
-  - `commands/task.md`
+  - `src/agents/quick-agent.md`
+  - `src/commands/quick-task.md`
+  - `src/commands/task.md`
   - `src/runtime/instruction-contracts.js`
-  - `.opencode/lib/runtime-guidance.js`
+  - `src/openkit-runtime/lib/runtime-guidance.js`
 - **Goal**: ensure every quick-lane execution surface gives the same operational instructions.
 - **Validation Command**:
   - `node --test ".opencode/tests/quick-lane-contract.test.js"`
 - **Details**:
-  - In `agents/quick-agent.md`:
+  - In `src/agents/quick-agent.md`:
     - rewrite `quick_brainstorm` to clarify-and-align behavior only
     - move all option generation into `quick_plan`
     - require default 3 options in `quick_plan`, with fewer only when explicitly justified
     - require holistic options that call out broader consistency/stability impact where relevant
     - require separate user selection before plan creation and separate plan confirmation before implementation
-  - In `commands/quick-task.md` and `commands/task.md`:
+  - In `src/commands/quick-task.md` and `src/commands/task.md`:
     - change the quick-lane expectation text and example transcript so they no longer promise “brainstorm 3 options” before alignment
-  - In `src/runtime/instruction-contracts.js` and `.opencode/lib/runtime-guidance.js`:
+  - In `src/runtime/instruction-contracts.js` and `src/openkit-runtime/lib/runtime-guidance.js`:
     - update `nextAction` / stage guidance strings so resume and runtime summaries stay aligned with the new contract
 
 ### Slice 4: Refresh bundled assets and verify source-to-bundle parity

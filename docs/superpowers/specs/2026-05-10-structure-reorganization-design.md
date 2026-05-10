@@ -6,16 +6,16 @@
 
 ## Background
 
-OpenKit currently has source code distributed across multiple root-level directories (`agents/`, `commands/`, `skills/`, `context/`, `hooks/`, `bin/`, `scripts/`, `tests/`, `.opencode/`, etc.). This creates two problems:
+OpenKit currently has source code distributed across multiple root-level directories (`src/agents/`, `src/commands/`, `src/skills/`, `src/context/`, `src/hooks/`, `bin/`, `scripts/`, `src/tests/`, `src/openkit-runtime/`, etc.). This creates two problems:
 
-1. **Naming collision risk:** The `.opencode/` directory conflicts with OpenCode's runtime when OpenCode runs inside the OpenKit project, potentially creating confusion or overwriting issues.
+1. **Naming collision risk:** The `src/openkit-runtime/` directory conflicts with OpenCode's runtime when OpenCode runs inside the OpenKit project, potentially creating confusion or overwriting issues.
 
 2. **Project organization:** Having source scattered at the root level makes the project harder to navigate and understand. Consolidating under `/src` provides clear separation between source code and project-level configuration/documentation.
 
 ## Goals
 
 - Consolidate all OpenKit source code under `/src`
-- Rename `.opencode/` to avoid naming conflicts with OpenCode runtime
+- Rename `src/openkit-runtime/` to avoid naming conflicts with OpenCode runtime
 - Maintain git history through proper `git mv` operations
 - Preserve all functionality and test coverage
 - Single atomic migration with comprehensive validation
@@ -26,16 +26,16 @@ OpenKit currently has source code distributed across multiple root-level directo
 
 | Current Path | New Path | Notes |
 |--------------|----------|-------|
-| `agents/` | `/src/agents/` | Agent role definitions |
-| `commands/` | `/src/commands/` | User-facing slash commands |
-| `skills/` | `/src/skills/` | Composable workflow procedures |
-| `context/` | `/src/context/` | Shared intelligence |
-| `hooks/` | `/src/hooks/` | Session bootstrap integration |
+| `src/agents/` | `/src/agents/` | Agent role definitions |
+| `src/commands/` | `/src/commands/` | User-facing slash commands |
+| `src/skills/` | `/src/skills/` | Composable workflow procedures |
+| `src/context/` | `/src/context/` | Shared intelligence |
+| `src/hooks/` | `/src/hooks/` | Session bootstrap integration |
 | `instructions/` | `/src/instructions/` | Additional guidance |
-| `.opencode/` | `/src/openkit-runtime/` | **Renamed** - OpenCode compatibility runtime |
+| `src/openkit-runtime/` | `/src/openkit-runtime/` | **Renamed** - OpenCode compatibility runtime |
 | `bin/` | `/src/bin/` | CLI executables |
 | `scripts/` | `/src/scripts/` | Build/verification scripts |
-| `tests/` | `/src/tests/` | Test suites |
+| `src/tests/` | `/src/tests/` | Test suites |
 | `assets/` | `/src/assets/` | Assets (permission policies, etc.) |
 
 ### Directories Staying at Root
@@ -99,7 +99,7 @@ Files and configurations requiring path updates:
 
 #### 1. package.json
 - `files` array: update all moved directory paths
-- `bin` entries: `bin/openkit.js` → `src/bin/openkit.js`
+- `bin` entries: `src/bin/openkit.js` → `src/bin/openkit.js`
 - `scripts`: update test paths and verification script paths
 
 #### 2. registry.json
@@ -107,7 +107,7 @@ Files and configurations requiring path updates:
 - Component file references throughout the registry
 
 #### 3. Import/Require Statements
-- JavaScript imports referencing `.opencode/` → `../openkit-runtime/`
+- JavaScript imports referencing `src/openkit-runtime/` → `../openkit-runtime/`
 - Relative imports between moved files (mostly unchanged)
 - Imports from root-level files to moved directories
 
@@ -122,14 +122,14 @@ Files and configurations requiring path updates:
 - Test descriptions with embedded paths
 
 #### 6. Configuration Files
-- `.opencode/opencode.json` → `src/openkit-runtime/opencode.json` references
+- `src/openkit-runtime/opencode.json` → `src/openkit-runtime/opencode.json` references
 - Runtime config internal paths
 - Workflow state path constants
 
 #### 7. Special: .opencode → openkit-runtime Rename
 - Update `opencode.json` if it has self-referential paths
 - Update `workflow-state.js` path constants
-- Update any runtime code assuming `.opencode/` location
+- Update any runtime code assuming `src/openkit-runtime/` location
 - Document rename rationale in migration notes
 
 ### Validation Strategy
@@ -205,7 +205,7 @@ git mv assets src/assets
 7. **Runtime configuration**
    - Update `src/openkit-runtime/opencode.json`
    - Update `src/openkit-runtime/workflow-state.js`
-   - Update any hardcoded `.opencode/` references
+   - Update any hardcoded `src/openkit-runtime/` references
 
 8. **Documentation**
    - Scan `docs/` for code examples with paths
@@ -251,7 +251,7 @@ Verified with full test suite (verify:all)"
    - Validation: Test local npm pack/install before publishing
 
 3. **Runtime path assumptions**
-   - Mitigation: Search for hardcoded `.opencode/` strings
+   - Mitigation: Search for hardcoded `src/openkit-runtime/` strings
    - Testing: Run workflow state operations post-migration
 
 4. **External tools depending on paths**
@@ -284,7 +284,7 @@ npm run verify:all          # Validate rollback
 
 ## Notes
 
-- The `.opencode/` → `openkit-runtime/` rename is permanent; no compatibility shim needed since this is internal structure
+- The `src/openkit-runtime/` → `openkit-runtime/` rename is permanent; no compatibility shim needed since this is internal structure
 - `docs/` intentionally stays at root for discoverability
 - Root-level markdown files stay for ecosystem conventions (README at root)
 - This is a structure-only change; no functional changes to code

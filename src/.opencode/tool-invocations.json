@@ -1,0 +1,68 @@
+{
+  "entries": [
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-10T09:19:27.802Z"
+    },
+    {
+      "tool_id": "tool.import-graph",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-10T09:19:28.064Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 20,
+      "recorded_at": "2026-05-10T09:19:28.333Z"
+    },
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-10T09:19:28.865Z"
+    },
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-10T09:20:22.243Z"
+    },
+    {
+      "tool_id": "tool.import-graph",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-10T09:20:22.488Z"
+    },
+    {
+      "tool_id": "tool.syntax-outline",
+      "status": "success",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 16,
+      "recorded_at": "2026-05-10T09:20:22.736Z"
+    },
+    {
+      "tool_id": "tool.find-symbol",
+      "status": "failure",
+      "stage": null,
+      "owner": null,
+      "duration_ms": 0,
+      "recorded_at": "2026-05-10T09:20:23.350Z"
+    }
+  ]
+}

@@ -218,7 +218,7 @@ Runtime commands are loaded through:
 Command sources include:
 
 - builtin runtime commands
-- project markdown commands under `commands/`
+- project markdown commands under `src/commands/`
 
 Builtin runtime commands currently include:
 
@@ -268,7 +268,7 @@ Current behavior:
 - builtin dispatch is now executable (`dispatchMcpCall` invokes builtin `execute()`)
 - builtin enable/disable flags from runtime config are honored
 - unknown builtin requests attempt external-server dispatch
-- external servers are normalized from `.mcp.json` / `.opencode/mcp.json`
+- external servers are normalized from `.mcp.json` / `src/openkit-runtime/mcp.json`
 - external transports currently supported:
   - `http` (JSON POST)
   - `stdio` (single-request process invoke)

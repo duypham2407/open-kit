@@ -28,7 +28,7 @@ approval_gate: qa_to_done
 - No QA finding requiring rework was observed.
 
 ## Behavior Impact
-- Operators receive policy-derived OpenKit-managed config/profile materialization for global runtime surfaces instead of relying only on repo-local `.opencode/opencode.json`.
+- Operators receive policy-derived OpenKit-managed config/profile materialization for global runtime surfaces instead of relying only on repo-local `src/openkit-runtime/opencode.json`.
 - `openkit doctor` can report policy source health, config/profile drift, and upstream limitation caveats.
 - The implementation does not weaken agent git/release safety protocol and does not add hidden prompt handling.
 

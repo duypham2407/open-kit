@@ -45,7 +45,7 @@ Maintainers can run the bundled Semgrep rule-pack regression suite directly:
 npm run verify:semgrep-quality
 ```
 
-This command executes Semgrep against controlled OpenKit fixtures under `tests/fixtures/semgrep/`. It validates that `openkit.quality.no-var-declaration` reports real JavaScript `var` declarations while ignoring `const`, `let`, imports, object keys, environment-variable text, comments, documentation strings, test-title text, and metadata-only mentions. It also includes a security-pack sanity fixture so quality-rule edits do not silently break the bundled security scan path.
+This command executes Semgrep against controlled OpenKit fixtures under `src/tests/fixtures/semgrep/`. It validates that `openkit.quality.no-var-declaration` reports real JavaScript `var` declarations while ignoring `const`, `let`, imports, object keys, environment-variable text, comments, documentation strings, test-title text, and metadata-only mentions. It also includes a security-pack sanity fixture so quality-rule edits do not silently break the bundled security scan path.
 
 The command validates OpenKit `runtime_tooling` and rule-pack governance only. It is not target-project application build, lint, or test evidence.
 

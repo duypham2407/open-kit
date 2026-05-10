@@ -11,7 +11,7 @@ OpenKit is a mode-aware workflow kit layered over OpenCode. It provides:
 - role prompts and commands
 - install and launch orchestration
 - a capability runtime under `src/runtime/`
-- a checked-in compatibility runtime under `.opencode/`
+- a checked-in compatibility runtime under `src/openkit-runtime/`
 - a global install path under the OpenCode home directory
 
 In practice, the kit has two important identities at once:
@@ -25,13 +25,13 @@ In practice, the kit has two important identities at once:
 
 ### A. Authoring surfaces
 
-- `agents/`
-- `commands/`
-- `skills/`
-- `context/`
-- `hooks/`
+- `src/agents/`
+- `src/commands/`
+- `src/skills/`
+- `src/context/`
+- `src/hooks/`
 - `src/runtime/`
-- `.opencode/`
+- `src/openkit-runtime/`
 - `docs/`
 
 ### B. Managed runtime surfaces
@@ -79,9 +79,9 @@ OpenCode launched with OpenKit-managed environment and workflow state
 
 ### Workflow and compatibility layer
 
-- `.opencode/`
-- `.opencode/workflow-state.js`
-- `.opencode/lib/*`
+- `src/openkit-runtime/`
+- `src/openkit-runtime/workflow-state.js`
+- `src/openkit-runtime/lib/*`
 
 Purpose:
 - maintain workflow-state compatibility

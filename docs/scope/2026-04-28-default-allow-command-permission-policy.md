@@ -42,7 +42,7 @@ OpenKit already documents that normal non-destructive commands should run withou
 - Represent the policy as default-allow for commands not listed as confirm-required, subject to what OpenCode can actually honor.
 - Include an explicit confirm-required list or category map for dangerous commands.
 - Apply or synchronize the policy to global OpenKit-managed OpenCode config/profile materialization used by `openkit run`.
-- Keep repo-local `.opencode/opencode.json` as an authoring/compatibility surface, but do not make it the only target of this feature.
+- Keep repo-local `src/openkit-runtime/opencode.json` as an authoring/compatibility surface, but do not make it the only target of this feature.
 - Add doctor and maintainer verification expectations for:
   - policy file presence and schema/readability,
   - materialized global config/profile alignment,
@@ -60,7 +60,7 @@ OpenKit already documents that normal non-destructive commands should run withou
 - Do not make destructive commands safe by policy wording alone; dangerous operations still require explicit confirmation.
 - Do not add a new workflow lane, approval gate, role, or runtime mode.
 - Do not treat OpenKit CLI/runtime checks as target-project application build/lint/test evidence.
-- Do not require users to hand-edit only repo-local `.opencode/opencode.json` to get the default behavior in global installs.
+- Do not require users to hand-edit only repo-local `src/openkit-runtime/opencode.json` to get the default behavior in global installs.
 
 ## Main User Journeys
 
@@ -102,7 +102,7 @@ OpenKit already documents that normal non-destructive commands should run withou
 
 1. The default policy must be machine-readable and versioned or schema-identifiable enough for validation and future migration.
 2. Global OpenKit-managed config/profile materialization is the primary product target.
-3. Repo-local `.opencode/opencode.json` may mirror or consume the same policy for authoring and compatibility, but success cannot be limited to that file.
+3. Repo-local `src/openkit-runtime/opencode.json` may mirror or consume the same policy for authoring and compatibility, but success cannot be limited to that file.
 4. Install, run, upgrade, or sync behavior that materializes OpenKit-owned config must not silently drift from the policy file.
 5. Existing user-managed OpenCode configuration must be handled non-destructively; conflicts or unsupported merge behavior must be reported instead of overwritten silently.
 
@@ -133,7 +133,7 @@ OpenKit already documents that normal non-destructive commands should run withou
 
 ### AC3 — Repo-Local Config Is Not The Only Target
 
-- **Given** the checked-in repository-local `.opencode/opencode.json` carries compatibility config
+- **Given** the checked-in repository-local `src/openkit-runtime/opencode.json` carries compatibility config
 - **When** FEATURE-960 is validated
 - **Then** passing validation requires global OpenKit-managed config/profile coverage, not only a repo-local file update
 - **And** repo-local config either aligns with the policy or explicitly documents why it is compatibility-only.
@@ -260,7 +260,7 @@ OpenKit already documents that normal non-destructive commands should run withou
 ## Handoff Notes For Solution Lead
 
 - Keep the solution simple: policy file, global config/profile materialization or sync, doctor reporting, verification, and docs.
-- Treat global installed OpenKit runtime as the primary product target; repo-local `.opencode/opencode.json` is not enough.
+- Treat global installed OpenKit runtime as the primary product target; repo-local `src/openkit-runtime/opencode.json` is not enough.
 - Preserve the no-broker MVP boundary: no pseudo-terminal auto-confirm, no hidden prompt interception, no unknown prompt bypass.
 - Preserve the existing agent git safety protocol exactly; command permission defaults do not authorize unsafe git behavior.
 - Design validation around both intended policy representation and effective upstream support; if OpenCode cannot honor a rule, report the limitation explicitly.

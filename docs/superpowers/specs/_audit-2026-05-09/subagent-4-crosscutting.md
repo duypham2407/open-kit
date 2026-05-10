@@ -20,12 +20,12 @@
 ### High
 
 - [4-H-1] Config-driven RCE via `supervisorDialogue.openclaw.command` — `src/runtime/supervisor/openclaw-adapter.js:40`
-  - Description: openclaw supervisor reads `command` and `args` from user's runtime config (`.opencode/openkit.json`). No whitelist or path validation on `settings.command`; any string is passed directly to `spawn`. Malicious or accidentally misconfigured target project repo with crafted `.opencode/openkit.json` can execute arbitrary binaries.
+  - Description: openclaw supervisor reads `command` and `args` from user's runtime config (`src/openkit-runtime/openkit.json`). No whitelist or path validation on `settings.command`; any string is passed directly to `spawn`. Malicious or accidentally misconfigured target project repo with crafted `src/openkit-runtime/openkit.json` can execute arbitrary binaries.
   - Evidence: `const child = spawn(settings.command, settings.args, ...)` at L40. Schema validation (`src/runtime/config/schema.js:431`) only checks `typeof openclaw.command !== 'string'`.
   - Suggested fix: apply allowlist or path validation (absolute path only, no shell operators) mirroring `SHELL_OPERATORS`/`SHELL_LAUNCHERS` checks already in `custom-mcp-validation.js`.
 
 - [4-H-2] Config-driven RCE via external MCP stdio `command` — `src/runtime/mcp/dispatch.js:183`
-  - Description: `invokeStdioExternal` spawns `server.command` with `server.args`, both verbatim from `.mcp.json`/`.opencode/mcp.json` in target project root. No validation. Attacker with write access to target project's `.mcp.json` can achieve RCE when operator runs `openkit run` against that project.
+  - Description: `invokeStdioExternal` spawns `server.command` with `server.args`, both verbatim from `.mcp.json`/`src/openkit-runtime/mcp.json` in target project root. No validation. Attacker with write access to target project's `.mcp.json` can achieve RCE when operator runs `openkit run` against that project.
   - Evidence: `const child = spawn(server.command, server.args ?? [], ...)` at L183. `normalizeExternalServers` (L27-65) does no security check.
   - Suggested fix: apply same `SHELL_OPERATORS`/`SHELL_LAUNCHERS`/`SHELL_EXEC_FLAGS` checks from `custom-mcp-validation.js` to commands loaded from `.mcp.json`.
 
@@ -44,8 +44,8 @@
     No `isInsideProjectRoot` call after.
   - Suggested fix: apply `isInsideProjectRoot` after resolving; reject paths escaping project root for relative/home-relative refs.
 
-- [4-H-5] No E2E test for `hooks/graph-indexer.js` — `hooks/graph-indexer.js`
-  - Description: graph-indexer hook is spawned detached/fire-and-forget on every session start. Builds and indexes in-memory project graph (critical path for graph-tool accuracy). No test in `tests/` or `.opencode/tests/` exercises the hook entry-point binary; `tests/runtime/graph-db.test.js` tests DB layer only.
+- [4-H-5] No E2E test for `src/hooks/graph-indexer.js` — `src/hooks/graph-indexer.js`
+  - Description: graph-indexer hook is spawned detached/fire-and-forget on every session start. Builds and indexes in-memory project graph (critical path for graph-tool accuracy). No test in `src/tests/` or `src/openkit-runtime/tests/` exercises the hook entry-point binary; `src/tests/runtime/graph-db.test.js` tests DB layer only.
   - Evidence: `find .opencode/tests tests -name "*graph-index*"` returns nothing.
   - Suggested fix: add integration test spawning `graph-indexer.js` against fixture project; assert DB populated with expected nodes/edges.
 
@@ -59,8 +59,8 @@
   - Description: All six direct deps use `^`. While `package-lock.json` pins exact versions, any `npm update` or fresh CI install ignoring lockfile pulls new versions unreviewed. `better-sqlite3` and `jscodeshift` have native add-on build steps at install.
   - Suggested fix: pin to exact versions (remove carets) for production deps, or enforce `npm ci` in all CI/deployment.
 
-- [4-M-3] `tool.invocation-log` records full tool result objects without redaction — `.opencode/lib/invocation-log.js:156`
-  - Description: `createInvocationEntry` stores `result` (raw tool output). `tool.rule-scan`/`tool.security-scan` use `normalizeScanInvocationMetadata`. For other tools, entire `result` is passed via `invocationLogger.record({ ..., result })` in `wrap-tool-execution.js:84` with no redaction. Future tool returning sensitive data (e.g., secret loaded during diagnostics) would persist to `.opencode/tool-invocations.json` on disk.
+- [4-M-3] `tool.invocation-log` records full tool result objects without redaction — `src/openkit-runtime/lib/invocation-log.js:156`
+  - Description: `createInvocationEntry` stores `result` (raw tool output). `tool.rule-scan`/`tool.security-scan` use `normalizeScanInvocationMetadata`. For other tools, entire `result` is passed via `invocationLogger.record({ ..., result })` in `wrap-tool-execution.js:84` with no redaction. Future tool returning sensitive data (e.g., secret loaded during diagnostics) would persist to `src/openkit-runtime/tool-invocations.json` on disk.
   - Suggested fix: scrub `result` through redaction pass before logging, or define and log only safe subset of fields per tool category.
 
 - [4-M-4] Semgrep security rules lack command-injection and path-traversal patterns — `assets/semgrep/packs/security-audit.yml`
@@ -70,7 +70,7 @@
     - Spawn of config-supplied commands (4-H-1, 4-H-2)
   - Suggested fix: add semgrep rule matching `execSync($ARG.join(...))` and `execSync(... + ...)` to flag string-concatenated/joined shell commands; add rule flagging `fs.readFileSync` paths not prefixed by `path.join(projectRoot, ...)` or equivalent.
 
-- [4-M-5] `quality-rules.test.js` security pack test is single-rule sanity check — `tests/semgrep/quality-rules.test.js:232`
+- [4-M-5] `quality-rules.test.js` security pack test is single-rule sanity check — `src/tests/semgrep/quality-rules.test.js:232`
   - Description: Only security pack test asserts `openkit.security.no-new-function` fires on one fixture. No tests verify injection-related rules (`no-exec-sync-untrusted`, `no-hardcoded-secret`) actually detect their targets.
   - Suggested fix: add fixtures and assertions for each security rule category following positive/negative pattern used for `no-var-declaration`.
 
@@ -79,10 +79,10 @@
 - [4-L-1] `prebuild-install` is transitive dep of `better-sqlite3` and runs native binary downloads at install — transitive
   - Description: No active CVE; integrity checked by `node-gyp-build`, not SRI/hash. HTTPS fetch from GitHub Releases. Lockfile pins exact version.
 
-- [4-L-2] `session-start.js` prints absolute paths (`project root`, `kit root`, `state file path`) on every session start — `hooks/session-start.js:271-283`
+- [4-L-2] `session-start.js` prints absolute paths (`project root`, `kit root`, `state file path`) on every session start — `src/hooks/session-start.js:271-283`
   - Description: Leaks operator's home directory layout to stdout. By design for debugging; worth documenting as privacy consideration.
 
-- [4-L-3] No real-dir E2E for upgrade flow — `tests/cli/openkit-cli.test.js:1325`
+- [4-L-3] No real-dir E2E for upgrade flow — `src/tests/cli/openkit-cli.test.js:1325`
   - Description: CLI test exercises `openkit upgrade` but uses mocked/injected `materializeGlobalInstall`. No fully-integrated test against real temp directory.
 
 ### Notes

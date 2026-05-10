@@ -2,8 +2,8 @@
 
 ### Critical
 
-- [2-C-1] Version metadata out of sync between package.json, registry.json, and install-manifest.json — `.opencode/install-manifest.json:6`, `registry.json:6`, `package.json:3`
-  - Description: `package.json` declares version `"0.5.1"` while both `registry.json` and `.opencode/install-manifest.json` still declare `"0.3.36"`. The `verifyReleaseMetadata` function in `src/release/workflow.js:178` throws `"Version metadata is out of sync"` if these disagree. `updateVersionMetadata` (line 107) performs string-replace of the *current* version across all files — meaning it will replace `"0.5.1"` in files that contain `"0.3.36"`, silently leaving them at the old value. Net effect: `openkit release verify` and `openkit release publish` hard-fail at metadata check, blocking npm publish.
+- [2-C-1] Version metadata out of sync between package.json, registry.json, and install-manifest.json — `src/openkit-runtime/install-manifest.json:6`, `registry.json:6`, `package.json:3`
+  - Description: `package.json` declares version `"0.5.1"` while both `registry.json` and `src/openkit-runtime/install-manifest.json` still declare `"0.3.36"`. The `verifyReleaseMetadata` function in `src/release/workflow.js:178` throws `"Version metadata is out of sync"` if these disagree. `updateVersionMetadata` (line 107) performs string-replace of the *current* version across all files — meaning it will replace `"0.5.1"` in files that contain `"0.3.36"`, silently leaving them at the old value. Net effect: `openkit release verify` and `openkit release publish` hard-fail at metadata check, blocking npm publish.
   - Evidence: `registry.json:6`: `"version": "0.3.36"`. `install-manifest.json:6`: `"version": "0.3.36"`. `package.json:3`: `"version": "0.5.1"`.
   - Suggested fix: run `openkit release prepare 0.5.1` (or manually update kit.version in both files to `0.5.1`).
 
@@ -57,13 +57,13 @@
 
 ### Low
 
-- [2-L-1] Stale `"version": "0.3.36"` ships in published package — `.opencode/install-manifest.json:6`
+- [2-L-1] Stale `"version": "0.3.36"` ships in published package — `src/openkit-runtime/install-manifest.json:6`
   - Description: Beyond blocking release flow (C-1), the stale version misleads any tooling reading this for compatibility.
 
 - [2-L-2] `runtime-profile-materializer.js` writes to `targetPath` without project-root validation — `src/install/runtime-profile-materializer.js:4-8`
   - Description: All current callers supply safe paths but no bounds check.
 
-- [2-L-3] `bin/openkit-mcp.js` has no error handling at startup — `bin/openkit-mcp.js:9`
+- [2-L-3] `src/bin/openkit-mcp.js` has no error handling at startup — `src/bin/openkit-mcp.js:9`
   - Description: Single `import '../src/mcp-server/index.js'` with no try/catch. If MCP server crashes at startup, OpenCode receives silent stdio disconnect with no diagnostic.
 
 ### Notes
@@ -72,14 +72,14 @@
   - `src/install/` (all 8 files)
   - `bin/` (both files)
   - `scripts/` (all 4 files)
-  - `package.json`, `.opencode/install-manifest.json`, `registry.json`
+  - `package.json`, `src/openkit-runtime/install-manifest.json`, `registry.json`
   - `src/cli/commands/doctor.js`, `upgrade.js`, `install.js`, `install-global.js`
   - `src/global/doctor.js`, `materialize.js`, `paths.js`
   - `src/cli/index.js`, `src/release/workflow.js`
   - `src/opencode/config-schema.js`, `assets/opencode.json.template`
 
 - Directories skipped (with reason):
-  - `.opencode/lib/`, `src/runtime/`, `src/mcp-server/`, `agents/`, `commands/`, `skills/` — out of scope per instructions
+  - `src/openkit-runtime/lib/`, `src/runtime/`, `src/mcp-server/`, `src/agents/`, `src/commands/`, `src/skills/` — out of scope per instructions
 
 - Open questions for main agent:
   1. Was version drift `0.3.36 → 0.5.1` intentional (release workflow partially run)? Or was `prepare` skipped? Determines whether C-1 is process or tooling bug.

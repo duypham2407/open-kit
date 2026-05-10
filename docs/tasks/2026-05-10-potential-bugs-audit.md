@@ -11,14 +11,14 @@ Validation context:
 - Release metadata gate: `node bin/openkit.js release verify --skip-tests`
 - Release tests: `node --test tests/release/version-metadata-consistency.test.js tests/release/workflow.test.js`
 
-The original scan below was read-only. The follow-up fix pass on 2026-05-10 updated code and tests; `.opencode/tool-invocations.json` was already dirty before the fix pass and also records local runtime activity.
+The original scan below was read-only. The follow-up fix pass on 2026-05-10 updated code and tests; `src/openkit-runtime/tool-invocations.json` was already dirty before the fix pass and also records local runtime activity.
 
 ## 2026-05-10 Fix Follow-up
 
 Status: fixed in the current worktree.
 
-- Finding 1: fixed. `package-lock.json` root metadata now matches `package.json`, and `updateVersionMetadata()` updates structured release metadata (`package.json`, `package-lock.json`, `registry.json`, `.opencode/install-manifest.json`) even when `package.json` already equals the requested version.
-- Finding 2: fixed by the existing gate update. `verify:all` now runs `tests/release/*.test.js`.
+- Finding 1: fixed. `package-lock.json` root metadata now matches `package.json`, and `updateVersionMetadata()` updates structured release metadata (`package.json`, `package-lock.json`, `registry.json`, `src/openkit-runtime/install-manifest.json`) even when `package.json` already equals the requested version.
+- Finding 2: fixed by the existing gate update. `verify:all` now runs `src/tests/release/*.test.js`.
 - Finding 3: fixed. Workflow state callers now preserve structured controller errors and fail closed instead of treating `{ state: null, error }` as missing or incomplete state.
 
 Validation after fixes:
@@ -48,8 +48,8 @@ The current package version is `0.7.0`, but two release metadata surfaces still 
 
 - `package.json:3` has `"version": "0.7.0"`.
 - `registry.json:6` has `"version": "0.6.0"` under `kit`.
-- `.opencode/install-manifest.json:6` has `"version": "0.6.0"` under `kit`.
-- `src/release/workflow.js:171-179` verifies that `package.json`, `registry.json`, and `.opencode/install-manifest.json` all match before release verification can pass.
+- `src/openkit-runtime/install-manifest.json:6` has `"version": "0.6.0"` under `kit`.
+- `src/release/workflow.js:171-179` verifies that `package.json`, `registry.json`, and `src/openkit-runtime/install-manifest.json` all match before release verification can pass.
 
 ### Reproduction
 
@@ -78,11 +78,11 @@ Observed failures:
 
 `openkit release verify` and `openkit release publish` are blocked for the current `0.7.0` release state.
 
-Any tooling that reads `registry.json#kit.version` or `.opencode/install-manifest.json#kit.version` will see stale release metadata.
+Any tooling that reads `registry.json#kit.version` or `src/openkit-runtime/install-manifest.json#kit.version` will see stale release metadata.
 
 ### Root Cause Notes
 
-`src/release/workflow.js:93-96` returns early from `updateVersionMetadata()` when `package.json` already equals the requested target version. In the current state, `package.json` is already `0.7.0`, so a retry of `release prepare 0.7.0` would not rewrite the stale `0.6.0` values in `registry.json` or `.opencode/install-manifest.json`.
+`src/release/workflow.js:93-96` returns early from `updateVersionMetadata()` when `package.json` already equals the requested target version. In the current state, `package.json` is already `0.7.0`, so a retry of `release prepare 0.7.0` would not rewrite the stale `0.6.0` values in `registry.json` or `src/openkit-runtime/install-manifest.json`.
 
 ### Suggested Fix
 
@@ -104,8 +104,8 @@ The main verification command passes even while release consistency tests fail.
 
 ### Evidence
 
-- `package.json:59` defines `verify:all`, but it does not include `tests/release/*.test.js`.
-- `package.json:61` defines `verify:audit-wave-1`, which does include `tests/release/version-metadata-consistency.test.js`.
+- `package.json:59` defines `verify:all`, but it does not include `src/tests/release/*.test.js`.
+- `package.json:61` defines `verify:audit-wave-1`, which does include `src/tests/release/version-metadata-consistency.test.js`.
 - `.github/workflows/verify.yml:29-30` runs only `npm run verify:all`.
 
 ### Reproduction
@@ -156,7 +156,7 @@ This should fail until Finding 1 is fixed, then pass once metadata is aligned.
 ### Evidence
 
 - `src/runtime/workflow-kernel.js:150-162` catches all controller exceptions, writes a stderr message, and returns the caller's fallback.
-- `tests/runtime/workflow-kernel-error-propagation.test.js:26-58` asserts that stderr logging occurs, but also asserts that `showState()` still returns `null` on failure.
+- `src/tests/runtime/workflow-kernel-error-propagation.test.js:26-58` asserts that stderr logging occurs, but also asserts that `showState()` still returns `null` on failure.
 
 ### Reproduction
 

@@ -55,10 +55,10 @@ Use this table to jump from a documentation topic to the canonical source file.
 | Runtime commands | `04` sect 6 | `src/runtime/commands/` |
 | Context injection | `04` sect 9 | `src/runtime/context-injection.js` |
 | Embedding index tool | `05` sect 7 | `src/runtime/tools/analysis/embedding-index.js` |
-| Tool enforcement plugin | `04` sect 4 | `.opencode/plugins/tool-enforcement.js` |
+| Tool enforcement plugin | `04` sect 4 | `src/openkit-runtime/plugins/tool-enforcement.js` |
 | Bash guard hook | `04` sect 4 | `src/runtime/hooks/tool-guards/bash-guard-hook.js` |
-| OpenCode config | `01` sect 4 | `.opencode/opencode.json` |
-| Workflow state | `01` sect 4 | `.opencode/workflow-state.js`, `.opencode/workflow-state.json` |
+| OpenCode config | `01` sect 4 | `src/openkit-runtime/opencode.json` |
+| Workflow state | `01` sect 4 | `src/openkit-runtime/workflow-state.js`, `src/openkit-runtime/workflow-state.json` |
 
 ## Reading Order
 
@@ -75,9 +75,9 @@ Use this table to jump from a documentation topic to the canonical source file.
 ## Canonical Sources To Cross-Check
 
 - `AGENTS.md`
-- `context/navigation.md`
-- `context/core/workflow.md`
-- `context/core/project-config.md`
+- `src/context/navigation.md`
+- `src/context/core/workflow.md`
+- `src/context/core/project-config.md`
 - `src/runtime/index.js`
 - `src/runtime/create-managers.js`
 - `src/runtime/tools/tool-registry.js`

@@ -381,15 +381,15 @@ grep -lE 'stage[s]?[: ]+' commands/*.md > /tmp/audit-commands-with-stages.txt
 ```
 
 Then read both `/tmp/audit-stages-*.txt` and the listed command files. Compare:
-- Stages in `registry.json` that don't appear in `.opencode/lib/`
-- Stages in `.opencode/lib/` that don't appear in `registry.json`
+- Stages in `registry.json` that don't appear in `src/openkit-runtime/lib/`
+- Stages in `src/openkit-runtime/lib/` that don't appear in `registry.json`
 - Stages referenced by commands that are in neither set
 
 For each mismatch, append a finding `[X-1], [X-2], ...` to the cross-layer section of `merged-findings.md`. Use priority **High** if the mismatch could cause bootstrap failure, otherwise Medium.
 
 - [ ] **Step 2: Cross-layer check 2 — Agents ↔ skills ↔ commands**
 
-Read every `agents/*.md`, every `commands/*.md`, and every `skills/*/SKILL.md`.
+Read every `src/agents/*.md`, every `src/commands/*.md`, and every `src/skills/*/SKILL.md`.
 
 For each `<reference>` in agent files (mentions of skills, commands, or other agents):
 Run: `ls <referenced-path>` (or `grep -l <referenced-name> commands/ skills/ agents/`).
@@ -409,7 +409,7 @@ For each entry in `/tmp/audit-pkg-files.txt`:
 Run: `ls -d <entry>` (use `-d` because some entries are directories).
 Flag entries that don't exist.
 
-For each top-level directory or file that *should* be shipped (anything outside `node_modules/`, `tests/`, `release-notes/`, `docs/superpowers/`, `.git/`, `.github/`, dotfiles) but is NOT in `pkg.files`: flag as potential missed asset.
+For each top-level directory or file that *should* be shipped (anything outside `node_modules/`, `src/tests/`, `release-notes/`, `docs/superpowers/`, `.git/`, `.github/`, dotfiles) but is NOT in `pkg.files`: flag as potential missed asset.
 
 Compare with `install-manifest.json` entries — they must be a subset of `pkg.files`.
 

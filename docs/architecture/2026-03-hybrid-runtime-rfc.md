@@ -41,7 +41,7 @@ This RFC adopts a clean-room implementation strategy inspired by external system
 - Preserve the current `quick`, `migration`, and `full` workflow contract.
 - Add a runtime bootstrap pipeline that is explicit and testable.
 - Make capability growth additive and config-gated.
-- Keep `.opencode/workflow-state.js` and `.opencode/lib/*` as the workflow kernel.
+- Keep `src/openkit-runtime/workflow-state.js` and `src/openkit-runtime/lib/*` as the workflow kernel.
 - Allow future runtime features such as MCP, background execution, and specialist agents without flattening role boundaries.
 
 ## Non-goals
@@ -57,12 +57,12 @@ This RFC adopts a clean-room implementation strategy inspired by external system
 
 Current sources:
 
-- `context/core/workflow.md`
-- `agents/*.md`
-- `commands/*.md`
-- `skills/*.md`
-- `.opencode/workflow-state.js`
-- `.opencode/lib/*`
+- `src/context/core/workflow.md`
+- `src/agents/*.md`
+- `src/commands/*.md`
+- `src/skills/*.md`
+- `src/openkit-runtime/workflow-state.js`
+- `src/openkit-runtime/lib/*`
 
 Responsibilities:
 

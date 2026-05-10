@@ -8,7 +8,7 @@
 
 ## 1. Problem Statement
 
-OpenKit currently keeps a single `active_work_item_id` in `.opencode/work-items/index.json` and a single top-level mirror at `.opencode/workflow-state.json`. When a user opens multiple terminal tabs against the same repository to develop multiple features in parallel, every tab reads and writes the same global "active" pointer and the same mirror file. Workflow state collides across tabs: the tab that wrote last becomes the apparent active session for everyone, advancing stages and approvals in tabs that did not request them.
+OpenKit currently keeps a single `active_work_item_id` in `src/openkit-runtime/work-items/index.json` and a single top-level mirror at `src/openkit-runtime/workflow-state.json`. When a user opens multiple terminal tabs against the same repository to develop multiple features in parallel, every tab reads and writes the same global "active" pointer and the same mirror file. Workflow state collides across tabs: the tab that wrote last becomes the apparent active session for everyone, advancing stages and approvals in tabs that did not request them.
 
 The kit must let a single repository host several concurrent OpenKit sessions — each pinned to its own work item, its own workflow state, and (for full/migration lanes) its own git worktree — without touching the state of other sessions.
 
@@ -25,7 +25,7 @@ The kit must let a single repository host several concurrent OpenKit sessions �
 
 - No change to the workflow stage FSM, gate registry, or transaction-log layer in `src/runtime/state/`. These continue to be the canonical writer for per-item state.
 - No reworking of the worktree-manager primitives in `src/global/worktree-manager.js`. The new layer wraps and feeds it; it does not replace it.
-- No new lane semantics. Quick / full / migration definitions in `context/core/workflow.md` remain authoritative.
+- No new lane semantics. Quick / full / migration definitions in `src/context/core/workflow.md` remain authoritative.
 - No daemon process. Sessions stay file-backed; cross-session coordination uses atomic file writes and heartbeat files only.
 - No remote-collaboration support (multiple humans, multiple machines). Scope is single user, single host.
 
@@ -70,7 +70,7 @@ The kit must let a single repository host several concurrent OpenKit sessions �
         └── workflow-state.json      ← per-session compatibility mirror
 ```
 
-Worktrees stay at `<repo>/.claude/worktrees/<work_item_id>/`. Each worktree contains its own `.opencode/` tree (already true today via worktree manager). Inside a worktree, a session's `sessions/<session_id>/` lives under `<worktreePath>/.opencode/sessions/`. Quick sessions live under `<repoRoot>/.opencode/sessions/`.
+Worktrees stay at `<repo>/.claude/worktrees/<work_item_id>/`. Each worktree contains its own `src/openkit-runtime/` tree (already true today via worktree manager). Inside a worktree, a session's `sessions/<session_id>/` lives under `<worktreePath>/.opencode/sessions/`. Quick sessions live under `<repoRoot>/.opencode/sessions/`.
 
 ### 5.1 `sessions/index.json` (new)
 
@@ -159,7 +159,7 @@ After (v3):
 - `lane` is the canonical field; `mode` (current v2 field) maps to `lane` during migration.
 - The root no longer has `active_work_item_id`.
 
-### 5.5 Top-level `.opencode/workflow-state.json` after cutover
+### 5.5 Top-level `src/openkit-runtime/workflow-state.json` after cutover
 
 - Runtime no longer writes business state into this file.
 - On startup, if the file exists and its `schema` is not `openkit/legacy-stub@1`, the runtime rotates it: `mv workflow-state.json workflow-state.json.legacy.<ISO>`.
@@ -305,7 +305,7 @@ The same scanner pass also deletes `closed` entries older than 7 days.
 `/finish` (slash command inside a tab) and `openkit finish` (CLI from outside) share one implementation.
 
 Quick lane:
-1. Verify quick lane completion gate per `context/core/workflow.md` (`quick_verified`).
+1. Verify quick lane completion gate per `src/context/core/workflow.md` (`quick_verified`).
 2. Set work item `status = done`, session `status = closed`. No git operation.
 
 Full or migration lane:
@@ -348,7 +348,7 @@ If a tab has already bound a work item and the user invokes a second lane slash,
 
 ### 7.3 Session-start hook
 
-`hooks/session-start*` prints a banner when `OPENKIT_SESSION_ID` is set:
+`src/hooks/session-start*` prints a banner when `OPENKIT_SESSION_ID` is set:
 
 ```
 ┌─ OpenKit Session s_8f3a2c ──── lane=full ──── work-item=full-payments-refactor
@@ -380,8 +380,8 @@ One-shot cutover, shipped in **v0.7.0**. No dual-write phase.
 
 Runtime startup detects state needing migration:
 - `work-items/index.json` lacks `schema` or has `schema != "openkit/work-items-index@3"` → migrate index.
-- `.opencode/workflow-state.json` exists and `schema != "openkit/legacy-stub@1"` → rotate mirror.
-- `.opencode/sessions/` does not exist → create empty `sessions/index.json`.
+- `src/openkit-runtime/workflow-state.json` exists and `schema != "openkit/legacy-stub@1"` → rotate mirror.
+- `src/openkit-runtime/sessions/` does not exist → create empty `sessions/index.json`.
 
 Migration is idempotent. Running twice is a no-op on a v3 layout.
 
@@ -397,7 +397,7 @@ Write back with `schema = "openkit/work-items-index@3"`. Drop `active_work_item_
 
 ### 8.3 Worktree auto-reconciliation
 
-After index migration, scan `git worktree list --porcelain` for OpenKit-managed worktrees (path under `.claude/worktrees/`, or matched by `.opencode/lib/work-item-store.js` records).
+After index migration, scan `git worktree list --porcelain` for OpenKit-managed worktrees (path under `.claude/worktrees/`, or matched by `src/openkit-runtime/lib/work-item-store.js` records).
 
 For each managed worktree:
 - If its `lineage_key` matches a v3 work item with `status != done`, create a synthetic orphan session entry. The synthetic ID intentionally diverges from the runtime convention to make it identifiable: `session_id = s_orphan_<short_hash_of_workItemId>` (8 hex chars). Other fields: `pid = null`, `status = orphan`, `last_seen_at = migration_timestamp`, `worktree_path` set, `repo_root` set. The user sees it in `openkit dashboard` and can resume or abandon.
@@ -425,7 +425,7 @@ The implementation plan enumerates each call site found by `grep -rn "active_wor
 
 ### 9.2 Top-level mirror
 
-The legacy stub at `.opencode/workflow-state.json` keeps tooling that JSON-parses the file from crashing. New tooling reads the per-session mirror via `OPENKIT_WORKFLOW_STATE` env var (already set by the launcher today).
+The legacy stub at `src/openkit-runtime/workflow-state.json` keeps tooling that JSON-parses the file from crashing. New tooling reads the per-session mirror via `OPENKIT_WORKFLOW_STATE` env var (already set by the launcher today).
 
 ### 9.3 Worktree manager
 
@@ -441,38 +441,38 @@ No interface changes. The construction site changes: instead of a global "curren
 
 | Module | Test file |
 | --- | --- |
-| `src/runtime/sessions/session-resolver.js` | `tests/runtime/sessions/session-resolver.test.js` |
-| `src/runtime/sessions/sessions-index.js` | `tests/runtime/sessions/sessions-index.test.js` |
-| `src/runtime/sessions/heartbeat.js` | `tests/runtime/sessions/heartbeat.test.js` |
-| `src/runtime/sessions/orphan-scanner.js` | `tests/runtime/sessions/orphan-scanner.test.js` |
-| `src/runtime/sessions/legacy-mirror-rotator.js` | `tests/runtime/sessions/legacy-mirror-rotator.test.js` |
-| Schema migration v2 → v3 | `tests/runtime/state/index-migration-v2-v3.test.js` |
-| Rollback script | `tests/runtime/sessions/downgrade-index.test.js` |
-| Finish flow | `tests/runtime/sessions/finish.test.js` |
+| `src/runtime/sessions/session-resolver.js` | `src/tests/runtime/sessions/session-resolver.test.js` |
+| `src/runtime/sessions/sessions-index.js` | `src/tests/runtime/sessions/sessions-index.test.js` |
+| `src/runtime/sessions/heartbeat.js` | `src/tests/runtime/sessions/heartbeat.test.js` |
+| `src/runtime/sessions/orphan-scanner.js` | `src/tests/runtime/sessions/orphan-scanner.test.js` |
+| `src/runtime/sessions/legacy-mirror-rotator.js` | `src/tests/runtime/sessions/legacy-mirror-rotator.test.js` |
+| Schema migration v2 → v3 | `src/tests/runtime/state/index-migration-v2-v3.test.js` |
+| Rollback script | `src/tests/runtime/sessions/downgrade-index.test.js` |
+| Finish flow | `src/tests/runtime/sessions/finish.test.js` |
 
 Each module: happy path, at least two error paths, one race path where shared state applies.
 
 ### 10.2 Integration tests
 
-- `tests/integration/sessions-multi-tab.test.js` — fork two child processes; each launches a different lane; assert no cross-talk in indexes or mirrors.
-- `tests/integration/orphan-recovery.test.js` — launch, kill -9, advance mock clock past threshold, scan, assert orphan, resume, assert state preserved.
-- `tests/integration/finish-flow.test.js` — full flow happy path; variants for dirty worktree refusal, branch mismatch refusal, conflict on merge.
-- `tests/integration/sessions-index-lock.test.js` — five concurrent readers and two concurrent writers; no corruption, all complete under 10 seconds.
+- `src/tests/integration/sessions-multi-tab.test.js` — fork two child processes; each launches a different lane; assert no cross-talk in indexes or mirrors.
+- `src/tests/integration/orphan-recovery.test.js` — launch, kill -9, advance mock clock past threshold, scan, assert orphan, resume, assert state preserved.
+- `src/tests/integration/finish-flow.test.js` — full flow happy path; variants for dirty worktree refusal, branch mismatch refusal, conflict on merge.
+- `src/tests/integration/sessions-index-lock.test.js` — five concurrent readers and two concurrent writers; no corruption, all complete under 10 seconds.
 
 ### 10.3 Migration regression
 
-Fixtures under `tests/fixtures/migration/`:
+Fixtures under `src/tests/fixtures/migration/`:
 - `pre-v3-typical/` — v2 index with one active.
 - `pre-v3-multiple-workitems/` — v2 with active plus two done.
 - `pre-v3-with-worktree/` — has a managed worktree on disk.
 - `pre-v3-already-v3/` — already migrated (no-op expected).
 - `pre-v3-corrupted/` — JSON parse error path (graceful refuse, clear error).
 
-Tests: `tests/regression/migration-v2-to-v3-fixtures.test.js`, `tests/regression/auto-reconcile-worktree.test.js`.
+Tests: `src/tests/regression/migration-v2-to-v3-fixtures.test.js`, `src/tests/regression/auto-reconcile-worktree.test.js`.
 
 ### 10.4 Doctor tests
 
-`tests/runtime/doctor/sessions-checks.test.js` — one happy and one failure fixture per new check.
+`src/tests/runtime/doctor/sessions-checks.test.js` — one happy and one failure fixture per new check.
 
 ### 10.5 Manual QA checklist
 

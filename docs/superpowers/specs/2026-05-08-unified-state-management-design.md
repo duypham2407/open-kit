@@ -34,7 +34,7 @@ Agents run for ~5 seconds, ask a question, run for ~5 seconds, ask a different q
 
 1. **`tool.advance-stage` never persists state transitions** (`src/runtime/tools/workflow/advance-stage.js` line 128-144)
    - Only writes audit log via `recordVerificationEvidence()`
-   - Always returns `{ success: true }` but never updates `.opencode/workflow-state.json`
+   - Always returns `{ success: true }` but never updates `src/openkit-runtime/workflow-state.json`
    - Agent believes stage advanced but disk state remains unchanged
    - Next read returns old stage → agent restarts from beginning
 
@@ -64,7 +64,7 @@ Agents run for ~5 seconds, ask a question, run for ~5 seconds, ask a different q
 
 **Severity 3 (Amplifies the loop):**
 
-6. **Quick brainstorm mandates explicit user confirmation** (`agents/quick-agent.md` lines 132-163)
+6. **Quick brainstorm mandates explicit user confirmation** (`src/agents/quick-agent.md` lines 132-163)
    - `quick_brainstorm` requires explicit user confirmation before advancing to `quick_plan`
    - Confirmation never persists due to bug #1
    - Agent re-reads stale state and asks for confirmation again
@@ -86,9 +86,9 @@ Agents run for ~5 seconds, ask a question, run for ~5 seconds, ask a different q
 - `src/runtime/tools/workflow/advance-stage.js` (broken write)
 - `src/runtime/workflow-kernel.js` (missing `advanceStage` method)
 - `src/runtime/workflow/gate-requirements.js` (ephemeral gate state)
-- `.opencode/lib/workflow-state-controller.js` (real advance logic, disconnected)
-- `.opencode/lib/workflow-state-rules.js` (linear FSM vs bidirectional FSM)
-- `agents/quick-agent.md` (mandatory re-confirmation loop)
+- `src/openkit-runtime/lib/workflow-state-controller.js` (real advance logic, disconnected)
+- `src/openkit-runtime/lib/workflow-state-rules.js` (linear FSM vs bidirectional FSM)
+- `src/agents/quick-agent.md` (mandatory re-confirmation loop)
 
 ---
 
@@ -172,9 +172,9 @@ class WorkflowStateManager {
 ```
 
 **State file structure:**
-- Primary: `.opencode/work-items/<work-item-id>/state.json`
-- Mirror: `.opencode/workflow-state.json` (compatibility, read-only for external tools)
-- Audit: `.opencode/work-items/<work-item-id>/state-transitions.log`
+- Primary: `src/openkit-runtime/work-items/<work-item-id>/state.json`
+- Mirror: `src/openkit-runtime/workflow-state.json` (compatibility, read-only for external tools)
+- Audit: `src/openkit-runtime/work-items/<work-item-id>/state-transitions.log`
 
 ---
 
@@ -1091,18 +1091,18 @@ The architecture is designed for long-term maintainability: single code path, cl
 - `src/runtime/workflow-kernel.js` (modify)
 - `src/runtime/tools/workflow/advance-stage.js` (modify)
 - `src/runtime/tools/workflow/set-approval.js` (modify)
-- `.opencode/lib/workflow-state-controller.js` (refactor)
+- `src/openkit-runtime/lib/workflow-state-controller.js` (refactor)
 
 **Documentation requiring updates:**
-- `context/core/workflow.md`
-- `context/core/approval-gates.md`
-- `context/core/workflow-state-schema.md`
+- `src/context/core/workflow.md`
+- `src/context/core/approval-gates.md`
+- `src/context/core/workflow-state-schema.md`
 - `AGENTS.md`
 
 **Tests requiring creation:**
-- `tests/runtime/state/workflow-state-manager.test.js`
-- `tests/runtime/state/gate-registry.test.js`
-- `tests/runtime/state/transition-engine.test.js`
-- `tests/runtime/state/transaction-log.test.js`
-- `tests/integration/workflow-state-persistence.test.js`
-- `tests/regression/root-cause-*.test.js` (8 tests, one per root cause)
+- `src/tests/runtime/state/workflow-state-manager.test.js`
+- `src/tests/runtime/state/gate-registry.test.js`
+- `src/tests/runtime/state/transition-engine.test.js`
+- `src/tests/runtime/state/transaction-log.test.js`
+- `src/tests/integration/workflow-state-persistence.test.js`
+- `src/tests/regression/root-cause-*.test.js` (8 tests, one per root cause)

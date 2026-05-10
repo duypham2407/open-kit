@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Consolidate all OpenKit source code under `/src` and rename `.opencode/` to `src/openkit-runtime/` to avoid naming conflicts with OpenCode runtime.
+**Goal:** Consolidate all OpenKit source code under `/src` and rename `src/openkit-runtime/` to `src/openkit-runtime/` to avoid naming conflicts with OpenCode runtime.
 
 **Architecture:** Single atomic migration using `git mv` to preserve history, followed by systematic reference updates in package.json, registry.json, imports, tests, and documentation. Comprehensive validation before and after ensures no broken references.
 
@@ -54,16 +54,16 @@ Expected: Backup branch created, returned to main
 ## Task 2: Execute File Moves
 
 **Files:**
-- Move: `agents/` → `src/agents/`
-- Move: `commands/` → `src/commands/`
-- Move: `skills/` → `src/skills/`
-- Move: `context/` → `src/context/`
-- Move: `hooks/` → `src/hooks/`
+- Move: `src/agents/` → `src/agents/`
+- Move: `src/commands/` → `src/commands/`
+- Move: `src/skills/` → `src/skills/`
+- Move: `src/context/` → `src/context/`
+- Move: `src/hooks/` → `src/hooks/`
 - Move: `instructions/` → `src/instructions/`
-- Move: `.opencode/` → `src/openkit-runtime/`
+- Move: `src/openkit-runtime/` → `src/openkit-runtime/`
 - Move: `bin/` → `src/bin/`
 - Move: `scripts/` → `src/scripts/`
-- Move: `tests/` → `src/tests/`
+- Move: `src/tests/` → `src/tests/`
 - Move: `assets/` → `src/assets/`
 
 - [ ] **Step 1: Move OpenCode content directories**
@@ -87,7 +87,7 @@ Run:
 git mv .opencode src/openkit-runtime
 ```
 
-Expected: `.opencode/` renamed to `src/openkit-runtime/` and staged
+Expected: `src/openkit-runtime/` renamed to `src/openkit-runtime/` and staged
 
 - [ ] **Step 3: Move tooling directories**
 
@@ -195,8 +195,8 @@ Replace with:
 
 Find and replace in `scripts` section:
 - `scripts/` → `src/scripts/`
-- `tests/` → `src/tests/`
-- `.opencode/tests/` → `src/openkit-runtime/tests/`
+- `src/tests/` → `src/tests/`
+- `src/openkit-runtime/tests/` → `src/openkit-runtime/tests/`
 
 Current scripts that need updates:
 ```json
@@ -373,10 +373,10 @@ src/
 - [ ] **Step 2: Update command examples**
 
 Find and replace command examples:
-- `.opencode/workflow-state.js` → `src/openkit-runtime/workflow-state.js`
-- `tests/` → `src/tests/`
+- `src/openkit-runtime/workflow-state.js` → `src/openkit-runtime/workflow-state.js`
+- `src/tests/` → `src/tests/`
 - `scripts/` → `src/scripts/`
-- `bin/openkit.js` → `src/bin/openkit.js`
+- `src/bin/openkit.js` → `src/bin/openkit.js`
 
 Example commands to update:
 ```bash
@@ -393,10 +393,10 @@ node src/openkit-runtime/workflow-state.js resume-summary
 - [ ] **Step 3: Update architecture references**
 
 Find sections referencing:
-- `agents/` → `src/agents/`
-- `commands/` → `src/commands/`
-- `skills/` → `src/skills/`
-- `context/core/workflow.md` → `src/context/core/workflow.md`
+- `src/agents/` → `src/agents/`
+- `src/commands/` → `src/commands/`
+- `src/skills/` → `src/skills/`
+- `src/context/core/workflow.md` → `src/context/core/workflow.md`
 
 Update all references to point to src/ paths.
 
@@ -423,7 +423,7 @@ Run:
 grep -r "\.opencode/" --include="*.js" --include="*.mjs" src/ | tee /tmp/opencode-refs.txt
 ```
 
-Expected: List of files with `.opencode/` imports
+Expected: List of files with `src/openkit-runtime/` imports
 
 - [ ] **Step 2: Update .opencode/ to openkit-runtime/**
 
@@ -560,16 +560,16 @@ Expected: Modified test files staged
 
 - [ ] **Step 1: Update workflow-state.js path constants**
 
-Find hardcoded `.opencode/` paths in workflow-state.js:
+Find hardcoded `src/openkit-runtime/` paths in workflow-state.js:
 
 Run:
 ```bash
 grep -n "\.opencode/" src/openkit-runtime/workflow-state.js
 ```
 
-Update any hardcoded paths from `.opencode/` to relative paths or use `__dirname`:
+Update any hardcoded paths from `src/openkit-runtime/` to relative paths or use `__dirname`:
 - If using `'.opencode/workflow-state.json'`, might need to adjust based on where it's called from
-- Check if there are any path.join() calls that assume `.opencode/` directory name
+- Check if there are any path.join() calls that assume `src/openkit-runtime/` directory name
 
 Common pattern might be:
 ```javascript
@@ -592,7 +592,7 @@ Run:
 cat src/openkit-runtime/opencode.json
 ```
 
-Update any paths that reference `.opencode/` to `openkit-runtime/` or use relative paths.
+Update any paths that reference `src/openkit-runtime/` to `openkit-runtime/` or use relative paths.
 
 - [ ] **Step 3: Search for .opencode/ in lib/ directory**
 
@@ -635,25 +635,25 @@ Expected: List of doc files with path references
 - [ ] **Step 2: Update documentation paths**
 
 For each file found, update:
-- `.opencode/` → `src/openkit-runtime/`
-- `agents/` → `src/agents/` (in code examples)
-- `commands/` → `src/commands/` (in code examples)
-- `skills/` → `src/skills/` (in code examples)
-- `hooks/` → `src/hooks/` (in code examples)
-- `context/` → `src/context/` (in code examples)
-- `bin/openkit.js` → `src/bin/openkit.js` (in examples)
-- `tests/` → `src/tests/` (in examples)
+- `src/openkit-runtime/` → `src/openkit-runtime/`
+- `src/agents/` → `src/agents/` (in code examples)
+- `src/commands/` → `src/commands/` (in code examples)
+- `src/skills/` → `src/skills/` (in code examples)
+- `src/hooks/` → `src/hooks/` (in code examples)
+- `src/context/` → `src/context/` (in code examples)
+- `src/bin/openkit.js` → `src/bin/openkit.js` (in examples)
+- `src/tests/` → `src/tests/` (in examples)
 
 Use sed or manual editing:
 ```bash
 find docs -name "*.md" | xargs sed -i '' "s|\`\\.opencode/|\`src/openkit-runtime/|g"
-find docs -name "*.md" | xargs sed -i '' 's|`agents/|`src/agents/|g'
-find docs -name "*.md" | xargs sed -i '' 's|`commands/|`src/commands/|g'
-find docs -name "*.md" | xargs sed -i '' 's|`skills/|`src/skills/|g'
-find docs -name "*.md" | xargs sed -i '' 's|`hooks/|`src/hooks/|g'
-find docs -name "*.md" | xargs sed -i '' 's|`context/|`src/context/|g'
-find docs -name "*.md" | xargs sed -i '' 's|`bin/openkit|`src/bin/openkit|g'
-find docs -name "*.md" | xargs sed -i '' 's|`tests/|`src/tests/|g'
+find docs -name "*.md" | xargs sed -i '' 's|`src/agents/|`src/agents/|g'
+find docs -name "*.md" | xargs sed -i '' 's|`src/commands/|`src/commands/|g'
+find docs -name "*.md" | xargs sed -i '' 's|`src/skills/|`src/skills/|g'
+find docs -name "*.md" | xargs sed -i '' 's|`src/hooks/|`src/hooks/|g'
+find docs -name "*.md" | xargs sed -i '' 's|`src/context/|`src/context/|g'
+find docs -name "*.md" | xargs sed -i '' 's|`src/bin/openkit|`src/bin/openkit|g'
+find docs -name "*.md" | xargs sed -i '' 's|`src/tests/|`src/tests/|g'
 ```
 
 - [ ] **Step 3: Update AGENTS.md if needed**
@@ -721,7 +721,7 @@ Run:
 git log --follow src/agents/master-orchestrator.md | head -20
 ```
 
-Expected: Shows commit history including commits from when it was `agents/master-orchestrator.md`
+Expected: Shows commit history including commits from when it was `src/agents/master-orchestrator.md`
 
 - [ ] **Step 5: Review all staged changes**
 

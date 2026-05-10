@@ -8,10 +8,10 @@ Outbound supervisor events are appended only after successful OpenKit state muta
 
 ## Impacted Surfaces
 
-- `.opencode/lib/supervisor-dialogue-store.js`: Durable session, checkpoint, outbound, inbound, and adjudication store.
-- `.opencode/lib/workflow-state-controller.js`: Post-mutation event emission from OpenKit authority points.
-- `.opencode/lib/runtime-summary.js`: Supervisor session summary for operators and QA.
-- `.opencode/workflow-state.js`: CLI inspection surface for supervisor session state if needed.
+- `src/openkit-runtime/lib/supervisor-dialogue-store.js`: Durable session, checkpoint, outbound, inbound, and adjudication store.
+- `src/openkit-runtime/lib/workflow-state-controller.js`: Post-mutation event emission from OpenKit authority points.
+- `src/openkit-runtime/lib/runtime-summary.js`: Supervisor session summary for operators and QA.
+- `src/openkit-runtime/workflow-state.js`: CLI inspection surface for supervisor session state if needed.
 - `src/runtime/managers/supervisor-dialogue-manager.js`: Runtime bridge manager for dispatch and inbound processing.
 - `src/runtime/supervisor/openclaw-adapter.js`: Safe command/HTTP adapter for OpenClaw delivery.
 - `src/runtime/supervisor/outbound-dispatcher.js`: Pending event delivery and checkpoint advancement.
@@ -20,8 +20,8 @@ Outbound supervisor events are appended only after successful OpenKit state muta
 - `src/runtime/create-managers.js`: Manager construction and registry entry.
 - `src/runtime/create-runtime-interface.js`: Runtime summary exposure.
 - `src/runtime/runtime-config-defaults.js` and `src/runtime/config/schema.js`: Optional supervisor config with safe defaults.
-- `.opencode/tests/supervisor-dialogue-store.test.js`: Store unit tests.
-- `tests/runtime/openclaw-supervisor-dialogue.test.js`: Runtime integration tests.
+- `src/openkit-runtime/tests/supervisor-dialogue-store.test.js`: Store unit tests.
+- `src/tests/runtime/openclaw-supervisor-dialogue.test.js`: Runtime integration tests.
 
 ## Implementation Slices
 

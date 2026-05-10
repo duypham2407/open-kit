@@ -42,7 +42,7 @@ OpenCode launched with managed profile
 - repository root: authoring source of truth
 - `assets/install-bundle/opencode/`: explicit derived bundle boundary for install-time consumers
 - global managed kit: preferred operator-facing runtime path
-- project-local `.opencode/openkit/`: compatibility surface for docs, workflow tools, and resume-aware runtime wiring
+- project-local `src/openkit-runtime/openkit/`: compatibility surface for docs, workflow tools, and resume-aware runtime wiring
 - workspace state under OpenCode home: active workflow-state storage for the current project
 
 ## Important Files
@@ -50,8 +50,8 @@ OpenCode launched with managed profile
 - `src/global/materialize.js`: copies managed assets into the OpenCode home directory
 - `src/global/launcher.js`: launches OpenCode with managed env and profile wiring
 - `src/runtime/opencode-layering.js`: merges managed config with existing OpenCode config inputs
-- `.opencode/workflow-state.js`: low-level runtime CLI for state inspection and mutation
-- `hooks/session-start.js`: prints runtime status, loads the meta-skill, and emits resume hints
+- `src/openkit-runtime/workflow-state.js`: low-level runtime CLI for state inspection and mutation
+- `src/hooks/session-start.js`: prints runtime status, loads the meta-skill, and emits resume hints
 
 ## Design Intent
 

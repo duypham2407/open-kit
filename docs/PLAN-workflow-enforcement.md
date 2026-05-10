@@ -92,7 +92,7 @@ Guard hook chặn unauthorized tool calls dựa trên `current_owner` trong work
 
 > Guard hooks chỉ chặn MCP tools. OpenCode native tools (bash, edit, write) cần mitigation bổ sung.
 
-**File**: `hooks/session-start.js` (MODIFY)
+**File**: `src/hooks/session-start.js` (MODIFY)
 
 **Tasks**:
 
@@ -248,7 +248,7 @@ Expose role instructions qua MCP Resources protocol.
 
 ### 3.5 Session Start Minimization ✅
 
-**File**: `hooks/session-start.js` (MODIFY)
+**File**: `src/hooks/session-start.js` (MODIFY)
 
 **Tasks**:
 
@@ -339,7 +339,7 @@ Optional MCP tool — model có thể dùng để validate actions trước khi 
 | File | Phase | Change |
 |------|-------|--------|
 | `src/runtime/hooks/create-tool-guard-hooks.js` | 1 | Add role-guard-hook to array |
-| `hooks/session-start.js` | 1, 3 | Add role boundaries; minimize instructions |
+| `src/hooks/session-start.js` | 1, 3 | Add role boundaries; minimize instructions |
 | `src/runtime/tools/tool-registry.js` | 2, 4 | Register new tools |
 | `src/mcp-server/tool-schemas.js` | 2, 4 | Add MCP schemas for new tools |
 | `src/mcp-server/index.js` | 3 | Add MCP Resources handlers |

@@ -16,19 +16,19 @@ Phát hiện và phân loại các bug/lỗi tiềm ẩn trong toàn bộ vùng 
 
 ### 1.2. Phạm vi (in-scope)
 - `src/` — runtime, install, mcp-server, capabilities
-- `.opencode/lib/` — workflow-state, kernel, controller, FSM, bootstrap
+- `src/openkit-runtime/lib/` — workflow-state, kernel, controller, FSM, bootstrap
 - `bin/` — CLI entry points (`openkit`, `openkit-mcp`)
-- `hooks/` — session-start, graph-indexer
+- `src/hooks/` — session-start, graph-indexer
 - `scripts/` — sync/verify scripts
-- `agents/*.md` — 7 agents (master-orchestrator, product-lead, solution-lead, fullstack, qa, quick, code-reviewer)
-- `commands/*.md` — 15 commands
-- `skills/` — 20 bundled skills
+- `src/agents/*.md` — 7 agents (master-orchestrator, product-lead, solution-lead, fullstack, qa, quick, code-reviewer)
+- `src/commands/*.md` — 15 commands
+- `src/skills/` — 20 bundled skills
 - `registry.json`, `AGENTS.md`, `package.json`, install manifest, `README.md`, `CHANGELOG.md`, `RELEASES.md`
 
 ### 1.3. Phạm vi (out-of-scope)
 - `node_modules/`
 - `release-notes/` (lịch sử)
-- `tests/` trong audit cycle — chỉ audit gián tiếp qua coverage gaps. Test mới sẽ được thêm trong fix cycle (§4) khi fix Critical/High.
+- `src/tests/` trong audit cycle — chỉ audit gián tiếp qua coverage gaps. Test mới sẽ được thêm trong fix cycle (§4) khi fix Critical/High.
 - Refactor lớn, đổi public API, performance optimization không liên quan correctness
 
 ### 1.4. Nguyên tắc
@@ -43,7 +43,7 @@ Phát hiện và phân loại các bug/lỗi tiềm ẩn trong toàn bộ vùng 
 ## 2. Cấu trúc 4 subagents song song
 
 ### 2.1. Subagent 1 — Runtime + Workflow Core
-**Vùng**: `.opencode/lib/`, `src/runtime/`, `src/mcp-server/`, `hooks/`
+**Vùng**: `src/openkit-runtime/lib/`, `src/runtime/`, `src/mcp-server/`, `src/hooks/`
 
 **Tập trung tìm**:
 - FSM transitions không hợp lệ, dead state, race khi nhiều process đụng SQLite
@@ -65,14 +65,14 @@ Phát hiện và phân loại các bug/lỗi tiềm ẩn trong toàn bộ vùng 
 - Verify scripts có cover đủ không
 
 ### 2.3. Subagent 3 — Contract Layer
-**Vùng**: `agents/*.md`, `commands/*.md`, `skills/`, `registry.json`, `AGENTS.md`, `instructions/`, `context/`
+**Vùng**: `src/agents/*.md`, `src/commands/*.md`, `src/skills/`, `registry.json`, `AGENTS.md`, `instructions/`, `src/context/`
 
 **Tập trung tìm**:
 - Drift giữa `registry.json` ↔ FSM stages ↔ agent ownership ↔ command flow
 - Agent reference command/skill không tồn tại; command chỉ định stage không có trong FSM
 - 3 lanes (quick-task, delivery, migrate) có complete chain đến terminal stage
 - README/AGENTS/CHANGELOG/RELEASES nhất quán phiên bản, naming, flow
-- Skills bundled (`skills/*/SKILL.md`) metadata hợp lệ
+- Skills bundled (`src/skills/*/SKILL.md`) metadata hợp lệ
 
 ### 2.4. Subagent 4 — Cross-cutting
 **Vùng**: toàn repo, focus theo loại lỗi
@@ -152,7 +152,7 @@ docs/superpowers/specs/2026-05-09-project-audit-report.md
 - **Acceptance criteria**:
   - [ ] Verifiable check 1
   - [ ] Verifiable check 2
-  - [ ] Test added: `tests/runtime/<name>.test.js`
+  - [ ] Test added: `src/tests/runtime/<name>.test.js`
 - **Risk if fixed wrong**: backward compat / migration concern
 - **Estimated effort**: S / M / L
 - **Depends on**: [C-2], [H-3]

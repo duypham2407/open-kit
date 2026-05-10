@@ -37,13 +37,13 @@ approval_gate: qa_to_done
 ## Spec Compliance
 | Acceptance Criteria | Result | Notes |
 | --- | --- | --- |
-| AC-01 global profile scope | PASS | Global store path and temp `OPENCODE_HOME` behavior covered by `tests/global/agent-model-profiles.test.js` and `tests/cli/profiles.test.js`. |
-| AC-02 short management CLI | PASS | `openkit profiles --create`, `--edit`, `--list`, `--delete`, and `--set-default` covered by `tests/cli/profiles.test.js`; help/registration covered by `tests/cli/openkit-cli.test.js`. |
+| AC-01 global profile scope | PASS | Global store path and temp `OPENCODE_HOME` behavior covered by `src/tests/global/agent-model-profiles.test.js` and `src/tests/cli/profiles.test.js`. |
+| AC-02 short management CLI | PASS | `openkit profiles --create`, `--edit`, `--list`, `--delete`, and `--set-default` covered by `src/tests/cli/profiles.test.js`; help/registration covered by `src/tests/cli/openkit-cli.test.js`. |
 | AC-03 interactive create/edit UX | PASS | Prompt-injection tests cover create and edit wizard behavior using shared model selection helpers. |
-| AC-04 valid configured model choices only | PASS | `tests/cli/agent-model-selection.test.js` and profile CLI tests prove strict interactive selection returns discovered model entries and rejects unsupported configure-agent-model options. |
+| AC-04 valid configured model choices only | PASS | `src/tests/cli/agent-model-selection.test.js` and profile CLI tests prove strict interactive selection returns discovered model entries and rejects unsupported configure-agent-model options. |
 | AC-05 partial profile fallback | PASS | Store/resolver and launcher tests cover sparse profiles and omitted-role fallback to base/current settings. |
-| AC-06 global default startup | PASS | `tests/runtime/launcher.test.js` covers default profile layering in `launchGlobalOpenKit`. |
-| AC-07 in-session interactive switch | PASS | `tests/runtime/profile-switch.test.js` covers listing profiles and selecting one through runtime tool/manager paths. |
+| AC-06 global default startup | PASS | `src/tests/runtime/launcher.test.js` covers default profile layering in `launchGlobalOpenKit`. |
+| AC-07 in-session interactive switch | PASS | `src/tests/runtime/profile-switch.test.js` covers listing profiles and selecting one through runtime tool/manager paths. |
 | AC-08 session-only switch | PASS | Runtime tests cover global default/profile store immutability and workspace/runtime-session isolation. |
 | AC-09 no direct switch argument required | PASS | CLI tests cover wrapper behavior and short in-session syntax; implementation evidence does not require `/switch-profiles <name>` direct argument support for this feature. |
 | AC-10 delete blocks default | PASS | CLI/global tests cover default deletion guard and guidance path. |

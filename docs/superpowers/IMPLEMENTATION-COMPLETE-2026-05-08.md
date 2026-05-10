@@ -136,7 +136,7 @@ node --test tests/runtime/tools/advance-stage-integration.test.js  # 7 tests pas
 - `transaction-log.js` — Append-only JSONL audit trail
 - `workflow-state-manager.js` — Orchestration layer
 
-### Test Files (`tests/runtime/`)
+### Test Files (`src/tests/runtime/`)
 - `state/state-migration.test.js`
 - `state/errors.test.js`
 - `state/transition-engine.test.js`
@@ -153,7 +153,7 @@ node --test tests/runtime/tools/advance-stage-integration.test.js  # 7 tests pas
 ### Integration
 - `src/runtime/workflow-kernel.js` — Added WorkflowStateManager delegation
 - `src/runtime/tools/workflow/advance-stage.js` — Fixed to persist state transitions
-- `tests/runtime/advance-stage.test.js` — Updated mocks for new behavior
+- `src/tests/runtime/advance-stage.test.js` — Updated mocks for new behavior
 
 ---
 
@@ -230,17 +230,17 @@ node --test tests/runtime/tools/advance-stage-integration.test.js
 ## State Persistence Paths
 
 **Primary State:**
-- Path: `.opencode/work-items/<workItemId>/state.json`
+- Path: `src/openkit-runtime/work-items/<workItemId>/state.json`
 - Format: JSON v2.0.0 schema
 - Contains: version, mode, stage, owner, gates, gateMeta, metadata
 
 **Compatibility Mirror:**
-- Path: `.opencode/workflow-state.json`
+- Path: `src/openkit-runtime/workflow-state.json`
 - Format: Same as primary
 - Purpose: Backward compatibility with existing tooling
 
 **Transaction Log:**
-- Path: `.opencode/work-items/<workItemId>/state-transitions.log`
+- Path: `src/openkit-runtime/work-items/<workItemId>/state-transitions.log`
 - Format: JSONL (one JSON per line)
 - Contains: timestamp, operation, caller, workItemId, before, after, metadata
 

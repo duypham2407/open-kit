@@ -111,7 +111,7 @@ openkit configure-embedding \
 
 - Always prefer environment variables for API keys.
 - `openkit configure-embedding` may write provider and model to the project
-  config file (`.opencode/opencode.json` or the managed workspace config).
+  config file (`src/openkit-runtime/opencode.json` or the managed workspace config).
   It does NOT store API keys in config files.
 - If you accidentally store a key, remove it and rotate the key immediately.
 
@@ -209,5 +209,5 @@ openkit uninstall
 ```
 
 This removes the managed kit from the OpenCode home directory. Project-local
-`.opencode/` files are not touched. The SQLite database (if stored in the
+`src/openkit-runtime/` files are not touched. The SQLite database (if stored in the
 managed workspace) is removed with the workspace.

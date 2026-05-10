@@ -58,8 +58,8 @@ Use this document to decide which OpenKit surface to use for a given goal.
 - prefer slash commands once OpenCode is running for workflow routing; for profile switching, prefer `openkit switch-profiles` when direct executable behavior matters because OpenCode custom slash command files are prompt templates and true native executable slash command support is not currently documented
 - prefer the low-level runtime CLI only when you need raw state inspection, maintainer diagnostics, or work-item/task-board operations
 - keep `openkit install` and `openkit install-global` only as manual/compatibility setup helpers when they are intentionally needed; they are not the preferred onboarding path
-- keep the path model explicit: global kit root for managed kit/config, workspace state root for active runtime state, project `.opencode/` for compatibility shim behavior
-- do not treat the checked-in `.opencode/` runtime as proof that every project should vendor OpenKit locally
+- keep the path model explicit: global kit root for managed kit/config, workspace state root for active runtime state, project `src/openkit-runtime/` for compatibility shim behavior
+- do not treat the checked-in `src/openkit-runtime/` runtime as proof that every project should vendor OpenKit locally
 - do not treat `openkit doctor` and `node .opencode/workflow-state.js doctor` as substitutes; they answer different questions
 - do not treat OpenKit runtime validation as target-project application validation; app build, lint, or test evidence exists only when the target project declares those commands
 - label completion evidence by surface: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, or `target_project_app`
@@ -81,7 +81,7 @@ Use this document to decide which OpenKit surface to use for a given goal.
 
 ## Permission Rule
 
-- The command permission policy source of truth is `assets/default-command-permission-policy.json`. Global kit/profile materialization projects it into the OpenKit-managed OpenCode configs used by `openkit run`; `.opencode/opencode.json` is an authoring/compatibility projection. OpenKit-only metadata such as `commandPermissionPolicy` must not be embedded as top-level keys in OpenCode-validated `opencode.json` files.
+- The command permission policy source of truth is `assets/default-command-permission-policy.json`. Global kit/profile materialization projects it into the OpenKit-managed OpenCode configs used by `openkit run`; `src/openkit-runtime/opencode.json` is an authoring/compatibility projection. OpenKit-only metadata such as `commandPermissionPolicy` must not be embedded as top-level keys in OpenCode-validated `opencode.json` files.
 - OpenKit's desired behavior is default allow for routine non-dangerous commands. Recommended routine examples include `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `openkit profiles --list`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git status`, `git log`, `git diff`, and standard edit/write flows.
 - Policy-listed dangerous commands must require explicit confirmation first. This covers deletion (`rm`, `rmdir`, `unlink`), destructive git/discard/force-push commands, publish/release/deploy commands, database destructive forms, and privileged/system-impacting commands represented in the policy.
 - Treat deletion and destructive git/release operations as confirmation-required even when the target looks generated or disposable; OpenKit's agent git/release safety protocol remains binding regardless of the permission map.

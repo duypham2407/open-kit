@@ -25,7 +25,7 @@ The runtime precedence must be: shell/process environment > keychain > local env
 - Existing MCP command/service seams: `src/global/mcp/mcp-configurator.js`, `src/global/mcp/mcp-config-service.js`, `src/global/mcp/interactive-wizard.js`.
 - Existing run loader: `src/global/launcher.js` currently loads `secrets.env` and preserves shell env precedence by only injecting missing env vars.
 - Existing config/profile state: `src/global/mcp/mcp-config-store.js`, `src/global/mcp/profile-materializer.js`, `src/global/paths.js`.
-- Existing tests: `tests/global/mcp-secret-manager.test.js`, `tests/cli/configure-mcp.test.js`, `tests/global/mcp-interactive-wizard.test.js`, `tests/runtime/capability-tools.test.js`, `tests/runtime/governance-enforcement.test.js`.
+- Existing tests: `src/tests/global/mcp-secret-manager.test.js`, `src/tests/cli/configure-mcp.test.js`, `src/tests/global/mcp-interactive-wizard.test.js`, `src/tests/runtime/capability-tools.test.js`, `src/tests/runtime/governance-enforcement.test.js`.
 - Quality scan evidence: `tool.rule-scan` on `src/global/mcp` succeeded with 0 findings (`runtime_tooling`).
 
 ## Impacted Surfaces
@@ -37,8 +37,8 @@ The runtime precedence must be: shell/process environment > keychain > local env
 - Wizard: `src/global/mcp/interactive-wizard.js` and prompt tests.
 - Health/doctor/test/read models: `src/global/mcp/health-checks.js`, `src/runtime/managers/mcp-health-manager.js`, `src/runtime/tools/capability/mcp-doctor.js`, `src/runtime/tools/capability/capability-inventory.js` if their read models duplicate MCP status shaping.
 - Run loader: `src/global/launcher.js`.
-- Docs/governance: `docs/operator/mcp-configuration.md`, `docs/operator/README.md`, `docs/operator/supported-surfaces.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `context/core/project-config.md`, `AGENTS.md` only where command reality changes.
-- Tests: `tests/global/mcp-secret-manager.test.js`, new `tests/global/mcp-keychain-adapter.test.js`, `tests/cli/configure-mcp.test.js`, `tests/global/mcp-interactive-wizard.test.js`, `tests/runtime/capability-tools.test.js`, `tests/runtime/governance-enforcement.test.js`, launcher tests where `openkit run` env is validated.
+- Docs/governance: `docs/operator/mcp-configuration.md`, `docs/operator/README.md`, `docs/operator/supported-surfaces.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `src/context/core/project-config.md`, `AGENTS.md` only where command reality changes.
+- Tests: `src/tests/global/mcp-secret-manager.test.js`, new `src/tests/global/mcp-keychain-adapter.test.js`, `src/tests/cli/configure-mcp.test.js`, `src/tests/global/mcp-interactive-wizard.test.js`, `src/tests/runtime/capability-tools.test.js`, `src/tests/runtime/governance-enforcement.test.js`, launcher tests where `openkit run` env is validated.
 
 ## Boundaries And Components
 
@@ -150,28 +150,28 @@ Migration/copy is included only as explicit non-destructive copy by default. Sou
 
 ### Slice 1: backend abstraction and local adapter preservation
 
-- **Files**: `src/global/mcp/secret-manager.js`, new `src/global/mcp/secret-stores/local-env-file-adapter.js`, new `src/global/mcp/secret-stores/index.js`, `tests/global/mcp-secret-manager.test.js`.
+- **Files**: `src/global/mcp/secret-manager.js`, new `src/global/mcp/secret-stores/local-env-file-adapter.js`, new `src/global/mcp/secret-stores/index.js`, `src/tests/global/mcp-secret-manager.test.js`.
 - **Goal**: Introduce store labels and adapter calls while keeping current local env-file behavior byte-for-behavior compatible for default `set-key`, `unset-key`, `loadSecretsEnv`, permission inspection, and repair.
 - **Validation Command**: `node --test tests/global/mcp-secret-manager.test.js`.
 - **Details**: Existing exports should remain or be wrapped to avoid broad downstream churn. Add `resolveSecretBinding` internal API only after local fallback tests prove unchanged behavior.
 
 ### Slice 2: macOS keychain adapter with fakeable runner
 
-- **Files**: new `src/global/mcp/secret-stores/keychain-adapter.js`, new `tests/global/mcp-keychain-adapter.test.js`, `src/global/mcp/redaction.js` if error sanitization needs expansion.
+- **Files**: new `src/global/mcp/secret-stores/keychain-adapter.js`, new `src/tests/global/mcp-keychain-adapter.test.js`, `src/global/mcp/redaction.js` if error sanitization needs expansion.
 - **Goal**: Implement macOS-only `security` adapter, deterministic service/account refs, sanitized availability/failure handling, and fake runner tests for success, missing, delete, denied, and non-macOS unavailable.
 - **Validation Command**: `node --test tests/global/mcp-keychain-adapter.test.js`.
 - **Details**: Tests must inject platform and runner; no test may require actual `/usr/bin/security` or a login keychain.
 
 ### Slice 3: config metadata and MCP service operations
 
-- **Files**: `src/global/mcp/mcp-config-store.js`, `src/global/mcp/mcp-config-service.js`, `src/global/mcp/health-checks.js`, `tests/global/mcp-secret-manager.test.js`, `tests/global/custom-mcp-store.test.js` if custom binding metadata is affected.
+- **Files**: `src/global/mcp/mcp-config-store.js`, `src/global/mcp/mcp-config-service.js`, `src/global/mcp/health-checks.js`, `src/tests/global/mcp-secret-manager.test.js`, `src/tests/global/custom-mcp-store.test.js` if custom binding metadata is affected.
 - **Goal**: Record backend metadata, support bundled/custom bindings through the same flow, add backend-aware set/unset/list-key/copy/doctor/test service methods, and preserve generated profile placeholders.
 - **Validation Command**: `node --test tests/global/mcp-secret-manager.test.js tests/global/custom-mcp-store.test.js`.
 - **Details**: Preserve old config shape through additive reads. Unknown/corrupt backend metadata must be ignored safely and reported as configuration warning.
 
 ### Slice 4: CLI grammar, JSON/human rendering, and non-TTY rules
 
-- **Files**: `src/global/mcp/mcp-configurator.js`, `tests/cli/configure-mcp.test.js`, `tests/cli/configure-mcp-custom.test.js`.
+- **Files**: `src/global/mcp/mcp-configurator.js`, `src/tests/cli/configure-mcp.test.js`, `src/tests/cli/configure-mcp-custom.test.js`.
 - **Goal**: Add `--store`, `list-key`, `copy-key`, backend-aware `repair`, JSON parity, unsupported-store failure, non-TTY `--stdin` enforcement, and no mutation on invalid store/platform.
 - **Validation Command**: `node --test tests/cli/configure-mcp.test.js tests/cli/configure-mcp-custom.test.js`.
 - **Details**: `set-key` must validate store/platform before reading stdin when possible. If stdin has already been supplied by the process, never echo it in errors.
@@ -185,14 +185,14 @@ Migration/copy is included only as explicit non-destructive copy by default. Sou
 
 ### Slice 6: interactive wizard
 
-- **Files**: `src/global/mcp/interactive-wizard.js`, `tests/global/mcp-interactive-wizard.test.js`, `tests/cli/configure-mcp-interactive.test.js`.
+- **Files**: `src/global/mcp/interactive-wizard.js`, `src/tests/global/mcp-interactive-wizard.test.js`, `src/tests/cli/configure-mcp-interactive.test.js`.
 - **Goal**: Let TTY users choose `local_env_file` or `keychain`, show keychain unavailable status where relevant, keep local setup available, and preserve non-echoing secret input.
 - **Validation Command**: `node --test tests/global/mcp-interactive-wizard.test.js tests/cli/configure-mcp-interactive.test.js`.
 - **Details**: Non-TTY wizard remains fail-fast with no mutation and suggests `--stdin --store ...` commands.
 
 ### Slice 7: documentation, governance assertions, and full regression
 
-- **Files**: `docs/operator/mcp-configuration.md`, `docs/operator/README.md`, `docs/operator/supported-surfaces.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `context/core/project-config.md`, `AGENTS.md`, `tests/runtime/governance-enforcement.test.js`.
+- **Files**: `docs/operator/mcp-configuration.md`, `docs/operator/README.md`, `docs/operator/supported-surfaces.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `src/context/core/project-config.md`, `AGENTS.md`, `src/tests/runtime/governance-enforcement.test.js`.
 - **Goal**: Document stores, macOS-only keychain, Linux/Windows unavailable stubs, precedence, direct OpenCode caveat, migration/copy, CI mocks, and no raw secret persistence.
 - **Validation Command**: `npm run verify:governance && npm run verify:all`.
 - **Details**: `npm run verify:all` is OpenKit repo validation, not `target_project_app` validation.
@@ -210,7 +210,7 @@ Migration/copy is included only as explicit non-destructive copy by default. Sou
 - why: Adapter tests/docs can be split, but service/config/run/wizard share MCP metadata and redaction surfaces and need sequential integration.
 - safe_parallel_zones:
   - `src/global/mcp/secret-stores/`
-  - `tests/global/mcp-keychain-adapter.test.js`
+  - `src/tests/global/mcp-keychain-adapter.test.js`
   - `docs/operator/`
 - sequential_constraints:
   - `TASK-LOCAL-ADAPTER -> TASK-KEYCHAIN-ADAPTER -> TASK-SERVICE-CONFIG -> TASK-CLI -> TASK-RUN-LOADER -> TASK-WIZARD -> TASK-DOCS-GOVERNANCE`
@@ -225,7 +225,7 @@ Migration/copy is included only as explicit non-destructive copy by default. Sou
 | Keychain macOS success/failure without real keychain | `node --test tests/global/mcp-keychain-adapter.test.js` with fake runner/platform | `runtime_tooling` |
 | Non-macOS keychain unavailable/no mutation | keychain adapter + CLI tests with injected platform/fake service | `global_cli`, `runtime_tooling` |
 | Precedence shell > keychain > local env file | launcher/service tests with fake keychain and temp `secrets.env` | `global_cli` |
-| Bundled and custom MCP binding compatibility | `tests/global/mcp-secret-manager.test.js`, `tests/cli/configure-mcp-custom.test.js`, `tests/runtime/capability-tools.test.js` | `global_cli`, `runtime_tooling` |
+| Bundled and custom MCP binding compatibility | `src/tests/global/mcp-secret-manager.test.js`, `src/tests/cli/configure-mcp-custom.test.js`, `src/tests/runtime/capability-tools.test.js` | `global_cli`, `runtime_tooling` |
 | Redaction/no raw output | sentinel assertions across CLI stdout/stderr, JSON, config/profile files, runtime summaries, docs examples | all OpenKit surfaces except selected backend/process memory |
 | Wizard backend choice and non-TTY fail closed | `node --test tests/global/mcp-interactive-wizard.test.js tests/cli/configure-mcp-interactive.test.js` | `global_cli` |
 | Documentation/governance | `npm run verify:governance` | `documentation` |

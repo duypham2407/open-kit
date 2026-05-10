@@ -11,24 +11,24 @@
       "emerging": "global-openkit-install",
       "installReadiness": "emerging",
       "migrationState": "staged-not-complete",
-      "activeRuntimeManifest": ".opencode/opencode.json",
+      "activeRuntimeManifest": "src/openkit-runtime/opencode.json",
       "targetWrapperEntrypoint": "opencode.json",
       "installMode": "additive-non-destructive",
       "repositoryInternal": [
-        ".opencode/opencode.json",
-        ".opencode/workflow-state.json",
-        ".opencode/work-items/",
-        ".opencode/workflow-state.js",
-        "hooks/",
-        "agents/",
-        "skills/",
-        "commands/",
-        "context/",
+        "src/openkit-runtime/opencode.json",
+        "src/openkit-runtime/workflow-state.json",
+        "src/openkit-runtime/work-items/",
+        "src/openkit-runtime/workflow-state.js",
+        "src/hooks/",
+        "src/agents/",
+        "src/skills/",
+        "src/commands/",
+        "src/context/",
         "docs/"
       ],
       "globalFacing": [
         "registry.json",
-        ".opencode/install-manifest.json"
+        "src/openkit-runtime/install-manifest.json"
       ],
       "notes": "This registry describes repository-local components that exist today and also records metadata that supports the global OpenKit kit. It does not mean the checked-in repository runtime has been removed or replaced."
     }
@@ -52,7 +52,7 @@
         "id": "agent.master-orchestrator",
         "name": "Master Orchestrator",
         "role": "primary",
-        "path": "agents/master-orchestrator.md",
+        "path": "src/agents/master-orchestrator.md",
         "audience": "runtime",
         "status": "active",
         "modes": [
@@ -65,7 +65,7 @@
         "id": "agent.product-lead-agent",
         "name": "Product Lead",
         "role": "team",
-        "path": "agents/product-lead-agent.md",
+        "path": "src/agents/product-lead-agent.md",
         "audience": "runtime",
         "status": "active",
         "modes": [
@@ -76,7 +76,7 @@
         "id": "agent.solution-lead-agent",
         "name": "Solution Lead",
         "role": "team",
-        "path": "agents/solution-lead-agent.md",
+        "path": "src/agents/solution-lead-agent.md",
         "audience": "runtime",
         "status": "active",
         "modes": [
@@ -88,7 +88,7 @@
         "id": "agent.fullstack-agent",
         "name": "Fullstack Agent",
         "role": "team",
-        "path": "agents/fullstack-agent.md",
+        "path": "src/agents/fullstack-agent.md",
         "audience": "runtime",
         "status": "active",
         "modes": [
@@ -100,7 +100,7 @@
         "id": "agent.qa-agent",
         "name": "QA Agent",
         "role": "team",
-        "path": "agents/qa-agent.md",
+        "path": "src/agents/qa-agent.md",
         "audience": "runtime",
         "status": "active",
         "modes": [
@@ -112,7 +112,7 @@
         "id": "agent.quick-agent",
         "name": "Quick Agent",
         "role": "primary",
-        "path": "agents/quick-agent.md",
+        "path": "src/agents/quick-agent.md",
         "audience": "runtime",
         "status": "active",
         "modes": [
@@ -123,7 +123,7 @@
         "id": "agent.code-reviewer",
         "name": "Code Reviewer",
         "role": "helper",
-        "path": "agents/code-reviewer.md",
+        "path": "src/agents/code-reviewer.md",
         "audience": "runtime",
         "status": "active",
         "modes": [
@@ -136,7 +136,7 @@
       {
         "id": "skill.using-skills",
         "name": "using-skills",
-        "path": "skills/using-skills/SKILL.md",
+        "path": "src/skills/using-skills/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -181,7 +181,7 @@
       {
         "id": "skill.brainstorming",
         "name": "brainstorming",
-        "path": "skills/brainstorming/SKILL.md",
+        "path": "src/skills/brainstorming/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -215,7 +215,7 @@
       {
         "id": "skill.writing-scope",
         "name": "writing-scope",
-        "path": "skills/writing-scope/SKILL.md",
+        "path": "src/skills/writing-scope/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -240,7 +240,7 @@
       {
         "id": "skill.writing-solution",
         "name": "writing-solution",
-        "path": "skills/writing-solution/SKILL.md",
+        "path": "src/skills/writing-solution/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -267,7 +267,7 @@
       {
         "id": "skill.subagent-driven-development",
         "name": "subagent-driven-development",
-        "path": "skills/subagent-driven-development/SKILL.md",
+        "path": "src/skills/subagent-driven-development/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -293,7 +293,7 @@
       {
         "id": "skill.test-driven-development",
         "name": "test-driven-development",
-        "path": "skills/test-driven-development/SKILL.md",
+        "path": "src/skills/test-driven-development/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -318,7 +318,7 @@
       {
         "id": "skill.systematic-debugging",
         "name": "systematic-debugging",
-        "path": "skills/systematic-debugging/SKILL.md",
+        "path": "src/skills/systematic-debugging/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -353,7 +353,7 @@
       {
         "id": "skill.code-review",
         "name": "code-review",
-        "path": "skills/code-review/SKILL.md",
+        "path": "src/skills/code-review/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -381,7 +381,7 @@
       {
         "id": "skill.verification-before-completion",
         "name": "verification-before-completion",
-        "path": "skills/verification-before-completion/SKILL.md",
+        "path": "src/skills/verification-before-completion/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -415,7 +415,7 @@
       {
         "id": "skill.find-skills",
         "name": "find-skills",
-        "path": "skills/find-skills/SKILL.md",
+        "path": "src/skills/find-skills/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "best_effort",
@@ -444,7 +444,7 @@
       {
         "id": "skill.codebase-exploration",
         "name": "codebase-exploration",
-        "path": "skills/codebase-exploration/SKILL.md",
+        "path": "src/skills/codebase-exploration/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -482,7 +482,7 @@
       {
         "id": "skill.deep-research",
         "name": "deep-research",
-        "path": "skills/deep-research/SKILL.md",
+        "path": "src/skills/deep-research/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -519,7 +519,7 @@
       {
         "id": "skill.refactoring",
         "name": "refactoring",
-        "path": "skills/refactoring/SKILL.md",
+        "path": "src/skills/refactoring/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -555,7 +555,7 @@
       {
         "id": "skill.frontend-ui-ux",
         "name": "frontend-ui-ux",
-        "path": "skills/frontend-ui-ux/SKILL.md",
+        "path": "src/skills/frontend-ui-ux/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -591,7 +591,7 @@
       {
         "id": "skill.dev-browser",
         "name": "dev-browser",
-        "path": "skills/dev-browser/SKILL.md",
+        "path": "src/skills/dev-browser/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -625,7 +625,7 @@
       {
         "id": "skill.browser-automation",
         "name": "browser-automation",
-        "path": "skills/browser-automation/SKILL.md",
+        "path": "src/skills/browser-automation/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "maintained",
@@ -658,7 +658,7 @@
       {
         "id": "skill.git-master",
         "name": "git-master",
-        "path": "skills/git-master/SKILL.md",
+        "path": "src/skills/git-master/SKILL.md",
         "audience": "runtime",
         "status": "preview",
         "support_level": "compatibility_only",
@@ -690,7 +690,7 @@
       {
         "id": "skill.vercel-react-best-practices",
         "name": "vercel-react-best-practices",
-        "path": "skills/vercel-react-best-practices/SKILL.md",
+        "path": "src/skills/vercel-react-best-practices/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "best_effort",
@@ -728,7 +728,7 @@
       {
         "id": "skill.vercel-composition-patterns",
         "name": "vercel-composition-patterns",
-        "path": "skills/vercel-composition-patterns/SKILL.md",
+        "path": "src/skills/vercel-composition-patterns/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "best_effort",
@@ -757,7 +757,7 @@
       {
         "id": "skill.vercel-react-native-skills",
         "name": "vercel-react-native-skills",
-        "path": "skills/vercel-react-native-skills/SKILL.md",
+        "path": "src/skills/vercel-react-native-skills/SKILL.md",
         "audience": "runtime",
         "status": "stable",
         "support_level": "best_effort",
@@ -793,7 +793,7 @@
       {
         "id": "command.quick-task",
         "name": "/quick-task",
-        "path": "commands/quick-task.md",
+        "path": "src/commands/quick-task.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -803,7 +803,7 @@
       {
         "id": "command.migrate",
         "name": "/migrate",
-        "path": "commands/migrate.md",
+        "path": "src/commands/migrate.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -813,7 +813,7 @@
       {
         "id": "command.delivery",
         "name": "/delivery",
-        "path": "commands/delivery.md",
+        "path": "src/commands/delivery.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -823,7 +823,7 @@
       {
         "id": "command.write-solution",
         "name": "/write-solution",
-        "path": "commands/write-solution.md",
+        "path": "src/commands/write-solution.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -834,7 +834,7 @@
       {
         "id": "command.execute-solution",
         "name": "/execute-solution",
-        "path": "commands/execute-solution.md",
+        "path": "src/commands/execute-solution.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -845,7 +845,7 @@
       {
         "id": "command.configure-agent-models",
         "name": "/configure-agent-models",
-        "path": "commands/configure-agent-models.md",
+        "path": "src/commands/configure-agent-models.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -857,7 +857,7 @@
       {
         "id": "command.configure-embedding",
         "name": "/configure-embedding",
-        "path": "commands/configure-embedding.md",
+        "path": "src/commands/configure-embedding.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -869,7 +869,7 @@
       {
         "id": "command.switch-profiles",
         "name": "/switch-profiles",
-        "path": "commands/switch-profiles.md",
+        "path": "src/commands/switch-profiles.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -881,7 +881,7 @@
       {
         "id": "command.browser-verify",
         "name": "/browser-verify",
-        "path": "commands/browser-verify.md",
+        "path": "src/commands/browser-verify.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -893,7 +893,7 @@
       {
         "id": "command.switch",
         "name": "/switch",
-        "path": "commands/switch.md",
+        "path": "src/commands/switch.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -905,7 +905,7 @@
       {
         "id": "command.handoff",
         "name": "/handoff",
-        "path": "commands/handoff.md",
+        "path": "src/commands/handoff.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -917,7 +917,7 @@
       {
         "id": "command.init-deep",
         "name": "/init-deep",
-        "path": "commands/init-deep.md",
+        "path": "src/commands/init-deep.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -929,7 +929,7 @@
       {
         "id": "command.refactor",
         "name": "/refactor",
-        "path": "commands/refactor.md",
+        "path": "src/commands/refactor.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -941,7 +941,7 @@
       {
         "id": "command.start-work",
         "name": "/start-work",
-        "path": "commands/start-work.md",
+        "path": "src/commands/start-work.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -953,7 +953,7 @@
       {
         "id": "command.stop-continuation",
         "name": "/stop-continuation",
-        "path": "commands/stop-continuation.md",
+        "path": "src/commands/stop-continuation.md",
         "audience": "operator",
         "surface": "in-session",
         "modes": [
@@ -1012,26 +1012,26 @@
       {
         "id": "runtime.opencode-manifest",
         "name": "OpenCode Runtime Manifest",
-        "path": ".opencode/opencode.json",
+        "path": "src/openkit-runtime/opencode.json",
         "role": "active-runtime-manifest",
         "surface": "repository-internal"
       },
       {
         "id": "runtime.workflow-state",
         "name": "Workflow State",
-        "path": ".opencode/workflow-state.json",
+        "path": "src/openkit-runtime/workflow-state.json",
         "surface": "repository-internal"
       },
       {
         "id": "runtime.workflow-state-cli",
         "name": "Workflow State CLI",
-        "path": ".opencode/workflow-state.js",
+        "path": "src/openkit-runtime/workflow-state.js",
         "surface": "repository-internal"
       },
       {
         "id": "runtime.install-manifest",
         "name": "Install Manifest",
-        "path": ".opencode/install-manifest.json",
+        "path": "src/openkit-runtime/install-manifest.json",
         "role": "additive-install-metadata",
         "surface": "global-facing-metadata"
       },
@@ -1484,12 +1484,12 @@
       {
         "id": "hook.session-start",
         "name": "Session Start Hook",
-        "path": "hooks/session-start"
+        "path": "src/hooks/session-start"
       },
       {
         "id": "hook.config",
         "name": "Hooks Config",
-        "path": "hooks/hooks.json"
+        "path": "src/hooks/hooks.json"
       }
     ],
     "docs": [
@@ -1502,19 +1502,19 @@
       {
         "id": "doc.navigation",
         "name": "Navigation",
-        "path": "context/navigation.md",
+        "path": "src/context/navigation.md",
         "surface": "repository-internal"
       },
       {
         "id": "doc.runtime-surfaces",
         "name": "Runtime Surfaces",
-        "path": "context/core/runtime-surfaces.md",
+        "path": "src/context/core/runtime-surfaces.md",
         "surface": "repository-internal"
       },
       {
         "id": "doc.workflow-contract",
         "name": "Workflow Contract",
-        "path": "context/core/workflow.md",
+        "path": "src/context/core/workflow.md",
         "surface": "repository-internal"
       },
       {

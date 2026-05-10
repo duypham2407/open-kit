@@ -28,11 +28,11 @@ Retain and refine the reconstructed supervisor-dialogue implementation instead o
 
 This is enough because the current repository already has the right primitive seams:
 
-- durable supervisor dialogue store: `.opencode/lib/supervisor-dialogue-store.js`
-- workflow-state mutation hook for stage/approval/evidence/issue events: `.opencode/lib/workflow-state-controller.js`
+- durable supervisor dialogue store: `src/openkit-runtime/lib/supervisor-dialogue-store.js`
+- workflow-state mutation hook for stage/approval/evidence/issue events: `src/openkit-runtime/lib/workflow-state-controller.js`
 - runtime manager and OpenClaw transport adapter: `src/runtime/managers/supervisor-dialogue-manager.js`, `src/runtime/supervisor/*.js`
 - runtime config defaults/schema and runtime summary exposure
-- focused tests in `tests/runtime/openclaw-supervisor-dialogue.test.js` and `.opencode/tests/supervisor-dialogue-store.test.js`
+- focused tests in `src/tests/runtime/openclaw-supervisor-dialogue.test.js` and `src/openkit-runtime/tests/supervisor-dialogue-store.test.js`
 - FEATURE-939 scan/tool evidence pipeline for review and QA gates
 
 The implementation should harden those seams so the observable contract is complete: outbound events happen only after successful OpenKit authority writes, inbound OpenClaw messages are normalized and adjudicated without mutation, duplicates/loops are suppressed but audited, degraded/offline state is visible without blocking OpenKit, and review/QA can inspect the results with correct validation-surface labels.
@@ -60,13 +60,13 @@ These degraded tool results are not blockers for the solution, but Code Reviewer
 
 ### Durable store and workflow-state authority writes
 
-- `.opencode/lib/supervisor-dialogue-store.js`
-- `.opencode/lib/workflow-state-controller.js`
-- `.opencode/lib/runtime-summary.js`
-- `.opencode/workflow-state.js`
-- `.opencode/tests/supervisor-dialogue-store.test.js`
-- `.opencode/tests/workflow-state-controller.test.js`
-- `.opencode/tests/workflow-state-cli.test.js`
+- `src/openkit-runtime/lib/supervisor-dialogue-store.js`
+- `src/openkit-runtime/lib/workflow-state-controller.js`
+- `src/openkit-runtime/lib/runtime-summary.js`
+- `src/openkit-runtime/workflow-state.js`
+- `src/openkit-runtime/tests/supervisor-dialogue-store.test.js`
+- `src/openkit-runtime/tests/workflow-state-controller.test.js`
+- `src/openkit-runtime/tests/workflow-state-cli.test.js`
 
 ### Runtime bridge, adapter, normalization, adjudication
 
@@ -77,7 +77,7 @@ These degraded tool results are not blockers for the solution, but Code Reviewer
 - `src/runtime/supervisor/inbound-adjudicator.js`
 - `src/runtime/create-managers.js`
 - `src/runtime/create-runtime-interface.js`
-- `tests/runtime/openclaw-supervisor-dialogue.test.js`
+- `src/tests/runtime/openclaw-supervisor-dialogue.test.js`
 
 ### Runtime config, optional OpenKit-owned tooling, and MCP schema if needed
 
@@ -87,14 +87,14 @@ These degraded tool results are not blockers for the solution, but Code Reviewer
 - `src/runtime/tools/tool-registry.js` (only if adding an OpenKit-owned supervisor dialogue runtime tool)
 - `src/runtime/tools/supervisor/supervisor-dialogue.js` (create only if the implementation chooses a runtime tool for operator/QA receive/dispatch/summary actions)
 - `src/mcp-server/tool-schemas.js` (only if that runtime tool is exposed to OpenKit agents; do **not** expose any authority-mutating action)
-- `tests/runtime/runtime-config-loader.test.js`
-- `tests/runtime/runtime-bootstrap.test.js`
-- `tests/mcp-server/mcp-server.test.js` (only if MCP exposure changes)
+- `src/tests/runtime/runtime-config-loader.test.js`
+- `src/tests/runtime/runtime-bootstrap.test.js`
+- `src/tests/mcp-server/mcp-server.test.js` (only if MCP exposure changes)
 
 ### Documentation, reporting, and QA artifacts
 
-- `context/core/project-config.md`
-- `context/core/runtime-surfaces.md`
+- `src/context/core/project-config.md`
+- `src/context/core/runtime-surfaces.md`
 - `docs/operator/supported-surfaces.md`
 - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`
 - `docs/templates/qa-report-template.md` (add supervisor dialogue evidence prompts if current template is insufficient)
@@ -106,8 +106,8 @@ These degraded tool results are not blockers for the solution, but Code Reviewer
 - `src/runtime/tools/audit/rule-scan.js`
 - `src/runtime/tools/audit/security-scan.js`
 - `src/runtime/tools/audit/scan-evidence.js`
-- `.opencode/lib/scan-evidence-summary.js`
-- `context/core/approval-gates.md`
+- `src/openkit-runtime/lib/scan-evidence-summary.js`
+- `src/context/core/approval-gates.md`
 - `docs/templates/qa-report-template.md`
 
 ## Authority-Boundary Design
@@ -144,7 +144,7 @@ Supervisor dialogue records remain per work item:
 .opencode/work-items/<work_item_id>/supervisor-dialogue.json
 ```
 
-For globally managed sessions, the runtime root may be under OpenCode home. Reporting must preserve the path-model split from `context/core/runtime-surfaces.md` and must not treat project-local `.opencode` as the only source of truth.
+For globally managed sessions, the runtime root may be under OpenCode home. Reporting must preserve the path-model split from `src/context/core/runtime-surfaces.md` and must not treat project-local `.opencode` as the only source of truth.
 
 ### Existing schemas to preserve
 
@@ -266,8 +266,8 @@ Reasoning:
 
 - **Executable slice name**: `TASK-F940-STORE`
 - **Files**:
-  - `.opencode/lib/supervisor-dialogue-store.js`
-  - `.opencode/tests/supervisor-dialogue-store.test.js`
+  - `src/openkit-runtime/lib/supervisor-dialogue-store.js`
+  - `src/openkit-runtime/tests/supervisor-dialogue-store.test.js`
 - **Goal**: make durable outbound, inbound, adjudication, dedupe, and delivery-state records sufficient for audit/review/QA.
 - **Dependencies**: none.
 - **TDD expectations**:
@@ -286,10 +286,10 @@ Reasoning:
 
 - **Executable slice name**: `TASK-F940-AUTHORITY-EVENTS`
 - **Files**:
-  - `.opencode/lib/workflow-state-controller.js`
-  - `.opencode/lib/supervisor-dialogue-store.js`
-  - `.opencode/tests/workflow-state-controller.test.js`
-  - `.opencode/tests/supervisor-dialogue-store.test.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/openkit-runtime/lib/supervisor-dialogue-store.js`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/tests/supervisor-dialogue-store.test.js`
 - **Goal**: ensure outbound supervisor events are recorded after successful authoritative OpenKit writes and never for failed/rejected writes.
 - **Dependencies**: `TASK-F940-STORE`.
 - **TDD expectations**:
@@ -317,8 +317,8 @@ Reasoning:
   - `src/runtime/tools/tool-registry.js` (only if adding an OpenKit-owned supervisor tool)
   - `src/runtime/tools/supervisor/supervisor-dialogue.js` (create only if needed for OpenKit-owned operator/QA receive/dispatch/summary actions)
   - `src/mcp-server/tool-schemas.js` (only if exposing that OpenKit-owned runtime tool)
-  - `tests/runtime/openclaw-supervisor-dialogue.test.js`
-  - `tests/mcp-server/mcp-server.test.js` (only if MCP exposure changes)
+  - `src/tests/runtime/openclaw-supervisor-dialogue.test.js`
+  - `src/tests/mcp-server/mcp-server.test.js` (only if MCP exposure changes)
 - **Goal**: make command/http delivery, inbound message capture, normalization, adjudication, and degraded/offline handling complete without giving OpenClaw authority.
 - **Dependencies**: `TASK-F940-STORE`, `TASK-F940-AUTHORITY-EVENTS`.
 - **TDD expectations**:
@@ -338,20 +338,20 @@ Reasoning:
 
 - **Executable slice name**: `TASK-F940-REPORTING`
 - **Files**:
-  - `.opencode/lib/runtime-summary.js`
-  - `.opencode/workflow-state.js`
+  - `src/openkit-runtime/lib/runtime-summary.js`
+  - `src/openkit-runtime/workflow-state.js`
   - `src/runtime/create-runtime-interface.js`
   - `src/runtime/create-managers.js`
   - `src/runtime/runtime-config-defaults.js`
   - `src/runtime/config/schema.js`
   - `src/runtime/types.js`
-  - `context/core/project-config.md`
-  - `context/core/runtime-surfaces.md`
+  - `src/context/core/project-config.md`
+  - `src/context/core/runtime-surfaces.md`
   - `docs/operator/supported-surfaces.md`
   - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`
-  - `.opencode/tests/workflow-state-cli.test.js`
-  - `tests/runtime/runtime-bootstrap.test.js`
-  - `tests/runtime/runtime-config-loader.test.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
+  - `src/tests/runtime/runtime-bootstrap.test.js`
+  - `src/tests/runtime/runtime-config-loader.test.js`
 - **Goal**: make supervisor health, delivery state, inbound dispositions, authority rejections, duplicate outcomes, and attention needs visible in existing status/resume/runtime surfaces.
 - **Dependencies**: `TASK-F940-RUNTIME-BRIDGE`.
 - **TDD expectations**:
@@ -374,13 +374,13 @@ Reasoning:
 - **Files**:
   - `docs/templates/qa-report-template.md`
   - `docs/qa/2026-04-25-openclaw-openkit-dialogue-v2.md` (created by QA)
-  - `context/core/project-config.md`
-  - `context/core/runtime-surfaces.md`
+  - `src/context/core/project-config.md`
+  - `src/context/core/runtime-surfaces.md`
   - `docs/operator/supported-surfaces.md`
   - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`
-  - `tests/runtime/audit-tools.test.js` only if scan evidence behavior is touched
-  - `.opencode/tests/workflow-state-controller.test.js`
-  - `.opencode/tests/workflow-contract-consistency.test.js`
+  - `src/tests/runtime/audit-tools.test.js` only if scan evidence behavior is touched
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/tests/workflow-contract-consistency.test.js`
 - **Goal**: make downstream implementation handoff, code review, and QA evidence inspectable under FEATURE-940 and FEATURE-939 rules.
 - **Dependencies**: all prior slices.
 - **TDD expectations**:
@@ -433,10 +433,10 @@ Recommended executable task names:
 
 | Task ID | Title | Kind | Depends On | Primary Artifact Refs |
 | --- | --- | --- | --- | --- |
-| `TASK-F940-STORE` | Harden supervisor dialogue store contracts | `implementation` | none | `.opencode/lib/supervisor-dialogue-store.js`, `.opencode/tests/supervisor-dialogue-store.test.js` |
-| `TASK-F940-AUTHORITY-EVENTS` | Emit supervisor events after authority writes | `implementation` | `TASK-F940-STORE` | `.opencode/lib/workflow-state-controller.js`, `.opencode/lib/supervisor-dialogue-store.js`, `.opencode/tests/workflow-state-controller.test.js` |
-| `TASK-F940-RUNTIME-BRIDGE` | Complete OpenClaw runtime bridge and adjudication | `implementation` | `TASK-F940-AUTHORITY-EVENTS` | `src/runtime/managers/supervisor-dialogue-manager.js`, `src/runtime/supervisor/`, `tests/runtime/openclaw-supervisor-dialogue.test.js` |
-| `TASK-F940-REPORTING` | Expose supervisor health and dialogue read models | `implementation` | `TASK-F940-RUNTIME-BRIDGE` | `.opencode/lib/runtime-summary.js`, `.opencode/workflow-state.js`, `src/runtime/create-runtime-interface.js`, runtime config files |
+| `TASK-F940-STORE` | Harden supervisor dialogue store contracts | `implementation` | none | `src/openkit-runtime/lib/supervisor-dialogue-store.js`, `src/openkit-runtime/tests/supervisor-dialogue-store.test.js` |
+| `TASK-F940-AUTHORITY-EVENTS` | Emit supervisor events after authority writes | `implementation` | `TASK-F940-STORE` | `src/openkit-runtime/lib/workflow-state-controller.js`, `src/openkit-runtime/lib/supervisor-dialogue-store.js`, `src/openkit-runtime/tests/workflow-state-controller.test.js` |
+| `TASK-F940-RUNTIME-BRIDGE` | Complete OpenClaw runtime bridge and adjudication | `implementation` | `TASK-F940-AUTHORITY-EVENTS` | `src/runtime/managers/supervisor-dialogue-manager.js`, `src/runtime/supervisor/`, `src/tests/runtime/openclaw-supervisor-dialogue.test.js` |
+| `TASK-F940-REPORTING` | Expose supervisor health and dialogue read models | `implementation` | `TASK-F940-RUNTIME-BRIDGE` | `src/openkit-runtime/lib/runtime-summary.js`, `src/openkit-runtime/workflow-state.js`, `src/runtime/create-runtime-interface.js`, runtime config files |
 | `TASK-F940-EVIDENCE-QA` | Prepare review/QA evidence and documentation surfaces | `verification` | `TASK-F940-REPORTING` | `docs/templates/qa-report-template.md`, `docs/qa/2026-04-25-openclaw-openkit-dialogue-v2.md`, governance/docs tests |
 
 Recommended command sequence for the orchestrator or operator after this solution is accepted:
@@ -457,14 +457,14 @@ Current CLI `create-task` support is a minimal task-board initializer and does n
 
 | AC | Scope Target | Implementation/Test Validation | Review/QA Evidence |
 | --- | --- | --- | --- |
-| AC1 | Outbound events only after successful OpenKit authority actions, with inspectable identity/origin/type/work item/timestamp/summary/context | `.opencode/tests/workflow-state-controller.test.js`; `.opencode/tests/supervisor-dialogue-store.test.js`; `node .opencode/workflow-state.js resume-summary --json` | Reviewer checks failed writes do not emit success events; QA demonstrates one successful authority write event and one failed/rejected write with no success event. |
-| AC2 | OpenClaw cannot execute code or mutate workflow state; unsafe requests recorded/rejected/quarantined | `tests/runtime/openclaw-supervisor-dialogue.test.js`; `.opencode/tests/supervisor-dialogue-store.test.js`; controller tests proving no workflow-state mutator is invoked from inbound path | QA submits unsafe run/approve/evidence/task/issue request and confirms only supervisor record changes. |
-| AC3 | Inbound acknowledgements, concerns, proposals, and attention requests normalized with safe dispositions | `tests/runtime/openclaw-supervisor-dialogue.test.js`; `.opencode/tests/supervisor-dialogue-store.test.js` | QA report lists inbound dispositions and confirms advisory context is not an approval/task/evidence result. |
-| AC4 | Duplicate messages and repeated proposal keys avoid duplicate actionable items while remaining auditable | `.opencode/tests/supervisor-dialogue-store.test.js`; `tests/runtime/openclaw-supervisor-dialogue.test.js` | QA demonstrates duplicate `message_id` and repeated target/intent proposal with different wording. |
-| AC5 | Unconfigured/degraded/offline OpenClaw does not fail startup or block workflow progress and remains visible | `tests/runtime/runtime-bootstrap.test.js`; `tests/runtime/openclaw-supervisor-dialogue.test.js`; `node .opencode/workflow-state.js status`; `resume-summary --json` | QA demonstrates disabled/unconfigured and timeout/error transport while workflow-state validation still passes. |
-| AC6 | Reporting exposes session health, delivery state, inbound dispositions, rejected attempts, dedupe outcomes, attention needs | `.opencode/tests/workflow-state-cli.test.js`; `.opencode/lib/runtime-summary.js` read-model tests; `src/runtime/create-runtime-interface.js` tests | QA report includes supervisor session health table and raw artifact refs. |
+| AC1 | Outbound events only after successful OpenKit authority actions, with inspectable identity/origin/type/work item/timestamp/summary/context | `src/openkit-runtime/tests/workflow-state-controller.test.js`; `src/openkit-runtime/tests/supervisor-dialogue-store.test.js`; `node .opencode/workflow-state.js resume-summary --json` | Reviewer checks failed writes do not emit success events; QA demonstrates one successful authority write event and one failed/rejected write with no success event. |
+| AC2 | OpenClaw cannot execute code or mutate workflow state; unsafe requests recorded/rejected/quarantined | `src/tests/runtime/openclaw-supervisor-dialogue.test.js`; `src/openkit-runtime/tests/supervisor-dialogue-store.test.js`; controller tests proving no workflow-state mutator is invoked from inbound path | QA submits unsafe run/approve/evidence/task/issue request and confirms only supervisor record changes. |
+| AC3 | Inbound acknowledgements, concerns, proposals, and attention requests normalized with safe dispositions | `src/tests/runtime/openclaw-supervisor-dialogue.test.js`; `src/openkit-runtime/tests/supervisor-dialogue-store.test.js` | QA report lists inbound dispositions and confirms advisory context is not an approval/task/evidence result. |
+| AC4 | Duplicate messages and repeated proposal keys avoid duplicate actionable items while remaining auditable | `src/openkit-runtime/tests/supervisor-dialogue-store.test.js`; `src/tests/runtime/openclaw-supervisor-dialogue.test.js` | QA demonstrates duplicate `message_id` and repeated target/intent proposal with different wording. |
+| AC5 | Unconfigured/degraded/offline OpenClaw does not fail startup or block workflow progress and remains visible | `src/tests/runtime/runtime-bootstrap.test.js`; `src/tests/runtime/openclaw-supervisor-dialogue.test.js`; `node .opencode/workflow-state.js status`; `resume-summary --json` | QA demonstrates disabled/unconfigured and timeout/error transport while workflow-state validation still passes. |
+| AC6 | Reporting exposes session health, delivery state, inbound dispositions, rejected attempts, dedupe outcomes, attention needs | `src/openkit-runtime/tests/workflow-state-cli.test.js`; `src/openkit-runtime/lib/runtime-summary.js` read-model tests; `src/runtime/create-runtime-interface.js` tests | QA report includes supervisor session health table and raw artifact refs. |
 | AC7 | Delivery includes inspectable scope, solution, implementation evidence, code review, QA, and scan/tool evidence; FEATURE-937 not delivery substitute | This solution path; task-board validation; `node .opencode/workflow-state.js show-policy-status`; `show-invocations feature-940` | Code Reviewer and QA cite FEATURE-940 artifacts only; FEATURE-937 appears only as historical risk context. |
-| AC8 | Validation reports distinguish OpenKit runtime/tooling, compatibility runtime, global CLI, documentation, and unavailable target-project app validation | `context/core/runtime-surfaces.md`; `context/core/project-config.md`; `docs/templates/qa-report-template.md`; workflow evidence with `details.validation_surface`; `npm run verify:governance` | QA labels OpenKit tests/scans as `runtime_tooling` or `compatibility_runtime`; target-project app validation is explicitly `unavailable`. |
+| AC8 | Validation reports distinguish OpenKit runtime/tooling, compatibility runtime, global CLI, documentation, and unavailable target-project app validation | `src/context/core/runtime-surfaces.md`; `src/context/core/project-config.md`; `docs/templates/qa-report-template.md`; workflow evidence with `details.validation_surface`; `npm run verify:governance` | QA labels OpenKit tests/scans as `runtime_tooling` or `compatibility_runtime`; target-project app validation is explicitly `unavailable`. |
 
 ## Validation Plan
 

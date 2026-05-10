@@ -49,7 +49,7 @@ parallel_mode: none
 
 ## Compatibility Hotspots
 
-- `.opencode/opencode.json`
+- `src/openkit-runtime/opencode.json`
 - `assets/opencode.json.template`
 - `assets/default-command-permission-policy.json`
 - `src/permissions/command-permission-policy.js`
@@ -59,8 +59,8 @@ parallel_mode: none
 - `src/install/merge-policy.js`
 - `src/runtime/doctor.js`
 - `src/global/doctor.js`
-- Related tests under `tests/global/`, `tests/install/`, and `tests/runtime/`
-- Related docs/package checks under `context/core/`, `docs/operator/`, `docs/maintainer/`, `docs/kit-internals/`, `assets/install-bundle/`, and `package.json` only where existing docs/scripts require sync.
+- Related tests under `src/tests/global/`, `src/tests/install/`, and `src/tests/runtime/`
+- Related docs/package checks under `src/context/core/`, `docs/operator/`, `docs/maintainer/`, `docs/kit-internals/`, `assets/install-bundle/`, and `package.json` only where existing docs/scripts require sync.
 
 ## Migration Blockers And Seams
 
@@ -73,7 +73,7 @@ parallel_mode: none
 
 ### [ ] Slice 1: Separate OpenCode permission projection from OpenKit metadata
 
-- **Files**: `assets/default-command-permission-policy.json`, `src/permissions/command-permission-policy.js`, `.opencode/opencode.json`, `assets/opencode.json.template`, `tests/global/command-permission-policy.test.js`.
+- **Files**: `assets/default-command-permission-policy.json`, `src/permissions/command-permission-policy.js`, `src/openkit-runtime/opencode.json`, `assets/opencode.json.template`, `src/tests/global/command-permission-policy.test.js`.
 - **Goal**: ensure the canonical policy remains OpenKit-owned while the OpenCode-facing projection emits only the schema-valid `permission` field.
 - **Preserve**: all routine `allow` entries and destructive/delete `ask` entries listed in the preserved invariants.
 - **Validation**: `node --test tests/global/command-permission-policy.test.js`.
@@ -81,7 +81,7 @@ parallel_mode: none
 
 ### [ ] Slice 2: Sanitize generated OpenCode configs and strip legacy invalid keys
 
-- **Files**: `src/global/materialize.js`, `src/global/mcp/profile-materializer.js`, `src/install/materialize.js`, `src/install/merge-policy.js`, `.opencode/opencode.json`, `assets/opencode.json.template`, `tests/global/config-validation.test.js`, `tests/global/ensure-install.test.js`, `tests/global/mcp-profile-materializer.test.js`, `tests/install/materialize.test.js`, `tests/install/merge-policy.test.js`.
+- **Files**: `src/global/materialize.js`, `src/global/mcp/profile-materializer.js`, `src/install/materialize.js`, `src/install/merge-policy.js`, `src/openkit-runtime/opencode.json`, `assets/opencode.json.template`, `src/tests/global/config-validation.test.js`, `src/tests/global/ensure-install.test.js`, `src/tests/global/mcp-profile-materializer.test.js`, `src/tests/install/materialize.test.js`, `src/tests/install/merge-policy.test.js`.
 - **Goal**: all repo-local, global kit, and profile `opencode.json` outputs are strict-schema-safe and do not contain `commandPermissionPolicy` or other OpenKit-only top-level metadata.
 - **Preserve**: materializers continue to write the policy-derived `permission` map and preserve unrelated user/OpenCode-managed config fields according to existing merge rules.
 - **Validation**: `node --test tests/global/config-validation.test.js tests/global/ensure-install.test.js tests/global/mcp-profile-materializer.test.js tests/install/materialize.test.js tests/install/merge-policy.test.js`.
@@ -89,7 +89,7 @@ parallel_mode: none
 
 ### [ ] Slice 3: Update doctor and drift logic
 
-- **Files**: `src/runtime/doctor.js`, `src/global/doctor.js`, `tests/runtime/doctor.test.js`, `tests/global/doctor.test.js`, plus policy tests from Slice 1 if expectations move into the shared helper.
+- **Files**: `src/runtime/doctor.js`, `src/global/doctor.js`, `src/tests/runtime/doctor.test.js`, `src/tests/global/doctor.test.js`, plus policy tests from Slice 1 if expectations move into the shared helper.
 - **Goal**: doctor reports policy/config health from `assets/default-command-permission-policy.json` and the OpenCode `permission` projection, not from inline OpenKit metadata.
 - **Preserve**: doctor still detects missing dangerous `ask` entries, missing routine `allow` entries, global/profile drift, malformed policy, and degraded/unsupported OpenCode permission semantics.
 - **Validation**: `node --test tests/global/doctor.test.js tests/runtime/doctor.test.js tests/global/command-permission-policy.test.js`.
@@ -97,7 +97,7 @@ parallel_mode: none
 
 ### [ ] Slice 4: Add strict OpenCode config validation regression coverage
 
-- **Files**: `tests/global/config-validation.test.js`, optional dedicated script under `scripts/` if implementation adds one, and `package.json` only if a new script is intentionally exposed.
+- **Files**: `src/tests/global/config-validation.test.js`, optional dedicated script under `scripts/` if implementation adds one, and `package.json` only if a new script is intentionally exposed.
 - **Goal**: prevent regression by validating OpenKit-managed OpenCode config projections against a strict allowlist/schema model for the OpenCode-facing file.
 - **Preserve**: OpenKit metadata remains testable through canonical policy/sidecar files, not by embedding it in `opencode.json`.
 - **Validation**: `node --test tests/global/config-validation.test.js`; if a strict validation script is added, run its checked-in command as part of the final gate.
@@ -105,7 +105,7 @@ parallel_mode: none
 
 ### [ ] Slice 5: Sync docs and package checks
 
-- **Files**: `context/core/project-config.md`, `context/core/runtime-surfaces.md`, `docs/operator/supported-surfaces.md`, `docs/operator/surface-contract.md`, `docs/maintainer/test-matrix.md`, relevant `docs/kit-internals/*`, `AGENTS.md` only if current-state guidance changes, `assets/install-bundle/` only if bundled docs/prompts are affected, and `package.json` only if scripts/files change.
+- **Files**: `src/context/core/project-config.md`, `src/context/core/runtime-surfaces.md`, `docs/operator/supported-surfaces.md`, `docs/operator/surface-contract.md`, `docs/maintainer/test-matrix.md`, relevant `docs/kit-internals/*`, `AGENTS.md` only if current-state guidance changes, `assets/install-bundle/` only if bundled docs/prompts are affected, and `package.json` only if scripts/files change.
 - **Goal**: document strict OpenCode config boundaries, canonical policy ownership, validation-surface labels, and unchanged safety protocol.
 - **Preserve**: docs must not claim target-project application validation or guaranteed prompt-free behavior beyond what OpenCode supports; OpenKit checks validate `global_cli`, `runtime_tooling`, `documentation`, and `package` surfaces.
 - **Validation**: `npm pack --dry-run --json`, `npm run verify:install-bundle`, `npm run verify:governance`, `npm run verify:all`.
@@ -117,7 +117,7 @@ parallel_mode: none
 - Reason: all slices touch shared policy/config projection and doctor semantics; parallel edits risk reintroducing drift or invalid config keys.
 - Sequential constraints: `Slice 1 -> Slice 2 -> Slice 3 -> Slice 4 -> Slice 5`.
 - Critical path: define canonical projection first, then sanitize writers, then update readers/doctors, then lock with regression tests and docs/package checks.
-- Integration checkpoint before code review: materialized config fixtures and checked-in `.opencode/opencode.json` contain no OpenKit-only top-level metadata and still preserve all required allow/ask entries.
+- Integration checkpoint before code review: materialized config fixtures and checked-in `src/openkit-runtime/opencode.json` contain no OpenKit-only top-level metadata and still preserve all required allow/ask entries.
 
 ## Rollback And Checkpoints
 

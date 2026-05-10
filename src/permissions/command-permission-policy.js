@@ -8,7 +8,7 @@ const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(MODULE_DIR, '../..');
 
 export const COMMAND_PERMISSION_POLICY_SCHEMA = 'openkit/command-permission-policy@1';
-export const DEFAULT_POLICY_RELATIVE_PATH = 'assets/default-command-permission-policy.json';
+export const DEFAULT_POLICY_RELATIVE_PATH = 'src/assets/default-command-permission-policy.json';
 const VALID_ACTIONS = new Set(['allow', 'ask']);
 const VALID_DEFAULT_SUPPORT = new Set(['supported', 'unverified', 'unsupported', 'verify-at-runtime']);
 const REQUIRED_MINIMUM_KEYS = [

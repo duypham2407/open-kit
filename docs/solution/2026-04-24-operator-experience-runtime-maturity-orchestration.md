@@ -63,18 +63,18 @@ This path avoids a new lane, command family, runtime mode, task-board model, or 
 
 ### Canonical workflow and runtime context
 
-- `context/core/workflow.md`
-- `context/core/project-config.md`
-- `context/core/runtime-surfaces.md`
-- `context/core/session-resume.md`
-- `context/core/approval-gates.md`
-- `context/core/issue-routing.md`
-- `context/core/workflow-state-schema.md`
-- `context/navigation.md`
+- `src/context/core/workflow.md`
+- `src/context/core/project-config.md`
+- `src/context/core/runtime-surfaces.md`
+- `src/context/core/session-resume.md`
+- `src/context/core/approval-gates.md`
+- `src/context/core/issue-routing.md`
+- `src/context/core/workflow-state-schema.md`
+- `src/context/navigation.md`
 
 ### Runtime and CLI metadata/read-model surfaces
 
-- `bin/openkit.js`
+- `src/bin/openkit.js`
 - `src/cli/commands/doctor.js`
 - `src/cli/commands/run.js`
 - `src/runtime/runtime-config-loader.js`
@@ -95,31 +95,31 @@ This path avoids a new lane, command family, runtime mode, task-board model, or 
 - `src/runtime/tools/ast/ast-grep-search.js`
 - `src/runtime/tools/codemod/codemod-preview.js`
 - `src/runtime/tools/codemod/codemod-apply.js`
-- `.opencode/lib/runtime-summary.js`
-- `.opencode/lib/workflow-state-controller.js`
-- `.opencode/workflow-state.js`
+- `src/openkit-runtime/lib/runtime-summary.js`
+- `src/openkit-runtime/lib/workflow-state-controller.js`
+- `src/openkit-runtime/workflow-state.js`
 - `registry.json`
-- `.opencode/install-manifest.json`
+- `src/openkit-runtime/install-manifest.json`
 
 ### Tests
 
-- `.opencode/tests/workflow-contract-consistency.test.js`
-- `.opencode/tests/workflow-state-cli.test.js`
-- `.opencode/tests/workflow-state-controller.test.js`
-- `.opencode/tests/task-board-rules.test.js`
-- `.opencode/tests/parallel-execution-runtime.test.js`
-- `.opencode/tests/migration-lifecycle.test.js`
-- `tests/cli/openkit-cli.test.js`
-- `tests/cli/onboard.test.js`
-- `tests/runtime/doctor.test.js`
-- `tests/runtime/capability-registry.test.js`
-- `tests/runtime/runtime-bootstrap.test.js`
-- `tests/runtime/registry-metadata.test.js`
-- `tests/runtime/graph-tools.test.js`
-- `tests/runtime/semantic-memory.test.js`
-- `tests/runtime/external-tools.test.js`
-- `tests/install/materialize.test.js`
-- `tests/global/doctor.test.js`
+- `src/openkit-runtime/tests/workflow-contract-consistency.test.js`
+- `src/openkit-runtime/tests/workflow-state-cli.test.js`
+- `src/openkit-runtime/tests/workflow-state-controller.test.js`
+- `src/openkit-runtime/tests/task-board-rules.test.js`
+- `src/openkit-runtime/tests/parallel-execution-runtime.test.js`
+- `src/openkit-runtime/tests/migration-lifecycle.test.js`
+- `src/tests/cli/openkit-cli.test.js`
+- `src/tests/cli/onboard.test.js`
+- `src/tests/runtime/doctor.test.js`
+- `src/tests/runtime/capability-registry.test.js`
+- `src/tests/runtime/runtime-bootstrap.test.js`
+- `src/tests/runtime/registry-metadata.test.js`
+- `src/tests/runtime/graph-tools.test.js`
+- `src/tests/runtime/semantic-memory.test.js`
+- `src/tests/runtime/external-tools.test.js`
+- `src/tests/install/materialize.test.js`
+- `src/tests/global/doctor.test.js`
 
 ## Boundaries And Components
 
@@ -152,14 +152,14 @@ Documentation and runtime summaries should label evidence with one of these surf
 
 - `global_cli`: `openkit ...` product commands.
 - `in_session`: slash-command workflow path and stage/handoff behavior.
-- `compatibility_runtime`: `.opencode/workflow-state.js` state and diagnostic commands.
+- `compatibility_runtime`: `src/openkit-runtime/workflow-state.js` state and diagnostic commands.
 - `runtime_tooling`: OpenKit runtime tools, graph, semantic search, AST, syntax, codemod, MCP, browser, or background execution surfaces.
 - `documentation`: roadmap, operator, maintainer, governance, and runbook artifacts.
 - `target_project_app`: application build/lint/test commands only when the target project actually defines them.
 
 ### Command reality contract
 
-- Current commands must be documented as current only when they exist in `package.json`, `bin/openkit.js`, `.opencode/workflow-state.js`, or checked-in runtime command surfaces.
+- Current commands must be documented as current only when they exist in `package.json`, `src/bin/openkit.js`, `src/openkit-runtime/workflow-state.js`, or checked-in runtime command surfaces.
 - Future example commands must be labeled illustrative or planned.
 - If a command appears in operator docs but no longer exists, treat that as a documentation defect in Phase 1 or Phase 2, not as permission to invent behavior silently.
 
@@ -192,12 +192,12 @@ Documentation and runtime summaries should label evidence with one of these surf
   - `docs/operations/runbooks/openkit-daily-usage.md`
   - `docs/maintainer/README.md`
   - `docs/maintainer/command-matrix.md`
-  - `context/core/workflow.md`
-  - `context/core/project-config.md`
-  - `context/core/runtime-surfaces.md`
-  - `context/navigation.md`
-  - `.opencode/tests/workflow-contract-consistency.test.js`
-  - `tests/runtime/governance-enforcement.test.js`
+  - `src/context/core/workflow.md`
+  - `src/context/core/project-config.md`
+  - `src/context/core/runtime-surfaces.md`
+  - `src/context/navigation.md`
+  - `src/openkit-runtime/tests/workflow-contract-consistency.test.js`
+  - `src/tests/runtime/governance-enforcement.test.js`
 - **Goal**: make the preferred operator path, command-surface boundaries, lane expectations, artifact expectations, and missing app-native validation behavior obvious from the operator and maintainer entrypoints.
 - **Validation Command**:
   - `npm run verify:governance`
@@ -208,17 +208,17 @@ Documentation and runtime summaries should label evidence with one of these surf
   - Make the three-surface model explicit everywhere an operator might start: product CLI path, in-session command path, and compatibility runtime path.
   - Add or tighten lane-aware artifact expectation tables for Quick Task, Migration, and Full Delivery. Mark quick task cards optional. Keep Product Lead scope before Solution Lead solution mandatory for full delivery.
   - State that missing target-project build/lint/test commands are a validation constraint. Do not substitute OpenKit runtime checks for app behavior.
-  - Update command and navigation indexes so they point to canonical docs and do not contradict `context/core/workflow.md`, `context/core/project-config.md`, or `context/core/runtime-surfaces.md`.
+  - Update command and navigation indexes so they point to canonical docs and do not contradict `src/context/core/workflow.md`, `src/context/core/project-config.md`, or `src/context/core/runtime-surfaces.md`.
   - Reviewer focus: stale or conflicting command names, accidental fourth-lane language, unclear product-vs-compatibility wording.
   - QA focus: a new operator can answer which command surface to use, what artifact to expect, and what validation is unavailable without reading source code.
 
 ### [ ] Slice 2: Phase 2 Runtime/Tooling Maturity Standardization
 
 - **Files**:
-  - `context/core/project-config.md`
-  - `context/core/runtime-surfaces.md`
-  - `context/core/session-resume.md`
-  - `context/core/workflow-state-schema.md`
+  - `src/context/core/project-config.md`
+  - `src/context/core/runtime-surfaces.md`
+  - `src/context/core/session-resume.md`
+  - `src/context/core/workflow-state-schema.md`
   - `docs/operator/supported-surfaces.md`
   - `docs/maintainer/command-matrix.md`
   - `docs/maintainer/test-matrix.md`
@@ -232,17 +232,17 @@ Documentation and runtime summaries should label evidence with one of these surf
   - `src/runtime/runtime-config-loader.js`
   - `src/runtime/create-tools.js`
   - `src/runtime/tools/tool-registry.js`
-  - `.opencode/lib/runtime-summary.js`
-  - `.opencode/workflow-state.js`
-  - `.opencode/lib/workflow-state-controller.js`
-  - `tests/runtime/capability-registry.test.js`
-  - `tests/runtime/runtime-bootstrap.test.js`
-  - `tests/runtime/doctor.test.js`
-  - `tests/runtime/graph-tools.test.js`
-  - `tests/runtime/semantic-memory.test.js`
-  - `tests/runtime/external-tools.test.js`
-  - `.opencode/tests/workflow-state-cli.test.js`
-  - `.opencode/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/lib/runtime-summary.js`
+  - `src/openkit-runtime/workflow-state.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/tests/runtime/capability-registry.test.js`
+  - `src/tests/runtime/runtime-bootstrap.test.js`
+  - `src/tests/runtime/doctor.test.js`
+  - `src/tests/runtime/graph-tools.test.js`
+  - `src/tests/runtime/semantic-memory.test.js`
+  - `src/tests/runtime/external-tools.test.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
 - **Goal**: standardize how runtime health, resume state, command reality, tool capability state, validation evidence, active artifacts, issues, and work-item readiness are inspected.
 - **Validation Command**:
   - `npm run verify:runtime-foundation`
@@ -259,30 +259,30 @@ Documentation and runtime summaries should label evidence with one of these surf
   - Make resume/status/readiness outputs and docs name active work item, workflow state, artifact links, issue state, verification evidence, and blocking-vs-informational conditions where those surfaces already exist.
   - Keep semantic search, graph, AST, syntax, codemod, MCP, browser verification, and background execution honest about dependency/config/indexing limitations.
   - Separate OpenKit runtime/CLI validation from `target_project_app` validation in docs and runtime summaries.
-  - Update test-matrix and command-matrix docs so every documented validation path maps to a real command in `package.json`, `bin/openkit.js`, or `.opencode/workflow-state.js`.
+  - Update test-matrix and command-matrix docs so every documented validation path maps to a real command in `package.json`, `src/bin/openkit.js`, or `src/openkit-runtime/workflow-state.js`.
   - Reviewer focus: duplicated status vocabularies, claims of full availability without dependency checks, command docs that drift from implemented behavior.
   - QA focus: doctor/resume/status/readiness surfaces show actionable state and do not imply target app validation.
 
 ### [ ] Slice 3: Phase 3 Execution Orchestration Deepening
 
 - **Files**:
-  - `context/core/workflow.md`
-  - `context/core/approval-gates.md`
-  - `context/core/issue-routing.md`
-  - `context/core/workflow-state-schema.md`
+  - `src/context/core/workflow.md`
+  - `src/context/core/approval-gates.md`
+  - `src/context/core/issue-routing.md`
+  - `src/context/core/workflow-state-schema.md`
   - `docs/maintainer/2026-03-26-role-operating-policy.md`
   - `docs/maintainer/conditional-parallel-execution-note.md`
   - `docs/maintainer/parallel-execution-matrix.md`
   - `docs/maintainer/policy-execution-traceability.md`
   - `docs/operator/supported-surfaces.md`
   - `docs/kit-internals/01-system-overview.md`
-  - `.opencode/lib/workflow-state-controller.js`
-  - `.opencode/lib/runtime-summary.js`
-  - `.opencode/workflow-state.js`
-  - `.opencode/tests/task-board-rules.test.js`
-  - `.opencode/tests/parallel-execution-runtime.test.js`
-  - `.opencode/tests/migration-lifecycle.test.js`
-  - `.opencode/tests/workflow-state-cli.test.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/openkit-runtime/lib/runtime-summary.js`
+  - `src/openkit-runtime/workflow-state.js`
+  - `src/openkit-runtime/tests/task-board-rules.test.js`
+  - `src/openkit-runtime/tests/parallel-execution-runtime.test.js`
+  - `src/openkit-runtime/tests/migration-lifecycle.test.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
 - **Goal**: make deeper full-delivery and migration orchestration inspectable while preserving phase-gate readiness, role boundaries, full-only task boards, conservative parallelism, and migration parity semantics.
 - **Validation Command**:
   - `node --test ".opencode/tests/task-board-rules.test.js"`
@@ -295,7 +295,7 @@ Documentation and runtime summaries should label evidence with one of these surf
   - Runtime tests must prove that missing safe parallel zones or sequential constraints keep coordination conservative rather than allowing unrestricted overlap.
 - **Details**:
   - Add a Phase 3 readiness statement that Phase 1 and Phase 2 acceptance must be satisfied or explicitly listed as blockers before deeper orchestration is treated as ready.
-  - Preserve existing full-delivery task-board semantics from `context/core/workflow.md`: task boards belong only to full-delivery work items, safe parallel zones are repo-relative artifact path-prefix allowlists, and sequential constraints are ordered chains.
+  - Preserve existing full-delivery task-board semantics from `src/context/core/workflow.md`: task boards belong only to full-delivery work items, safe parallel zones are repo-relative artifact path-prefix allowlists, and sequential constraints are ordered chains.
   - Ensure role-boundary docs continue to describe Master Orchestrator as route/state/gate control only.
   - Make task owner, task status, artifact refs, dependencies/sequential constraints, safe parallel zones, QA owner, integration readiness, unresolved issues, and verification evidence inspectable when task-level coordination is used.
   - Keep migration orchestration separate: baseline evidence, preserved behavior, compatibility risk, staged sequencing, rollback checkpoints, parity evidence, and slice verification remain the emphasized surfaces.
@@ -307,21 +307,21 @@ Documentation and runtime summaries should label evidence with one of these surf
 - **Files**:
   - `README.md`
   - `AGENTS.md`
-  - `context/navigation.md`
-  - `context/core/project-config.md`
+  - `src/context/navigation.md`
+  - `src/context/core/project-config.md`
   - `docs/operator/README.md`
   - `docs/maintainer/README.md`
   - `docs/maintainer/test-matrix.md`
   - `docs/operations/runbooks/openkit-daily-usage.md`
   - `registry.json`
-  - `.opencode/install-manifest.json`
+  - `src/openkit-runtime/install-manifest.json`
 - **Goal**: remove cross-document drift and ensure final implementation evidence covers all three phases and all acceptance criteria.
 - **Validation Command**:
   - `npm run verify:all`
   - `node .opencode/workflow-state.js doctor --short`
   - `node .opencode/workflow-state.js validate`
 - **Details**:
-  - Perform one final command-reality pass against `package.json`, `bin/openkit.js`, and `.opencode/workflow-state.js`.
+  - Perform one final command-reality pass against `package.json`, `src/bin/openkit.js`, and `src/openkit-runtime/workflow-state.js`.
   - Confirm roadmap-derived docs do not present compatibility runtime commands as the preferred product path.
   - Confirm every current-vs-planned statement is explicit.
   - Record verification evidence through the workflow-state evidence surface before requesting code review when implementation changes were made.
@@ -351,15 +351,15 @@ Documentation and runtime summaries should label evidence with one of these surf
 | Acceptance Criterion | Concrete checks | Validation commands |
 | --- | --- | --- |
 | AC1.1 Preferred Operator Path Is Explicit | `docs/operator/README.md`, `docs/operator/surface-contract.md`, `docs/operator/supported-surfaces.md`, and `docs/operations/runbooks/openkit-daily-usage.md` identify `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit upgrade`, and `openkit uninstall` as the preferred product path; compatibility commands are not framed as preferred install path | `npm run verify:governance` |
-| AC1.2 Runtime Surface Boundaries Are Understandable | `context/core/runtime-surfaces.md` and operator docs distinguish `global_cli`, `in_session`, and `compatibility_runtime` responsibilities | `npm run verify:governance`; `node --test ".opencode/tests/workflow-contract-consistency.test.js"` |
-| AC1.3 Lane And Artifact Expectations Are Inspectable | `context/core/workflow.md`, `AGENTS.md`, and operator docs list lane artifacts; quick task cards are optional; full delivery requires Product Lead scope before Solution Lead solution | `node --test ".opencode/tests/workflow-contract-consistency.test.js"`; `npm run verify:governance` |
-| AC1.4 Missing App-Native Validation Is Handled Honestly | `context/core/project-config.md`, `AGENTS.md`, and validation docs state missing target-project app commands clearly and separate OpenKit runtime validation from app validation | `npm run verify:governance` |
+| AC1.2 Runtime Surface Boundaries Are Understandable | `src/context/core/runtime-surfaces.md` and operator docs distinguish `global_cli`, `in_session`, and `compatibility_runtime` responsibilities | `npm run verify:governance`; `node --test ".opencode/tests/workflow-contract-consistency.test.js"` |
+| AC1.3 Lane And Artifact Expectations Are Inspectable | `src/context/core/workflow.md`, `AGENTS.md`, and operator docs list lane artifacts; quick task cards are optional; full delivery requires Product Lead scope before Solution Lead solution | `node --test ".opencode/tests/workflow-contract-consistency.test.js"`; `npm run verify:governance` |
+| AC1.4 Missing App-Native Validation Is Handled Honestly | `src/context/core/project-config.md`, `AGENTS.md`, and validation docs state missing target-project app commands clearly and separate OpenKit runtime validation from app validation | `npm run verify:governance` |
 | AC2.1 Runtime Health And Resume State Are Standardized | `openkit doctor`, workflow-state docs, runtime summary docs, and optional runtime read-model updates name health, resume, active work item, workflow state, artifact links, issues, evidence, and blocker/informational distinction | `node --test "tests/runtime/doctor.test.js"`; `node --test ".opencode/tests/workflow-state-cli.test.js"`; `node .opencode/workflow-state.js doctor --short` |
 | AC2.2 Tool Availability States Are Explicit | Capability registry and tool docs report `available`, `unavailable`, `degraded`, `preview`, `compatibility_only`, or `not_configured` where applicable; dependency/config/indexing limitations are visible | `node --test "tests/runtime/capability-registry.test.js"`; `node --test "tests/runtime/graph-tools.test.js"`; `node --test "tests/runtime/semantic-memory.test.js"`; `node --test "tests/runtime/external-tools.test.js"` |
 | AC2.3 Command Reality Stays Aligned With Implemented Behavior | Command matrix, project config, operator docs, and runbooks only mark existing commands as current; future examples are labeled illustrative; stale commands are fixed | `npm run verify:governance`; `npm run verify:all` before handoff |
 | AC2.4 Runtime Validation Is Separated From Target-Project Validation | Validation docs and any runtime evidence labels distinguish OpenKit runtime/CLI validation from target-project app validation | `npm run verify:governance`; `node .opencode/workflow-state.js validate` |
 | AC3.1 Orchestration Builds On Completed Foundations | Phase 3 docs and handoff notes state Phase 1 and Phase 2 acceptance are prerequisites or explicit blockers | `npm run verify:governance` |
-| AC3.2 Role Boundaries Remain Visible | `context/core/workflow.md`, role policy, and orchestration docs preserve Product Lead, Solution Lead, Fullstack, Code Reviewer, QA Agent, and Master Orchestrator boundaries | `node --test ".opencode/tests/workflow-contract-consistency.test.js"`; `npm run verify:governance` |
+| AC3.2 Role Boundaries Remain Visible | `src/context/core/workflow.md`, role policy, and orchestration docs preserve Product Lead, Solution Lead, Fullstack, Code Reviewer, QA Agent, and Master Orchestrator boundaries | `node --test ".opencode/tests/workflow-contract-consistency.test.js"`; `npm run verify:governance` |
 | AC3.3 Task-Level Coordination Is Inspectable When Used | Full-delivery task-board docs/runtime outputs show task owner, status, artifact refs, dependencies/sequential constraints, safe parallel zones, QA owner, integration readiness, unresolved issues, and evidence without implying unrestricted parallelism | `node --test ".opencode/tests/task-board-rules.test.js"`; `node --test ".opencode/tests/parallel-execution-runtime.test.js"`; `node --test ".opencode/tests/workflow-state-cli.test.js"` |
 | AC3.4 Migration Orchestration Preserves Migration Semantics | Migration docs/runtime outputs emphasize preserved behavior, baseline, compatibility risk, sequencing, rollback, parity, and slice verification; full-delivery task-board semantics are not applied by default | `node --test ".opencode/tests/migration-lifecycle.test.js"`; `npm run verify:governance` |
 
@@ -385,7 +385,7 @@ Before requesting Code Review, Fullstack should produce one concise implementati
 
 - Verify the implementation stays inside the approved three phases and preserves their order.
 - Check for accidental new lanes, renamed modes, new command families, or `Quick Task+` as a fourth mode.
-- Check command reality against `package.json`, `bin/openkit.js`, and `.opencode/workflow-state.js`.
+- Check command reality against `package.json`, `src/bin/openkit.js`, and `src/openkit-runtime/workflow-state.js`.
 - Check runtime/tool status claims for honest `available`, `degraded`, `preview`, `compatibility_only`, `not_configured`, or `unavailable` labeling.
 - Check that app-native validation is never invented for target projects.
 - Check that Phase 3 does not enable unrestricted parallelism and does not apply full-delivery task-board semantics to migration by default.

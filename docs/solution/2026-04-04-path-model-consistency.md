@@ -33,7 +33,7 @@ function ensureWorkItemStoreReady(customStatePath) {
 
 The function **returns `runtimeRoot`**, but its 17 call sites all assign the result to `const projectRoot`. When the two roots differ, every downstream use of that `projectRoot` is actually operating against the runtime state directory, not the user's repository.
 
-**Impact:** artifact scaffolding writes `docs/scope/…` into the workspace state tree instead of the user's project. Artifact validation reads from the wrong directory. Task board paths point to the wrong `.opencode/work-items/`.
+**Impact:** artifact scaffolding writes `docs/scope/…` into the workspace state tree instead of the user's project. Artifact validation reads from the wrong directory. Task board paths point to the wrong `src/openkit-runtime/work-items/`.
 
 ### Bug 2 — `readManagedState` propagates the wrong root
 
@@ -94,13 +94,13 @@ Instead of each function resolving roots independently, pass the resolved contex
 
 ## 3. Exact Files and Functions to Change
 
-### `.opencode/lib/runtime-paths.js`
+### `src/openkit-runtime/lib/runtime-paths.js`
 
 | Function | Change |
 |---|---|
 | *(new)* `resolvePathContext` | Add factory that returns `{ projectRoot, runtimeRoot, kitRoot, statePath }` as a frozen object |
 
-### `.opencode/lib/workflow-state-controller.js`
+### `src/openkit-runtime/lib/workflow-state-controller.js`
 
 | Function | Change |
 |---|---|
@@ -124,18 +124,18 @@ Instead of each function resolving roots independently, pass the resolved contex
 | `getTaskAgingReport` (L1994) | Destructure from `ensureWorkItemStoreReady`. |
 | All release-related functions (L2376-2638) | Use `resolvePathContext` for path resolution consistency. |
 
-### `.opencode/lib/artifact-scaffolder.js`
+### `src/openkit-runtime/lib/artifact-scaffolder.js`
 
 | Function | Change |
 |---|---|
 | `scaffoldArtifact` (L84) | No interface change needed, but **document the contract**: `projectRoot` must be the user's repository root, `kitRoot` must be the kit asset root. Callers are responsible for passing the correct values. |
 | `resolveTemplateCandidatePaths` (L59) | Already correct — uses both `projectRoot` and `kitRoot`. No change. |
 
-### `.opencode/lib/work-item-store.js`
+### `src/openkit-runtime/lib/work-item-store.js`
 
 | Function | Change |
 |---|---|
-| All functions that accept `projectRoot` | Rename parameter to `storeRoot` in JSDoc/comments to clarify this is the root of the `.opencode/work-items/` tree (which is `runtimeRoot`, not necessarily `projectRoot`). No logic change needed. |
+| All functions that accept `projectRoot` | Rename parameter to `storeRoot` in JSDoc/comments to clarify this is the root of the `src/openkit-runtime/work-items/` tree (which is `runtimeRoot`, not necessarily `projectRoot`). No logic change needed. |
 
 ---
 
@@ -145,9 +145,9 @@ These are the rules the fix must enforce and tests must verify:
 
 1. **`projectRoot` always points to the user's repository root** — the directory containing `.git` or `package.json`. Artifacts under `docs/`, `release-notes/`, and user-facing files are resolved relative to `projectRoot`.
 
-2. **`runtimeRoot` always points to the directory containing `.opencode/work-items/`** — where workflow state, task boards, migration slices, and background runs live. In local mode, `runtimeRoot === projectRoot`. In global mode, `runtimeRoot` is under `OPENCODE_HOME/workspaces/<id>/openkit`.
+2. **`runtimeRoot` always points to the directory containing `src/openkit-runtime/work-items/`** — where workflow state, task boards, migration slices, and background runs live. In local mode, `runtimeRoot === projectRoot`. In global mode, `runtimeRoot` is under `OPENCODE_HOME/workspaces/<id>/openkit`.
 
-3. **`kitRoot` always points to the directory containing kit assets** — `agents/`, `skills/`, `hooks/`, `docs/templates/`. In local mode, `kitRoot === projectRoot`. In global mode, `kitRoot` is `OPENKIT_KIT_ROOT`.
+3. **`kitRoot` always points to the directory containing kit assets** — `src/agents/`, `src/skills/`, `src/hooks/`, `docs/templates/`. In local mode, `kitRoot === projectRoot`. In global mode, `kitRoot` is `OPENKIT_KIT_ROOT`.
 
 4. **Artifact scaffolding always writes to `projectRoot`** — `docs/scope/`, `docs/solution/`, `docs/tasks/` are user-facing artifact directories.
 
@@ -167,7 +167,7 @@ These are the rules the fix must enforce and tests must verify:
 
 ## 5. Targeted Tests to Add
 
-### `.opencode/tests/runtime-paths.test.js` (new file)
+### `src/openkit-runtime/tests/runtime-paths.test.js` (new file)
 
 | Test | Purpose |
 |---|---|
@@ -175,7 +175,7 @@ These are the rules the fix must enforce and tests must verify:
 | `resolvePathContext collapses all three roots in local mode` | Verify backwards compatibility when no env vars are set |
 | `resolvePathContext returns frozen object` | Verify `Object.isFrozen()` to prevent accidental mutation |
 
-### `.opencode/tests/workflow-state-controller.test.js` (existing file, add cases)
+### `src/openkit-runtime/tests/workflow-state-controller.test.js` (existing file, add cases)
 
 | Test | Purpose |
 |---|---|
@@ -185,7 +185,7 @@ These are the rules the fix must enforce and tests must verify:
 | `linkArtifact resolves existence checks against projectRoot` | Verify that artifact existence is checked against the user's project, not the state directory |
 | `readManagedState propagates correct projectRoot for artifact validation` | Mock a state where artifacts are linked with project-relative paths; verify validation reads from projectRoot |
 
-### `.opencode/tests/artifact-scaffolder.test.js` (existing file, add cases)
+### `src/openkit-runtime/tests/artifact-scaffolder.test.js` (existing file, add cases)
 
 | Test | Purpose |
 |---|---|
@@ -210,9 +210,9 @@ node .opencode/workflow-state.js start-task full FEATURE-999 repro-test "Reprodu
 |---|---|
 | **Return-type change in `ensureWorkItemStoreReady` breaks 17 call sites** | This is the bulk of the work. Each call site must be updated to destructure `{ projectRoot, runtimeRoot }` or just `runtimeRoot` depending on what it actually needs. Mechanical but high surface area. |
 | **Tests rely on `projectRoot === runtimeRoot`** | All existing tests run in local mode (temp dirs). They will continue to pass because both roots collapse to the same value. New tests must exercise the divergent case. |
-| **`work-item-store.js` takes `projectRoot` as its first argument everywhere** | The parameter is semantically `storeRoot` (where `.opencode/work-items/` lives). Renaming the parameter is safe because it's positional and callers already pass the correct value. The rename is a clarity improvement, not a behavior change. |
+| **`work-item-store.js` takes `projectRoot` as its first argument everywhere** | The parameter is semantically `storeRoot` (where `src/openkit-runtime/work-items/` lives). Renaming the parameter is safe because it's positional and callers already pass the correct value. The rename is a clarity improvement, not a behavior change. |
 | **`autoScaffoldPrimaryArtifactIfNeeded` is called from inside `advanceStage`'s mutator callback** | The mutator callback receives `context` from `readManagedState`. After the fix, `context` must carry both `projectRoot` and `runtimeRoot`. The `projectRoot` from context is used for scaffolding. |
-| **Release-store functions resolve `projectRoot` independently** | These must use `resolvePathContext` for consistency, but release artifacts are currently stored under `.opencode/releases/` (state directory), not under `docs/`. So they correctly need `runtimeRoot`. The variable name should be fixed to avoid confusion. |
+| **Release-store functions resolve `projectRoot` independently** | These must use `resolvePathContext` for consistency, but release artifacts are currently stored under `src/openkit-runtime/releases/` (state directory), not under `docs/`. So they correctly need `runtimeRoot`. The variable name should be fixed to avoid confusion. |
 | **No test framework is repo-native** | Tests use `node:test` (Node.js built-in). Run with `node --test .opencode/tests/runtime-paths.test.js` etc. This is already the existing pattern. |
 
 ---
@@ -221,19 +221,19 @@ node .opencode/workflow-state.js start-task full FEATURE-999 repro-test "Reprodu
 
 ### Slice 1: Add `resolvePathContext` to `runtime-paths.js`
 
-- **Files:** `.opencode/lib/runtime-paths.js`
+- **Files:** `src/openkit-runtime/lib/runtime-paths.js`
 - **Goal:** Single factory function that resolves all three roots from one entry point
 - **Validation:** `node --test .opencode/tests/runtime-paths.test.js` (new test file)
 
 ### Slice 2: Fix `ensureWorkItemStoreReady` and propagate through `readManagedState` / `persistManagedState`
 
-- **Files:** `.opencode/lib/workflow-state-controller.js`
+- **Files:** `src/openkit-runtime/lib/workflow-state-controller.js`
 - **Goal:** All 17 call sites of `ensureWorkItemStoreReady` receive correctly-named roots; state I/O uses `runtimeRoot`, artifact validation uses `projectRoot`
 - **Validation:** `node --test .opencode/tests/workflow-state-controller.test.js`
 
 ### Slice 3: Fix scaffold and link entry points
 
-- **Files:** `.opencode/lib/workflow-state-controller.js` (`scaffoldAndLinkArtifact`, `linkArtifact`, `autoScaffoldPrimaryArtifactIfNeeded`)
+- **Files:** `src/openkit-runtime/lib/workflow-state-controller.js` (`scaffoldAndLinkArtifact`, `linkArtifact`, `autoScaffoldPrimaryArtifactIfNeeded`)
 - **Goal:** Artifact files are created in the user's project tree, not the state tree
 - **Validation:** New divergent-root test cases in existing test files
 

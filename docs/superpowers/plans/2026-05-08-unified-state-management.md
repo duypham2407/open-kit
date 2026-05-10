@@ -25,27 +25,27 @@
 - `src/runtime/state/errors.js` - Custom error types
 
 **Tests:**
-- `tests/runtime/state/workflow-state-manager.test.js`
-- `tests/runtime/state/gate-registry.test.js`
-- `tests/runtime/state/transition-engine.test.js`
-- `tests/runtime/state/transaction-log.test.js`
-- `tests/runtime/state/state-migration.test.js`
-- `tests/integration/workflow-state-persistence.test.js`
-- `tests/regression/bug-1-stage-persist.test.js`
-- `tests/regression/bug-2-gate-unification.test.js`
-- `tests/regression/bug-3-kernel-advanceStage.test.js`
+- `src/tests/runtime/state/workflow-state-manager.test.js`
+- `src/tests/runtime/state/gate-registry.test.js`
+- `src/tests/runtime/state/transition-engine.test.js`
+- `src/tests/runtime/state/transaction-log.test.js`
+- `src/tests/runtime/state/state-migration.test.js`
+- `src/tests/integration/workflow-state-persistence.test.js`
+- `src/tests/regression/bug-1-stage-persist.test.js`
+- `src/tests/regression/bug-2-gate-unification.test.js`
+- `src/tests/regression/bug-3-kernel-advanceStage.test.js`
 
 ### Modified Files
 
 **Integration layer:**
 - `src/runtime/workflow-kernel.js` - Add advanceStage, setApproval methods
 - `src/runtime/tools/workflow/advance-stage.js` - Use manager instead of evidence-only
-- `.opencode/lib/workflow-state-controller.js` - Delegate writes to manager
+- `src/openkit-runtime/lib/workflow-state-controller.js` - Delegate writes to manager
 
 **Tests to update:**
-- `tests/runtime/advance-stage.test.js` - Update for new behavior
-- `tests/runtime/gate-requirements.test.js` - Update for unified gates
-- `tests/runtime/state-machine.test.js` - Update for unified FSM
+- `src/tests/runtime/advance-stage.test.js` - Update for new behavior
+- `src/tests/runtime/gate-requirements.test.js` - Update for unified gates
+- `src/tests/runtime/state-machine.test.js` - Update for unified FSM
 
 ---
 
@@ -57,7 +57,7 @@
 
 **Files:**
 - Create: `src/runtime/state/state-schema.js`
-- Test: `tests/runtime/state/state-migration.test.js`
+- Test: `src/tests/runtime/state/state-migration.test.js`
 
 - [ ] **Step 1: Write test for state version detection**
 
@@ -289,7 +289,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/runtime/state/errors.js`
-- Test: `tests/runtime/state/errors.test.js`
+- Test: `src/tests/runtime/state/errors.test.js`
 
 - [ ] **Step 1: Write test for StateTransitionError**
 
@@ -506,7 +506,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/runtime/state/transition-engine.js`
-- Test: `tests/runtime/state/transition-engine.test.js`
+- Test: `src/tests/runtime/state/transition-engine.test.js`
 
 - [ ] **Step 1: Write test for valid quick lane transitions**
 
@@ -716,7 +716,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/runtime/state/gate-registry.js`
-- Test: `tests/runtime/state/gate-registry.test.js`
+- Test: `src/tests/runtime/state/gate-registry.test.js`
 
 - [ ] **Step 1: Write test for gate lookup**
 
@@ -978,7 +978,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/runtime/state/transaction-log.js`
-- Test: `tests/runtime/state/transaction-log.test.js`
+- Test: `src/tests/runtime/state/transaction-log.test.js`
 
 - [ ] **Step 1: Write test for append operation**
 
@@ -1236,17 +1236,17 @@ Due to the large size of this plan and token limits, I'll provide the remaining 
 **Files:**
 - `src/runtime/workflow-kernel.js` - Add advanceStage/setApproval methods
 - `src/runtime/tools/workflow/advance-stage.js` - Use manager
-- `.opencode/lib/workflow-state-controller.js` - Delegate to manager
+- `src/openkit-runtime/lib/workflow-state-controller.js` - Delegate to manager
 
 ### Task 16-20: Regression Tests
 
-**Files:** `tests/regression/bug-*.test.js`
+**Files:** `src/tests/regression/bug-*.test.js`
 
 Tests for all 8 root causes ensuring they're fixed.
 
 ### Task 21-25: Integration Tests
 
-**Files:** `tests/integration/workflow-state-persistence.test.js`
+**Files:** `src/tests/integration/workflow-state-persistence.test.js`
 
 End-to-end tests for all three lanes (quick, migration, full).
 

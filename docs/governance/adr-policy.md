@@ -4,7 +4,7 @@ Create an ADR when a decision changes architecture boundaries, technology choice
 
 For the profile/install-manifest layer, create an ADR when a change does any of the following:
 
-- changes the meaning or schema of `registry.json` or `.opencode/install-manifest.json`
+- changes the meaning or schema of `registry.json` or `src/openkit-runtime/install-manifest.json`
 - changes the long-term semantics of profile selection, profile composition, or install-manifest ownership
 - adds, removes, or renames workflow-state CLI commands that operators rely on for runtime inspection or manifest management
 - changes session-start or runtime diagnostics in a way that materially affects how maintainers inspect or resume the kit

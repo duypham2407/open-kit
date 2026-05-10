@@ -72,6 +72,6 @@ Legacy role files remain in the repository and bundle as compatibility surfaces 
 
 ## Operator Guidance
 
-- use the canonical workflow docs in `context/core/` as the source of truth
+- use the canonical workflow docs in `src/context/core/` as the source of truth
 - use maintainer and operations docs only as supporting guidance layered on top of the canonical workflow contract
 - if a local doc still describes the legacy split-role chain, treat it as stale until updated or explicitly marked historical

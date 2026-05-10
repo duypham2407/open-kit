@@ -66,8 +66,8 @@ These source files should only change when the new package/global checks expose 
 
 ### Global CLI and runtime packaging
 
-- `bin/openkit.js`
-- `bin/openkit-mcp.js`
+- `src/bin/openkit.js`
+- `src/bin/openkit-mcp.js`
 - `src/cli/index.js`
 - `src/cli/commands/configure.js`
 - `src/cli/commands/run.js`
@@ -85,19 +85,19 @@ These source files should only change when the new package/global checks expose 
 
 ### Tests and docs
 
-- New package/readiness tests under `tests/install/` or `tests/global/`.
+- New package/readiness tests under `src/tests/install/` or `src/tests/global/`.
 - Existing focused tests:
-  - `tests/global/mcp-keychain-adapter.test.js`
-  - `tests/global/mcp-secret-manager.test.js`
-  - `tests/cli/configure-mcp.test.js`
-  - `tests/cli/configure-mcp-interactive.test.js`
-  - `tests/global/mcp-interactive-wizard.test.js`
-  - `tests/runtime/launcher.test.js`
-  - `tests/global/ensure-install.test.js`
-  - `tests/cli/install.test.js`
-  - `tests/install/install-state.test.js`
-  - `tests/install/materialize.test.js`
-  - `tests/install/skill-bundle-sync.test.js`
+  - `src/tests/global/mcp-keychain-adapter.test.js`
+  - `src/tests/global/mcp-secret-manager.test.js`
+  - `src/tests/cli/configure-mcp.test.js`
+  - `src/tests/cli/configure-mcp-interactive.test.js`
+  - `src/tests/global/mcp-interactive-wizard.test.js`
+  - `src/tests/runtime/launcher.test.js`
+  - `src/tests/global/ensure-install.test.js`
+  - `src/tests/cli/install.test.js`
+  - `src/tests/install/install-state.test.js`
+  - `src/tests/install/materialize.test.js`
+  - `src/tests/install/skill-bundle-sync.test.js`
 - Documentation:
   - `docs/operator/mcp-configuration.md`
   - `docs/operator/supported-surfaces.md`
@@ -105,7 +105,7 @@ These source files should only change when the new package/global checks expose 
   - `docs/governance/skill-metadata.md` or a new governance release-readiness note if needed
   - `docs/operations/runbooks/` for packaged release/operator runbook guidance if the maintainer guidance must ship in npm
   - `docs/maintainer/test-matrix.md` for source-tree maintainer routing; do not treat it as installed package evidence unless `package.json` intentionally includes `docs/maintainer/`
-  - `context/core/project-config.md` and `AGENTS.md` only if new commands become current repository commands
+  - `src/context/core/project-config.md` and `AGENTS.md` only if new commands become current repository commands
 
 ## Boundaries And Components
 
@@ -116,8 +116,8 @@ Implement a package gate that inspects the npm package file list using `npm pack
 Minimum required package paths to assert:
 
 - `package.json`
-- `bin/openkit.js`
-- `bin/openkit-mcp.js`
+- `src/bin/openkit.js`
+- `src/bin/openkit-mcp.js`
 - `src/global/mcp/secret-manager.js`
 - `src/global/mcp/secret-stores/keychain-adapter.js`
 - `src/global/mcp/redaction.js`
@@ -151,9 +151,9 @@ Minimum required package paths to assert:
 - `assets/install-bundle/opencode/commands/` entries needed for installed command guidance
 - `assets/install-bundle/opencode/agents/` entries needed by installed OpenKit roles
 - `registry.json`
-- `.opencode/install-manifest.json`
-- `.opencode/opencode.json`
-- `.opencode/workflow-state.js`
+- `src/openkit-runtime/install-manifest.json`
+- `src/openkit-runtime/opencode.json`
+- `src/openkit-runtime/workflow-state.js`
 
 Forbidden package paths or path patterns to assert absent unless an explicit sanitized template is approved:
 
@@ -169,9 +169,9 @@ Forbidden package paths or path patterns to assert absent unless an explicit san
 - generated package tarballs
 - extracted package directories
 - temporary OpenCode homes or workspace state
-- active workflow-state data such as `.opencode/workflow-state.json`, unless implementation replaces it with a deliberate static sanitized template and reviewers approve that package need
+- active workflow-state data such as `src/openkit-runtime/workflow-state.json`, unless implementation replaces it with a deliberate static sanitized template and reviewers approve that package need
 
-Current `package.json` includes `.opencode/workflow-state.json`; implementation must treat that as a package-readiness risk, decide whether it is truly required, and either remove it from package inclusion or prove it is a static sanitized template. Do not ship active work-item state as release evidence.
+Current `package.json` includes `src/openkit-runtime/workflow-state.json`; implementation must treat that as a package-readiness risk, decide whether it is truly required, and either remove it from package inclusion or prove it is a static sanitized template. Do not ship active work-item state as release evidence.
 
 ### Secret-leakage model
 
@@ -239,7 +239,7 @@ Docs must separate validation surfaces exactly:
 ## Risks And Trade-offs
 
 - **Package allowlist drift:** `src/` is broad enough to include backend code today, but a future allowlist change can drop key files. Mitigate with explicit required-file checks from `npm pack --dry-run --json`.
-- **Active runtime state accidentally packaged:** existing package inclusion includes `.opencode/workflow-state.json`; treat this as a release-readiness risk and remove or prove a sanitized template before approval.
+- **Active runtime state accidentally packaged:** existing package inclusion includes `src/openkit-runtime/workflow-state.json`; treat this as a release-readiness risk and remove or prove a sanitized template before approval.
 - **False confidence from source-only tests:** source-tree FEATURE-950 tests are necessary but not sufficient. Package/global install evidence must be separate.
 - **Real keychain mutation:** never use real Keychain for CI/package/global gates; fake platform/runner/adapter behavior must be enough for release readiness.
 - **Docs not shipped where operators need them:** use existing package-included docs directories for installed guidance. If maintainer docs are necessary after install, add a packaged runbook rather than assuming `docs/maintainer/` ships.
@@ -249,7 +249,7 @@ Docs must separate validation surfaces exactly:
 
 ### Slice 1: Package readiness gate and allowlist policy
 
-- **Files**: `package.json`, new `scripts/verify-mcp-secret-package-readiness.mjs`, optional new `tests/install/mcp-secret-package-readiness.test.js`.
+- **Files**: `package.json`, new `scripts/verify-mcp-secret-package-readiness.mjs`, optional new `src/tests/install/mcp-secret-package-readiness.test.js`.
 - **Goal**: Add a deterministic package-content gate using `npm pack --dry-run --json` that checks required MCP secret backend files, forbidden generated/secret artifacts, placeholder-only text, and no tarball persistence.
 - **Validation Command**:
   - Existing now: `npm pack --dry-run --json`
@@ -258,12 +258,12 @@ Docs must separate validation surfaces exactly:
 - **Details**:
   - Parse the dry-run JSON file list instead of scraping human npm output.
   - Keep generated file lists in memory or temporary files outside the repository.
-  - Fail if `.opencode/workflow-state.json` remains packaged as active runtime state unless implementation intentionally converts it to an approved sanitized template.
+  - Fail if `src/openkit-runtime/workflow-state.json` remains packaged as active runtime state unless implementation intentionally converts it to an approved sanitized template.
   - Label evidence as `package`, not `global_cli` or `target_project_app`.
 
 ### Slice 2: Install-bundle and shipped-doc synchronization
 
-- **Files**: `src/install/asset-manifest.js`, `scripts/verify-install-bundle.mjs`, `docs/operator/mcp-configuration.md`, `docs/operator/supported-surfaces.md`, `docs/operator/README.md`, `docs/operations/runbooks/` if a packaged release runbook is added, `docs/maintainer/test-matrix.md` for source maintainer routing, `context/core/project-config.md`, `AGENTS.md` only if new commands are added.
+- **Files**: `src/install/asset-manifest.js`, `scripts/verify-install-bundle.mjs`, `docs/operator/mcp-configuration.md`, `docs/operator/supported-surfaces.md`, `docs/operator/README.md`, `docs/operations/runbooks/` if a packaged release runbook is added, `docs/maintainer/test-matrix.md` for source maintainer routing, `src/context/core/project-config.md`, `AGENTS.md` only if new commands are added.
 - **Goal**: Make release guidance explain package checks, global install checks, keychain fake/mock requirements, no-secret packaging, generated artifact cleanup, direct OpenCode caveat, and unavailable target-project app validation.
 - **Validation Command**:
   - `npm run verify:install-bundle`
@@ -275,7 +275,7 @@ Docs must separate validation surfaces exactly:
 
 ### Slice 3: Isolated global CLI install checks
 
-- **Files**: new or updated tests under `tests/global/` and `tests/cli/`, likely `tests/global/mcp-secret-global-install.test.js` or additions to `tests/global/ensure-install.test.js`, plus `tests/cli/install.test.js` if install command output needs release-readiness wording.
+- **Files**: new or updated tests under `src/tests/global/` and `src/tests/cli/`, likely `src/tests/global/mcp-secret-global-install.test.js` or additions to `src/tests/global/ensure-install.test.js`, plus `src/tests/cli/install.test.js` if install command output needs release-readiness wording.
 - **Goal**: Prove installed/global OpenKit exposes MCP secret backend surfaces using isolated state and without real keychain mutation.
 - **Validation Command**:
   - Existing focused install tests: `node --test tests/global/ensure-install.test.js tests/cli/install.test.js`
@@ -313,7 +313,7 @@ Docs must separate validation surfaces exactly:
 
 ### Slice 6: Integration evidence and workflow handoff readiness
 
-- **Files**: workflow evidence only through `.opencode/workflow-state.js` commands when implementation records evidence; QA artifact later at `docs/qa/2026-04-27-release-package-readiness-mcp-secret-backends.md`.
+- **Files**: workflow evidence only through `src/openkit-runtime/workflow-state.js` commands when implementation records evidence; QA artifact later at `docs/qa/2026-04-27-release-package-readiness-mcp-secret-backends.md`.
 - **Goal**: Bring package, global CLI, runtime tooling, documentation, and compatibility evidence together with labels and explicit `target_project_app` unavailability.
 - **Validation Command**:
   - `node .opencode/workflow-state.js validate`
@@ -337,9 +337,9 @@ Docs must separate validation surfaces exactly:
 - why: Package gate/test work and documentation updates can proceed in parallel after the required/forbidden package list is agreed. Global install tests and any source behavior fixes share MCP/launcher surfaces and should remain sequential with package-gate integration.
 - safe_parallel_zones:
   - `scripts/`
-  - `tests/install/`
-  - `tests/global/`
-  - `tests/cli/`
+  - `src/tests/install/`
+  - `src/tests/global/`
+  - `src/tests/cli/`
   - `docs/operator/`
   - `docs/governance/`
   - `docs/operations/`
@@ -355,9 +355,9 @@ Docs must separate validation surfaces exactly:
 
 | Task ID | Title | Kind | Owner | Depends on | Artifact refs | Validation hook |
 | --- | --- | --- | --- | --- | --- | --- |
-| `TASK-F951-PACKAGE-GATE` | Add MCP secret backend package-content gate | implementation | FullstackAgent | none | `package.json`, `scripts/verify-mcp-secret-package-readiness.mjs`, `tests/install/mcp-secret-package-readiness.test.js` | `npm pack --dry-run --json`; new `npm run verify:mcp-secret-package-readiness`; `npm run verify:install-bundle` |
-| `TASK-F951-DOCS` | Update packaged release/operator guidance | documentation | FullstackAgent | `TASK-F951-PACKAGE-GATE` for final required list | `docs/operator/`, `docs/governance/`, `docs/operations/runbooks/`, `docs/maintainer/test-matrix.md`, `context/core/project-config.md`, `AGENTS.md` if command reality changes | `npm run verify:governance`; `npm run verify:install-bundle` when install-bundle assets change |
-| `TASK-F951-GLOBAL-INSTALL` | Add isolated global CLI install/package behavior checks | implementation | FullstackAgent | `TASK-F951-PACKAGE-GATE` | `tests/global/`, `tests/cli/`, `tests/install/` | `node --test tests/global/ensure-install.test.js tests/cli/install.test.js`; targeted new global install test |
+| `TASK-F951-PACKAGE-GATE` | Add MCP secret backend package-content gate | implementation | FullstackAgent | none | `package.json`, `scripts/verify-mcp-secret-package-readiness.mjs`, `src/tests/install/mcp-secret-package-readiness.test.js` | `npm pack --dry-run --json`; new `npm run verify:mcp-secret-package-readiness`; `npm run verify:install-bundle` |
+| `TASK-F951-DOCS` | Update packaged release/operator guidance | documentation | FullstackAgent | `TASK-F951-PACKAGE-GATE` for final required list | `docs/operator/`, `docs/governance/`, `docs/operations/runbooks/`, `docs/maintainer/test-matrix.md`, `src/context/core/project-config.md`, `AGENTS.md` if command reality changes | `npm run verify:governance`; `npm run verify:install-bundle` when install-bundle assets change |
+| `TASK-F951-GLOBAL-INSTALL` | Add isolated global CLI install/package behavior checks | implementation | FullstackAgent | `TASK-F951-PACKAGE-GATE` | `src/tests/global/`, `src/tests/cli/`, `src/tests/install/` | `node --test tests/global/ensure-install.test.js tests/cli/install.test.js`; targeted new global install test |
 | `TASK-F951-REGRESSION` | Lock existing FEATURE-950 behavior under package/global gates | implementation | FullstackAgent | `TASK-F951-GLOBAL-INSTALL` | `src/global/mcp/`, `src/global/launcher.js`, focused FEATURE-950 tests only if defects are found | focused MCP/keychain/launcher test commands listed in Slice 4 |
 | `TASK-F951-NO-SECRETS` | Enforce no raw secrets and cleanup for package/global evidence | verification-support | FullstackAgent | `TASK-F951-PACKAGE-GATE`, can overlap docs after required list | package readiness script/tests, docs examples, temp artifact cleanup checks | new package readiness gate; `npm run verify:all` |
 | `TASK-F951-INTEGRATION` | Run integrated validation and record surface-labeled evidence | verification | FullstackAgent | all prior tasks | workflow evidence refs, final handoff notes | `npm run verify:all`; workflow-state validation commands |
@@ -417,7 +417,7 @@ Before requesting code review, Fullstack must provide a single redacted evidence
 ## Rollback Notes
 
 - If package allowlist changes break unrelated packaging, roll back to the previous allowlist and keep the package readiness script failing on the MCP secret backend gap until a narrower package fix is approved.
-- If `.opencode/workflow-state.json` removal breaks install bootstrap, replace it with a sanitized template and document why it is required; do not ship active workflow state.
+- If `src/openkit-runtime/workflow-state.json` removal breaks install bootstrap, replace it with a sanitized template and document why it is required; do not ship active workflow state.
 - If isolated global install tests are flaky due npm/global prefix behavior, keep package list checks and use direct installed-bin simulation in temporary state as a documented substitute, but do not claim real global install evidence from source tests alone.
 - If fake keychain integration becomes unstable, keep keychain validation at adapter/structural boundaries and report global keychain behavior as structurally validated, not real OS-mutated.
 

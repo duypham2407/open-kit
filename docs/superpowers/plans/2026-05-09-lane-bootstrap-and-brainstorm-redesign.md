@@ -4,7 +4,7 @@
 
 **Goal:** Fix the "no workflow" error class on fresh global installs, and realign the command surface (`/quick-task`, `/delivery`, `/migrate`) so MO bootstraps workflow-state immediately and the first specialist agent owns brainstorm as stage 0.
 
-**Architecture:** MO becomes the bootstrap point — it creates `workflow-state.json` on first command, then dispatches the first specialist agent. FSM is simplified: `*_brainstorm` stages removed (currently only `quick_brainstorm` exists), brainstorm work folded into the first specialist stage (`quick_plan`, `full_product`, `migration_strategy`). Workspace-shim materializes `.opencode/openkit/` paths even before state exists. Scope/migration plan files are the single source of truth downstream; brainstorm is captured as Appendix A (discovery notes) and Appendix B (decisions) in those files.
+**Architecture:** MO becomes the bootstrap point — it creates `workflow-state.json` on first command, then dispatches the first specialist agent. FSM is simplified: `*_brainstorm` stages removed (currently only `quick_brainstorm` exists), brainstorm work folded into the first specialist stage (`quick_plan`, `full_product`, `migration_strategy`). Workspace-shim materializes `src/openkit-runtime/openkit/` paths even before state exists. Scope/migration plan files are the single source of truth downstream; brainstorm is captured as Appendix A (discovery notes) and Appendix B (decisions) in those files.
 
 **Tech Stack:** Node.js 18+ ESM, `node:test`, kit's existing FSM/state-manager/controller layer, MCP SDK.
 
@@ -16,31 +16,31 @@
 
 **Create:**
 - `src/runtime/tools/workflow/bootstrap-workflow.js` — new MCP tool `tool.bootstrap-workflow` (lane + raw description → write fresh state, archive prior if needed).
-- `tests/runtime/bootstrap-workflow.test.js` — unit tests for the bootstrap tool.
-- `tests/runtime/workspace-shim-fresh-bootstrap.test.js` — verifies shim works on fresh project.
-- `tests/runtime/lane-switch-during-brainstorm.test.js` — verifies lane switch flow.
-- `.opencode/tests/fsm-stage-merge.test.js` — verifies `quick_brainstorm` stage removal does not break FSM.
+- `src/tests/runtime/bootstrap-workflow.test.js` — unit tests for the bootstrap tool.
+- `src/tests/runtime/workspace-shim-fresh-bootstrap.test.js` — verifies shim works on fresh project.
+- `src/tests/runtime/lane-switch-during-brainstorm.test.js` — verifies lane switch flow.
+- `src/openkit-runtime/tests/fsm-stage-merge.test.js` — verifies `quick_brainstorm` stage removal does not break FSM.
 
 **Modify:**
 - `src/runtime/state/transition-engine.js` — remove `quick_brainstorm` from `STAGE_ORDER.quick` and `TRANSITION_RULES.quick`.
 - `src/runtime/state/gate-registry.js` — re-target `quick.understanding_confirmed` to `quick_plan → quick_implement` style or replace with new `quick.brainstorm_confirmed` gate at `quick_plan → quick_implement`. (See Task 2 for the chosen approach.)
 - `src/runtime/workflow-kernel.js` — `defaultStatePath` always resolves to a writable path (project state path) even when file doesn't exist; `canWriteState()` returns true when the directory is writable.
 - `src/runtime/tools/workflow/advance-stage.js` — keep "no state" behavior but ensure `tool.bootstrap-workflow` is called before advance for fresh starts (no behavior change in advance itself).
-- `src/global/workspace-shim.js` — create `.opencode/openkit/workflow-state.json` link/copy even when workspace state file does not yet exist; bidirectional sync after MO bootstrap.
-- `.opencode/lib/workflow-state-controller.js` — add `bootstrapWorkflow({ lane, description, statePath })` entry that calls `createWorkItem` + writes initial state + records description in `intake_payload`.
-- `.opencode/workflow-state.js` — expose `bootstrap` subcommand for the bootstrap tool to delegate to.
-- `commands/quick-task.md` — rewrite to: (1) MO dispatch first, (2) MO calls `tool.bootstrap-workflow` with lane=quick, (3) MO advances to `quick_plan`, (4) Quick Agent runs brainstorm + plan in `quick_plan`.
-- `commands/delivery.md` — rewrite analogously for lane=full → `full_product`.
-- `commands/migrate.md` — rewrite analogously for lane=migration → `migration_strategy`.
-- `agents/master-orchestrator.md` — add bootstrap responsibility, multi-workflow handling, lane-switch handling. Remove `/task` classification language. Remove "user_explicit lane lock" warning logic (no longer routes).
-- `agents/quick-agent.md` — add brainstorm-rút-gọn responsibility in `quick_plan` (2-3 questions, inline summary).
-- `agents/product-lead-agent.md` — add brainstorm dialogue + scope appendix curation rules (Appendix A discovery, Appendix B decisions).
-- `agents/solution-lead-agent.md` — add migration brainstorm + appendix rules for `migration_strategy`.
+- `src/global/workspace-shim.js` — create `src/openkit-runtime/openkit/workflow-state.json` link/copy even when workspace state file does not yet exist; bidirectional sync after MO bootstrap.
+- `src/openkit-runtime/lib/workflow-state-controller.js` — add `bootstrapWorkflow({ lane, description, statePath })` entry that calls `createWorkItem` + writes initial state + records description in `intake_payload`.
+- `src/openkit-runtime/workflow-state.js` — expose `bootstrap` subcommand for the bootstrap tool to delegate to.
+- `src/commands/quick-task.md` — rewrite to: (1) MO dispatch first, (2) MO calls `tool.bootstrap-workflow` with lane=quick, (3) MO advances to `quick_plan`, (4) Quick Agent runs brainstorm + plan in `quick_plan`.
+- `src/commands/delivery.md` — rewrite analogously for lane=full → `full_product`.
+- `src/commands/migrate.md` — rewrite analogously for lane=migration → `migration_strategy`.
+- `src/agents/master-orchestrator.md` — add bootstrap responsibility, multi-workflow handling, lane-switch handling. Remove `/task` classification language. Remove "user_explicit lane lock" warning logic (no longer routes).
+- `src/agents/quick-agent.md` — add brainstorm-rút-gọn responsibility in `quick_plan` (2-3 questions, inline summary).
+- `src/agents/product-lead-agent.md` — add brainstorm dialogue + scope appendix curation rules (Appendix A discovery, Appendix B decisions).
+- `src/agents/solution-lead-agent.md` — add migration brainstorm + appendix rules for `migration_strategy`.
 - `src/runtime/tools/tool-registry.js` — register the new `bootstrap-workflow` tool.
 
 **Delete:**
-- `commands/task.md`
-- `commands/brainstorm.md`
+- `src/commands/task.md`
+- `src/commands/brainstorm.md`
 
 **Touched docs (purge `/task` and `/brainstorm` references):**
 - `AGENTS.md`
@@ -93,7 +93,7 @@ No commit. The branch exists; baseline is captured.
 **Files:**
 - Modify: `src/runtime/state/transition-engine.js`
 - Modify: `src/runtime/state/gate-registry.js`
-- Test: `tests/runtime/transition-engine.test.js` (or wherever existing tests live — verify location first)
+- Test: `src/tests/runtime/transition-engine.test.js` (or wherever existing tests live — verify location first)
 
 - [ ] **Step 1: Find the existing transition-engine tests**
 
@@ -105,7 +105,7 @@ Expected: lists test files that reference these symbols. Note them for the next 
 
 - [ ] **Step 2: Write a failing test that asserts `quick_brainstorm` is NOT a valid stage**
 
-Add to a new file `tests/runtime/quick-brainstorm-removed.test.js`:
+Add to a new file `src/tests/runtime/quick-brainstorm-removed.test.js`:
 
 ```javascript
 import { test } from 'node:test';
@@ -240,8 +240,8 @@ git commit -m "refactor(fsm): remove quick_brainstorm stage, fold into quick_pla
 **Why:** Controller's `getInitialStageForMode` and `STAGE_OWNERS` must reflect the new FSM. `createFreshState` and `createWorkItem` need to produce state with `current_stage = quick_intake | full_intake | migration_intake` and the right initial owner.
 
 **Files:**
-- Modify: `.opencode/lib/workflow-state-controller.js`
-- Test: `.opencode/tests/workflow-state-controller.test.js`
+- Modify: `src/openkit-runtime/lib/workflow-state-controller.js`
+- Test: `src/openkit-runtime/tests/workflow-state-controller.test.js`
 
 - [ ] **Step 1: Inspect current `getInitialStageForMode` and `STAGE_OWNERS`**
 
@@ -253,7 +253,7 @@ Read the relevant lines to confirm current shape.
 
 - [ ] **Step 2: Write a failing test for fresh-state initial stage per lane**
 
-Add to `.opencode/tests/workflow-state-controller.test.js` (or create the file if it doesn't exist):
+Add to `src/openkit-runtime/tests/workflow-state-controller.test.js` (or create the file if it doesn't exist):
 
 ```javascript
 import { test } from 'node:test';
@@ -304,7 +304,7 @@ Expected: most pass; if `STAGE_OWNERS.quick_intake` is not `'MasterOrchestrator'
 
 - [ ] **Step 4: Inspect `STAGE_OWNERS` and align**
 
-In `.opencode/lib/workflow-state-controller.js`, find the `STAGE_OWNERS` constant. Ensure these mappings exist:
+In `src/openkit-runtime/lib/workflow-state-controller.js`, find the `STAGE_OWNERS` constant. Ensure these mappings exist:
 
 ```javascript
 const STAGE_OWNERS = {
@@ -356,12 +356,12 @@ git commit -m "refactor(controller): align initial stages and STAGE_OWNERS for r
 **Why:** MO needs a single call to atomically: (a) check for existing state, (b) handle archive/multi-workflow logic, (c) write fresh state with the user's raw description in `intake_payload`. We package this as a controller method.
 
 **Files:**
-- Modify: `.opencode/lib/workflow-state-controller.js`
-- Test: `.opencode/tests/workflow-state-controller.test.js`
+- Modify: `src/openkit-runtime/lib/workflow-state-controller.js`
+- Test: `src/openkit-runtime/tests/workflow-state-controller.test.js`
 
 - [ ] **Step 1: Write failing tests for `bootstrapWorkflow`**
 
-Append to `.opencode/tests/workflow-state-controller.test.js`:
+Append to `src/openkit-runtime/tests/workflow-state-controller.test.js`:
 
 ```javascript
 test('bootstrapWorkflow on empty path creates fresh state', () => {
@@ -454,7 +454,7 @@ node --test .opencode/tests/workflow-state-controller.test.js
 ```
 Expected: 4 failures (bootstrapWorkflow does not exist yet).
 
-- [ ] **Step 3: Implement `bootstrapWorkflow` in `.opencode/lib/workflow-state-controller.js`**
+- [ ] **Step 3: Implement `bootstrapWorkflow` in `src/openkit-runtime/lib/workflow-state-controller.js`**
 
 Add this function and export it:
 
@@ -559,13 +559,13 @@ git commit -m "feat(controller): add bootstrapWorkflow with archive and conflict
 
 ---
 
-## Task 5: Expose `bootstrap` subcommand in `.opencode/workflow-state.js` CLI
+## Task 5: Expose `bootstrap` subcommand in `src/openkit-runtime/workflow-state.js` CLI
 
 **Why:** Agent prompts and the upcoming MCP tool both need a way to trigger bootstrap. The CLI exposes the operation for shell-friendly use.
 
 **Files:**
-- Modify: `.opencode/workflow-state.js`
-- Test: `.opencode/tests/workflow-state-cli.test.js`
+- Modify: `src/openkit-runtime/workflow-state.js`
+- Test: `src/openkit-runtime/tests/workflow-state-cli.test.js`
 
 - [ ] **Step 1: Read current CLI structure**
 
@@ -578,7 +578,7 @@ Identify the dispatch pattern.
 
 - [ ] **Step 2: Write failing CLI test**
 
-Append to `.opencode/tests/workflow-state-cli.test.js`:
+Append to `src/openkit-runtime/tests/workflow-state-cli.test.js`:
 
 ```javascript
 import { test } from 'node:test';
@@ -630,7 +630,7 @@ node --test .opencode/tests/workflow-state-cli.test.js
 ```
 Expected: 2 new tests fail.
 
-- [ ] **Step 4: Add `bootstrap` subcommand handler in `.opencode/workflow-state.js`**
+- [ ] **Step 4: Add `bootstrap` subcommand handler in `src/openkit-runtime/workflow-state.js`**
 
 Find the command dispatch (likely a `switch` statement or `commands` object). Add:
 
@@ -706,7 +706,7 @@ git commit -m "feat(cli): add bootstrap subcommand to workflow-state.js"
 **Files:**
 - Create: `src/runtime/tools/workflow/bootstrap-workflow.js`
 - Modify: `src/runtime/tools/tool-registry.js`
-- Test: `tests/runtime/bootstrap-workflow.test.js`
+- Test: `src/tests/runtime/bootstrap-workflow.test.js`
 
 - [ ] **Step 1: Inspect an existing tool to copy its shape**
 
@@ -718,7 +718,7 @@ Note the export shape (typically `createAdvanceStageTool({ workflowKernel })`).
 
 - [ ] **Step 2: Write failing test for the tool**
 
-Create `tests/runtime/bootstrap-workflow.test.js`:
+Create `src/tests/runtime/bootstrap-workflow.test.js`:
 
 ```javascript
 import { test } from 'node:test';
@@ -910,11 +910,11 @@ git commit -m "feat(mcp): add tool.bootstrap-workflow"
 
 **Files:**
 - Modify: `src/runtime/workflow-kernel.js`
-- Test: `tests/runtime/workflow-kernel-fresh.test.js`
+- Test: `src/tests/runtime/workflow-kernel-fresh.test.js`
 
 - [ ] **Step 1: Write failing test**
 
-Create `tests/runtime/workflow-kernel-fresh.test.js`:
+Create `src/tests/runtime/workflow-kernel-fresh.test.js`:
 
 ```javascript
 import { test } from 'node:test';
@@ -1000,15 +1000,15 @@ git commit -m "fix(kernel): always resolve defaultStatePath so bootstrap can wri
 
 ## Task 8: Fix workspace-shim to materialize on fresh project
 
-**Why:** Shim currently guards `if (fs.existsSync(paths.workflowStatePath))` so the `.opencode/openkit/workflow-state.json` link is never created on fresh projects. After fixing, the shim should create the link to the workspace state path even before that path has content (the file will be created on first bootstrap and the link will then point to real content).
+**Why:** Shim currently guards `if (fs.existsSync(paths.workflowStatePath))` so the `src/openkit-runtime/openkit/workflow-state.json` link is never created on fresh projects. After fixing, the shim should create the link to the workspace state path even before that path has content (the file will be created on first bootstrap and the link will then point to real content).
 
 **Files:**
 - Modify: `src/global/workspace-shim.js`
-- Test: `tests/runtime/workspace-shim-fresh-bootstrap.test.js`
+- Test: `src/tests/runtime/workspace-shim-fresh-bootstrap.test.js`
 
 - [ ] **Step 1: Write failing test**
 
-Create `tests/runtime/workspace-shim-fresh-bootstrap.test.js`:
+Create `src/tests/runtime/workspace-shim-fresh-bootstrap.test.js`:
 
 ```javascript
 import { test } from 'node:test';
@@ -1152,7 +1152,7 @@ git commit -m "fix(shim): handle fresh project where workspace state does not ex
 **Why:** MO's prompt currently references `/task` lane classification and `lane_source = orchestrator_routed`. The redesigned MO is purely procedural: bootstrap state on first command, dispatch the specialist, route between stages, archive workflows on lane switch.
 
 **Files:**
-- Modify: `agents/master-orchestrator.md`
+- Modify: `src/agents/master-orchestrator.md`
 
 - [ ] **Step 1: Read the current prompt**
 
@@ -1163,7 +1163,7 @@ cat /Users/duypham/Code/open-kit/agents/master-orchestrator.md
 
 - [ ] **Step 2: Rewrite the agent file**
 
-Replace the contents of `agents/master-orchestrator.md` with:
+Replace the contents of `src/agents/master-orchestrator.md` with:
 
 ```markdown
 ---
@@ -1177,8 +1177,8 @@ You are the workflow conductor for OpenKit. You are procedural-only: you bootstr
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
-- Use `.opencode/openkit/context/core/runtime-surfaces.md` when deciding whether a question belongs to the product path, in-session path, or compatibility runtime path.
+- Follow `src/openkit-runtime/openkit/context/core/prompt-contracts.md` for the shared runtime-path and verification rules.
+- Use `src/openkit-runtime/openkit/context/core/runtime-surfaces.md` when deciding whether a question belongs to the product path, in-session path, or compatibility runtime path.
 
 ## Core Responsibilities
 
@@ -1186,7 +1186,7 @@ You are the workflow conductor for OpenKit. You are procedural-only: you bootstr
 
 When the user enters `/quick-task`, `/delivery`, or `/migrate`:
 
-1. **Inspect existing state** at `.opencode/openkit/workflow-state.json`.
+1. **Inspect existing state** at `src/openkit-runtime/openkit/workflow-state.json`.
 
 2. **If no state exists**, call `tool.bootstrap-workflow` with `{ lane, description }` where:
    - `lane = quick` for `/quick-task`
@@ -1227,7 +1227,7 @@ If the first specialist agent (Quick Agent, Product Lead, Solution Lead) reports
 
 ### Issue routing
 
-- Receive findings from `Code Reviewer` or `QA Agent`, classify them with `.opencode/openkit/context/core/issue-routing.md`, then route to the correct stage and owner.
+- Receive findings from `Code Reviewer` or `QA Agent`, classify them with `src/openkit-runtime/openkit/context/core/issue-routing.md`, then route to the correct stage and owner.
 - In quick mode, Quick Agent owns issues internally — MO is not in the loop.
 - For all other lanes, route by stage owner. Never resolve issues yourself.
 
@@ -1245,12 +1245,12 @@ If the first specialist agent (Quick Agent, Product Lead, Solution Lead) reports
 
 ## Required Context
 
-- `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/approval-gates.md`
-- `.opencode/openkit/context/core/issue-routing.md`
-- `.opencode/openkit/context/core/session-resume.md`
-- `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/context/core/workflow-state-schema.md`
+- `src/openkit-runtime/openkit/context/core/workflow.md`
+- `src/openkit-runtime/openkit/context/core/approval-gates.md`
+- `src/openkit-runtime/openkit/context/core/issue-routing.md`
+- `src/openkit-runtime/openkit/context/core/session-resume.md`
+- `src/openkit-runtime/openkit/context/core/runtime-surfaces.md`
+- `src/openkit-runtime/openkit/context/core/workflow-state-schema.md`
 ```
 
 - [ ] **Step 3: Verify the file is well-formed**
@@ -1276,7 +1276,7 @@ git commit -m "refactor(agents): MO becomes procedural conductor with bootstrap 
 **Why:** Quick Agent now owns brainstorm-rút-gọn inside `quick_plan`. It writes a 50-100 word summary inline to state.
 
 **Files:**
-- Modify: `agents/quick-agent.md`
+- Modify: `src/agents/quick-agent.md`
 
 - [ ] **Step 1: Read current prompt**
 
@@ -1340,7 +1340,7 @@ git commit -m "refactor(agents): Quick Agent runs inline brainstorm in quick_pla
 **Why:** Product Lead now owns brainstorm dialogue inside `full_product` and writes scope package with Appendix A (discovery) + Appendix B (decisions).
 
 **Files:**
-- Modify: `agents/product-lead-agent.md`
+- Modify: `src/agents/product-lead-agent.md`
 
 - [ ] **Step 1: Read current prompt**
 
@@ -1414,7 +1414,7 @@ git commit -m "refactor(agents): Product Lead runs brainstorm + scope with appen
 **Why:** Solution Lead handles migration lane (no separate Migration Lead). In `migration_strategy`, it runs brainstorm on preserved behavior + baseline + risks, then writes migration plan with the same appendix structure.
 
 **Files:**
-- Modify: `agents/solution-lead-agent.md`
+- Modify: `src/agents/solution-lead-agent.md`
 
 - [ ] **Step 1: Read current prompt**
 
@@ -1475,12 +1475,12 @@ git commit -m "refactor(agents): Solution Lead runs migration brainstorm + plan 
 
 ---
 
-## Task 13: Rewrite `commands/quick-task.md`
+## Task 13: Rewrite `src/commands/quick-task.md`
 
 **Why:** Command must explicitly: (1) dispatch MO first, (2) MO bootstraps state via `tool.bootstrap-workflow`, (3) MO advances to `quick_plan`, (4) Quick Agent runs brainstorm + plan.
 
 **Files:**
-- Modify: `commands/quick-task.md`
+- Modify: `src/commands/quick-task.md`
 
 - [ ] **Step 1: Replace contents with**
 
@@ -1502,8 +1502,8 @@ Use `/quick-task` for daily, bounded work where the problem is small in scope an
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for shared runtime-path, verification, and tool-substitution rules.
-- Follow `.opencode/openkit/context/core/tool-substitution-rules.md` when reading or searching code.
+- Follow `src/openkit-runtime/openkit/context/core/prompt-contracts.md` for shared runtime-path, verification, and tool-substitution rules.
+- Follow `src/openkit-runtime/openkit/context/core/tool-substitution-rules.md` when reading or searching code.
 
 ## Preconditions
 
@@ -1512,13 +1512,13 @@ Use `/quick-task` for daily, bounded work where the problem is small in scope an
 
 ## Canonical docs to load
 
-- `.opencode/openkit/AGENTS.md`
-- `.opencode/openkit/context/navigation.md`
-- `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/project-config.md`
-- `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/context/core/code-quality.md`
-- `.opencode/openkit/workflow-state.json` after bootstrap
+- `src/openkit-runtime/openkit/AGENTS.md`
+- `src/openkit-runtime/openkit/context/navigation.md`
+- `src/openkit-runtime/openkit/context/core/workflow.md`
+- `src/openkit-runtime/openkit/context/core/project-config.md`
+- `src/openkit-runtime/openkit/context/core/runtime-surfaces.md`
+- `src/openkit-runtime/openkit/context/core/code-quality.md`
+- `src/openkit-runtime/openkit/workflow-state.json` after bootstrap
 
 ## Stage chain
 
@@ -1534,7 +1534,7 @@ User picked `/quick-task`. Lane is locked unless brainstorm reveals scope is cro
 
 ## Validation guidance
 
-- Use real app build/test/lint commands per `context/core/project-config.md`.
+- Use real app build/test/lint commands per `src/context/core/project-config.md`.
 - Use `node .opencode/openkit/workflow-state.js validate` for state integrity, not as a substitute for app testing.
 
 ## Example transcript
@@ -1568,10 +1568,10 @@ git commit -m "docs(commands): rewrite /quick-task for MO bootstrap → Quick Ag
 
 ---
 
-## Task 14: Rewrite `commands/delivery.md`
+## Task 14: Rewrite `src/commands/delivery.md`
 
 **Files:**
-- Modify: `commands/delivery.md`
+- Modify: `src/commands/delivery.md`
 
 - [ ] **Step 1: Replace contents with**
 
@@ -1593,7 +1593,7 @@ Use `/delivery` for feature work where product behavior, requirements, or cross-
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for shared runtime-path, verification, and tool-substitution rules.
+- Follow `src/openkit-runtime/openkit/context/core/prompt-contracts.md` for shared runtime-path, verification, and tool-substitution rules.
 
 ## Preconditions
 
@@ -1602,14 +1602,14 @@ Use `/delivery` for feature work where product behavior, requirements, or cross-
 
 ## Canonical docs to load
 
-- `.opencode/openkit/AGENTS.md`
-- `.opencode/openkit/context/navigation.md`
-- `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/lane-selection.md`
-- `.opencode/openkit/context/core/approval-gates.md`
-- `.opencode/openkit/context/core/project-config.md`
-- `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/workflow-state.json` after bootstrap
+- `src/openkit-runtime/openkit/AGENTS.md`
+- `src/openkit-runtime/openkit/context/navigation.md`
+- `src/openkit-runtime/openkit/context/core/workflow.md`
+- `src/openkit-runtime/openkit/context/core/lane-selection.md`
+- `src/openkit-runtime/openkit/context/core/approval-gates.md`
+- `src/openkit-runtime/openkit/context/core/project-config.md`
+- `src/openkit-runtime/openkit/context/core/runtime-surfaces.md`
+- `src/openkit-runtime/openkit/workflow-state.json` after bootstrap
 
 ## Stage chain
 
@@ -1629,7 +1629,7 @@ User picked `/delivery`. Lane is locked unless brainstorm reveals migration shap
 
 ## Validation guidance
 
-- Real app build/test/lint commands per `context/core/project-config.md`.
+- Real app build/test/lint commands per `src/context/core/project-config.md`.
 - `node .opencode/openkit/workflow-state.js show` to inspect state when resuming.
 
 ## Example transcript
@@ -1657,10 +1657,10 @@ git commit -m "docs(commands): rewrite /delivery for MO bootstrap → Product Le
 
 ---
 
-## Task 15: Rewrite `commands/migrate.md`
+## Task 15: Rewrite `src/commands/migrate.md`
 
 **Files:**
-- Modify: `commands/migrate.md`
+- Modify: `src/commands/migrate.md`
 
 - [ ] **Step 1: Replace contents with**
 
@@ -1686,7 +1686,7 @@ Preserve behavior first. Decouple blockers where necessary. Migrate incrementall
 
 ## Shared prompt contract
 
-- Follow `.opencode/openkit/context/core/prompt-contracts.md` for shared runtime-path, verification, and tool-substitution rules.
+- Follow `src/openkit-runtime/openkit/context/core/prompt-contracts.md` for shared runtime-path, verification, and tool-substitution rules.
 
 ## Preconditions
 
@@ -1695,16 +1695,16 @@ Preserve behavior first. Decouple blockers where necessary. Migrate incrementall
 
 ## Canonical docs to load
 
-- `.opencode/openkit/AGENTS.md`
-- `.opencode/openkit/context/navigation.md`
-- `.opencode/openkit/context/core/workflow.md`
-- `.opencode/openkit/context/core/lane-selection.md`
-- `.opencode/openkit/context/core/approval-gates.md`
-- `.opencode/openkit/context/core/project-config.md`
-- `.opencode/openkit/context/core/runtime-surfaces.md`
-- `.opencode/openkit/docs/templates/migration-baseline-checklist.md`
-- `.opencode/openkit/docs/templates/migration-verify-checklist.md`
-- `.opencode/openkit/workflow-state.json` after bootstrap
+- `src/openkit-runtime/openkit/AGENTS.md`
+- `src/openkit-runtime/openkit/context/navigation.md`
+- `src/openkit-runtime/openkit/context/core/workflow.md`
+- `src/openkit-runtime/openkit/context/core/lane-selection.md`
+- `src/openkit-runtime/openkit/context/core/approval-gates.md`
+- `src/openkit-runtime/openkit/context/core/project-config.md`
+- `src/openkit-runtime/openkit/context/core/runtime-surfaces.md`
+- `src/openkit-runtime/openkit/docs/templates/migration-baseline-checklist.md`
+- `src/openkit-runtime/openkit/docs/templates/migration-verify-checklist.md`
+- `src/openkit-runtime/openkit/workflow-state.json` after bootstrap
 
 ## Stage chain
 
@@ -1758,8 +1758,8 @@ git commit -m "docs(commands): rewrite /migrate for MO bootstrap → Solution Le
 **Why:** No catch-all entry point; brainstorm is folded into stage 0 of each lane.
 
 **Files:**
-- Delete: `commands/task.md`
-- Delete: `commands/brainstorm.md`
+- Delete: `src/commands/task.md`
+- Delete: `src/commands/brainstorm.md`
 
 - [ ] **Step 1: Delete the files**
 
@@ -1827,11 +1827,11 @@ git commit -m "remove(commands): delete /task and /brainstorm; purge references"
 **Why:** Verify the whole flow works: fresh project + `/quick-task` → state created, no "no workflow" error, Quick Agent gets control. Same for `/delivery` and `/migrate`.
 
 **Files:**
-- Create: `tests/runtime/lane-bootstrap-e2e.test.js`
+- Create: `src/tests/runtime/lane-bootstrap-e2e.test.js`
 
 - [ ] **Step 1: Write the test**
 
-Create `tests/runtime/lane-bootstrap-e2e.test.js`:
+Create `src/tests/runtime/lane-bootstrap-e2e.test.js`:
 
 ```javascript
 import { test } from 'node:test';
@@ -1996,12 +1996,12 @@ Edit `CHANGELOG.md`. Add at the top, under the latest version section or a new `
 
 ### Added
 - `tool.bootstrap-workflow` MCP tool. Creates `workflow-state.json` for a fresh lane; handles archive/conflict on existing workflows.
-- `bootstrap` subcommand in `.opencode/workflow-state.js` CLI for shell-friendly bootstrap.
+- `bootstrap` subcommand in `src/openkit-runtime/workflow-state.js` CLI for shell-friendly bootstrap.
 - Brainstorm storage: quick lane writes a 50-100 word summary inline to `state.brainstorm`; full and migration lanes capture brainstorm in scope/migration plan files as Appendix A (discovery notes) and Appendix B (decisions).
 
 ### Fixed
 - "No workflow" error class on fresh global installs. Workflow-state.json is now created on the first command, not lazily.
-- `workspace-shim.js` no longer skips `.opencode/openkit/workflow-state.json` materialization when the workspace state file does not yet exist.
+- `workspace-shim.js` no longer skips `src/openkit-runtime/openkit/workflow-state.json` materialization when the workspace state file does not yet exist.
 ```
 
 - [ ] **Step 2: Commit**

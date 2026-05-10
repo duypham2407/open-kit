@@ -20,15 +20,19 @@ const PACKAGE_ROOT = path.resolve(MODULE_DIR, '../..');
 // Audit fix [2-M-2]: this list previously contained 'bin' and
 // 'src/mcp-server' twice each. fs.cpSync tolerated the duplicates by
 // re-overwriting, but it was wasted work and a copy/paste bug.
+//
+// Post-reorganization (2026-05): top-level kit content has moved under
+// src/ — the install bundle now ships from `src/...` paths instead of
+// repo-root paths.
 const GLOBAL_KIT_ASSETS = [
-  '.opencode',
-  'bin',
-  'agents',
-  'assets',
-  'skills',
-  'commands',
-  'context',
-  'hooks',
+  'src/openkit-runtime',
+  'src/bin',
+  'src/agents',
+  'src/assets',
+  'src/skills',
+  'src/commands',
+  'src/context',
+  'src/hooks',
   'docs',
   'registry.json',
   'AGENTS.md',
@@ -155,7 +159,7 @@ function listManagedFiles(kitRoot) {
 }
 
 function createOpenCodeConfig(kitRoot) {
-  const mcpCommand = [process.execPath, path.join(PACKAGE_ROOT, 'bin', 'openkit-mcp.js')];
+  const mcpCommand = [process.execPath, path.join(PACKAGE_ROOT, 'src', 'bin', 'openkit-mcp.js')];
   const permissionPolicy = loadDefaultCommandPermissionPolicy();
   const permissionedConfig = createPermissionedOpenCodeConfigProjection(permissionPolicy);
   return sanitizeOpenCodeConfig({
@@ -218,7 +222,7 @@ export function materializeGlobalInstall({
   writeJson(paths.installStatePath, installState);
   writeJson(paths.profileManifestPath, openCodeConfig);
   copyAsset(
-    path.join(PACKAGE_ROOT, 'assets', 'openkit.runtime.jsonc.template'),
+    path.join(PACKAGE_ROOT, 'src', 'assets', 'openkit.runtime.jsonc.template'),
     path.join(paths.settingsRoot, 'openkit.runtime.jsonc.template')
   );
   writeAgentModelSettings(paths.agentModelSettingsPath, existingAgentModelSettings);
@@ -230,7 +234,7 @@ export function materializeGlobalInstall({
           hooks: [
             {
               type: 'command',
-              command: `${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(paths.kitRoot, 'hooks', 'session-start.js'))}`,
+              command: `${JSON.stringify(process.execPath)} ${JSON.stringify(path.join(paths.kitRoot, 'src', 'hooks', 'session-start.js'))}`,
               async: false,
             },
           ],

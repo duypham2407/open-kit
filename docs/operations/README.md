@@ -46,7 +46,7 @@ When OpenKit is installed globally, start with:
 - `openkit upgrade` to refresh the global kit bundle
 - `openkit uninstall [--remove-workspaces]` to remove the global kit and optionally clear workspace state
 
-When the global layer is not installed or when you are maintaining the checked-in runtime itself, use the compatibility surface directly through `node .opencode/workflow-state.js ...` and the canonical docs under `context/core/`.
+When the global layer is not installed or when you are maintaining the checked-in runtime itself, use the compatibility surface directly through `node .opencode/workflow-state.js ...` and the canonical docs under `src/context/core/`.
 
 ## Lower-Level Runtime Command Surface
 
@@ -77,8 +77,8 @@ Keep this distinction explicit:
 ## Route By Need
 
 - audience-specific operator routing: `docs/operator/README.md`
-- workflow and command reality: `context/core/project-config.md`
-- workflow semantics and resume rules: `context/core/workflow.md` and `context/core/session-resume.md`
+- workflow and command reality: `src/context/core/project-config.md`
+- workflow semantics and resume rules: `src/context/core/workflow.md` and `src/context/core/session-resume.md`
 - daily operator path and command usage: `runbooks/openkit-daily-usage.md`
 - status, diagnostics, and repeatable verification steps: `runbooks/workflow-state-smoke-tests.md`
 - durable-record policy and any intentionally kept records: `internal-records/README.md`
@@ -90,4 +90,4 @@ Current-state guardrails:
 - These docs describe repository runtime support only. They do not imply application build, lint, or test tooling.
 - Keep this file index-first; procedural verification belongs in `runbooks/` and durable project memory belongs in `internal-records/`.
 - Keep global-kit language aligned with the current repository reality: global install is the preferred user path, while the checked-in runtime remains the maintainer and compatibility surface.
-- Keep lower-level command details concise here and route canonical command behavior to `context/core/project-config.md`.
+- Keep lower-level command details concise here and route canonical command behavior to `src/context/core/project-config.md`.

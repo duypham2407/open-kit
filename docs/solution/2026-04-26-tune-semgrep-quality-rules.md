@@ -44,12 +44,12 @@ This is enough because the noisy FEATURE-941 evidence points to the existing rul
 
 ### Regression fixtures and rule tests
 
-- `tests/fixtures/semgrep/quality/no-var-positive.js` (create)
-- `tests/fixtures/semgrep/quality/no-var-negative-modern.js` (create)
-- `tests/fixtures/semgrep/quality/no-var-negative-text-metadata.js` (create)
-- `tests/fixtures/semgrep/quality/no-var-mixed.js` (create)
-- `tests/fixtures/semgrep/security/security-sanity.js` (create if security sanity uses a dedicated fixture)
-- `tests/runtime/semgrep-quality-rules.test.js` (create) or, if the maintainer prefers a smaller surface, extend `tests/runtime/audit-tools.test.js` with a clearly separated Semgrep rule-pack regression section.
+- `src/tests/fixtures/semgrep/quality/no-var-positive.js` (create)
+- `src/tests/fixtures/semgrep/quality/no-var-negative-modern.js` (create)
+- `src/tests/fixtures/semgrep/quality/no-var-negative-text-metadata.js` (create)
+- `src/tests/fixtures/semgrep/quality/no-var-mixed.js` (create)
+- `src/tests/fixtures/semgrep/security/security-sanity.js` (create if security sanity uses a dedicated fixture)
+- `src/tests/runtime/semgrep-quality-rules.test.js` (create) or, if the maintainer prefers a smaller surface, extend `src/tests/runtime/audit-tools.test.js` with a clearly separated Semgrep rule-pack regression section.
 
 ### Package/governance validation
 
@@ -57,9 +57,9 @@ This is enough because the noisy FEATURE-941 evidence points to the existing rul
   - Likely edit: add a dedicated Semgrep rule-pack verification script such as `verify:semgrep-quality` and include it in `verify:all` once Semgrep availability is deterministic for CI/local validation.
 - `.github/workflows/verify.yml`
   - Touch only if needed to provision Semgrep before `npm run verify:all` runs the new rule-pack regression script.
-- `tests/runtime/governance-enforcement.test.js`
+- `src/tests/runtime/governance-enforcement.test.js`
   - Touch only if docs/package governance assertions need to ensure bundled Semgrep packs and validation docs remain present.
-- `tests/install/install-state.test.js`
+- `src/tests/install/install-state.test.js`
   - Touch only if package/bundle validation changes the asset manifest expectations. Do not add Semgrep packs to the OpenCode-native install bundle unless implementation proves that the current `package.json` `files: ["assets/"]` path is insufficient.
 
 ### Documentation, only if behavior or command surfaces change
@@ -68,7 +68,7 @@ This is enough because the noisy FEATURE-941 evidence points to the existing rul
   - Update only if adding a new verification script, fixture policy, or CI/provisioning note.
 - `docs/maintainer/test-matrix.md`
   - Update only if the Semgrep rule-pack regression command becomes part of the maintainer verification matrix.
-- `context/core/project-config.md` and `AGENTS.md`
+- `src/context/core/project-config.md` and `AGENTS.md`
   - Update only if a new current repository validation command is introduced. Keep the target-project app validation boundary explicit.
 
 ### Surfaces intentionally not targeted
@@ -114,9 +114,9 @@ Implementation details:
 
 Create focused fixture files and a Node test harness that executes the real Semgrep CLI, parses JSON, normalizes the rule id, and asserts rule-level finding counts.
 
-The existing `tests/runtime/audit-tools.test.js` mostly fakes Semgrep output to validate OpenKit scan result shapes. FEATURE-942 needs at least one real Semgrep scan path because the acceptance hotspot is Semgrep rule behavior itself.
+The existing `src/tests/runtime/audit-tools.test.js` mostly fakes Semgrep output to validate OpenKit scan result shapes. FEATURE-942 needs at least one real Semgrep scan path because the acceptance hotspot is Semgrep rule behavior itself.
 
-Recommended helper behavior in `tests/runtime/semgrep-quality-rules.test.js`:
+Recommended helper behavior in `src/tests/runtime/semgrep-quality-rules.test.js`:
 
 - Resolve pack paths from the repository root:
   - `assets/semgrep/packs/quality-default.yml`
@@ -204,11 +204,11 @@ Test helpers should derive:
 ### [ ] TASK-F942-HARNESS: Add Semgrep no-var regression fixtures and JSON assertions
 
 - **Files**:
-  - `tests/fixtures/semgrep/quality/no-var-positive.js` (create)
-  - `tests/fixtures/semgrep/quality/no-var-negative-modern.js` (create)
-  - `tests/fixtures/semgrep/quality/no-var-negative-text-metadata.js` (create)
-  - `tests/fixtures/semgrep/quality/no-var-mixed.js` (create)
-  - `tests/runtime/semgrep-quality-rules.test.js` (create) or `tests/runtime/audit-tools.test.js` (extend in a clearly separated section)
+  - `src/tests/fixtures/semgrep/quality/no-var-positive.js` (create)
+  - `src/tests/fixtures/semgrep/quality/no-var-negative-modern.js` (create)
+  - `src/tests/fixtures/semgrep/quality/no-var-negative-text-metadata.js` (create)
+  - `src/tests/fixtures/semgrep/quality/no-var-mixed.js` (create)
+  - `src/tests/runtime/semgrep-quality-rules.test.js` (create) or `src/tests/runtime/audit-tools.test.js` (extend in a clearly separated section)
 - **Goal**: make the accepted no-`var` behavior executable and observable before tuning the rule.
 - **Dependencies**: none.
 - **Validation command**:
@@ -239,9 +239,9 @@ Test helpers should derive:
 - **Files**:
   - `package.json`
   - `.github/workflows/verify.yml` (only if needed for Semgrep availability in CI)
-  - `tests/runtime/governance-enforcement.test.js` (only if governance assertions need to cover the new command/docs)
+  - `src/tests/runtime/governance-enforcement.test.js` (only if governance assertions need to cover the new command/docs)
   - `docs/operator/semgrep.md` and `docs/maintainer/test-matrix.md` (only if a new verification command or fixture policy is introduced)
-  - `context/core/project-config.md` and `AGENTS.md` (only if a new current validation command is introduced)
+  - `src/context/core/project-config.md` and `AGENTS.md` (only if a new current validation command is introduced)
 - **Goal**: make the rule-pack regression suite easy to run and, if feasible, part of the package verification path while preserving validation-surface language.
 - **Dependencies**: `TASK-F942-RULE`.
 - **Validation command**:
@@ -340,10 +340,10 @@ Recommended tasks:
 
 | Task id | Title | Kind | Depends on | Primary artifact refs | Validation |
 | --- | --- | --- | --- | --- | --- |
-| `TASK-F942-HARNESS` | Add no-var Semgrep regression harness | `implementation` | none | `tests/fixtures/semgrep/quality/`, `tests/runtime/semgrep-quality-rules.test.js` | `node --test tests/runtime/semgrep-quality-rules.test.js` red first, then green after rule tuning |
+| `TASK-F942-HARNESS` | Add no-var Semgrep regression harness | `implementation` | none | `src/tests/fixtures/semgrep/quality/`, `src/tests/runtime/semgrep-quality-rules.test.js` | `node --test tests/runtime/semgrep-quality-rules.test.js` red first, then green after rule tuning |
 | `TASK-F942-RULE` | Tune bundled no-var quality rule | `implementation` | `TASK-F942-HARNESS` | `assets/semgrep/packs/quality-default.yml` | `node --test tests/runtime/semgrep-quality-rules.test.js` |
 | `TASK-F942-GOVERNANCE` | Wire package and governance validation | `implementation` | `TASK-F942-RULE` | `package.json`, `.github/workflows/verify.yml` if needed, docs/tests if changed | `npm run verify:governance`; `npm run verify:install-bundle`; `npm run verify:all` |
-| `TASK-F942-EVIDENCE` | Record scan and workflow-state evidence | `verification` | `TASK-F942-GOVERNANCE` | `.openkit/artifacts/`, `.opencode/workflow-state.json` via CLI/tool evidence records | `node .opencode/workflow-state.js validate`; `node .opencode/workflow-state.js status --short` |
+| `TASK-F942-EVIDENCE` | Record scan and workflow-state evidence | `verification` | `TASK-F942-GOVERNANCE` | `.openkit/artifacts/`, `src/openkit-runtime/workflow-state.json` via CLI/tool evidence records | `node .opencode/workflow-state.js validate`; `node .opencode/workflow-state.js status --short` |
 
 Recommended task-board commands, if a board is created by the runtime owner:
 
@@ -362,7 +362,7 @@ Current `create-task` CLI support is minimal and may not encode every dependency
 - Roll back `assets/semgrep/packs/quality-default.yml` together with the no-`var` fixtures/tests if the tuned rule proves incompatible with Semgrep versions in supported environments.
 - If CI provisioning for Semgrep causes operational instability, roll back the CI/script wiring separately from the rule fix only if maintainers can still run the Semgrep fixture suite through an explicit required validation path.
 - Do not roll back by disabling scan gates, removing the no-`var` rule, excluding broad directories, or converting findings to manual overrides.
-- Do not hand-edit workflow-state JSON for evidence rollback; use `.opencode/workflow-state.js` or runtime evidence tools.
+- Do not hand-edit workflow-state JSON for evidence rollback; use `src/openkit-runtime/workflow-state.js` or runtime evidence tools.
 - Security-pack changes should not be part of normal rollback because security pack behavior is intended to remain unchanged.
 
 ## Reviewer Focus Points

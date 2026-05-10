@@ -4,7 +4,7 @@
 
 **Goal:** Resolve the three contract-drift findings from Wave 2 ([3-H-2] missing `/configure-embedding` registry entry; [3-H-3] agent reference to non-existent `tool.heuristic-lsp`; [1-H-3] `tool.bootstrap-workflow` missing from MCP schema), so the registry/agent/MCP layers stop disagreeing about what tools and commands exist.
 
-**Architecture:** Three independent contract repairs. Each fix is small and narrow: insert one registry entry, replace two markdown table cells, add one MCP schema entry. Add two contract tests — one new (`tests/contract/agent-tool-references.test.js`) that scans every agent markdown for `tool.<id>` references and asserts they exist in `registry.json#runtimeTools`, and an extension to `tests/mcp-server/tool-schemas.test.js`-style coverage that confirms every runtime-registered tool has a matching MCP schema entry.
+**Architecture:** Three independent contract repairs. Each fix is small and narrow: insert one registry entry, replace two markdown table cells, add one MCP schema entry. Add two contract tests — one new (`src/tests/contract/agent-tool-references.test.js`) that scans every agent markdown for `tool.<id>` references and asserts they exist in `registry.json#runtimeTools`, and an extension to `src/tests/mcp-server/tool-schemas.test.js`-style coverage that confirms every runtime-registered tool has a matching MCP schema entry.
 
 **Tech Stack:** Node.js ≥ 18, ESM, `node:test` test runner, `node:assert/strict`. No new dependencies.
 
@@ -20,11 +20,11 @@
 |------|--------|----------------|
 | `registry.json` | Modify | Add `command.configure-embedding` entry to `components.commands`. |
 | `AGENTS.md` | Modify | Add `/configure-embedding` to the command enumeration on line 27. |
-| `agents/solution-lead-agent.md` | Modify | Replace `tool.heuristic-lsp` (line 51) with `tool.lsp-symbols`. |
-| `agents/code-reviewer.md` | Modify | Replace `tool.heuristic-lsp` (line 76) with `tool.lsp-symbols`. |
-| `tests/contract/agent-tool-references.test.js` | **Create** | Scans `agents/*.md` for `tool.<id>` references and asserts each ID exists in `registry.json#runtimeTools`. |
+| `src/agents/solution-lead-agent.md` | Modify | Replace `tool.heuristic-lsp` (line 51) with `tool.lsp-symbols`. |
+| `src/agents/code-reviewer.md` | Modify | Replace `tool.heuristic-lsp` (line 76) with `tool.lsp-symbols`. |
+| `src/tests/contract/agent-tool-references.test.js` | **Create** | Scans `src/agents/*.md` for `tool.<id>` references and asserts each ID exists in `registry.json#runtimeTools`. |
 | `src/mcp-server/tool-schemas.js` | Modify | Add `tool.bootstrap-workflow` schema entry matching the runtime tool's input contract. |
-| `tests/mcp-server/tool-schema-runtime-parity.test.js` | **Create** | Asserts every runtime-registered tool ID exposed by `getMcpExposedToolIds()` has a matching `TOOL_SCHEMAS` entry, and conversely every schema entry maps to a registered tool (when the tool registry is constructed with a stub kernel). |
+| `src/tests/mcp-server/tool-schema-runtime-parity.test.js` | **Create** | Asserts every runtime-registered tool ID exposed by `getMcpExposedToolIds()` has a matching `TOOL_SCHEMAS` entry, and conversely every schema entry maps to a registered tool (when the tool registry is constructed with a stub kernel). |
 
 Tasks are ordered so each commit lands a complete, green change.
 
@@ -86,12 +86,12 @@ Expected: prints the new entry as JSON; `total commands` is `15` (was 14).
 
 Open `AGENTS.md`. Line 27 currently reads:
 ```
-- `commands/`: User-facing triggers such as `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, and `/switch-profiles`
+- `src/commands/`: User-facing triggers such as `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, and `/switch-profiles`
 ```
 
 Replace with:
 ```
-- `commands/`: User-facing triggers such as `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, `/configure-embedding`, and `/switch-profiles`
+- `src/commands/`: User-facing triggers such as `/quick-task`, `/migrate`, `/delivery`, `/write-solution`, `/execute-solution`, `/configure-agent-models`, `/configure-embedding`, and `/switch-profiles`
 ```
 
 - [ ] **Step 6: Run registry-metadata test plus full suite (with one accepted failure)**
@@ -141,15 +141,15 @@ Expected: commit succeeds.
 ## Task 2: Fix [3-H-3] — Replace tool.heuristic-lsp with tool.lsp-symbols
 
 **Files:**
-- Modify: `agents/solution-lead-agent.md:51`
-- Modify: `agents/code-reviewer.md:76`
-- Create: `tests/contract/agent-tool-references.test.js`
+- Modify: `src/agents/solution-lead-agent.md:51`
+- Modify: `src/agents/code-reviewer.md:76`
+- Create: `src/tests/contract/agent-tool-references.test.js`
 
 Decision rationale: `tool.heuristic-lsp` does not exist in the registry. The two agent files use it for "Symbol references and rename impact" purposes. Of the registered tools, `tool.lsp-symbols` (already present in the registry as `Stage 2 LSP Symbols Surface`) most closely matches that description and is already cited by adjacent rows in the same agent files. Using a single replacement keeps the agent contracts internally consistent.
 
 - [ ] **Step 1: Write the failing contract test**
 
-Create `tests/contract/agent-tool-references.test.js`:
+Create `src/tests/contract/agent-tool-references.test.js`:
 
 ```javascript
 import test from 'node:test';
@@ -196,9 +196,9 @@ Run: `mkdir -p tests/contract && node --test tests/contract/agent-tool-reference
 
 Expected: TWO tests fail — `solution-lead-agent.md` and `code-reviewer.md` both reference `tool.heuristic-lsp`, which is not in the registry. Other agent files pass.
 
-- [ ] **Step 3: Update `agents/solution-lead-agent.md` line 51**
+- [ ] **Step 3: Update `src/agents/solution-lead-agent.md` line 51**
 
-Open `agents/solution-lead-agent.md`. Locate the row in the "MAY — optional helpers" table:
+Open `src/agents/solution-lead-agent.md`. Locate the row in the "MAY — optional helpers" table:
 
 ```markdown
 | `tool.heuristic-lsp` | Symbol references and rename impact | Tracing symbol references to assess impact surface |
@@ -212,9 +212,9 @@ Replace `` `tool.heuristic-lsp` `` (the first cell) with `` `tool.lsp-symbols` `
 
 The Purpose and "When to use" cells are unchanged.
 
-- [ ] **Step 4: Update `agents/code-reviewer.md` line 76**
+- [ ] **Step 4: Update `src/agents/code-reviewer.md` line 76**
 
-Open `agents/code-reviewer.md`. Locate the row in the "SHOULD — use when structurally verifying patterns" table:
+Open `src/agents/code-reviewer.md`. Locate the row in the "SHOULD — use when structurally verifying patterns" table:
 
 ```markdown
 | `tool.heuristic-lsp` | Symbol references and rename impact | Tracing call sites or rename impact across files |
@@ -270,7 +270,7 @@ EOF
 
 **Files:**
 - Modify: `src/mcp-server/tool-schemas.js` (add new entry to `TOOL_SCHEMAS`)
-- Create: `tests/mcp-server/tool-schema-runtime-parity.test.js`
+- Create: `src/tests/mcp-server/tool-schema-runtime-parity.test.js`
 
 The runtime tool at `src/runtime/tools/workflow/bootstrap-workflow.js:25` accepts:
 ```
@@ -281,7 +281,7 @@ The MCP server filters out tools without `TOOL_SCHEMAS` entries (`src/mcp-server
 
 - [ ] **Step 1: Write the failing parity test**
 
-Create `tests/mcp-server/tool-schema-runtime-parity.test.js`:
+Create `src/tests/mcp-server/tool-schema-runtime-parity.test.js`:
 
 ```javascript
 import test from 'node:test';
@@ -447,7 +447,7 @@ When this plan is fully executed:
 - [ ] [3-H-3] resolved — both agent files reference `tool.lsp-symbols`; new contract test prevents regression
 - [ ] [1-H-3] resolved — `tool.bootstrap-workflow` reachable via MCP; new parity test prevents regression
 - [ ] 3 commits on `main` (one per High finding)
-- [ ] 2 new test files: `tests/contract/agent-tool-references.test.js`, `tests/mcp-server/tool-schema-runtime-parity.test.js`
-- [ ] `npm run verify:all` shows only the known accepted backlog failure (`tests/cli/openkit-cli.test.js:709`)
+- [ ] 2 new test files: `src/tests/contract/agent-tool-references.test.js`, `src/tests/mcp-server/tool-schema-runtime-parity.test.js`
+- [ ] `npm run verify:all` shows only the known accepted backlog failure (`src/tests/cli/openkit-cli.test.js:709`)
 
 After Wave 2a lands, proceed to Wave 2b (runtime correctness): [1-H-1], [1-H-2], [2-H-2], [2-H-3].

@@ -11,11 +11,11 @@ The goal is simple: keep AI anchored to the active workflow contract and away fr
 AI should treat these files as the highest-priority active contract:
 
 1. `AGENTS.md`
-2. `context/core/active-contract.json`
-3. `context/core/workflow.md`
-4. `context/core/approval-gates.md`
-5. `context/core/issue-routing.md`
-6. `context/core/workflow-state-schema.md`
+2. `src/context/core/active-contract.json`
+3. `src/context/core/workflow.md`
+4. `src/context/core/approval-gates.md`
+5. `src/context/core/issue-routing.md`
+6. `src/context/core/workflow-state-schema.md`
 
 If these sources and any historical material disagree, the files above win.
 
@@ -23,13 +23,13 @@ If these sources and any historical material disagree, the files above win.
 
 Only these role prompts are active:
 
-- `agents/master-orchestrator.md`
-- `agents/quick-agent.md`
-- `agents/product-lead-agent.md`
-- `agents/solution-lead-agent.md`
-- `agents/fullstack-agent.md`
-- `agents/code-reviewer.md`
-- `agents/qa-agent.md`
+- `src/agents/master-orchestrator.md`
+- `src/agents/quick-agent.md`
+- `src/agents/product-lead-agent.md`
+- `src/agents/solution-lead-agent.md`
+- `src/agents/fullstack-agent.md`
+- `src/agents/code-reviewer.md`
+- `src/agents/qa-agent.md`
 
 If a role file is not in this list, AI should not infer that it is part of the active workflow.
 
@@ -93,14 +93,14 @@ Active skills:
 When resuming or mutating workflow state, AI should rely on:
 
 - `OPENKIT_SESSION_ID` (env var; the launcher sets this) and the per-session mirror at `OPENKIT_WORKFLOW_STATE`
-- `.opencode/sessions/index.json` (`openkit/sessions-index@1`) and `.opencode/sessions/<id>/{meta.json,heartbeat.json}` (v0.7.0+)
-- `.opencode/work-items/index.json` (`openkit/work-items-index@3`; v0.7.0+ — the root `active_work_item_id` field is removed)
-- `.opencode/work-items/`
-- `.opencode/workflow-state.json` (forwarding stub `openkit/legacy-stub@1` after v0.7.0; live state is in the per-session mirror)
+- `src/openkit-runtime/sessions/index.json` (`openkit/sessions-index@1`) and `src/openkit-runtime/sessions/<id>/{meta.json,heartbeat.json}` (v0.7.0+)
+- `src/openkit-runtime/work-items/index.json` (`openkit/work-items-index@3`; v0.7.0+ — the root `active_work_item_id` field is removed)
+- `src/openkit-runtime/work-items/`
+- `src/openkit-runtime/workflow-state.json` (forwarding stub `openkit/legacy-stub@1` after v0.7.0; live state is in the per-session mirror)
 - `src/runtime/sessions/session-resolver.js` for the canonical `(sessionId, workItemId, baseDir)` lookup
-- `.opencode/workflow-state.js`
-- `.opencode/lib/workflow-state-rules.js`
-- `.opencode/lib/workflow-state-controller.js`
+- `src/openkit-runtime/workflow-state.js`
+- `src/openkit-runtime/lib/workflow-state-rules.js`
+- `src/openkit-runtime/lib/workflow-state-controller.js`
 - `src/global/workspace-state.js`
 
 ## Ignore By Default
@@ -120,8 +120,8 @@ AI should not read these surfaces unless the task explicitly asks for history, a
 
 ### Tests and fixtures
 
-- `.opencode/tests/`
-- `tests/`
+- `src/openkit-runtime/tests/`
+- `src/tests/`
 
 These locations may still contain legacy wording, transitional examples, or fixture-specific noise that is not part of the live workflow contract.
 
@@ -188,4 +188,4 @@ If these terms appear in archive or test surfaces, AI should treat them as non-a
 
 ## One-Line Rule
 
-Only trust concepts that appear consistently across `AGENTS.md`, `context/core/active-contract.json`, and the current runtime files; everything else is secondary, archival, or task-specific.
+Only trust concepts that appear consistently across `AGENTS.md`, `src/context/core/active-contract.json`, and the current runtime files; everything else is secondary, archival, or task-specific.

@@ -6,7 +6,7 @@ Use this runbook when you want the practical step-by-step path for working with 
 
 - The preferred operator path is now the global OpenKit install under the OpenCode home directory.
 - OpenKit workspace state is created per project in global storage instead of requiring the kit to be copied into each repository.
-- The checked-in `.opencode/` runtime in this repository remains the authoring and compatibility surface.
+- The checked-in `src/openkit-runtime/` runtime in this repository remains the authoring and compatibility surface.
 - The workflow supports three live modes: `quick`, `migration`, and `full`.
 - `Quick Task+` is the current semantics of the `quick` lane, not a third mode.
 - There is no repo-native application build, lint, or test command yet, so verification must use the real runtime checks plus honest manual or artifact-based validation.
@@ -109,7 +109,7 @@ Use `/migrate` when most of these are true:
 - rollback checkpoints or staged remediation are needed
 - validation depends on builds, tests, smoke checks, type checks, or manual regression evidence more than on greenfield TDD slices
 
-Canonical lane rules live in `context/core/workflow.md`.
+Canonical lane rules live in `src/context/core/workflow.md`.
 
 Permission rule for day-to-day use:
 
@@ -117,7 +117,7 @@ Permission rule for day-to-day use:
 - delete-style destructive commands should stop for explicit user confirmation first
 - if OpenCode remembers an `Always Allow` choice for a command, that remembered approval belongs to OpenCode; OpenKit does not currently maintain a separate command-approval memory layer
 
-If the boundary still feels fuzzy, use the `Lane Decision Matrix` in `context/core/workflow.md` before forcing a lane.
+If the boundary still feels fuzzy, use the `Lane Decision Matrix` in `src/context/core/workflow.md` before forcing a lane.
 
 If role boundaries feel fuzzy after lane selection, use `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form policy for who owns scope, solution, code review, and runtime verification.
 
@@ -161,7 +161,7 @@ This launches OpenCode with the `openkit` profile and injects the workspace-spec
 
 On the first run on a machine or a fresh OpenCode home, `openkit run` also materializes the managed global kit automatically.
 
-Do not expect `openkit run` to use the checked-in project `.opencode/` directory as its only runtime source. The managed launch path reads kit assets from the global kit root and runtime state from the derived workspace state path, while leaving the project `.opencode/` surface available as a compatibility layer.
+Do not expect `openkit run` to use the checked-in project `src/openkit-runtime/` directory as its only runtime source. The managed launch path reads kit assets from the global kit root and runtime state from the derived workspace state path, while leaving the project `src/openkit-runtime/` surface available as a compatibility layer.
 
 ### Optional: configure per-agent models before launch
 
@@ -283,7 +283,7 @@ Use these validation surface labels in handoffs and evidence:
 | --- | --- |
 | `global_cli` | `openkit ...` install, doctor, launch, upgrade, uninstall, and configuration behavior |
 | `in_session` | slash-command workflow behavior and stage/handoff decisions |
-| `compatibility_runtime` | `.opencode/workflow-state.js` state, diagnostics, work-item, issue, and evidence behavior |
+| `compatibility_runtime` | `src/openkit-runtime/workflow-state.js` state, diagnostics, work-item, issue, and evidence behavior |
 | `runtime_tooling` | OpenKit tools such as graph, semantic search, AST, syntax, codemod, audit, browser, MCP, and background execution |
 | `documentation` | roadmap, operator, maintainer, governance, and runbook artifacts |
 | `target_project_app` | application build/lint/test commands only when the target project defines them |
@@ -318,7 +318,7 @@ Read-only commands you will use most often:
 
 Lower-level mutation commands exist, but they are operator and maintainer tools. Use them intentionally and prefer the documented lane commands and approved workflow over direct manual state manipulation.
 
-The authoritative full command inventory lives in `context/core/project-config.md`.
+The authoritative full command inventory lives in `src/context/core/project-config.md`.
 
 ## Practical Examples
 
@@ -417,7 +417,7 @@ openkit uninstall
 
 `openkit install` and `openkit install-global` still exist as manual or compatibility setup commands, but they are no longer the preferred onboarding step.
 
-Use the lower-level `.opencode/` runtime commands in this repository when you are validating or maintaining the checked-in compatibility runtime itself.
+Use the lower-level `src/openkit-runtime/` runtime commands in this repository when you are validating or maintaining the checked-in compatibility runtime itself.
 
 If an agent or operator reports a missing path or runtime file, check which layer they actually mean before changing anything:
 
@@ -429,7 +429,7 @@ If an agent or operator reports a missing path or runtime file, check which laye
 
 - `README.md` for the top-level runtime and product-boundary summary
 - `docs/operator/README.md` for operator routing
-- `context/core/workflow.md` for canonical lane rules and stage order
-- `context/core/project-config.md` for the maintained command inventory
-- `context/core/session-resume.md` for resume behavior
+- `src/context/core/workflow.md` for canonical lane rules and stage order
+- `src/context/core/project-config.md` for the maintained command inventory
+- `src/context/core/session-resume.md` for resume behavior
 - `docs/operations/runbooks/workflow-state-smoke-tests.md` for deeper verification and manual smoke-test procedures

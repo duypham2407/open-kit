@@ -70,7 +70,7 @@ OpenKit is growing beyond a narrow workflow kit into a broader capability platfo
 
 - Implementing code or choosing the technical architecture in this Product Lead artifact.
 - Splitting this roadmap into separate product approvals for each phase unless a later approved scope intentionally does so.
-- Adding a fourth lane, renaming lanes, or redefining stage ownership semantics in `context/core/workflow.md`.
+- Adding a fourth lane, renaming lanes, or redefining stage ownership semantics in `src/context/core/workflow.md`.
 - Promising general autonomous orchestration, generalized background execution, or parallel task behavior beyond what is already documented and validated.
 - Replacing existing workflow-state, approval, QA, or review surfaces with undocumented capability-driven shortcuts.
 - Expanding into unrelated capability families just because they are technically possible.
@@ -240,7 +240,7 @@ Mandatory ordering rules:
 
 ## Constraints And Assumptions
 
-- The repository's canonical workflow remains the one defined in `context/core/workflow.md`.
+- The repository's canonical workflow remains the one defined in `src/context/core/workflow.md`.
 - The current live contract continues to support exactly three modes: `quick`, `migration`, and `full`.
 - Existing capability-status vocabulary and validation-surface distinctions should be preserved unless a later approved scope explicitly changes them.
 - Current repo reality still lacks general target-project app-native validation defaults; this scope therefore requires honest unavailable-path reporting where needed.

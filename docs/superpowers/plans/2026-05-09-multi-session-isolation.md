@@ -174,7 +174,7 @@ git commit -m "deps: add proper-lockfile for sessions index advisory locking"
 **Files:**
 - Create: `src/runtime/sessions/constants.js`
 - Create: `src/runtime/sessions/errors.js`
-- Test: `tests/runtime/sessions/errors.test.js`
+- Test: `src/tests/runtime/sessions/errors.test.js`
 
 - [ ] **Step 1: Write failing test for error classes**
 
@@ -336,7 +336,7 @@ git commit -m "feat(sessions): add constants and error classes"
 
 **Files:**
 - Create: `src/runtime/sessions/session-id.js`
-- Test: `tests/runtime/sessions/session-id.test.js`
+- Test: `src/tests/runtime/sessions/session-id.test.js`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -429,7 +429,7 @@ git commit -m "feat(sessions): session id generator and validators"
 
 **Files:**
 - Create: `src/runtime/sessions/atomic-json.js`
-- Test: `tests/runtime/sessions/atomic-json.test.js`
+- Test: `src/tests/runtime/sessions/atomic-json.test.js`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -590,7 +590,7 @@ git commit -m "feat(sessions): atomic JSON read-modify-write with proper-lockfil
 
 **Files:**
 - Create: `src/runtime/sessions/session-paths.js`
-- Test: `tests/runtime/sessions/session-paths.test.js`
+- Test: `src/tests/runtime/sessions/session-paths.test.js`
 
 - [ ] **Step 1: Write failing tests**
 
@@ -667,7 +667,7 @@ The plan continues. I'll write the rest in chunks. Tasks 5-7 finish Phase 1.
 
 **Files:**
 - Create: `src/runtime/sessions/session-meta.js`
-- Test: `tests/runtime/sessions/session-meta.test.js`
+- Test: `src/tests/runtime/sessions/session-meta.test.js`
 
 - [ ] **Step 1: Failing tests**
 
@@ -772,7 +772,7 @@ git commit -m "feat(sessions): write-once session meta"
 
 **Files:**
 - Create: `src/runtime/sessions/sessions-index.js`
-- Test: `tests/runtime/sessions/sessions-index.test.js`
+- Test: `src/tests/runtime/sessions/sessions-index.test.js`
 
 - [ ] **Step 1: Failing tests**
 
@@ -911,7 +911,7 @@ git commit -m "feat(sessions): sessions/index.json reader/writer"
 
 **Files:**
 - Create: `src/runtime/sessions/work-items-index.js`
-- Test: `tests/runtime/sessions/work-items-index.test.js`
+- Test: `src/tests/runtime/sessions/work-items-index.test.js`
 
 - [ ] **Step 1: Failing tests**
 
@@ -1107,7 +1107,7 @@ Expected: all pass.
 
 **Files:**
 - Create: `src/runtime/sessions/heartbeat.js`
-- Test: `tests/runtime/sessions/heartbeat.test.js`
+- Test: `src/tests/runtime/sessions/heartbeat.test.js`
 
 - [ ] **Step 1: Failing tests**
 
@@ -1203,7 +1203,7 @@ git commit -m "feat(sessions): heartbeat writer with startHeartbeat ticker"
 
 **Files:**
 - Create: `src/runtime/sessions/orphan-scanner.js`
-- Test: `tests/runtime/sessions/orphan-scanner.test.js`
+- Test: `src/tests/runtime/sessions/orphan-scanner.test.js`
 
 - [ ] **Step 1: Failing tests**
 
@@ -1361,7 +1361,7 @@ git commit -m "feat(sessions): orphan scanner with closed-entry sweep"
 
 **Files:**
 - Create: `src/runtime/sessions/session-resolver.js`
-- Test: `tests/runtime/sessions/session-resolver.test.js`
+- Test: `src/tests/runtime/sessions/session-resolver.test.js`
 
 - [ ] **Step 1: Failing tests**
 
@@ -1497,7 +1497,7 @@ git commit -m "feat(sessions): read-only resolver from env to (workItemId, baseD
 
 **Files:**
 - Create: `src/runtime/sessions/synthetic-orphan.js`
-- Test: `tests/runtime/sessions/synthetic-orphan.test.js`
+- Test: `src/tests/runtime/sessions/synthetic-orphan.test.js`
 
 - [ ] **Step 1: Failing tests**
 
@@ -1553,7 +1553,7 @@ git commit -m "feat(sessions): stable synthetic orphan id generator"
 
 **Files:**
 - Create: `src/runtime/sessions/legacy-mirror-rotator.js`
-- Test: `tests/runtime/sessions/legacy-mirror-rotator.test.js`
+- Test: `src/tests/runtime/sessions/legacy-mirror-rotator.test.js`
 
 - [ ] **Step 1: Failing tests**
 
@@ -1680,7 +1680,7 @@ Expected: all pass.
 
 **Files:**
 - Create: `src/runtime/sessions/worktree-reconciler.js`
-- Test: `tests/runtime/sessions/worktree-reconciler.test.js`
+- Test: `src/tests/runtime/sessions/worktree-reconciler.test.js`
 
 - [ ] **Step 1: Failing tests**
 
@@ -1784,7 +1784,7 @@ git commit -m "feat(sessions): worktree auto-reconciler synthesizes orphans"
 
 **Files:**
 - Create: `src/runtime/sessions/migrate-on-start.js`
-- Test: `tests/runtime/sessions/migrate-on-start.test.js`
+- Test: `src/tests/runtime/sessions/migrate-on-start.test.js`
 
 - [ ] **Step 1: Failing tests**
 
@@ -1887,7 +1887,7 @@ git commit -m "feat(sessions): one-shot migration runner for v2→v3 cutover"
 
 **Files:**
 - Modify: `src/runtime/runtime-config-loader.js` or equivalent runtime bootstrap entry — find via grep
-- Test: `tests/runtime/sessions/runtime-bootstrap-migration.test.js`
+- Test: `src/tests/runtime/sessions/runtime-bootstrap-migration.test.js`
 
 - [ ] **Step 1: Locate the bootstrap entry**
 
@@ -1977,7 +1977,7 @@ git commit -m "feat(sessions): run v2→v3 migration on runtime bootstrap"
 
 **Files:**
 - Modify: `src/global/launcher.js` (around lines 600-660)
-- Test: `tests/global/launcher-sessions.test.js`
+- Test: `src/tests/global/launcher-sessions.test.js`
 
 - [ ] **Step 1: Read current launcher block**
 
@@ -2096,7 +2096,7 @@ git commit -m "feat(launcher): generate OPENKIT_SESSION_ID and register session"
 node --test tests/runtime/sessions/ tests/global/launcher-sessions.test.js
 ```
 
-- [ ] **Smoke test:** create a fresh repo, run `openkit run`, confirm `.opencode/sessions/<id>/meta.json` and `sessions/index.json` exist.
+- [ ] **Smoke test:** create a fresh repo, run `openkit run`, confirm `src/openkit-runtime/sessions/<id>/meta.json` and `sessions/index.json` exist.
 
 ---
 
@@ -2108,7 +2108,7 @@ The remaining phases are summarized below. Each command follows the same TDD pat
 
 **Files:**
 - Modify: `src/runtime/runtime-bootstrap.js` (or wherever `bootstrapRuntimeFoundation` finishes)
-- Test: `tests/runtime/sessions/heartbeat-bootstrap.test.js`
+- Test: `src/tests/runtime/sessions/heartbeat-bootstrap.test.js`
 
 Steps:
 - Add `startHeartbeat({ baseDir, sessionId, pid: process.pid })` after migration runs and `OPENKIT_SESSION_ID` is in env.
@@ -2121,7 +2121,7 @@ Commit: `feat(sessions): start heartbeat ticker and signal handlers in runtime r
 
 **Files:**
 - Create: `src/runtime/sessions/resume.js`
-- Test: `tests/runtime/sessions/resume.test.js`
+- Test: `src/tests/runtime/sessions/resume.test.js`
 
 Cover the 6 steps in spec §6.5. Inject `spawn` for testability. Validate worktree path, branch match, atomic-write index updates, then invoke `spawn` to attach.
 
@@ -2131,7 +2131,7 @@ Commit: `feat(sessions): resume command core`
 
 **Files:**
 - Create: `src/runtime/sessions/abandon.js`
-- Test: `tests/runtime/sessions/abandon.test.js`
+- Test: `src/tests/runtime/sessions/abandon.test.js`
 
 Cover spec §6.6. Inject `worktreeRemover` and `prompt` for testability. Test happy path, dirty-worktree refusal, `--force-remove-dirty` override, missing worktree.
 
@@ -2141,7 +2141,7 @@ Commit: `feat(sessions): abandon command core`
 
 **Files:**
 - Create: `src/runtime/sessions/kill.js`
-- Test: `tests/runtime/sessions/kill.test.js`
+- Test: `src/tests/runtime/sessions/kill.test.js`
 
 Cover spec §6.7. Inject `processKill` (so the test can simulate alive→dead transitions) and `now`. Test SIGTERM-only happy path, SIGTERM→SIGKILL escalation, dead-PID refusal, `--abandon` combo.
 
@@ -2151,7 +2151,7 @@ Commit: `feat(sessions): kill command core with SIGTERM→SIGKILL escalation`
 
 **Files:**
 - Create: `src/runtime/sessions/finish.js`
-- Test: `tests/runtime/sessions/finish.test.js`
+- Test: `src/tests/runtime/sessions/finish.test.js`
 
 Cover spec §6.8 — both quick lane (no git op) and full/migration (squash merge → remove worktree → close). Inject `git` and `worktreeRemover`. Test:
 - Quick happy path
@@ -2166,7 +2166,7 @@ Commit: `feat(sessions): finish command — squash merge and worktree removal`
 
 **Files:**
 - Create: `src/runtime/sessions/downgrade-index.js`
-- Test: `tests/runtime/sessions/downgrade-index.test.js`
+- Test: `src/tests/runtime/sessions/downgrade-index.test.js`
 
 Cover spec §8.4. Test: v3 with one in_progress → v2 with `active_work_item_id` set; v3 with all done → v2 without that field; restore latest `.legacy.<ts>` if present.
 
@@ -2186,8 +2186,8 @@ node --test tests/runtime/sessions/
 
 **Files:**
 - Create: `src/cli/commands/sessions/index.js`, `list.js`, `show.js`, `resume.js`, `abandon.js`, `kill.js`, `downgrade-index.js`
-- Modify: `src/cli/...` main dispatch (`bin/openkit.js`)
-- Test: `tests/cli/sessions-cli.test.js`
+- Modify: `src/cli/...` main dispatch (`src/bin/openkit.js`)
+- Test: `src/tests/cli/sessions-cli.test.js`
 
 Each CLI subcommand thinly wraps the core function. Entry table:
 
@@ -2223,7 +2223,7 @@ Tests cover argv parsing, exit codes, output format. Commit: `feat(cli): openkit
 
 **Files:**
 - Create: `src/cli/commands/dashboard.js`
-- Test: `tests/cli/dashboard.test.js`
+- Test: `src/tests/cli/dashboard.test.js`
 
 Render the box layout from spec §4.1 of brainstorming. Read sessions/index.json + each session's meta + read state.json's current stage. Test: 1 active + 1 orphan + 1 closed → output contains all three sections with correct headers.
 
@@ -2232,21 +2232,21 @@ Commit: `feat(cli): openkit dashboard cross-session view`
 ### Task 25: `openkit finish` and `/finish` slash
 
 **Files:**
-- Create: `src/cli/commands/finish.js`, `commands/finish.md`
-- Test: `tests/cli/finish.test.js`
+- Create: `src/cli/commands/finish.js`, `src/commands/finish.md`
+- Test: `src/tests/cli/finish.test.js`
 
 CLI thinly wraps `finish.js` from Task 21, resolving session via `resolveSession({ env: process.env, repoRoot })`.
 
-Slash command file at `commands/finish.md` (follow existing slash command format under `commands/`).
+Slash command file at `src/commands/finish.md` (follow existing slash command format under `src/commands/`).
 
 Commit: `feat(cli): openkit finish + /finish slash command`
 
 ### Task 26: Session-start banner
 
 **Files:**
-- Create: `hooks/session-banner.js`
-- Modify: existing `hooks/session-start*` to invoke the banner when `OPENKIT_SESSION_ID` is present
-- Test: `tests/hooks/session-banner.test.js`
+- Create: `src/hooks/session-banner.js`
+- Modify: existing `src/hooks/session-start*` to invoke the banner when `OPENKIT_SESSION_ID` is present
+- Test: `src/tests/hooks/session-banner.test.js`
 
 Banner reads `meta.json` + per-item state.json's stage. Render the box from spec §7.3. Test stdout match.
 
@@ -2256,7 +2256,7 @@ Commit: `feat(hooks): session-start banner for OpenKit session context`
 
 **Files:**
 - Create: `assets/statusline-session.js` (or modify existing statusline asset if present)
-- Test: `tests/assets/statusline-session.test.js`
+- Test: `src/tests/assets/statusline-session.test.js`
 
 Append `[s_8f3a2c · full · full_implementation]` when `OPENKIT_SESSION_ID` is set. Test the formatting helper as a pure function.
 
@@ -2280,22 +2280,22 @@ node --test tests/cli/ tests/hooks/ tests/assets/
 
 For each call site, the existing read of `index.active_work_item_id` is replaced by a call to `resolveSession({ env, repoRoot }).workItemId`, falling back to a clear error if env is missing (the call site should already have `env` and `repoRoot`).
 
-Bootstrap path (`workspace-state.js:173`/`:193`) initializes the v3 schema directly, never writes `active_work_item_id`. Test: `tests/global/workspace-state-v3-bootstrap.test.js`.
+Bootstrap path (`workspace-state.js:173`/`:193`) initializes the v3 schema directly, never writes `active_work_item_id`. Test: `src/tests/global/workspace-state-v3-bootstrap.test.js`.
 
 Commit: `refactor(active-work-item-id): use session resolver in src/`
 
-### Task 29: Refactor reads of `active_work_item_id` in `.opencode/lib/workflow-state-controller.js`
+### Task 29: Refactor reads of `active_work_item_id` in `src/openkit-runtime/lib/workflow-state-controller.js`
 
 **Files:**
-- Modify: `.opencode/lib/workflow-state-controller.js` lines 557, 612, 685, 2129, 2139, 2151, 2164, 3764
-- Modify: `.opencode/lib/work-item-store.js` (drop legacy v2 writers)
-- Modify: `.opencode/workflow-state.js:488`, `:736`, `:738`
+- Modify: `src/openkit-runtime/lib/workflow-state-controller.js` lines 557, 612, 685, 2129, 2139, 2151, 2164, 3764
+- Modify: `src/openkit-runtime/lib/work-item-store.js` (drop legacy v2 writers)
+- Modify: `src/openkit-runtime/workflow-state.js:488`, `:736`, `:738`
 
 Each call site falls into one of:
 - Write of `active_work_item_id` → drop entirely; nothing writes the field anymore.
 - Read of `active_work_item_id` → replace with `resolveSession(...).workItemId` if env available; otherwise read `current_session_id` from work-items index (find the entry with matching session) — but only as a transitional fallback for code paths that are not session-bound. Document each replacement in a code comment.
 
-Update the `.opencode/tests/work-item-store.test.js` and `.opencode/tests/workflow-state-controller.test.js` fixtures to use v3 schema. **Each test fixture rewrite is its own commit** — keeps diff reviewable.
+Update the `src/openkit-runtime/tests/work-item-store.test.js` and `src/openkit-runtime/tests/workflow-state-controller.test.js` fixtures to use v3 schema. **Each test fixture rewrite is its own commit** — keeps diff reviewable.
 
 Commit (split as needed):
 - `refactor(workflow-state-controller): swap active_work_item_id reads to resolver`
@@ -2306,7 +2306,7 @@ Commit (split as needed):
 ### Task 30: Slash command lane binding
 
 **Files:**
-- Modify: `commands/quick-task.md`, `commands/migrate.md`, `commands/delivery.md` (slash command implementations / instructions)
+- Modify: `src/commands/quick-task.md`, `src/commands/migrate.md`, `src/commands/delivery.md` (slash command implementations / instructions)
 - Modify: corresponding agent prompts that invoke them
 
 Slash command flow updated to:
@@ -2314,7 +2314,7 @@ Slash command flow updated to:
 2. If `meta.work_item_id` is already set → throw `SessionAlreadyBoundError` with the message from spec §7.2.
 3. Otherwise, create the work item, update meta (one-time write of work_item_id, lane, worktree_path, branches), call `setCurrentSessionId`, and (for full/migration) trigger `worktree-manager` to create the worktree and re-spawn agents inside it.
 
-Test: `tests/commands/lane-binding.test.js` covers each slash, the rejection path, and the worktree-creation path. Commit: `feat(commands): slash commands bind work item to current session`
+Test: `src/tests/commands/lane-binding.test.js` covers each slash, the rejection path, and the worktree-creation path. Commit: `feat(commands): slash commands bind work item to current session`
 
 ---
 
@@ -2324,7 +2324,7 @@ Test: `tests/commands/lane-binding.test.js` covers each slash, the rejection pat
 
 **Files:**
 - Modify: `src/runtime/doctor/...` to add the 5 checks from spec §7.5
-- Test: `tests/runtime/doctor/sessions-checks.test.js`
+- Test: `src/tests/runtime/doctor/sessions-checks.test.js`
 
 For each check: one passing fixture, one failing fixture, assert classification (pass/warn/fail) and remediation message.
 
@@ -2333,7 +2333,7 @@ Commit: `feat(doctor): add sessions/orphan/legacy-mirror checks`
 ### Task 32: Multi-tab integration test
 
 **Files:**
-- Test: `tests/integration/sessions-multi-tab.test.js`
+- Test: `src/tests/integration/sessions-multi-tab.test.js`
 
 Use `child_process.fork` with two child scripts that each call the launcher's session-creation path. Assert:
 - Two distinct session ids
@@ -2345,7 +2345,7 @@ Commit: `test(integration): multi-tab session isolation`
 ### Task 33: Orphan recovery integration
 
 **Files:**
-- Test: `tests/integration/orphan-recovery.test.js`
+- Test: `src/tests/integration/orphan-recovery.test.js`
 
 Spawn a subprocess that registers a session and exits via `process.exit(137)` (simulates kill -9). Run scanner with mock clock advanced 11 minutes. Assert orphan, run resume, assert active.
 
@@ -2354,7 +2354,7 @@ Commit: `test(integration): orphan recovery via resume`
 ### Task 34: Lock contention integration
 
 **Files:**
-- Test: `tests/integration/sessions-index-lock.test.js`
+- Test: `src/tests/integration/sessions-index-lock.test.js`
 
 Fork 5 readers and 2 writers. Assert no JSON corruption, all complete under 10 seconds.
 
@@ -2363,7 +2363,7 @@ Commit: `test(integration): sessions/index.json lock contention`
 ### Task 35: Finish-flow integration
 
 **Files:**
-- Test: `tests/integration/finish-flow.test.js`
+- Test: `src/tests/integration/finish-flow.test.js`
 
 Real `git` calls on a temp repo: init, create worktree manually, simulate the session metadata, call finish. Assert squash-merge commit on target branch, worktree removed, feature branch deleted, work item done. Variants: dirty refusal, conflict refusal.
 
@@ -2372,8 +2372,8 @@ Commit: `test(integration): /finish squash-merge happy path and refusals`
 ### Task 36: Migration regression suite
 
 **Files:**
-- Create: `tests/fixtures/migration/pre-v3-typical/`, `pre-v3-multiple-workitems/`, `pre-v3-with-worktree/`, `pre-v3-already-v3/`, `pre-v3-corrupted/`
-- Test: `tests/regression/migration-v2-to-v3-fixtures.test.js`, `tests/regression/auto-reconcile-worktree.test.js`
+- Create: `src/tests/fixtures/migration/pre-v3-typical/`, `pre-v3-multiple-workitems/`, `pre-v3-with-worktree/`, `pre-v3-already-v3/`, `pre-v3-corrupted/`
+- Test: `src/tests/regression/migration-v2-to-v3-fixtures.test.js`, `src/tests/regression/auto-reconcile-worktree.test.js`
 
 Each fixture is a directory tree copied to a tmpdir at test start. Run `migrateOnStart` against it, assert post-state.
 

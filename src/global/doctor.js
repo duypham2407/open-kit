@@ -51,7 +51,7 @@ function withGuidance(result, nextStep, recommendedCommand = null) {
 
 function inspectGlobalCommandPermissionPolicy(globalPaths) {
   const policyLoad = tryLoadDefaultCommandPermissionPolicy({
-    policyPath: path.join(globalPaths.kitRoot, 'assets', 'default-command-permission-policy.json'),
+    policyPath: path.join(globalPaths.kitRoot, 'src', 'assets', 'default-command-permission-policy.json'),
   });
   const kitConfig = readJsonIfPresent(globalPaths.kitConfigPath);
   const profileConfig = readJsonIfPresent(globalPaths.profileManifestPath);
@@ -151,7 +151,7 @@ export function inspectGlobalDoctor({ projectRoot = process.cwd(), env = process
     issues.push(issue);
   }
 
-  if (!fs.existsSync(path.join(globalPaths.kitRoot, '.opencode', 'workflow-state.js'))) {
+  if (!fs.existsSync(path.join(globalPaths.kitRoot, 'src', 'openkit-runtime', 'workflow-state.js'))) {
     issues.push('Global workflow-state CLI is missing from the installed kit.');
   }
 

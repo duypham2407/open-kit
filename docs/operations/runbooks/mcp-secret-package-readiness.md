@@ -17,7 +17,7 @@ The gate checks that the packed npm package includes the release-critical MCP se
 - `src/global/mcp/secret-manager.js`
 - `src/global/mcp/secret-stores/keychain-adapter.js`
 - MCP redaction, config, health, profile materialization, custom MCP validation, launcher, CLI, runtime capability, and install materialization files
-- packaged operator/release docs, install-bundle command and agent assets, `registry.json`, `.opencode/opencode.json`, `.opencode/install-manifest.json`, and `.opencode/workflow-state.js`
+- packaged operator/release docs, install-bundle command and agent assets, `registry.json`, `src/openkit-runtime/opencode.json`, `src/openkit-runtime/install-manifest.json`, and `src/openkit-runtime/workflow-state.js`
 
 It also fails if generated or local runtime artifacts appear in the package list, including `secrets.env`, `.env` files, local MCP config state, workflow-state mirror data, work-item state, runtime databases, package tarballs, extracted package directories, or temporary OpenCode homes.
 

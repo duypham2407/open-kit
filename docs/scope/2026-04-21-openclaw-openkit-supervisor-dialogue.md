@@ -8,7 +8,7 @@ The integration must preserve the OpenKit authority boundary: OpenClaw may dialo
 
 ## In Scope
 
-- Durable per-work-item supervisor session storage under the managed `.opencode/work-items/<work_item_id>/` runtime store.
+- Durable per-work-item supervisor session storage under the managed `src/openkit-runtime/work-items/<work_item_id>/` runtime store.
 - Supervisor session, checkpoint, outbound event, inbound message, and adjudication records with stable schema names and sequence cursors.
 - Normalized outbound events emitted after successful OpenKit authority writes, including stage, approval, blocker, attention, verification, pause, and work-item-blocked signals.
 - A runtime supervisor dialogue manager that can inspect pending outbound events, dispatch them through an OpenClaw adapter, and process inbound messages.
@@ -31,14 +31,14 @@ The integration must preserve the OpenKit authority boundary: OpenClaw may dialo
 
 | ID | Acceptance Criteria | Validation |
 | --- | --- | --- |
-| AC1 | Each supervised work item has a durable session record using schema `openkit/supervisor-session@1` with work item, session, provider, transport health, delivery mode, degraded mode, attention, timestamps, and detach reason fields. | `.opencode/tests/supervisor-dialogue-store.test.js` |
-| AC2 | Checkpoints use schema `openkit/supervisor-checkpoint@1` and track outbound/inbound cursors plus bounded dedupe lists for message IDs and proposal keys. | `.opencode/tests/supervisor-dialogue-store.test.js` |
-| AC3 | OpenKit emits outbound schema `openkit/supervisor-event@1` only after successful authority writes, with origin `openkit`, event sequence, cursor, summary, details, and observed event types such as `stage_changed`, `approval_changed`, `verification_signal`, `issue_or_blocker_signal`, `work_item_blocked`, `human_attention_needed`, and `work_item_paused`. | `.opencode/tests/supervisor-dialogue-store.test.js`, targeted workflow controller tests |
-| AC4 | Runtime bridge delivery is disabled/degraded by default when no OpenClaw transport is configured and does not fail runtime bootstrap. | `tests/runtime/openclaw-supervisor-dialogue.test.js`, `tests/runtime/runtime-bootstrap.test.js` |
-| AC5 | Configured command or HTTP transport can receive pending outbound events and advance delivery checkpoints only after successful delivery. | `tests/runtime/openclaw-supervisor-dialogue.test.js` |
-| AC6 | Inbound OpenClaw messages are normalized and adjudicated into safe dispositions without direct workflow mutation or code execution. | `tests/runtime/openclaw-supervisor-dialogue.test.js` |
-| AC7 | Duplicate inbound messages and repeated proposal keys are idempotently ignored and captured in checkpoint dedupe state. | `tests/runtime/openclaw-supervisor-dialogue.test.js`, `.opencode/tests/supervisor-dialogue-store.test.js` |
-| AC8 | Runtime summary surfaces show supervisor session health and attention/degraded status for operators and QA. | `tests/runtime/openclaw-supervisor-dialogue.test.js` |
+| AC1 | Each supervised work item has a durable session record using schema `openkit/supervisor-session@1` with work item, session, provider, transport health, delivery mode, degraded mode, attention, timestamps, and detach reason fields. | `src/openkit-runtime/tests/supervisor-dialogue-store.test.js` |
+| AC2 | Checkpoints use schema `openkit/supervisor-checkpoint@1` and track outbound/inbound cursors plus bounded dedupe lists for message IDs and proposal keys. | `src/openkit-runtime/tests/supervisor-dialogue-store.test.js` |
+| AC3 | OpenKit emits outbound schema `openkit/supervisor-event@1` only after successful authority writes, with origin `openkit`, event sequence, cursor, summary, details, and observed event types such as `stage_changed`, `approval_changed`, `verification_signal`, `issue_or_blocker_signal`, `work_item_blocked`, `human_attention_needed`, and `work_item_paused`. | `src/openkit-runtime/tests/supervisor-dialogue-store.test.js`, targeted workflow controller tests |
+| AC4 | Runtime bridge delivery is disabled/degraded by default when no OpenClaw transport is configured and does not fail runtime bootstrap. | `src/tests/runtime/openclaw-supervisor-dialogue.test.js`, `src/tests/runtime/runtime-bootstrap.test.js` |
+| AC5 | Configured command or HTTP transport can receive pending outbound events and advance delivery checkpoints only after successful delivery. | `src/tests/runtime/openclaw-supervisor-dialogue.test.js` |
+| AC6 | Inbound OpenClaw messages are normalized and adjudicated into safe dispositions without direct workflow mutation or code execution. | `src/tests/runtime/openclaw-supervisor-dialogue.test.js` |
+| AC7 | Duplicate inbound messages and repeated proposal keys are idempotently ignored and captured in checkpoint dedupe state. | `src/tests/runtime/openclaw-supervisor-dialogue.test.js`, `src/openkit-runtime/tests/supervisor-dialogue-store.test.js` |
+| AC8 | Runtime summary surfaces show supervisor session health and attention/degraded status for operators and QA. | `src/tests/runtime/openclaw-supervisor-dialogue.test.js` |
 
 ## Authority Boundary
 

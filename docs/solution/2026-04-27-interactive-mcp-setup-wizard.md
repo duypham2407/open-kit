@@ -28,7 +28,7 @@ Add `openkit configure mcp --interactive` as a thin, secret-safe wizard over the
 
 This is enough because the repository already has:
 
-- global CLI dispatch through `bin/openkit.js`, `src/cli/index.js`, and `src/cli/commands/configure.js`
+- global CLI dispatch through `src/bin/openkit.js`, `src/cli/index.js`, and `src/cli/commands/configure.js`
 - MCP catalog and status vocabulary in `src/capabilities/mcp-catalog.js` and `src/capabilities/status.js`
 - local MCP state, secret storage, materialization, health, and redaction modules under `src/global/mcp/`
 - runtime capability read models under `src/runtime/managers/*mcp*` and `src/runtime/tools/capability/mcp-doctor.js`
@@ -76,17 +76,17 @@ These should not gain wizard-specific state. They only need to continue reflecti
 - `docs/operator/supported-surfaces.md` — update the `openkit configure mcp ...` row to mention `--interactive`.
 - `docs/operations/runbooks/openkit-daily-usage.md` — optional first-run guided MCP setup step after `openkit doctor` and before `openkit run` when MCP-backed capabilities are desired.
 - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md` — mention that interactive MCP setup is a `global_cli` wrapper over the catalog/control plane, not runtime state.
-- `context/core/project-config.md` and `AGENTS.md` — update only if command-reality bullets need to name the new interactive flag.
+- `src/context/core/project-config.md` and `AGENTS.md` — update only if command-reality bullets need to name the new interactive flag.
 
 ### Tests
 
-- `tests/cli/configure-mcp.test.js` — keep existing non-interactive assertions; add entry/help/non-TTY coverage or split into a new file.
-- `tests/cli/configure-mcp-interactive.test.js` (create if clearer) — direct `runCli()` / `runConfigureMcp()` tests with mocked prompt adapters and fake TTY streams.
-- `tests/global/mcp-interactive-wizard.test.js` (create) — pure wizard state-machine/service-mock tests.
-- `tests/global/mcp-secret-manager.test.js` — permission inspection/repair and fail-closed key-write behavior.
-- `tests/global/mcp-profile-materializer.test.js` — `both` scope, conflict, and idempotency result details if expanded.
-- `tests/runtime/capability-tools.test.js` — prove runtime read models reflect wizard-produced state and stay redacted.
-- `tests/runtime/governance-enforcement.test.js` — docs/help governance for the new command wording and no secret-like examples.
+- `src/tests/cli/configure-mcp.test.js` — keep existing non-interactive assertions; add entry/help/non-TTY coverage or split into a new file.
+- `src/tests/cli/configure-mcp-interactive.test.js` (create if clearer) — direct `runCli()` / `runConfigureMcp()` tests with mocked prompt adapters and fake TTY streams.
+- `src/tests/global/mcp-interactive-wizard.test.js` (create) — pure wizard state-machine/service-mock tests.
+- `src/tests/global/mcp-secret-manager.test.js` — permission inspection/repair and fail-closed key-write behavior.
+- `src/tests/global/mcp-profile-materializer.test.js` — `both` scope, conflict, and idempotency result details if expanded.
+- `src/tests/runtime/capability-tools.test.js` — prove runtime read models reflect wizard-produced state and stay redacted.
+- `src/tests/runtime/governance-enforcement.test.js` — docs/help governance for the new command wording and no secret-like examples.
 
 ## Boundaries And Components
 
@@ -395,7 +395,7 @@ Implementation notes:
 
 ### [ ] Slice 1: CLI parser and shared MCP config service
 
-- **Files**: `src/global/mcp/mcp-configurator.js`, `src/global/mcp/mcp-config-service.js`, `src/cli/commands/configure.js`, `tests/cli/configure-mcp.test.js`.
+- **Files**: `src/global/mcp/mcp-configurator.js`, `src/global/mcp/mcp-config-service.js`, `src/cli/commands/configure.js`, `src/tests/cli/configure-mcp.test.js`.
 - **Goal**: add `--interactive` routing without changing existing non-interactive command semantics; extract shared service operations for wizard and existing actions.
 - **Validation Command**: `node --test tests/cli/configure-mcp.test.js`.
 - **Details**:
@@ -406,7 +406,7 @@ Implementation notes:
 
 ### [ ] Slice 2: Secret inspection, explicit repair, and hidden prompt helpers
 
-- **Files**: `src/global/mcp/secret-manager.js`, `src/global/mcp/interactive-prompts.js`, `src/global/mcp/redaction.js`, `tests/global/mcp-secret-manager.test.js`, `tests/cli/configure-mcp-interactive.test.js`.
+- **Files**: `src/global/mcp/secret-manager.js`, `src/global/mcp/interactive-prompts.js`, `src/global/mcp/redaction.js`, `src/tests/global/mcp-secret-manager.test.js`, `src/tests/cli/configure-mcp-interactive.test.js`.
 - **Goal**: make key entry hidden in TTY sessions, fail closed when safe input is unavailable, and expose explicit scoped secret-store repair.
 - **Validation Command**: `node --test tests/global/mcp-secret-manager.test.js && node --test tests/cli/configure-mcp-interactive.test.js`.
 - **Details**:
@@ -416,7 +416,7 @@ Implementation notes:
 
 ### [ ] Slice 3: Wizard state machine and inventory/status flow
 
-- **Files**: `src/global/mcp/wizard-state-machine.js`, `src/global/mcp/interactive-wizard.js`, `src/global/mcp/mcp-config-service.js`, `tests/global/mcp-interactive-wizard.test.js`, `tests/cli/configure-mcp-interactive.test.js`.
+- **Files**: `src/global/mcp/wizard-state-machine.js`, `src/global/mcp/interactive-wizard.js`, `src/global/mcp/mcp-config-service.js`, `src/tests/global/mcp-interactive-wizard.test.js`, `src/tests/cli/configure-mcp-interactive.test.js`.
 - **Goal**: implement the no-mutation startup inventory, scope selection, MCP selection, cancellation, refresh, and summary shell.
 - **Validation Command**: `node --test tests/global/mcp-interactive-wizard.test.js && node --test tests/cli/configure-mcp-interactive.test.js`.
 - **Details**:
@@ -426,7 +426,7 @@ Implementation notes:
 
 ### [ ] Slice 4: Wizard mutation actions, health tests, and per-scope summaries
 
-- **Files**: `src/global/mcp/interactive-wizard.js`, `src/global/mcp/mcp-config-service.js`, `src/global/mcp/profile-materializer.js` if per-scope detail needs refinement, `src/global/mcp/health-checks.js` if aggregate sanitized testing is needed, `tests/global/mcp-interactive-wizard.test.js`, `tests/cli/configure-mcp-interactive.test.js`, `tests/global/mcp-profile-materializer.test.js`.
+- **Files**: `src/global/mcp/interactive-wizard.js`, `src/global/mcp/mcp-config-service.js`, `src/global/mcp/profile-materializer.js` if per-scope detail needs refinement, `src/global/mcp/health-checks.js` if aggregate sanitized testing is needed, `src/tests/global/mcp-interactive-wizard.test.js`, `src/tests/cli/configure-mcp-interactive.test.js`, `src/tests/global/mcp-profile-materializer.test.js`.
 - **Goal**: support enable, disable, set/update key, unset key, test health, permission repair action, and final redacted summary with correct partial-failure semantics.
 - **Validation Command**: `node --test tests/global/mcp-interactive-wizard.test.js && node --test tests/cli/configure-mcp-interactive.test.js && node --test tests/global/mcp-profile-materializer.test.js`.
 - **Details**:
@@ -437,7 +437,7 @@ Implementation notes:
 
 ### [ ] Slice 5: Runtime read-model alignment and operator documentation
 
-- **Files**: `src/runtime/managers/mcp-health-manager.js`, `src/runtime/managers/capability-registry-manager.js`, `src/runtime/tools/capability/mcp-doctor.js`, `docs/operator/mcp-configuration.md`, `docs/operator/README.md`, `docs/operator/supported-surfaces.md`, `docs/operations/runbooks/openkit-daily-usage.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `context/core/project-config.md` if command reality needs a new bullet, `AGENTS.md` if repository-wide command facts change, `tests/runtime/capability-tools.test.js`, `tests/runtime/governance-enforcement.test.js`.
+- **Files**: `src/runtime/managers/mcp-health-manager.js`, `src/runtime/managers/capability-registry-manager.js`, `src/runtime/tools/capability/mcp-doctor.js`, `docs/operator/mcp-configuration.md`, `docs/operator/README.md`, `docs/operator/supported-surfaces.md`, `docs/operations/runbooks/openkit-daily-usage.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `src/context/core/project-config.md` if command reality needs a new bullet, `AGENTS.md` if repository-wide command facts change, `src/tests/runtime/capability-tools.test.js`, `src/tests/runtime/governance-enforcement.test.js`.
 - **Goal**: ensure runtime tooling reflects wizard-made state and operator docs explain the guided path, secret safety, non-TTY alternatives, and validation boundaries.
 - **Validation Command**: `node --test tests/runtime/capability-tools.test.js && node --test tests/runtime/governance-enforcement.test.js && npm run verify:governance`.
 - **Details**:
@@ -452,7 +452,7 @@ Implementation notes:
 - **Validation Command**: `npm run verify:install-bundle && npm run verify:governance && node --test tests/global/*.test.js && node --test tests/cli/*.test.js && node --test tests/runtime/capability-tools.test.js && npm run verify:all`.
 - **Details**:
   - If `npm run verify:all` fails because of unrelated environment/tooling availability, record the exact failing surface and run the narrower authoritative commands above.
-  - Because this feature touches secret handling and CLI input, Code Review should run direct `tool.security-scan` when available or document direct-tool unavailability and substitute evidence according to `context/core/tool-substitution-rules.md`.
+  - Because this feature touches secret handling and CLI input, Code Review should run direct `tool.security-scan` when available or document direct-tool unavailability and substitute evidence according to `src/context/core/tool-substitution-rules.md`.
   - Do not report any OpenKit CLI/runtime result as `target_project_app` validation.
 
 ## Dependency Graph
@@ -484,9 +484,9 @@ Task board recommendation: create a full-delivery task board for traceability wi
 | Hidden TTY key entry, cancellation, echo restoration, and fail-closed fallback | prompt-helper unit tests plus CLI integration with injected `promptSecret`/fake TTY streams | `global_cli` |
 | Secret store permission repair is scoped and safe | `node --test tests/global/mcp-secret-manager.test.js` | `global_cli` / local secret storage |
 | Set-key writes raw value only to local secret file and auto-enables after success | CLI/wizard tests plus profile/materializer assertions | `global_cli` |
-| Disable keeps stored key; unset-key does not disable MCP | existing and extended `tests/cli/configure-mcp.test.js` | `global_cli` |
-| `both` scope reports openkit/global success, conflict, skip, and failure separately | wizard/service tests and `tests/global/mcp-profile-materializer.test.js` | `global_cli` |
-| Health tests skip disabled/missing-key MCPs and sanitize failures | wizard/service tests plus `tests/runtime/capability-tools.test.js` where runtime read models apply | `global_cli` / `runtime_tooling` |
+| Disable keeps stored key; unset-key does not disable MCP | existing and extended `src/tests/cli/configure-mcp.test.js` | `global_cli` |
+| `both` scope reports openkit/global success, conflict, skip, and failure separately | wizard/service tests and `src/tests/global/mcp-profile-materializer.test.js` | `global_cli` |
+| Health tests skip disabled/missing-key MCPs and sanitize failures | wizard/service tests plus `src/tests/runtime/capability-tools.test.js` where runtime read models apply | `global_cli` / `runtime_tooling` |
 | Runtime capability tools reflect wizard-made state without wizard-specific state | `node --test tests/runtime/capability-tools.test.js` | `runtime_tooling` |
 | Docs explain wizard, direct OpenCode caveat, non-TTY alternatives, and no target-app validation claim | `node --test tests/runtime/governance-enforcement.test.js`; `npm run verify:governance` | `documentation` |
 | Package includes new source/docs/tests as needed | `npm run verify:install-bundle`; optionally `npm pack --dry-run` during release prep | `global_cli` / package surface |

@@ -25,7 +25,7 @@ parallel_mode: none
 
 ## Recommended Path
 
-Add one versioned, machine-readable OpenKit command permission policy and make all OpenKit-owned config/materialization/doctor checks project from that policy. The implementation should keep the OpenCode config output simple: generate the current supported `permission` map from the policy, apply it to global OpenKit-managed profile/config materialization, keep repo-local `.opencode/opencode.json` aligned as an authoring/compatibility surface, and make `openkit doctor` / targeted verification report whether the intended default-allow semantics are fully supported, degraded, or unsupported by the current OpenCode permission model.
+Add one versioned, machine-readable OpenKit command permission policy and make all OpenKit-owned config/materialization/doctor checks project from that policy. The implementation should keep the OpenCode config output simple: generate the current supported `permission` map from the policy, apply it to global OpenKit-managed profile/config materialization, keep repo-local `src/openkit-runtime/opencode.json` aligned as an authoring/compatibility surface, and make `openkit doctor` / targeted verification report whether the intended default-allow semantics are fully supported, degraded, or unsupported by the current OpenCode permission model.
 
 This is enough because existing implementation already has the necessary seams:
 
@@ -52,7 +52,7 @@ Do **not** design or implement a prompt broker, auto-confirm pseudo-terminal, or
 - `src/global/materialize.js` — generate global kit/profile `permission` config from the policy instead of hardcoding the list in `createOpenCodeConfig()`.
 - `src/global/paths.js` — add policy path helpers only if useful for doctor/materializer clarity.
 - `src/install/materialize.js` and `assets/opencode.json.template` — keep repository-local/manual install config aligned with policy projection.
-- `.opencode/opencode.json` — mirror the policy projection for checked-in authoring/compatibility.
+- `src/openkit-runtime/opencode.json` — mirror the policy projection for checked-in authoring/compatibility.
 - `package.json` — update `files` only if the chosen policy/helper path is not already covered. With the recommended `assets/` + `src/` paths, no package-file allowlist change should be required.
 
 ### Global config/profile sync and launch path
@@ -67,15 +67,15 @@ Do **not** design or implement a prompt broker, auto-confirm pseudo-terminal, or
 - `src/global/doctor.js` — add policy-source, materialized-profile, and upstream-support checks to `inspectGlobalDoctor()` and `renderGlobalDoctorSummary()`.
 - `src/runtime/doctor.js` — update managed install drift validation so local/manual install checks compare policy-derived permissions rather than stale hardcoded lists.
 - `src/runtime/doctor/install-doctor.js` — optional place to expose compact policy status in runtime doctor read models if implementation keeps install policy status separate from global doctor.
-- `tests/global/doctor.test.js` — assert healthy, degraded, missing, malformed, and drifted policy output.
-- `tests/global/ensure-install.test.js` — assert first-time materialization writes policy-derived global kit/profile config.
-- `tests/install/materialize.test.js`, `tests/install/merge-policy.test.js`, and `tests/runtime/doctor.test.js` — update expected permission output and drift checks.
-- New focused tests, recommended: `tests/global/command-permission-policy.test.js` and/or `tests/install/command-permission-policy.test.js` for schema, projection, dangerous entries, and unsupported-granularity reporting.
+- `src/tests/global/doctor.test.js` — assert healthy, degraded, missing, malformed, and drifted policy output.
+- `src/tests/global/ensure-install.test.js` — assert first-time materialization writes policy-derived global kit/profile config.
+- `src/tests/install/materialize.test.js`, `src/tests/install/merge-policy.test.js`, and `src/tests/runtime/doctor.test.js` — update expected permission output and drift checks.
+- New focused tests, recommended: `src/tests/global/command-permission-policy.test.js` and/or `src/tests/install/command-permission-policy.test.js` for schema, projection, dangerous entries, and unsupported-granularity reporting.
 
 ### Documentation and package sync
 
-- `context/core/project-config.md` — update the Permission Policy section to reference the canonical policy file and global materialization path.
-- `context/core/runtime-surfaces.md` — mention command permission policy health under `global_cli` / `package` / `documentation` validation surfaces if needed.
+- `src/context/core/project-config.md` — update the Permission Policy section to reference the canonical policy file and global materialization path.
+- `src/context/core/runtime-surfaces.md` — mention command permission policy health under `global_cli` / `package` / `documentation` validation surfaces if needed.
 - `docs/operator/supported-surfaces.md` and `docs/operator/surface-contract.md` — describe default allow, confirm-required dangerous categories, OpenCode-owned `Always Allow`, and upstream limitation handling.
 - `docs/operator/README.md` — update only if onboarding/default behavior wording changes.
 - `docs/maintainer/test-matrix.md` — add a row or note for command permission policy/materialization changes.
@@ -87,8 +87,8 @@ Do **not** design or implement a prompt broker, auto-confirm pseudo-terminal, or
 
 - **Canonical source:** `assets/default-command-permission-policy.json` is the product source of truth. Static config files may carry materialized projections, but tests must prevent them from drifting from the policy.
 - **Projection over scattered lists:** hardcoded permission maps in `src/global/materialize.js`, `src/runtime/doctor.js`, install templates, and test fixtures should be replaced or validated against the policy projection.
-- **Global product path first:** passing implementation requires global OpenKit-managed profile/config coverage. Updating only `.opencode/opencode.json` is insufficient.
-- **Repo-local config is compatibility/authoring:** `.opencode/opencode.json` should align with the policy, but it must not be described as the primary operator target for globally installed OpenKit.
+- **Global product path first:** passing implementation requires global OpenKit-managed profile/config coverage. Updating only `src/openkit-runtime/opencode.json` is insufficient.
+- **Repo-local config is compatibility/authoring:** `src/openkit-runtime/opencode.json` should align with the policy, but it must not be described as the primary operator target for globally installed OpenKit.
 - **No OpenCode prompt control:** OpenKit writes config and reports health. It does not intercept prompts, auto-answer confirmations, or create permission memory beyond OpenCode's own `Always Allow` behavior.
 - **Git/release safety remains separate:** command permission defaults do not authorize commits, amend, destructive git, force-push, release publish, or deploy operations. Existing agent safety protocol remains binding even if OpenCode config says a command is allowed.
 - **Honest semantics:** if upstream OpenCode supports only a flat permission map, implementation may project known `allow` and `ask` entries but must label true default-allow-with-exceptions as `degraded` or `unsupported` where applicable.
@@ -199,7 +199,7 @@ If OpenCode can only match exact command keys and cannot distinguish arguments o
 
 - **Risk: upstream OpenCode does not support true default-allow exception semantics.** Mitigation: policy report uses `degraded`/`unsupported`, doctor prints a visible limitation, and docs avoid claiming prompt-free execution when it cannot be proven.
 - **Risk: broad `bash: allow` bypasses dangerous subcommand entries.** Mitigation: policy inspection must flag broad-shell allow plus unsupported subcommand matching as degraded; do not claim dangerous shell forms are protected unless OpenCode can enforce them.
-- **Risk: policy/config drift.** Mitigation: generated projections and tests compare `.opencode/opencode.json`, `assets/opencode.json.template`, global materialization output, and doctor expected assets to the canonical policy.
+- **Risk: policy/config drift.** Mitigation: generated projections and tests compare `src/openkit-runtime/opencode.json`, `assets/opencode.json.template`, global materialization output, and doctor expected assets to the canonical policy.
 - **Risk: user-managed global OpenCode config conflicts.** Mitigation: preserve existing non-OpenKit-owned config, report conflict/drift, and recommend `openkit upgrade` or manual review; do not overwrite silently.
 - **Risk: expanding dangerous list becomes speculative.** Mitigation: keep entries categorized, reviewable, and support-labeled; unsupported categories are visible limitations, not implementation failures hidden in prose.
 - **Trade-off: a flat config projection may still enumerate routine allow examples.** Accepted for MVP only as a compatibility projection. The canonical policy remains default-allow intent and doctor must label any flat-map fallback as degraded if true default semantics are unavailable.
@@ -208,7 +208,7 @@ If OpenCode can only match exact command keys and cannot distinguish arguments o
 
 ### [ ] Slice 1: Canonical policy and projection helper
 
-- **Files**: `assets/default-command-permission-policy.json`, `src/permissions/command-permission-policy.js`, `tests/global/command-permission-policy.test.js` or `tests/install/command-permission-policy.test.js`.
+- **Files**: `assets/default-command-permission-policy.json`, `src/permissions/command-permission-policy.js`, `src/tests/global/command-permission-policy.test.js` or `src/tests/install/command-permission-policy.test.js`.
 - **Goal**: define the policy source and shared validation/projection/inspection helper before changing materialization.
 - **Validation Command**: `node --test tests/global/command-permission-policy.test.js tests/install/command-permission-policy.test.js` using whichever new test files are created.
 - **Details**:
@@ -219,7 +219,7 @@ If OpenCode can only match exact command keys and cannot distinguish arguments o
 
 ### [ ] Slice 2: Global materialization and repo-local config alignment
 
-- **Files**: `src/global/materialize.js`, `src/global/mcp/profile-materializer.js` if preservation needs hardening, `src/install/materialize.js`, `assets/opencode.json.template`, `.opencode/opencode.json`, and affected materialization tests.
+- **Files**: `src/global/materialize.js`, `src/global/mcp/profile-materializer.js` if preservation needs hardening, `src/install/materialize.js`, `assets/opencode.json.template`, `src/openkit-runtime/opencode.json`, and affected materialization tests.
 - **Goal**: make first-time global install, `openkit run`, `install-global`, and `upgrade` write policy-derived permissions to OpenKit-owned config/profile surfaces, while repo-local compatibility config stays aligned.
 - **Validation Command**: `node --test tests/global/ensure-install.test.js tests/install/materialize.test.js tests/install/merge-policy.test.js tests/runtime/doctor.test.js`.
 - **Details**:
@@ -227,11 +227,11 @@ If OpenCode can only match exact command keys and cannot distinguish arguments o
   - Ensure `<OPENCODE_HOME>/kits/openkit/opencode.json` and `<OPENCODE_HOME>/profiles/openkit/opencode.json` carry the same policy-derived permission projection after `materializeGlobalInstall()`.
   - Ensure MCP profile materialization preserves the permission section when adding/removing MCP entries.
   - Local/manual install merge policy should continue fail-closed behavior for unsupported user-owned rewrites.
-  - Repo-local `.opencode/opencode.json` remains compatibility/authoring, not the only passing target.
+  - Repo-local `src/openkit-runtime/opencode.json` remains compatibility/authoring, not the only passing target.
 
 ### [ ] Slice 3: Doctor, verification, and drift visibility
 
-- **Files**: `src/global/doctor.js`, `src/runtime/doctor.js`, `src/runtime/doctor/install-doctor.js` if used, `tests/global/doctor.test.js`, `tests/runtime/doctor.test.js`, and policy tests from Slice 1.
+- **Files**: `src/global/doctor.js`, `src/runtime/doctor.js`, `src/runtime/doctor/install-doctor.js` if used, `src/tests/global/doctor.test.js`, `src/tests/runtime/doctor.test.js`, and policy tests from Slice 1.
 - **Goal**: make `openkit doctor` and runtime doctor checks expose policy presence, parse/schema health, materialized config alignment, dangerous-entry coverage, routine allow/default-allow projection, and upstream support limitations.
 - **Validation Command**: `node --test tests/global/doctor.test.js tests/runtime/doctor.test.js tests/global/command-permission-policy.test.js`.
 - **Details**:
@@ -242,7 +242,7 @@ If OpenCode can only match exact command keys and cannot distinguish arguments o
 
 ### [ ] Slice 4: Documentation, package checks, and governance alignment
 
-- **Files**: `context/core/project-config.md`, `context/core/runtime-surfaces.md` if needed, `docs/operator/supported-surfaces.md`, `docs/operator/surface-contract.md`, `docs/operator/README.md` if needed, `docs/maintainer/test-matrix.md`, relevant `docs/kit-internals/*`, `AGENTS.md` only if current-state bullets change, and install-bundle copies if bundled source docs/prompts change.
+- **Files**: `src/context/core/project-config.md`, `src/context/core/runtime-surfaces.md` if needed, `docs/operator/supported-surfaces.md`, `docs/operator/surface-contract.md`, `docs/operator/README.md` if needed, `docs/maintainer/test-matrix.md`, relevant `docs/kit-internals/*`, `AGENTS.md` only if current-state bullets change, and install-bundle copies if bundled source docs/prompts change.
 - **Goal**: document the product contract and validation surface split without changing workflow/lane semantics or safety protocol.
 - **Validation Command**: `npm run verify:governance && npm run verify:install-bundle` if install-bundle-covered files changed.
 - **Details**:
@@ -279,7 +279,7 @@ If OpenCode can only match exact command keys and cannot distinguish arguments o
 | --- | --- | --- |
 | AC1 canonical machine-readable policy | Policy schema/projection tests; package dry run if needed | `package` |
 | AC2 global installed runtime uses policy | `node --test tests/global/ensure-install.test.js tests/global/doctor.test.js` | `global_cli` |
-| AC3 repo-local config not only target | Global tests plus `.opencode/opencode.json` alignment test | `global_cli` / `compatibility_runtime` |
+| AC3 repo-local config not only target | Global tests plus `src/openkit-runtime/opencode.json` alignment test | `global_cli` / `compatibility_runtime` |
 | AC4 routine commands avoid repeated confirmation where supported | Policy projection tests and doctor support status; manual OpenCode prompt behavior only if upstream supports observable test path | `global_cli` / upstream caveat |
 | AC5 delete/data-loss commands ask | Policy tests assert `rm`, `rmdir`, `unlink` coverage or unsupported-granularity entries; doctor shows confirm-required coverage | `package` / `global_cli` |
 | AC6 destructive git asks and git protocol unchanged | Policy tests for destructive git entries; docs/governance review for unchanged safety protocol | `package` / `documentation` |
@@ -335,7 +335,7 @@ Before Code Review, FullstackAgent should provide one compact evidence note cove
 ## Reviewer Focus Points
 
 - Verify every materialized permission map is derived from or checked against `assets/default-command-permission-policy.json`.
-- Verify global profile/config materialization is tested; `.opencode/opencode.json` alone must not satisfy acceptance.
+- Verify global profile/config materialization is tested; `src/openkit-runtime/opencode.json` alone must not satisfy acceptance.
 - Verify doctor reports missing/malformed/drifted policy and upstream unsupported/defaultAction limitations without overclaiming.
 - Verify broad allowed commands such as `bash` do not lead docs/tests to claim dangerous shell forms are protected unless OpenCode can enforce exceptions.
 - Verify no implementation answers prompts, shells through a pseudo-terminal to auto-confirm, or creates hidden approval memory.

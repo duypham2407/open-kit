@@ -16,12 +16,12 @@ approval_gate: solution_to_fullstack
 Inspected source of truth and workflow surfaces:
 
 - `docs/scope/2026-04-29-agent-model-profiles.md`: approved Product Lead scope, stories, acceptance criteria, edge cases, and validation-surface constraints.
-- `context/core/workflow.md`: full-delivery stage contract, Solution Lead output expectations, approval gate `solution_to_fullstack`, and task-board parallelization semantics.
+- `src/context/core/workflow.md`: full-delivery stage contract, Solution Lead output expectations, approval gate `solution_to_fullstack`, and task-board parallelization semantics.
 - `package.json`: available repository commands and test surfaces.
 
 Inspected global CLI and launch surfaces:
 
-- `bin/openkit.js`: delegates all CLI entry to `src/cli/index.js`.
+- `src/bin/openkit.js`: delegates all CLI entry to `src/cli/index.js`.
 - `src/cli/index.js`: command registry currently includes `run`, `configure`, `configure-agent-models`, and other global commands, but no `profiles` command yet.
 - `src/cli/commands/configure-agent-models.js`: existing interactive agent-model setup, argument parsing, `opencode models` discovery, provider/model grouping, variant selection, prompt adapter, and global install guard.
 - `src/cli/commands/run.js`: `openkit run` entrypoint and launch handoff to `launchGlobalOpenKit`.
@@ -33,21 +33,21 @@ Inspected agent-model and runtime surfaces:
 - `src/global/agent-models.js`: current persisted per-agent model override store, catalog reading from global `registry.json`, model id validation, two-entry per-agent `profiles` helper, and launch config override builder.
 - `src/runtime/config-validation.js`: current validation for `agentModels`, fallback fields, auto-fallback, and per-agent `profiles` array.
 - `src/runtime/profile-switch-cli.js`: existing session-local per-agent profile-switch CLI backed by workspace state and `openkit.runtime.jsonc` per-agent profile counts.
-- `src/runtime/managers/agent-profile-switch-manager.js`: existing workspace-local manual selections stored in `.opencode/agent-profile-switches.json`, keyed by agent id and profile index.
+- `src/runtime/managers/agent-profile-switch-manager.js`: existing workspace-local manual selections stored in `src/openkit-runtime/agent-profile-switches.json`, keyed by agent id and profile index.
 - `src/runtime/tools/models/profile-switch.js`: existing runtime tool that lists/toggles per-agent profile entries in resolved model runtime state.
 - `src/install/runtime-profile-materializer.js`: simple runtime profile materialization helper, not directly sufficient for this feature.
 
 Inspected command and install-bundle surfaces:
 
-- `commands/configure-agent-models.md`: existing in-session documentation command for model configuration.
-- `commands/*.md` and `assets/install-bundle/opencode/commands/*.md`: no `/switch-profiles` command exists yet in repository or install bundle.
+- `src/commands/configure-agent-models.md`: existing in-session documentation command for model configuration.
+- `src/commands/*.md` and `assets/install-bundle/opencode/commands/*.md`: no `/switch-profiles` command exists yet in repository or install bundle.
 
 Inspected tests:
 
-- `tests/cli/configure-agent-models.test.js`: tests current CLI interactive model selection with fake `opencode models` output and prompt injection.
-- `tests/global/agent-models.test.js`: tests current agent-model persistence, variants, fallback policy, per-agent quick-switch profiles, catalog reading, and model id validation.
-- `tests/cli/run-options.test.js`, `tests/cli/openkit-cli.test.js`, `tests/cli/run*.test.js` discovered by test glob as relevant places for run/CLI registration coverage.
-- `tests/runtime/*.test.js` discovered runtime test surface for model/runtime/session behavior additions.
+- `src/tests/cli/configure-agent-models.test.js`: tests current CLI interactive model selection with fake `opencode models` output and prompt injection.
+- `src/tests/global/agent-models.test.js`: tests current agent-model persistence, variants, fallback policy, per-agent quick-switch profiles, catalog reading, and model id validation.
+- `src/tests/cli/run-options.test.js`, `src/tests/cli/openkit-cli.test.js`, `src/tests/cli/run*.test.js` discovered by test glob as relevant places for run/CLI registration coverage.
+- `src/tests/runtime/*.test.js` discovered runtime test surface for model/runtime/session behavior additions.
 
 Stray scaffold discovered:
 
@@ -73,7 +73,7 @@ Expected source additions:
 - `src/cli/commands/profiles.js`: new `openkit profiles` command with `--create`, `--edit`, `--list`, `--delete`, `--set-default`, and help text.
 - `src/cli/commands/agent-model-selection.js` or equivalent shared helper: extracted provider/model discovery and prompt helpers from `configure-agent-models.js` for reuse by both commands.
 - `src/runtime/managers/session-profile-manager.js` or replacement of the narrow `AgentProfileSwitchManager`: workspace/session active profile state for `/switch-profiles`.
-- `commands/switch-profiles.md`: in-session command definition for interactive profile switching.
+- `src/commands/switch-profiles.md`: in-session command definition for interactive profile switching.
 
 Expected source changes:
 
@@ -87,11 +87,11 @@ Expected source changes:
 
 Expected test additions/updates:
 
-- `tests/global/agent-model-profiles.test.js`: store contract, default handling, partial fallback resolution, invalid/missing model detection, delete-safety predicate behavior.
-- `tests/cli/profiles.test.js`: command registration, list/create/edit/delete/default flows, prompt cancellation, duplicate names, model-choice source reuse.
-- `tests/cli/run-options.test.js` or `tests/cli/openkit-cli.test.js`: CLI registration/help coverage as needed.
-- `tests/runtime/profile-switch.test.js` or focused runtime manager tests: session-only switch state and active profile isolation.
-- `tests/global/agent-models.test.js` and `tests/cli/configure-agent-models.test.js`: regression coverage after helper extraction.
+- `src/tests/global/agent-model-profiles.test.js`: store contract, default handling, partial fallback resolution, invalid/missing model detection, delete-safety predicate behavior.
+- `src/tests/cli/profiles.test.js`: command registration, list/create/edit/delete/default flows, prompt cancellation, duplicate names, model-choice source reuse.
+- `src/tests/cli/run-options.test.js` or `src/tests/cli/openkit-cli.test.js`: CLI registration/help coverage as needed.
+- `src/tests/runtime/profile-switch.test.js` or focused runtime manager tests: session-only switch state and active profile isolation.
+- `src/tests/global/agent-models.test.js` and `src/tests/cli/configure-agent-models.test.js`: regression coverage after helper extraction.
 
 ## Data And Config Contract
 
@@ -262,7 +262,7 @@ Objective: Add in-session interactive profile switching with current-session-onl
 
 Tasks:
 
-- Add `commands/switch-profiles.md` and install-bundle counterpart.
+- Add `src/commands/switch-profiles.md` and install-bundle counterpart.
 - Implement runtime command/tool support for listing global profiles and selecting one interactively in-session.
 - Write selected profile to workspace/session state only.
 - Ensure selected profile immediately affects subsequent model resolution in the current runtime session.
@@ -296,7 +296,7 @@ Objective: Align command docs, install bundle, and end-to-end validation.
 Tasks:
 
 - Update CLI help tests and any operator docs that list global CLI commands if they exist in current docs.
-- Ensure `commands/switch-profiles.md` is included in `assets/install-bundle/opencode/commands/` through `npm run sync:install-bundle` or equivalent source-preserving update.
+- Ensure `src/commands/switch-profiles.md` is included in `assets/install-bundle/opencode/commands/` through `npm run sync:install-bundle` or equivalent source-preserving update.
 - Run targeted and broader OpenKit verification commands listed in the validation matrix.
 - Record unavailable target-project app validation explicitly in handoff/QA evidence.
 
@@ -336,9 +336,9 @@ Use targeted `node --test ...` commands during slices, then run the broader comm
 
 | AC | Scope Requirement | Implementation Slice | Validation |
 | --- | --- | --- | --- |
-| AC-01 | Profiles are global to OpenKit | SLICE-02, SLICE-03 | `tests/global/agent-model-profiles.test.js`, `tests/cli/profiles.test.js` with temp `OPENCODE_HOME`. |
-| AC-02 | Short management CLI | SLICE-03 | `tests/cli/profiles.test.js`, `tests/cli/openkit-cli.test.js`. |
-| AC-03 | Interactive create/edit UX | SLICE-01, SLICE-03 | `tests/cli/profiles.test.js` prompt-injection flows. |
+| AC-01 | Profiles are global to OpenKit | SLICE-02, SLICE-03 | `src/tests/global/agent-model-profiles.test.js`, `src/tests/cli/profiles.test.js` with temp `OPENCODE_HOME`. |
+| AC-02 | Short management CLI | SLICE-03 | `src/tests/cli/profiles.test.js`, `src/tests/cli/openkit-cli.test.js`. |
+| AC-03 | Interactive create/edit UX | SLICE-01, SLICE-03 | `src/tests/cli/profiles.test.js` prompt-injection flows. |
 | AC-04 | Valid model choices from configured list | SLICE-01, SLICE-03 | Fake `opencode models` tests proving arbitrary undiscovered model ids are not accepted in profile wizard. |
 | AC-05 | Partial profile fallback | SLICE-02, SLICE-04 | Store/resolver tests and launcher config layering tests. |
 | AC-06 | Global default startup | SLICE-04 | Launcher test asserting default profile active on `openkit run`. |
@@ -359,7 +359,7 @@ Risks:
 - Applying profile changes immediately inside an already-running OpenCode session may be limited by how runtime model resolution is cached. Fullstack must verify whether subsequent agent invocations read session state dynamically; if not, add the smallest runtime invalidation/resolution seam rather than restarting the session.
 - Running-session delete safety depends on reliable session liveness. If liveness is ambiguous, block deletion with guidance rather than risk deleting an active profile.
 - Existing per-agent quick-switch state and new named global profiles can be confused. Keep names, files, and command text distinct.
-- Install-bundle drift is likely if command docs are added only under `commands/`. Run bundle verification.
+- Install-bundle drift is likely if command docs are added only under `src/commands/`. Run bundle verification.
 
 Rollback plan:
 
@@ -409,6 +409,6 @@ Minimum handoff evidence expected from Fullstack:
 
 - Changed file list grouped by slice.
 - Test output for targeted new tests.
-- Regression output for `tests/cli/configure-agent-models.test.js` and relevant launcher/runtime tests.
+- Regression output for `src/tests/cli/configure-agent-models.test.js` and relevant launcher/runtime tests.
 - Install-bundle verification output if command docs are added.
 - Explicit note that target-project app validation is unavailable for this OpenKit feature.

@@ -28,13 +28,13 @@ Add a shared, pure capability-guidance summary builder that reads existing OpenK
 
 This is enough because the repository already has the required foundations:
 
-- session-start output in `hooks/session-start.js` and `hooks/session-start`
-- compatibility runtime summaries in `.opencode/lib/runtime-summary.js`, `.opencode/lib/runtime-guidance.js`, and `.opencode/workflow-state.js`
+- session-start output in `src/hooks/session-start.js` and `src/hooks/session-start`
+- compatibility runtime summaries in `src/openkit-runtime/lib/runtime-summary.js`, `src/openkit-runtime/lib/runtime-guidance.js`, and `src/openkit-runtime/workflow-state.js`
 - in-session runtime summary tool in `src/runtime/tools/workflow/runtime-summary.js`
 - capability inventory/router/health/skill-index tools under `src/runtime/tools/capability/`
 - catalog metadata from `src/capabilities/skill-catalog.js` and `src/capabilities/mcp-catalog.js`
 - custom MCP inventory/status labeling through `src/global/mcp/mcp-inventory.js`, `src/global/mcp/health-checks.js`, and `src/runtime/managers/mcp-health-manager.js`
-- current validation commands in `package.json`, `.opencode/tests/`, and `tests/`
+- current validation commands in `package.json`, `src/openkit-runtime/tests/`, and `src/tests/`
 
 Do **not** add a marketplace, keychain, custom MCP expansion, new lane/stage enum, automatic health probe requiring provider/network calls, or target-project application validation claim.
 
@@ -97,23 +97,23 @@ Required refresh paths in output:
 
 ### Session-start hook
 
-- `hooks/session-start.js`
+- `src/hooks/session-start.js`
   - render `<openkit_capability_guidance>` after `<openkit_runtime_status>` and before large optional skill/tool-rule blocks
   - fail open: if the helper cannot load or metadata is unavailable, print a short degraded/unavailable guidance block and keep session startup successful
   - use dynamic import or an equivalent guarded loading path so helper failure cannot crash startup
-- `hooks/session-start`
+- `src/hooks/session-start`
   - no expected change unless wrapper behavior must pass through environment flags
-- `.opencode/tests/session-start-hook.test.js`
+- `src/openkit-runtime/tests/session-start-hook.test.js`
   - add compact output, role/stage, redaction, no-catalog-dump, and degraded-helper coverage
 
 ### Runtime summary / compatibility runtime
 
-- `.opencode/lib/runtime-summary.js`
+- `src/openkit-runtime/lib/runtime-summary.js`
   - add `capabilityGuidance` structured model and `capabilityGuidanceLines` to `getRuntimeContext(...)`
   - maintain existing task-board, migration-slice, scan-evidence, supervisor, artifact, and verification read models
-- `.opencode/lib/runtime-guidance.js`
+- `src/openkit-runtime/lib/runtime-guidance.js`
   - add small role/stage guardrail constants only if shared with readiness guidance; avoid duplicating the full workflow contract
-- `.opencode/workflow-state.js`
+- `src/openkit-runtime/workflow-state.js`
   - print compact guidance lines in `status`, `resume-summary`, and `show` where runtime context is already printed
   - include `capability_guidance` in `resume-summary --json`
   - preserve `status --short` compactness; at most one short line there if implemented
@@ -143,21 +143,21 @@ Required refresh paths in output:
 - `docs/maintainer/test-matrix.md`
 - `docs/maintainer/role-skill-matrix.md`
 - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`
-- `context/core/project-config.md`
-- `context/core/runtime-surfaces.md`
+- `src/context/core/project-config.md`
+- `src/context/core/runtime-surfaces.md`
 - `docs/governance/skill-metadata.md`
 - `docs/governance/README.md` if governance index needs a pointer
-- `tests/runtime/governance-enforcement.test.js`
+- `src/tests/runtime/governance-enforcement.test.js`
 
 ### Tests
 
-- `.opencode/tests/session-start-hook.test.js`
-- `.opencode/tests/workflow-state-cli.test.js`
-- `tests/runtime/capability-tools.test.js`
-- `tests/runtime/capability-registry.test.js` only if runtime interface/capability summary shape changes
-- `tests/runtime/runtime-platform.test.js` if runtime summary tool or runtime interface expectations change
-- `tests/runtime/governance-enforcement.test.js`
-- `tests/cli/openkit-cli.test.js` only if packaged `openkit run` hook wiring/help text changes
+- `src/openkit-runtime/tests/session-start-hook.test.js`
+- `src/openkit-runtime/tests/workflow-state-cli.test.js`
+- `src/tests/runtime/capability-tools.test.js`
+- `src/tests/runtime/capability-registry.test.js` only if runtime interface/capability summary shape changes
+- `src/tests/runtime/runtime-platform.test.js` if runtime summary tool or runtime interface expectations change
+- `src/tests/runtime/governance-enforcement.test.js`
+- `src/tests/cli/openkit-cli.test.js` only if packaged `openkit run` hook wiring/help text changes
 
 ## Prompt And Content Design
 
@@ -338,7 +338,7 @@ Do not persist high-volume skill/MCP records in this model. Detail paths remain 
   - `src/runtime/managers/capability-registry-manager.js`
   - `src/runtime/tools/capability/capability-router.js` only if explicit summary input is added
   - `src/mcp-server/tool-schemas.js` only if router input schema changes
-  - `tests/runtime/capability-tools.test.js`
+  - `src/tests/runtime/capability-tools.test.js`
 - **Goal**: produce a reusable, bounded, role/stage-aware guidance read model from existing catalog and MCP inventory metadata.
 - **Dependencies**: none.
 - **Validation Command**:
@@ -354,9 +354,9 @@ Do not persist high-volume skill/MCP records in this model. Detail paths remain 
 
 - **Executable task id**: `TASK-F949-SESSION-START`
 - **Files**:
-  - `hooks/session-start.js`
-  - `hooks/session-start` only if wrapper env passthrough changes are needed
-  - `.opencode/tests/session-start-hook.test.js`
+  - `src/hooks/session-start.js`
+  - `src/hooks/session-start` only if wrapper env passthrough changes are needed
+  - `src/openkit-runtime/tests/session-start-hook.test.js`
 - **Goal**: print compact startup capability guidance without blocking session startup or triggering hidden activation.
 - **Dependencies**: `TASK-F949-GUIDANCE-BUILDER`.
 - **Validation Command**:
@@ -371,13 +371,13 @@ Do not persist high-volume skill/MCP records in this model. Detail paths remain 
 
 - **Executable task id**: `TASK-F949-RUNTIME-SUMMARY`
 - **Files**:
-  - `.opencode/lib/runtime-summary.js`
-  - `.opencode/lib/runtime-guidance.js` only if role/stage constants are shared there
-  - `.opencode/workflow-state.js`
+  - `src/openkit-runtime/lib/runtime-summary.js`
+  - `src/openkit-runtime/lib/runtime-guidance.js` only if role/stage constants are shared there
+  - `src/openkit-runtime/workflow-state.js`
   - `src/runtime/tools/workflow/runtime-summary.js` only if tool metadata/description changes are needed
   - `src/runtime/create-runtime-interface.js` if runtime interface should expose the same compact guidance summary
-  - `.opencode/tests/workflow-state-cli.test.js`
-  - `tests/runtime/runtime-platform.test.js` if runtime tool/interface assertions change
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
+  - `src/tests/runtime/runtime-platform.test.js` if runtime tool/interface assertions change
 - **Goal**: expose the same compact guidance through runtime summaries and resume/status surfaces.
 - **Dependencies**: `TASK-F949-GUIDANCE-BUILDER`.
 - **Validation Command**:
@@ -401,11 +401,11 @@ Do not persist high-volume skill/MCP records in this model. Detail paths remain 
   - `docs/maintainer/test-matrix.md`
   - `docs/maintainer/role-skill-matrix.md`
   - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`
-  - `context/core/project-config.md`
-  - `context/core/runtime-surfaces.md`
+  - `src/context/core/project-config.md`
+  - `src/context/core/runtime-surfaces.md`
   - `docs/governance/skill-metadata.md`
   - `docs/governance/README.md` if index update is needed
-  - `tests/runtime/governance-enforcement.test.js`
+  - `src/tests/runtime/governance-enforcement.test.js`
 - **Goal**: document advisory router behavior, lazy activation, compact output, role/stage boundaries, custom MCP visibility, stale snapshot caveats, redaction, and validation-surface boundaries.
 - **Dependencies**: `TASK-F949-GUIDANCE-BUILDER`; may draft after Slice 1 but should finalize after Slices 2 and 3 stabilize wording.
 - **Validation Command**:
@@ -469,10 +469,10 @@ Create a full-delivery task board for `feature-949` after solution approval if t
 
 | Task ID | Title | Kind | Depends On | Primary artifact refs | Primary validation |
 | --- | --- | --- | --- | --- | --- |
-| `TASK-F949-GUIDANCE-BUILDER` | Build compact capability guidance summary model | `implementation` | none | `src/runtime/tools/capability/capability-router-summary.js`, `src/runtime/managers/capability-registry-manager.js`, `tests/runtime/capability-tools.test.js` | capability tools tests |
-| `TASK-F949-SESSION-START` | Integrate compact guidance into session-start | `implementation` | `TASK-F949-GUIDANCE-BUILDER` | `hooks/session-start.js`, `.opencode/tests/session-start-hook.test.js` | session-start hook tests |
-| `TASK-F949-RUNTIME-SUMMARY` | Expose guidance through runtime/workflow summaries | `implementation` | `TASK-F949-GUIDANCE-BUILDER` | `.opencode/lib/runtime-summary.js`, `.opencode/workflow-state.js`, runtime summary tests | workflow-state/runtime-platform tests |
-| `TASK-F949-DOCS-GOVERNANCE` | Document advisory guidance and boundaries | `documentation` | `TASK-F949-GUIDANCE-BUILDER` | `docs/`, `context/core/`, governance tests | governance tests |
+| `TASK-F949-GUIDANCE-BUILDER` | Build compact capability guidance summary model | `implementation` | none | `src/runtime/tools/capability/capability-router-summary.js`, `src/runtime/managers/capability-registry-manager.js`, `src/tests/runtime/capability-tools.test.js` | capability tools tests |
+| `TASK-F949-SESSION-START` | Integrate compact guidance into session-start | `implementation` | `TASK-F949-GUIDANCE-BUILDER` | `src/hooks/session-start.js`, `src/openkit-runtime/tests/session-start-hook.test.js` | session-start hook tests |
+| `TASK-F949-RUNTIME-SUMMARY` | Expose guidance through runtime/workflow summaries | `implementation` | `TASK-F949-GUIDANCE-BUILDER` | `src/openkit-runtime/lib/runtime-summary.js`, `src/openkit-runtime/workflow-state.js`, runtime summary tests | workflow-state/runtime-platform tests |
+| `TASK-F949-DOCS-GOVERNANCE` | Document advisory guidance and boundaries | `documentation` | `TASK-F949-GUIDANCE-BUILDER` | `docs/`, `src/context/core/`, governance tests | governance tests |
 | `TASK-F949-INTEGRATION` | Run integrated validation and record evidence | `verification` | all prior tasks | workflow evidence and handoff refs | focused tests, `verify:governance`, `verify:runtime-foundation`, `verify:all` when available |
 
 Keep only one task active at a time. If implementation discovers the builder must touch additional shared catalog/status files, pause and update the board/artifact refs before proceeding.
@@ -481,7 +481,7 @@ Keep only one task active at a time. If implementation discovers the builder mus
 
 | Acceptance / risk target | Validation surface | Proof path |
 | --- | --- | --- |
-| Session-start shows compact grouped capability guidance | `global_cli` / hook behavior | `.opencode/tests/session-start-hook.test.js` with `OPENKIT_SESSION_START_NO_SKILL=1` and bounded block assertions |
+| Session-start shows compact grouped capability guidance | `global_cli` / hook behavior | `src/openkit-runtime/tests/session-start-hook.test.js` with `OPENKIT_SESSION_START_NO_SKILL=1` and bounded block assertions |
 | No full skill/MCP/custom catalog dump | `global_cli` / `runtime_tooling` | builder tests and session-start tests assert line/char caps and bounded names/counts |
 | No hidden skill activation | `global_cli` / `runtime_tooling` | tests assert no recommended skill body text appears and wording says explicit load/call required |
 | No MCP tool execution at startup | `global_cli` | session-start tests assert advisory language and no “ran/verified/healthy now” claim without explicit check |
@@ -492,8 +492,8 @@ Keep only one task active at a time. If implementation discovers the builder mus
 | Custom MCP visibility is custom/origin-labeled | `runtime_tooling` | capability tools tests with custom MCP fixture asserting `kind=custom`, origin, ownership, no bundled-default wording |
 | Raw secrets never appear | `global_cli` / `runtime_tooling` / `documentation` | sentinel tests across session-start, builder/runtime summary, docs examples, and workflow output |
 | Stale startup snapshot caveat appears | `global_cli` / `compatibility_runtime` | session-start and workflow-state output tests assert snapshot/refresh wording |
-| Runtime summaries expose guidance with surface labels | `compatibility_runtime` | `.opencode/tests/workflow-state-cli.test.js`; `tool.runtime-summary` runtime-platform test if touched |
-| Docs explain advisory/lazy/compact/redacted boundaries | `documentation` | `tests/runtime/governance-enforcement.test.js`; `npm run verify:governance` |
+| Runtime summaries expose guidance with surface labels | `compatibility_runtime` | `src/openkit-runtime/tests/workflow-state-cli.test.js`; `tool.runtime-summary` runtime-platform test if touched |
+| Docs explain advisory/lazy/compact/redacted boundaries | `documentation` | `src/tests/runtime/governance-enforcement.test.js`; `npm run verify:governance` |
 | Target app validation is not claimed | `documentation` / `compatibility_runtime` | docs/evidence assertions state `target_project_app` unavailable |
 
 ## Integration Checkpoint

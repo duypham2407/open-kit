@@ -4,7 +4,7 @@ import {
   readSupervisorDialogueStore,
   recordSupervisorEventDeliveryAttempt,
   updateSupervisorSession,
-} from '../../../.opencode/lib/supervisor-dialogue-store.js';
+} from '../../openkit-runtime/lib/supervisor-dialogue-store.js';
 
 const FAILURE_STATUSES = new Set(['timeout', 'invalid_response', 'unavailable', 'degraded', 'error']);
 

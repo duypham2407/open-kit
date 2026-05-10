@@ -18,7 +18,7 @@ This audit records the remaining drift between the intended workflow contract an
 ## Current Status
 
 - Core contract docs are mostly aligned.
-- Runtime rules under `.opencode/lib/` are largely aligned.
+- Runtime rules under `src/openkit-runtime/lib/` are largely aligned.
 - Main workflow test suite is mostly aligned, with 3 failing tests still concentrated in `artifact-scaffolder.test.js`.
 - Several supporting docs, compatibility surfaces, and global-workspace helpers still reflect the legacy PM/BA/Architect/Tech Lead chain.
 
@@ -26,7 +26,7 @@ This audit records the remaining drift between the intended workflow contract an
 
 ### Blocking test failures
 
-- `.opencode/tests/artifact-scaffolder.test.js`
+- `src/openkit-runtime/tests/artifact-scaffolder.test.js`
   - `scaffold-artifact substitutes real checked-in templates correctly`
   - `scaffold-artifact creates an implementation plan and links it into state`
   - `scaffold-artifact rejects plans outside full_solution stage`
@@ -106,10 +106,10 @@ This audit records the remaining drift between the intended workflow contract an
 ### 5. Legacy role files still look active rather than deprecated compatibility views
 
 - Files:
-  - `agents/pm-agent.md`
-  - `agents/ba-agent.md`
-  - `agents/architect-agent.md`
-  - `agents/tech-lead-agent.md`
+  - `src/agents/pm-agent.md`
+  - `src/agents/ba-agent.md`
+  - `src/agents/architect-agent.md`
+  - `src/agents/tech-lead-agent.md`
 - Problem:
   - these files still read as active runtime roles, not deprecated compatibility views
 - Impact:
@@ -124,7 +124,7 @@ This audit records the remaining drift between the intended workflow contract an
 
 ### 6. Code-review skill still mentions Tech Lead as an active review role
 
-- File: `skills/code-review/SKILL.md`
+- File: `src/skills/code-review/SKILL.md`
 - Problem:
   - says the skill is used by `Code Reviewer`, `QA Agent`, or `Tech Lead Agent`
 - Impact:
@@ -152,7 +152,7 @@ This audit records the remaining drift between the intended workflow contract an
 
 ### 8. Supporting tests still encode legacy compatibility semantics in a few places
 
-- File: `.opencode/tests/work-item-store.test.js`
+- File: `src/openkit-runtime/tests/work-item-store.test.js`
 - Problem:
   - test fixture still includes `fullstack_to_qa`
 - Impact:
@@ -173,7 +173,7 @@ This audit records the remaining drift between the intended workflow contract an
 
 ## Intentional Legacy Mentions That Are Probably Acceptable
 
-- `tests/install/install-state.test.js` still expecting bundled legacy role asset ids is acceptable if the project intentionally keeps split-role assets as compatibility surfaces.
+- `src/tests/install/install-state.test.js` still expecting bundled legacy role asset ids is acceptable if the project intentionally keeps split-role assets as compatibility surfaces.
 - `docs/maintainer/2026-03-26-workflow-refactor-change-map.md` contains old names intentionally as a migration checklist.
 
 ## Recommended Next Fix Order
@@ -189,7 +189,7 @@ This audit records the remaining drift between the intended workflow contract an
    - `docs/templates/implementation-plan-template.md`
    - `docs/templates/migration-plan-template.md`
 5. Mark legacy split-role files as deprecated compatibility views.
-6. Update `skills/code-review/SKILL.md` and bundled mirror.
+6. Update `src/skills/code-review/SKILL.md` and bundled mirror.
 7. Decide whether `registry.json` and `src/install/asset-manifest.js` should treat split roles as compatibility-only metadata and document that explicitly.
 
 ## Summary

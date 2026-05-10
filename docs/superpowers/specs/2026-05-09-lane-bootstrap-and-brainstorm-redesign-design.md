@@ -8,9 +8,9 @@
 When OpenKit is installed globally and a user opens a fresh project, the first slash command they run (`/brainstorm`, `/delivery`, `/migrate`, etc.) fails with "no workflow" errors across multiple surfaces (MCP resources, MCP tools, session-start banner). This happens because:
 
 1. `workflow-kernel.js` reads `<projectRoot>/.opencode/workflow-state.json`. If absent, every `showState()` call returns `null`.
-2. `workspace-shim.js` only creates `.opencode/openkit/workflow-state.json` if a workspace state already exists upstream — chicken-and-egg for fresh projects.
+2. `workspace-shim.js` only creates `src/openkit-runtime/openkit/workflow-state.json` if a workspace state already exists upstream — chicken-and-egg for fresh projects.
 3. None of the user-facing commands except `/task` actually create workflow state. `/brainstorm`, `/delivery`, `/migrate` assume state already exists.
-4. Agents and command docs reference `.opencode/openkit/workflow-state.json` (the shim path) which does not exist on a fresh install.
+4. Agents and command docs reference `src/openkit-runtime/openkit/workflow-state.json` (the shim path) which does not exist on a fresh install.
 
 The deeper issue is that the kit's command surface drifted away from the intended mental model: the kit is meant to act as a development team where the user picks a lane and a Master Orchestrator (MO) runs the workflow. The current surface has too many overlapping entry points (`/task`, `/brainstorm`) and unclear ownership of brainstorm work.
 
@@ -61,16 +61,16 @@ If existing FSM has `*_brainstorm` stages, they are removed. Brainstorm work hap
 
 When any of the 3 commands runs:
 
-**On a fresh project (no `.opencode/workflow-state.json`):**
-1. Workspace-shim ensures `.opencode/`, `.opencode/openkit/`, and `.opencode/work-items/` exist.
+**On a fresh project (no `src/openkit-runtime/workflow-state.json`):**
+1. Workspace-shim ensures `src/openkit-runtime/`, `src/openkit-runtime/openkit/`, and `src/openkit-runtime/work-items/` exist.
 2. MO calls a new `tool.bootstrap-workflow` (or extends existing controller `createFreshState` path) to write `workflow-state.json` with the chosen lane and `current_stage = <lane>_intake`.
-3. Workspace-shim is re-run to materialize `.opencode/openkit/workflow-state.json` symlink/copy.
+3. Workspace-shim is re-run to materialize `src/openkit-runtime/openkit/workflow-state.json` symlink/copy.
 4. MO records the user's raw description in state and advances to the first specialist stage.
 
 **On a project with an active workflow (state exists, status not `done`):**
 1. MO inspects current state.
 2. MO presents: "Workflow `<feature_id>` is active in stage `<current_stage>` owned by `<current_owner>`. Choose: (a) continue this workflow, (b) close it and start a new `<lane>` workflow."
-3. User picks. If (a), MO resumes by dispatching the current owner. If (b), MO archives current state (move to `.opencode/work-items/<id>/archived-state.json`) and starts fresh.
+3. User picks. If (a), MO resumes by dispatching the current owner. If (b), MO archives current state (move to `src/openkit-runtime/work-items/<id>/archived-state.json`) and starts fresh.
 
 **On a project with a completed workflow (status: `done`):**
 1. MO archives the previous state automatically and starts fresh — no prompt needed.
@@ -164,36 +164,36 @@ The approval is recorded in `state.approvals` with the standard structure. Exist
 
 ## Multi-workflow / archive behavior
 
-Active workflows are archived to `.opencode/work-items/<feature_id>/archived-state.json` when:
+Active workflows are archived to `src/openkit-runtime/work-items/<feature_id>/archived-state.json` when:
 - User chooses "close and start new" on the multi-workflow prompt.
 - A lane switch happens during brainstorm.
 
 Completed workflows (status: done) are auto-archived on next command. The current `workflow-state.json` always reflects the active workflow.
 
-`.opencode/work-items/<feature_id>/` already exists in the kit's structure — this design uses it as the archive destination.
+`src/openkit-runtime/work-items/<feature_id>/` already exists in the kit's structure — this design uses it as the archive destination.
 
 ## Files affected
 
 ### Create
-- `commands/quick-task.md` — rewrite to dispatch MO → Quick Agent flow with brainstorm responsibility.
+- `src/commands/quick-task.md` — rewrite to dispatch MO → Quick Agent flow with brainstorm responsibility.
 - (Spec doc only — implementation files determined in plan stage.)
 
 ### Modify
 - `src/runtime/workflow-kernel.js` — ensure `defaultStatePath` resolves to a writable path even when state doesn't exist yet, so MO bootstrap writes succeed.
 - `src/runtime/tools/workflow/advance-stage.js` — bootstrap path: if no state exists and the current call is from MO with a lane intent, allow creation instead of returning "no workflow".
 - `src/global/workspace-shim.js` — relax the `if (fs.existsSync(paths.workflowStatePath))` guards so the shim creates the link even before state exists, OR re-run shim after MO bootstrap.
-- `commands/quick-task.md`, `commands/delivery.md`, `commands/migrate.md` — re-spec to: (1) dispatch MO first, (2) MO bootstraps state, (3) MO advances to first specialist stage, (4) specialist runs brainstorm.
-- `agents/master-orchestrator.md` — add bootstrap responsibility, multi-workflow handling, lane-switch handling. Remove any `/task` classification language.
-- `agents/quick-agent.md` — add brainstorm-rút-gọn responsibility, inline summary writing.
-- `agents/product-lead-agent.md` — add brainstorm responsibility, scope file appendix curation rules.
-- `agents/solution-lead-agent.md` — add migration brainstorm + appendix responsibility for migration lane.
-- `.opencode/lib/workflow-state-controller.js` — confirm `createFreshState` / `createWorkItem` is callable from MO bootstrap path; possibly add new entry that takes lane + raw description.
+- `src/commands/quick-task.md`, `src/commands/delivery.md`, `src/commands/migrate.md` — re-spec to: (1) dispatch MO first, (2) MO bootstraps state, (3) MO advances to first specialist stage, (4) specialist runs brainstorm.
+- `src/agents/master-orchestrator.md` — add bootstrap responsibility, multi-workflow handling, lane-switch handling. Remove any `/task` classification language.
+- `src/agents/quick-agent.md` — add brainstorm-rút-gọn responsibility, inline summary writing.
+- `src/agents/product-lead-agent.md` — add brainstorm responsibility, scope file appendix curation rules.
+- `src/agents/solution-lead-agent.md` — add migration brainstorm + appendix responsibility for migration lane.
+- `src/openkit-runtime/lib/workflow-state-controller.js` — confirm `createFreshState` / `createWorkItem` is callable from MO bootstrap path; possibly add new entry that takes lane + raw description.
 - FSM definitions (transition engine, gate registry) — remove `*_brainstorm` stages if present, add `<lane>_brainstorm_to_<next>` gates.
 - AGENTS.md, README.md, docs referencing `/task` or `/brainstorm` — purge those references.
 
 ### Delete
-- `commands/task.md`
-- `commands/brainstorm.md`
+- `src/commands/task.md`
+- `src/commands/brainstorm.md`
 - Any agent prompt sections that classify lanes (lane classification is no longer a kit responsibility).
 
 ### Untouched
@@ -204,12 +204,12 @@ Completed workflows (status: done) are auto-archived on next command. The curren
 
 ## Test surface
 
-- `commands/quick-task.md` on fresh project → state created at `quick_intake` then `quick_plan`, brainstorm summary inline, no "no workflow" error.
+- `src/commands/quick-task.md` on fresh project → state created at `quick_intake` then `quick_plan`, brainstorm summary inline, no "no workflow" error.
 - `/delivery` on fresh project → state created at `full_intake` then `full_product`, scope file created with appendices, gate triggers user confirm.
 - `/migrate` on fresh project → state created at `migration_intake` then `migration_strategy`, migration plan file created with appendices.
 - `/delivery` on project with active quick workflow → multi-workflow prompt appears.
 - Lane switch during `/quick-task` brainstorm when scope grows → user prompt → state re-init at `full` lane with brainstorm preserved.
-- Workspace-shim creates `.opencode/openkit/workflow-state.json` link after MO bootstrap on fresh project.
+- Workspace-shim creates `src/openkit-runtime/openkit/workflow-state.json` link after MO bootstrap on fresh project.
 - All v0.5.0 state v2 tests continue to pass.
 - New test: bootstrapping from each command writes valid state schema v2.0.0.
 

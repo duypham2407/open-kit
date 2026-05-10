@@ -34,9 +34,9 @@ Changed files considered in QA scans and structural checks:
 - `src/runtime/project-root.js`
 - `src/runtime/tools/shared/project-file-utils.js`
 - `src/runtime/tools/wrap-tool-execution.js`
-- `tests/mcp-server/mcp-server.test.js`
-- `tests/runtime/runtime-bootstrap.test.js`
-- `tests/runtime/syntax-path-resolution.test.js`
+- `src/tests/mcp-server/mcp-server.test.js`
+- `src/tests/runtime/runtime-bootstrap.test.js`
+- `src/tests/runtime/syntax-path-resolution.test.js`
 
 ## Observed Result
 
@@ -63,7 +63,7 @@ Changed files considered in QA scans and structural checks:
 | Existing supported project-relative source file does not return `invalid-path`/`missing-file` because of path resolution | PASS | `node --test tests/runtime/syntax-path-resolution.test.js` passed; direct smoke returned `ok` for `src/runtime/tools/syntax/syntax-outline.js`. |
 | Existing supported absolute in-root file matches relative request | PASS | Direct smoke returned `ok`, same `relativePath`, and same resolved path for absolute and relative requests. |
 | Safe `./`, `.`, redundant separators, and safe normalization are accepted inside root | PASS | Direct smoke returned `ok` for `./src/runtime/tools/syntax/./syntax-outline.js  `; tests cover dot-normalized and safe parent segments. |
-| Project-local `.opencode/openkit/...` file is not confused with workspace mirror | PASS | `tests/runtime/syntax-path-resolution.test.js` passes `.opencode/openkit/shim.js` as an exact project-local file. |
+| Project-local `src/openkit-runtime/openkit/...` file is not confused with workspace mirror | PASS | `src/tests/runtime/syntax-path-resolution.test.js` passes `src/openkit-runtime/openkit/shim.js` as an exact project-local file. |
 | Absolute outside-root path is rejected | PASS | Direct smoke returned `invalid-path` with `reason: outside-root`; targeted tests pass. |
 | Relative traversal that escapes source root is rejected | PASS | Targeted test covers `../outside.js` with `invalid-path`/`outside-root`. |
 | Directory target is not treated as an empty successful outline | PASS | Direct smoke returned `not-file` with `reason: directory`; targeted tests pass. |

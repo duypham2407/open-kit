@@ -25,11 +25,11 @@ Use one small compatibility-runtime correction path: make `closeout-summary` con
 
 This is enough because the inspected runtime already has most canonical pieces:
 
-- `.opencode/lib/workflow-state-controller.js#buildReadinessSummary` filters resolved/closed issues out of unresolved readiness blockers.
-- `.opencode/lib/runtime-guidance.js#getIssueTelemetry` reports open issue counts using the same terminal-status idea.
-- `.opencode/lib/runtime-guidance.js#getArtifactReadiness` already distinguishes `missing-required` from `recommended-now`; ADR is currently optional in `ARTIFACT_RULES.full`.
-- `.opencode/lib/scan-evidence-summary.js` already preserves compact scan evidence summaries, including direct/substitute/manual distinctions, finding counts, classification summaries, validation surface labels, caveats, and artifact refs.
-- `.opencode/workflow-state.js#printCloseoutSummary` is the CLI output seam where blocker/recommendation wording can be made unambiguous.
+- `src/openkit-runtime/lib/workflow-state-controller.js#buildReadinessSummary` filters resolved/closed issues out of unresolved readiness blockers.
+- `src/openkit-runtime/lib/runtime-guidance.js#getIssueTelemetry` reports open issue counts using the same terminal-status idea.
+- `src/openkit-runtime/lib/runtime-guidance.js#getArtifactReadiness` already distinguishes `missing-required` from `recommended-now`; ADR is currently optional in `ARTIFACT_RULES.full`.
+- `src/openkit-runtime/lib/scan-evidence-summary.js` already preserves compact scan evidence summaries, including direct/substitute/manual distinctions, finding counts, classification summaries, validation surface labels, caveats, and artifact refs.
+- `src/openkit-runtime/workflow-state.js#printCloseoutSummary` is the CLI output seam where blocker/recommendation wording can be made unambiguous.
 
 The implementation should avoid a broad workflow-state redesign. The defect is primarily a stale closeout read model that bypasses existing canonical readiness helpers.
 
@@ -38,7 +38,7 @@ The implementation should avoid a broad workflow-state redesign. The defect is p
 Fullstack should validate or falsify these hypotheses during Slice 1 before changing behavior.
 
 1. **Closeout counts every issue as unresolved.**
-   - Inspected code in `.opencode/lib/workflow-state-controller.js#getWorkItemCloseoutSummary` sets `unresolvedIssues = Array.isArray(state.issues) ? state.issues : []`.
+   - Inspected code in `src/openkit-runtime/lib/workflow-state-controller.js#getWorkItemCloseoutSummary` sets `unresolvedIssues = Array.isArray(state.issues) ? state.issues : []`.
    - In contrast, `buildReadinessSummary` filters out `current_status === "resolved"` and `current_status === "closed"`, and `getIssueTelemetry` reports open issues with the same terminal-status exclusion.
    - Result: resolved/closed historical issues can make `closeout-summary` print `unresolved issues: N` and compute `readyToClose: false` while metrics/readiness report no open blockers.
 
@@ -53,7 +53,7 @@ Fullstack should validate or falsify these hypotheses during Slice 1 before chan
 
 4. **Task-board closure semantics are under-modeled in closeout.**
    - `closeout-summary` only checks `claimed`, `in_progress`, and `qa_in_progress` active tasks.
-   - Full task-board validation in `.opencode/lib/task-board-rules.js` requires every task to be `done` or `cancelled` at `full_done` and rejects open blocking board issues.
+   - Full task-board validation in `src/openkit-runtime/lib/task-board-rules.js` requires every task to be `done` or `cancelled` at `full_done` and rejects open blocking board issues.
    - Closeout should report task-board validity blockers instead of silently relying on a partial active-task list or throwing before it can explain the problem.
 
 5. **Scan evidence is not the likely cause, but it is a regression risk.**
@@ -64,31 +64,31 @@ Fullstack should validate or falsify these hypotheses during Slice 1 before chan
 
 ### Primary compatibility-runtime files
 
-- `.opencode/lib/workflow-state-controller.js`
+- `src/openkit-runtime/lib/workflow-state-controller.js`
   - Add or reuse shared open-issue filtering for closeout.
   - Replace inline `readyToClose` logic with a closeout-readiness helper/read model.
   - Add task-board closeout readiness reporting that uses canonical board validation semantics.
   - Preserve existing scan evidence summary fields in the returned closeout object.
-- `.opencode/lib/runtime-guidance.js`
+- `src/openkit-runtime/lib/runtime-guidance.js`
   - Prefer a shared issue-status helper for `getIssueTelemetry` so metrics/status/closeout do not drift again.
   - Keep current artifact rules unless an existing explicit required-ADR mechanism is found.
-- `.opencode/lib/scan-evidence-summary.js`
+- `src/openkit-runtime/lib/scan-evidence-summary.js`
   - Expected read-only. Touch only if tests show closeout needs a small helper to preserve existing summary fields.
-- `.opencode/workflow-state.js`
+- `src/openkit-runtime/workflow-state.js`
   - Update `printCloseoutSummary` to separate blockers, open issues, resolved issue history, optional recommendations, verification readiness, task-board status, and scan evidence lines.
 
 ### Optional helper module
 
-- `.opencode/lib/issue-readiness.js` (recommended if the implementation would otherwise duplicate status filtering)
+- `src/openkit-runtime/lib/issue-readiness.js` (recommended if the implementation would otherwise duplicate status filtering)
   - Export `isOpenIssueStatus`, `isTerminalIssueStatus`, `getOpenIssues`, and `getResolvedIssueHistory`.
   - Treat `open` and `in_progress` as open/unresolved; treat `resolved` and `closed` as terminal historical statuses.
   - Do not invent unsupported issue statuses. If aliases such as `accepted-fixed` appear in future persisted data, handle them only with a deliberate schema/backward-compatibility change.
 
 ### Tests
 
-- `.opencode/tests/workflow-state-controller.test.js`
+- `src/openkit-runtime/tests/workflow-state-controller.test.js`
   - Unit-level read-model and readiness tests.
-- `.opencode/tests/workflow-state-cli.test.js`
+- `src/openkit-runtime/tests/workflow-state-cli.test.js`
   - CLI output and exit-code tests for `closeout-summary`, plus consistency checks against `workflow-metrics`, `check-stage-readiness`, and `status --short` where practical.
 - `package.json`
   - Read-only for command reality. Do not add scripts unless the implementation truly introduces a new reusable package verification command.
@@ -96,7 +96,7 @@ Fullstack should validate or falsify these hypotheses during Slice 1 before chan
 ### Documentation/package surfaces
 
 - No documentation update is required if behavior is self-evident from CLI output and tests.
-- If docs that describe closeout output or readiness are touched, validate them as `documentation` and keep `context/core/project-config.md` / `AGENTS.md` command reality accurate.
+- If docs that describe closeout output or readiness are touched, validate them as `documentation` and keep `src/context/core/project-config.md` / `AGENTS.md` command reality accurate.
 - Global CLI packaging is not expected to change. If package/install-bundle surfaces change, run the appropriate package verification listed below.
 
 ## Boundaries And Component Decisions
@@ -149,7 +149,7 @@ Rules:
 
 ### Verification readiness
 
-- Continue using `.opencode/lib/runtime-guidance.js#getVerificationReadiness`.
+- Continue using `src/openkit-runtime/lib/runtime-guidance.js#getVerificationReadiness`.
 - `missing-evidence` blocks closeout and should print as a blocker with missing kinds when available.
 - `ready` and `not-required-yet` should not block by themselves. For full_done, full QA evidence is expected by current rules.
 
@@ -223,8 +223,8 @@ Backward-compatibility notes:
 ### [ ] Slice 1: Regression fixtures and failing tests
 
 - **Files**:
-  - `.opencode/tests/workflow-state-controller.test.js`
-  - `.opencode/tests/workflow-state-cli.test.js`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
 - **Goal**: capture the reported drift before changing runtime behavior.
 - **Dependencies**: none.
 - **Test-first expectations**:
@@ -240,10 +240,10 @@ Backward-compatibility notes:
 ### [ ] Slice 2: Shared issue and closeout readiness model
 
 - **Files**:
-  - `.opencode/lib/issue-readiness.js` (recommended new helper) or equivalent local helpers if kept inside controller
-  - `.opencode/lib/runtime-guidance.js`
-  - `.opencode/lib/workflow-state-controller.js`
-  - `.opencode/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/lib/issue-readiness.js` (recommended new helper) or equivalent local helpers if kept inside controller
+  - `src/openkit-runtime/lib/runtime-guidance.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
 - **Goal**: make closeout use canonical open-issue filtering and a readable blocker/recommendation/readiness object.
 - **Details**:
   - Introduce shared issue status helpers and use them in `buildReadinessSummary`, `getIssueTelemetry`, and `getWorkItemCloseoutSummary`.
@@ -261,9 +261,9 @@ Backward-compatibility notes:
 ### [ ] Slice 3: Task-board closeout validity
 
 - **Files**:
-  - `.opencode/lib/workflow-state-controller.js`
-  - `.opencode/tests/workflow-state-controller.test.js`
-  - `.opencode/tests/workflow-state-cli.test.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
 - **Goal**: make closeout readiness respect full-delivery task-board validity and report board blockers clearly.
 - **Details**:
   - Add a task-board closeout helper that reads an existing board, validates closure state, and converts validation failures into `task_board` blockers instead of an unexplained command failure.
@@ -280,9 +280,9 @@ Backward-compatibility notes:
 ### [ ] Slice 4: CLI output separation and scan evidence preservation
 
 - **Files**:
-  - `.opencode/workflow-state.js`
-  - `.opencode/lib/scan-evidence-summary.js` (expected read-only)
-  - `.opencode/tests/workflow-state-cli.test.js`
+  - `src/openkit-runtime/workflow-state.js`
+  - `src/openkit-runtime/lib/scan-evidence-summary.js` (expected read-only)
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
 - **Goal**: make `closeout-summary` output distinguish blockers, recommendations, open issues, historical resolved issues, verification readiness, task-board status, and scan evidence.
 - **Details**:
   - Print `blockers: none` when ready and no blockers exist.
@@ -298,8 +298,8 @@ Backward-compatibility notes:
 ### [ ] Slice 5: Integration validation and compatibility-runtime handoff evidence
 
 - **Files**:
-  - `.opencode/tests/workflow-state-controller.test.js`
-  - `.opencode/tests/workflow-state-cli.test.js`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
   - `package.json` (read-only command source)
   - Documentation files only if implementation changes documented command behavior.
 - **Goal**: prove closeout/readiness consistency and record honest validation surfaces.

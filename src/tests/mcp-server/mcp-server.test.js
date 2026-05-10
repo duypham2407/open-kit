@@ -1,0 +1,399 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+import { parseServerArgs } from '../../mcp-server/args.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '..', '..');
+const mcpBin = path.join(projectRoot, 'bin', 'openkit-mcp.js');
+
+// ---------------------------------------------------------------------------
+// Helpers: send JSON-RPC messages to the MCP server over stdio
+// ---------------------------------------------------------------------------
+
+function createMcpClient({ env = {} } = {}) {
+  const child = spawn(process.execPath, [mcpBin], {
+    cwd: projectRoot,
+    env: { ...process.env, OPENKIT_PROJECT_ROOT: projectRoot, ...env },
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+
+  let buffer = '';
+  const pending = new Map();
+  let nextId = 1;
+
+  child.stdout.on('data', (chunk) => {
+    buffer += chunk.toString();
+    // Parse newline-delimited JSON-RPC responses
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const msg = JSON.parse(trimmed);
+        if (msg.id && pending.has(msg.id)) {
+          pending.get(msg.id)(msg);
+          pending.delete(msg.id);
+        }
+      } catch {
+        buffer = ''; // Ignore non-JSON protocol noise from child stdout/stderr interleaving in this test client.
+      }
+    }
+  });
+
+  return {
+    async send(method, params = {}) {
+      const id = nextId++;
+      const request = { jsonrpc: '2.0', id, method, params };
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+          pending.delete(id);
+          reject(new Error(`MCP request ${method} timed out after 15s`));
+        }, 15_000);
+        pending.set(id, (msg) => {
+          clearTimeout(timer);
+          if (msg.error) {
+            reject(new Error(`MCP error: ${JSON.stringify(msg.error)}`));
+          } else {
+            resolve(msg.result);
+          }
+        });
+        child.stdin.write(JSON.stringify(request) + '\n');
+      });
+    },
+    async close() {
+      child.stdin.end();
+      return new Promise((resolve) => {
+        child.on('close', resolve);
+        setTimeout(() => {
+          child.kill();
+          resolve();
+        }, 3000);
+      });
+    },
+    child,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+test('MCP server starts and responds to initialize', async () => {
+  const client = createMcpClient();
+  try {
+    const result = await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    assert.ok(result.serverInfo, 'should have serverInfo');
+    assert.equal(result.serverInfo.name, 'openkit');
+    assert.ok(result.capabilities?.tools, 'should advertise tools capability');
+
+    // Send initialized notification
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP server argument parsing preserves explicit project root for runtime normalization', () => {
+  const parsed = parseServerArgs(
+    ['--project-root', '/tmp/{cwd}'],
+    { OPENKIT_PROJECT_ROOT: '/wrong/root' }
+  );
+
+  assert.equal(parsed.projectRoot, '/tmp/{cwd}');
+});
+
+test('MCP server lists tools via tools/list', async () => {
+  const client = createMcpClient();
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/list', {});
+    assert.ok(Array.isArray(result.tools), 'should return tools array');
+    assert.ok(result.tools.length > 0, 'should have at least one tool');
+
+    // Check that key tools are present
+    const toolNames = result.tools.map((t) => t.name);
+    assert.ok(toolNames.includes('tool.find-symbol'), 'should have tool.find-symbol');
+    assert.ok(toolNames.includes('tool.semantic-search'), 'should have tool.semantic-search');
+    assert.ok(toolNames.includes('tool.syntax-outline'), 'should have tool.syntax-outline');
+    assert.ok(toolNames.includes('tool.import-graph'), 'should have tool.import-graph');
+    assert.ok(toolNames.includes('tool.rule-scan'), 'should have tool.rule-scan');
+    assert.ok(toolNames.includes('tool.security-scan'), 'should have tool.security-scan');
+    assert.ok(toolNames.includes('tool.capability-inventory'), 'should have tool.capability-inventory');
+    assert.ok(toolNames.includes('tool.capability-router'), 'should have tool.capability-router');
+    assert.ok(toolNames.includes('tool.capability-health'), 'should have tool.capability-health');
+    assert.ok(toolNames.includes('tool.mcp-doctor'), 'should have tool.mcp-doctor');
+    assert.ok(toolNames.includes('tool.skill-index'), 'should have tool.skill-index');
+    assert.ok(toolNames.includes('tool.skill-mcp-bindings'), 'should have tool.skill-mcp-bindings');
+
+    // Check tool structure
+    const findSymbol = result.tools.find((t) => t.name === 'tool.find-symbol');
+    assert.ok(findSymbol.description, 'tool should have description');
+    assert.ok(findSymbol.inputSchema, 'tool should have inputSchema');
+    assert.equal(findSymbol.inputSchema.type, 'object');
+    assert.ok(findSymbol.inputSchema.properties.name, 'find-symbol should have name property');
+
+    const skillIndex = result.tools.find((t) => t.name === 'tool.skill-index');
+    assert.ok(skillIndex.inputSchema.properties.status.enum.includes('stable'));
+    assert.ok(skillIndex.inputSchema.properties.support_level.enum.includes('stub'));
+    assert.ok(skillIndex.inputSchema.properties.stage);
+
+    const router = result.tools.find((t) => t.name === 'tool.capability-router');
+    assert.ok(router.inputSchema.properties.includePreview);
+    assert.ok(router.inputSchema.properties.includeExperimental);
+    assert.ok(router.description.includes('metadata-backed skill selection'));
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP scan tools return structured unavailable when Semgrep is missing', async () => {
+  const tempHome = path.join(os.tmpdir(), `openkit-mcp-semgrep-missing-${Date.now()}`);
+  const client = createMcpClient({ env: { OPENCODE_HOME: tempHome, PATH: '' } });
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.rule-scan',
+      arguments: { path: 'src/runtime/tools/audit/rule-scan.js' },
+    });
+
+    assert.equal(result.isError, true, 'unavailable scan should be an error-like MCP result');
+    const parsed = JSON.parse(result.content[0].text);
+    assert.equal(parsed.status, 'unavailable');
+    assert.equal(parsed.capabilityState, 'unavailable');
+    assert.equal(parsed.validationSurface, 'runtime_tooling');
+    assert.equal(parsed.toolId, 'tool.rule-scan');
+    assert.equal(parsed.resultState, 'unavailable');
+    assert.equal(parsed.availability.state, 'unavailable');
+    assert.match(parsed.availability.reason, /semgrep/i);
+    assert.match(parsed.availability.fallback, /substitute|manual/i);
+    assert.equal(parsed.evidenceHint.evidenceType, 'direct_tool');
+    assert.equal(parsed.details.validation_surface, 'runtime_tooling');
+    assert.equal(parsed.details.scan_evidence.direct_tool.tool_id, 'tool.rule-scan');
+    assert.equal(parsed.details.scan_evidence.direct_tool.namespace_status, 'callable');
+    assert.equal(parsed.details.scan_evidence.direct_tool.stale_process.suspected, false);
+    assert.match(parsed.details.scan_evidence.direct_tool.stale_process.caveat, /restart|reload|install/i);
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP security scan returns structured unavailable with direct evidence hint when Semgrep is missing', async () => {
+  const tempHome = path.join(os.tmpdir(), `openkit-mcp-security-missing-${Date.now()}`);
+  const client = createMcpClient({ env: { OPENCODE_HOME: tempHome, PATH: '' } });
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.security-scan',
+      arguments: { path: 'src/runtime/tools/audit/security-scan.js' },
+    });
+
+    assert.equal(result.isError, true, 'unavailable scan should be an error-like MCP result');
+    const parsed = JSON.parse(result.content[0].text);
+    assert.equal(parsed.status, 'unavailable');
+    assert.equal(parsed.toolId, 'tool.security-scan');
+    assert.equal(parsed.scanKind, 'security');
+    assert.equal(parsed.evidenceHint.evidenceType, 'direct_tool');
+    assert.equal(parsed.details.scan_evidence.direct_tool.tool_id, 'tool.security-scan');
+    assert.equal(parsed.details.scan_evidence.direct_tool.namespace_status, 'callable');
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP direct scan namespace miss returns structured stale-process caveat', async () => {
+  const tempHome = path.join(os.tmpdir(), `openkit-mcp-scan-namespace-${Date.now()}`);
+  const configPath = path.join(tempHome, 'openkit.runtime.json');
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, `${JSON.stringify({ disabled: { tools: ['tool.rule-scan'] } })}\n`, 'utf8');
+
+  const client = createMcpClient({
+    env: {
+      OPENCODE_HOME: tempHome,
+      OPENKIT_RUNTIME_CONFIG: configPath,
+    },
+  });
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.rule-scan',
+      arguments: { path: 'src/runtime/tools/audit/rule-scan.js' },
+    });
+
+    assert.equal(result.isError, true, 'unknown direct scan should be an error-like MCP result');
+    const parsed = JSON.parse(result.content[0].text);
+    assert.equal(parsed.status, 'unregistered');
+    assert.equal(parsed.toolId, 'tool.rule-scan');
+    assert.equal(parsed.capabilityState, 'unavailable');
+    assert.equal(parsed.validationSurface, 'runtime_tooling');
+    assert.equal(parsed.details.scan_evidence.evidence_type, 'direct_tool');
+    assert.equal(parsed.details.scan_evidence.direct_tool.namespace_status, 'unknown_tool');
+    assert.equal(parsed.details.scan_evidence.direct_tool.stale_process.suspected, true);
+    assert.match(parsed.details.scan_evidence.direct_tool.stale_process.caveat, /refresh|restart/i);
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP server executes tool.find-symbol via tools/call', async () => {
+  const client = createMcpClient();
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.find-symbol',
+      arguments: { name: 'bootstrapRuntimeFoundation' },
+    });
+
+    assert.ok(Array.isArray(result.content), 'should return content array');
+    assert.equal(result.content[0].type, 'text');
+    const parsed = JSON.parse(result.content[0].text);
+    // Graph may not be indexed — both 'ok' and 'unavailable' are valid responses
+    assert.ok(['ok', 'unavailable'].includes(parsed.status), `status should be ok or unavailable, got ${parsed.status}`);
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP server executes tool.import-graph status', async () => {
+  const client = createMcpClient();
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.import-graph',
+      arguments: { action: 'status' },
+    });
+
+    assert.ok(Array.isArray(result.content), 'should return content array');
+    const parsed = JSON.parse(result.content[0].text);
+    // status can be 'ok' or 'active' depending on graph state
+    assert.ok(parsed.status, 'should have a status field');
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP server normalizes leaked cwd placeholder project root for syntax tools', async () => {
+  const client = createMcpClient({
+    env: {
+      OPENKIT_PROJECT_ROOT: path.join(path.dirname(projectRoot), '{cwd}'),
+      OPENKIT_REPOSITORY_ROOT: projectRoot,
+    },
+  });
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.syntax-outline',
+      arguments: { filePath: 'src/runtime/tools/syntax/syntax-outline.js' },
+    });
+
+    assert.ok(Array.isArray(result.content), 'should return content array');
+    const parsed = JSON.parse(result.content[0].text);
+    assert.equal(parsed.status, 'ok');
+    assert.equal(parsed.validationSurface, 'runtime_tooling');
+    assert.equal(parsed.relativePath, 'src/runtime/tools/syntax/syntax-outline.js');
+    assert.notEqual(parsed.status, 'missing-file');
+    assert.notEqual(parsed.status, 'invalid-path');
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP server returns error for unknown tool', async () => {
+  const client = createMcpClient();
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.nonexistent',
+      arguments: {},
+    });
+
+    assert.ok(result.isError, 'should signal error');
+    const parsed = JSON.parse(result.content[0].text);
+    assert.equal(parsed.status, 'error');
+    assert.match(parsed.reason, /Unknown tool/);
+  } finally {
+    await client.close();
+  }
+});
+
+test('MCP server handles tool.find-symbol with missing required param', async () => {
+  const client = createMcpClient();
+  try {
+    await client.send('initialize', {
+      protocolVersion: '2024-11-05',
+      capabilities: {},
+      clientInfo: { name: 'test', version: '1.0.0' },
+    });
+    client.child.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+
+    const result = await client.send('tools/call', {
+      name: 'tool.find-symbol',
+      arguments: {},
+    });
+
+    const parsed = JSON.parse(result.content[0].text);
+    // When graph is unavailable, returns 'unavailable'; when available but missing name, returns 'error'
+    assert.ok(['error', 'unavailable'].includes(parsed.status), `status should be error or unavailable, got ${parsed.status}`);
+  } finally {
+    await client.close();
+  }
+});

@@ -72,17 +72,17 @@ These wrappers should remain behaviorally thin. They likely need no direct logic
   - Reuse or extend project-root detection only if needed; keep managed workspace root detection separate.
 - `src/global/materialize.js`
 - `src/capabilities/mcp-catalog.js`
-- `.opencode/opencode.json`
+- `src/openkit-runtime/opencode.json`
   - Touch only if tests prove config-generated `{cwd}` entries must change. Preferred first fix is to make the MCP server robust to the existing placeholder contract rather than broad profile churn.
 
 ### Tests
 
-- `tests/runtime/syntax-path-resolution.test.js` (preferred new focused test file)
-- `tests/runtime/runtime-platform.test.js`
-- `tests/runtime/runtime-bootstrap.test.js`
-- `tests/mcp-server/mcp-server.test.js`
-- `tests/global/doctor.test.js` or `tests/cli/run-options.test.js` only if global launch/root env handling changes
-- `tests/install/materialize.test.js` only if generated OpenCode config or package materialization changes
+- `src/tests/runtime/syntax-path-resolution.test.js` (preferred new focused test file)
+- `src/tests/runtime/runtime-platform.test.js`
+- `src/tests/runtime/runtime-bootstrap.test.js`
+- `src/tests/mcp-server/mcp-server.test.js`
+- `src/tests/global/doctor.test.js` or `src/tests/cli/run-options.test.js` only if global launch/root env handling changes
+- `src/tests/install/materialize.test.js` only if generated OpenCode config or package materialization changes
 
 ## Boundaries And Components
 
@@ -90,7 +90,7 @@ These wrappers should remain behaviorally thin. They likely need no direct logic
 - `OPENKIT_REPOSITORY_ROOT` is lineage/diagnostic context. Do not use it as a fallback for file reads when `OPENKIT_PROJECT_ROOT` is valid, because that would make worktree sessions read stale repository files.
 - `OPENKIT_WORKFLOW_STATE` derives `runtimeRoot` for state/database storage and must not become an allowed syntax source root.
 - `OPENKIT_KIT_ROOT` points to the global OpenKit kit/config root and must not become an allowed syntax source root for project-relative requests.
-- Project-local compatibility paths such as `.opencode/openkit/...` are valid only when requested as files physically inside the active source root. The resolver must not infer a matching OpenCode-home workspace mirror.
+- Project-local compatibility paths such as `src/openkit-runtime/openkit/...` are valid only when requested as files physically inside the active source root. The resolver must not infer a matching OpenCode-home workspace mirror.
 - `syntax-context` and `syntax-locate` are in scope only through the shared resolver. Do not change node-selection semantics, locate traversal, output shape beyond additive path metadata, or parser language support.
 
 ## Path Normalization Design
@@ -219,9 +219,9 @@ Recommended syntax result additions:
 ### [ ] Slice 1: Path-resolution regression harness
 
 - **Files**:
-  - `tests/runtime/syntax-path-resolution.test.js` (create)
-  - `tests/runtime/runtime-platform.test.js`
-  - `tests/mcp-server/mcp-server.test.js` if MCP root parsing is exported/tested here
+  - `src/tests/runtime/syntax-path-resolution.test.js` (create)
+  - `src/tests/runtime/runtime-platform.test.js`
+  - `src/tests/mcp-server/mcp-server.test.js` if MCP root parsing is exported/tested here
 - **Goal**: capture the approved positive and negative path behavior before changing resolver code.
 - **Dependencies**: approved Product Lead scope only.
 - **Test-first expectations**:
@@ -253,7 +253,7 @@ Recommended syntax result additions:
   - `src/runtime/tools/shared/project-file-utils.js`
   - `src/runtime/managers/syntax-index-manager.js`
   - `src/runtime/tools/wrap-tool-execution.js` only if `not-file` or another new failure status is introduced
-  - `tests/runtime/syntax-path-resolution.test.js`
+  - `src/tests/runtime/syntax-path-resolution.test.js`
 - **Goal**: make syntax single-file reads resolve project-relative and absolute in-root paths consistently while preserving safe rejection and clear statuses.
 - **Dependencies**: Slice 1 failing tests.
 - **Validation Command**:
@@ -274,10 +274,10 @@ Recommended syntax result additions:
   - `src/runtime/create-managers.js` only if constructor plumbing changes
   - `src/mcp-server/index.js`
   - `src/global/paths.js` only if existing `detectProjectRoot` must be adjusted/reused
-  - `src/global/materialize.js`, `src/capabilities/mcp-catalog.js`, `.opencode/opencode.json` only if generated/static MCP config must change after tests
-  - `tests/runtime/runtime-bootstrap.test.js`
-  - `tests/mcp-server/mcp-server.test.js`
-  - `tests/global/doctor.test.js` or `tests/cli/run-options.test.js` if global launch env behavior changes
+  - `src/global/materialize.js`, `src/capabilities/mcp-catalog.js`, `src/openkit-runtime/opencode.json` only if generated/static MCP config must change after tests
+  - `src/tests/runtime/runtime-bootstrap.test.js`
+  - `src/tests/mcp-server/mcp-server.test.js`
+  - `src/tests/global/doctor.test.js` or `src/tests/cli/run-options.test.js` if global launch env behavior changes
 - **Goal**: prevent literal placeholders, managed workspace roots, or global kit roots from becoming the syntax source root.
 - **Dependencies**: Slice 2 resolver contract.
 - **Validation Command**:
@@ -295,7 +295,7 @@ Recommended syntax result additions:
 - **Files**:
   - `package.json` (read-only unless scripts genuinely change)
   - `docs/solution/2026-04-26-harden-syntax-outline-path-resolution.md`
-  - `.opencode/workflow-state.json` / managed active work-item state via CLI or `tool.evidence-capture` only
+  - `src/openkit-runtime/workflow-state.json` / managed active work-item state via CLI or `tool.evidence-capture` only
 - **Goal**: prove the hardened syntax path behavior end-to-end and record evidence with correct validation-surface labels before Code Review.
 - **Dependencies**: Slices 1-3 complete.
 - **Validation Command**:
@@ -355,7 +355,7 @@ The acceptance-to-validation matrix below is the validation matrix for this solu
 | Existing supported relative project file does not false-fail path resolution | `resolveProjectFilePath` resolves relative path under canonical source root; `SyntaxIndexManager.readFile` parses or returns non-path parser/tool status | `node --test "tests/runtime/syntax-path-resolution.test.js"`; direct `tool.syntax-outline` relative invocation |
 | Existing supported absolute in-root file matches relative request | Absolute path stays inside canonical root and returns same path-resolution category as relative request | `node --test "tests/runtime/syntax-path-resolution.test.js"`; direct absolute `tool.syntax-outline` invocation |
 | `./`, `.`, redundant separators, safe `..` normalize inside root | Resolver normalizes before existence/read checks and records requested vs resolved path | `node --test "tests/runtime/syntax-path-resolution.test.js"` |
-| Project-local `.opencode/openkit/...` is not confused with workspace mirror | Single-file resolver accepts exact project-local path only if physically inside source root and does not search OpenCode home workspace | Add focused fixture if a supported JS file is created under `.opencode/openkit/`; otherwise verify resolver unit with project-local compatibility path |
+| Project-local `src/openkit-runtime/openkit/...` is not confused with workspace mirror | Single-file resolver accepts exact project-local path only if physically inside source root and does not search OpenCode home workspace | Add focused fixture if a supported JS file is created under `src/openkit-runtime/openkit/`; otherwise verify resolver unit with project-local compatibility path |
 | Absolute outside-root and traversal escape rejected | Resolver checks lexical and canonical boundaries before read | `node --test "tests/runtime/syntax-path-resolution.test.js"` |
 | Symlink escape rejected | Existing symlink is realpathed and canonical target must remain inside root | `node --test "tests/runtime/syntax-path-resolution.test.js"` with guarded symlink fixture |
 | Directory is not treated as empty outline | Resolver returns `not-file` or selected explicit non-file status | `node --test "tests/runtime/syntax-path-resolution.test.js"` |
@@ -403,7 +403,7 @@ Recommended tasks:
 
 | Task id | Title | Kind | Depends on | Primary artifact refs | Validation |
 | --- | --- | --- | --- | --- | --- |
-| `TASK-F944-PATH-TESTS` | Add syntax path-resolution regression tests | `implementation` | none | `tests/runtime/syntax-path-resolution.test.js`, `tests/runtime/runtime-platform.test.js` | `node --test "tests/runtime/syntax-path-resolution.test.js"` red first |
+| `TASK-F944-PATH-TESTS` | Add syntax path-resolution regression tests | `implementation` | none | `src/tests/runtime/syntax-path-resolution.test.js`, `src/tests/runtime/runtime-platform.test.js` | `node --test "tests/runtime/syntax-path-resolution.test.js"` red first |
 | `TASK-F944-RESOLVER` | Add canonical project-file resolver and wire syntax manager | `implementation` | `TASK-F944-PATH-TESTS` | `src/runtime/tools/shared/project-file-utils.js`, `src/runtime/managers/syntax-index-manager.js`, `src/runtime/tools/wrap-tool-execution.js` if needed | `node --test "tests/runtime/syntax-path-resolution.test.js"`; `node --test "tests/runtime/runtime-platform.test.js"` |
 | `TASK-F944-BOOTSTRAP` | Normalize runtime/MCP active source root | `implementation` | `TASK-F944-RESOLVER` | `src/runtime/index.js`, `src/runtime/project-root.js`, `src/mcp-server/index.js`, global/config files only if touched | `node --test "tests/runtime/runtime-bootstrap.test.js"`; `node --test "tests/mcp-server/mcp-server.test.js"` |
 | `TASK-F944-INTEGRATION` | Run runtime/package validation and record evidence | `verification` | `TASK-F944-BOOTSTRAP` | workflow-state evidence via CLI/tool, package/global validation artifacts | targeted tests; `npm run verify:runtime-foundation`; `npm run verify:all` if feasible; `node .opencode/workflow-state.js validate` |
@@ -436,7 +436,7 @@ Current `create-task` CLI support is minimal and may not encode every dependency
 - If generated/global config files are changed, rerun the matching sync/materialization verification before and after rollback.
 - Do not roll back by allowing global kit, managed workspace, or workflow-state roots as fallback source roots.
 - Do not roll back by suppressing `invalid-path` or `missing-file` statuses; real missing/outside-root failures must remain visible.
-- Do not hand-edit workflow-state JSON for evidence rollback. Use `.opencode/workflow-state.js` or runtime evidence tools.
+- Do not hand-edit workflow-state JSON for evidence rollback. Use `src/openkit-runtime/workflow-state.js` or runtime evidence tools.
 
 ## Reviewer Focus Points
 

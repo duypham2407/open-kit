@@ -10,10 +10,13 @@ function resolveControllerPath(projectRoot, env = process.env) {
   const candidates = [];
 
   if (env.OPENKIT_KIT_ROOT) {
+    candidates.push(path.join(env.OPENKIT_KIT_ROOT, 'src', 'openkit-runtime', 'lib', 'workflow-state-controller.js'));
     candidates.push(path.join(env.OPENKIT_KIT_ROOT, '.opencode', 'lib', 'workflow-state-controller.js'));
   }
 
+  candidates.push(path.join(projectRoot, 'src', 'openkit-runtime', 'lib', 'workflow-state-controller.js'));
   candidates.push(path.join(projectRoot, '.opencode', 'lib', 'workflow-state-controller.js'));
+  candidates.push(path.join(packageRoot, 'src', 'openkit-runtime', 'lib', 'workflow-state-controller.js'));
   candidates.push(path.join(packageRoot, '.opencode', 'lib', 'workflow-state-controller.js'));
 
   for (const candidate of candidates) {

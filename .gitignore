@@ -2,6 +2,9 @@
 .opencode/background-runs/
 .opencode/work-items/**/tool-invocations.json
 .opencode/tool-invocations.json
+src/openkit-runtime/background-runs/
+src/openkit-runtime/work-items/**/tool-invocations.json
+src/openkit-runtime/tool-invocations.json
 node_modules/
 *.tgz
 .DS_Store

@@ -2,7 +2,7 @@ import {
   ensureSupervisorDialogueStore,
   recordInboundSupervisorMessage,
   summarizeSupervisorDialogue,
-} from '../../../.opencode/lib/supervisor-dialogue-store.js';
+} from '../../openkit-runtime/lib/supervisor-dialogue-store.js';
 import { OpenClawAdapter } from '../supervisor/openclaw-adapter.js';
 import { OutboundSupervisorDispatcher } from '../supervisor/outbound-dispatcher.js';
 import { adjudicateInboundMessage } from '../supervisor/inbound-adjudicator.js';

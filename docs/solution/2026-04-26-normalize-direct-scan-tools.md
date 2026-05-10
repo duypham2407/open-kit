@@ -27,9 +27,9 @@ This is enough because the repository already has the core building blocks:
 
 - Semgrep-backed audit tools: `src/runtime/tools/audit/rule-scan.js`, `src/runtime/tools/audit/security-scan.js`, and shared scan helpers in `src/runtime/tools/audit/scan-evidence.js`.
 - Runtime tool wrapping and registration: `src/runtime/tools/wrap-tool-execution.js`, `src/runtime/tools/tool-registry.js`, and `src/runtime/create-tools.js`.
-- MCP exposure path: `bin/openkit-mcp.js`, `src/mcp-server/index.js`, and `src/mcp-server/tool-schemas.js`.
-- Invocation logs and policy gates: `.opencode/lib/invocation-log.js`, `.opencode/lib/policy-engine.js`, `.opencode/lib/runtime-guidance.js`, `.opencode/lib/workflow-state-controller.js`, and `.opencode/workflow-state.js`.
-- Structured scan evidence read models from FEATURE-939: `.opencode/lib/scan-evidence-summary.js`, `record-verification-evidence --details-json`, `resume-summary --json`, and closeout summaries.
+- MCP exposure path: `src/bin/openkit-mcp.js`, `src/mcp-server/index.js`, and `src/mcp-server/tool-schemas.js`.
+- Invocation logs and policy gates: `src/openkit-runtime/lib/invocation-log.js`, `src/openkit-runtime/lib/policy-engine.js`, `src/openkit-runtime/lib/runtime-guidance.js`, `src/openkit-runtime/lib/workflow-state-controller.js`, and `src/openkit-runtime/workflow-state.js`.
+- Structured scan evidence read models from FEATURE-939: `src/openkit-runtime/lib/scan-evidence-summary.js`, `record-verification-evidence --details-json`, `resume-summary --json`, and closeout summaries.
 
 The work should extend and normalize those existing surfaces instead of adding rescue scripts or another scanner. Direct successful evidence, substitute scan evidence, and manual override evidence must remain visibly different all the way through Fullstack handoff, Code Review, QA, closeout, and workflow-state diagnostics.
 
@@ -38,7 +38,7 @@ The work should extend and normalize those existing surfaces instead of adding r
 These hypotheses come from the approved scope plus inspected QA artifacts, scan/evidence implementation, MCP exposure, invocation logging, and policy/read-model files. Fullstack should validate or falsify them during Slice 1 before changing gate behavior.
 
 1. **Role/API namespace skew despite checked-in MCP exposure**
-   - Checked-in `src/mcp-server/tool-schemas.js` includes `tool.rule-scan` and `tool.security-scan`, and `tests/mcp-server/mcp-server.test.js` already asserts fresh MCP listing/call behavior.
+   - Checked-in `src/mcp-server/tool-schemas.js` includes `tool.rule-scan` and `tool.security-scan`, and `src/tests/mcp-server/mcp-server.test.js` already asserts fresh MCP listing/call behavior.
    - FEATURE-941 QA still reported direct scan tools as unavailable/call-timed-out in the QA API namespace and used substitute Semgrep CLI evidence.
    - Likely cause: active role sessions can be attached to a stale MCP/OpenKit process or a tool namespace generated before the direct scan tools were exposed. A fresh MCP server may pass while the already-attached in-session tool set is stale.
 
@@ -47,7 +47,7 @@ These hypotheses come from the approved scope plus inspected QA artifacts, scan/
    - Likely cause: rescue scripts or direct `bootstrapRuntimeFoundation` harnesses can call scan implementations but bypass the same wrapper/log path that the policy engine reads, so evidence can be semantically direct but not Tier-3 policy-visible.
 
 3. **Invocation log entries are too thin for scan triage and diagnosis**
-   - `.opencode/lib/invocation-log.js` currently records `tool_id`, `status`, `stage`, `owner`, `duration_ms`, and `recorded_at`.
+   - `src/openkit-runtime/lib/invocation-log.js` currently records `tool_id`, `status`, `stage`, `owner`, `duration_ms`, and `recorded_at`.
    - The log does not preserve scan kind, availability state, result state, target scope summary, finding counts, error/unavailability summary, artifact refs, or stale/namespace-miss status.
    - Policy can determine that a tool ran, but reviewers cannot diagnose whether the direct tool was missing, stale, failed, degraded, high-volume, or merely noisy without separate evidence.
 
@@ -90,35 +90,35 @@ These hypotheses come from the approved scope plus inspected QA artifacts, scan/
 - `src/runtime/capability-registry.js`
 - `src/mcp-server/tool-schemas.js`
 - `src/mcp-server/index.js`
-- `bin/openkit-mcp.js` — likely read-only unless startup/diagnostic wiring needs a wrapper-safe entrypoint note.
+- `src/bin/openkit-mcp.js` — likely read-only unless startup/diagnostic wiring needs a wrapper-safe entrypoint note.
 - `src/capabilities/mcp-catalog.js` — only if the OpenKit MCP catalog needs explicit scan-tool health/limitations text.
 
 ### Invocation log, policy gates, evidence helpers, and read models
 
-- `.opencode/lib/invocation-log.js`
-- `.opencode/lib/policy-engine.js`
-- `.opencode/lib/runtime-guidance.js`
-- `.opencode/lib/workflow-state-controller.js`
-- `.opencode/lib/scan-evidence-summary.js`
-- `.opencode/lib/runtime-summary.js`
-- `.opencode/workflow-state.js`
+- `src/openkit-runtime/lib/invocation-log.js`
+- `src/openkit-runtime/lib/policy-engine.js`
+- `src/openkit-runtime/lib/runtime-guidance.js`
+- `src/openkit-runtime/lib/workflow-state-controller.js`
+- `src/openkit-runtime/lib/scan-evidence-summary.js`
+- `src/openkit-runtime/lib/runtime-summary.js`
+- `src/openkit-runtime/workflow-state.js`
 - `src/runtime/tools/workflow/evidence-capture.js`
 - `src/runtime/tools/workflow/runtime-summary.js`
 - `src/runtime/tools/workflow/workflow-state.js`
 
 ### Role prompts, templates, docs, and derived install bundle
 
-- `agents/fullstack-agent.md`
-- `agents/code-reviewer.md`
-- `agents/qa-agent.md`
+- `src/agents/fullstack-agent.md`
+- `src/agents/code-reviewer.md`
+- `src/agents/qa-agent.md`
 - `assets/install-bundle/opencode/agents/FullstackAgent.md`
 - `assets/install-bundle/opencode/agents/CodeReviewer.md`
 - `assets/install-bundle/opencode/agents/QAAgent.md`
-- `context/core/approval-gates.md`
-- `context/core/tool-substitution-rules.md`
-- `context/core/runtime-surfaces.md`
-- `context/core/project-config.md`
-- `context/core/workflow-state-schema.md`
+- `src/context/core/approval-gates.md`
+- `src/context/core/tool-substitution-rules.md`
+- `src/context/core/runtime-surfaces.md`
+- `src/context/core/project-config.md`
+- `src/context/core/workflow-state-schema.md`
 - `docs/templates/qa-report-template.md`
 - `docs/operator/semgrep.md`
 - `docs/operator/supported-surfaces.md`
@@ -128,18 +128,18 @@ These hypotheses come from the approved scope plus inspected QA artifacts, scan/
 
 ### Tests likely involved
 
-- `tests/runtime/audit-tools.test.js`
-- `tests/runtime/invocation-logging.test.js`
-- `tests/runtime/runtime-bootstrap.test.js`
-- `tests/runtime/runtime-platform.test.js`
-- `tests/mcp-server/mcp-server.test.js`
-- `tests/runtime/governance-enforcement.test.js`
-- `tests/runtime/registry-metadata.test.js`
-- `tests/semgrep/quality-rules.test.js` — run as regression; do not tune FEATURE-942 rules here.
-- `.opencode/tests/workflow-state-controller.test.js`
-- `.opencode/tests/workflow-state-cli.test.js`
-- `.opencode/tests/workflow-contract-consistency.test.js`
-- `tests/cli/openkit-cli.test.js`, `tests/global/doctor.test.js`, and `tests/install/*.test.js` only if package/global install or doctor surfaces are touched.
+- `src/tests/runtime/audit-tools.test.js`
+- `src/tests/runtime/invocation-logging.test.js`
+- `src/tests/runtime/runtime-bootstrap.test.js`
+- `src/tests/runtime/runtime-platform.test.js`
+- `src/tests/mcp-server/mcp-server.test.js`
+- `src/tests/runtime/governance-enforcement.test.js`
+- `src/tests/runtime/registry-metadata.test.js`
+- `src/tests/semgrep/quality-rules.test.js` — run as regression; do not tune FEATURE-942 rules here.
+- `src/openkit-runtime/tests/workflow-state-controller.test.js`
+- `src/openkit-runtime/tests/workflow-state-cli.test.js`
+- `src/openkit-runtime/tests/workflow-contract-consistency.test.js`
+- `src/tests/cli/openkit-cli.test.js`, `src/tests/global/doctor.test.js`, and `src/tests/install/*.test.js` only if package/global install or doctor surfaces are touched.
 
 ## Boundaries And Component Decisions
 
@@ -220,7 +220,7 @@ Implementation notes:
 
 ### Invocation log contract
 
-Extend `.opencode/lib/invocation-log.js` additively. Existing log readers must continue to accept older entries.
+Extend `src/openkit-runtime/lib/invocation-log.js` additively. Existing log readers must continue to accept older entries.
 
 Each reached direct scan invocation should write compact metadata such as:
 
@@ -399,9 +399,9 @@ Triage rules:
   - `src/runtime/create-tools.js`
   - `src/runtime/create-runtime-interface.js`
   - `src/runtime/capability-registry.js`
-  - `tests/runtime/audit-tools.test.js`
-  - `tests/runtime/runtime-bootstrap.test.js`
-  - `tests/runtime/runtime-platform.test.js`
+  - `src/tests/runtime/audit-tools.test.js`
+  - `src/tests/runtime/runtime-bootstrap.test.js`
+  - `src/tests/runtime/runtime-platform.test.js`
 - **Goal**: make direct rule/security scan results self-describing enough to produce consistent evidence and capability/status reports without rescue scripts.
 - **Dependencies**: none.
 - **Test-first expectations**:
@@ -422,10 +422,10 @@ Triage rules:
 - **Files**:
   - `src/mcp-server/tool-schemas.js`
   - `src/mcp-server/index.js`
-  - `bin/openkit-mcp.js` (likely read-only)
+  - `src/bin/openkit-mcp.js` (likely read-only)
   - `src/capabilities/mcp-catalog.js` (only if docs/status text must be machine-readable)
-  - `tests/mcp-server/mcp-server.test.js`
-  - `tests/runtime/mcp-catalog.test.js` (only if catalog metadata changes)
+  - `src/tests/mcp-server/mcp-server.test.js`
+  - `src/tests/runtime/mcp-catalog.test.js` (only if catalog metadata changes)
 - **Goal**: prove fresh OpenKit MCP exposes and calls both direct scan tools, and make unknown/stale namespace failures diagnosable instead of hidden behind substitute evidence.
 - **Dependencies**: Slice 1 direct scan contract.
 - **Test-first expectations**:
@@ -444,13 +444,13 @@ Triage rules:
 
 - **Files**:
   - `src/runtime/tools/wrap-tool-execution.js`
-  - `.opencode/lib/invocation-log.js`
-  - `.opencode/lib/policy-engine.js`
-  - `.opencode/lib/workflow-state-controller.js`
-  - `.opencode/workflow-state.js`
-  - `tests/runtime/invocation-logging.test.js`
-  - `.opencode/tests/workflow-state-controller.test.js`
-  - `.opencode/tests/workflow-state-cli.test.js`
+  - `src/openkit-runtime/lib/invocation-log.js`
+  - `src/openkit-runtime/lib/policy-engine.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/openkit-runtime/workflow-state.js`
+  - `src/tests/runtime/invocation-logging.test.js`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
 - **Goal**: every reached direct scan invocation leaves an inspectable log entry with enough scan metadata for policy diagnostics, while missing role namespace remains recorded as evidence/status rather than a fake direct invocation.
 - **Dependencies**: Slices 1-2.
 - **Test-first expectations**:
@@ -474,18 +474,18 @@ Triage rules:
   - `src/runtime/tools/workflow/evidence-capture.js`
   - `src/runtime/tools/workflow/runtime-summary.js`
   - `src/runtime/tools/workflow/workflow-state.js`
-  - `.opencode/lib/scan-evidence-summary.js`
-  - `.opencode/lib/runtime-guidance.js`
-  - `.opencode/lib/policy-engine.js`
-  - `.opencode/lib/workflow-state-controller.js`
-  - `.opencode/lib/runtime-summary.js`
-  - `.opencode/workflow-state.js`
-  - `context/core/workflow-state-schema.md`
-  - `context/core/approval-gates.md`
-  - `context/core/runtime-surfaces.md`
-  - `context/core/project-config.md`
-  - `.opencode/tests/workflow-state-controller.test.js`
-  - `.opencode/tests/workflow-state-cli.test.js`
+  - `src/openkit-runtime/lib/scan-evidence-summary.js`
+  - `src/openkit-runtime/lib/runtime-guidance.js`
+  - `src/openkit-runtime/lib/policy-engine.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/openkit-runtime/lib/runtime-summary.js`
+  - `src/openkit-runtime/workflow-state.js`
+  - `src/context/core/workflow-state-schema.md`
+  - `src/context/core/approval-gates.md`
+  - `src/context/core/runtime-surfaces.md`
+  - `src/context/core/project-config.md`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
 - **Goal**: make workflow evidence and gate checks consume normalized `details.scan_evidence` consistently across direct, substitute, manual, stale, and high-volume cases.
 - **Dependencies**: Slice 3 invocation metadata and Slice 1 scan result contract.
 - **Test-first expectations**:
@@ -507,21 +507,21 @@ Triage rules:
 ### [ ] Slice 5: Role prompts, templates, docs, and install-bundle sync
 
 - **Files**:
-  - `agents/fullstack-agent.md`
-  - `agents/code-reviewer.md`
-  - `agents/qa-agent.md`
+  - `src/agents/fullstack-agent.md`
+  - `src/agents/code-reviewer.md`
+  - `src/agents/qa-agent.md`
   - `assets/install-bundle/opencode/agents/FullstackAgent.md`
   - `assets/install-bundle/opencode/agents/CodeReviewer.md`
   - `assets/install-bundle/opencode/agents/QAAgent.md`
-  - `context/core/tool-substitution-rules.md`
+  - `src/context/core/tool-substitution-rules.md`
   - `docs/templates/qa-report-template.md`
   - `docs/operator/semgrep.md`
   - `docs/operator/supported-surfaces.md`
   - `docs/maintainer/test-matrix.md`
   - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`
   - `AGENTS.md` only if command reality/current state changes.
-  - `tests/runtime/governance-enforcement.test.js`
-  - `.opencode/tests/workflow-contract-consistency.test.js`
+  - `src/tests/runtime/governance-enforcement.test.js`
+  - `src/openkit-runtime/tests/workflow-contract-consistency.test.js`
 - **Goal**: make Fullstack, Code Reviewer, and QA role outputs use the same direct/substitute/manual/stale scan evidence language and target-project validation boundary.
 - **Dependencies**: Slices 1-4.
 - **Test-first expectations**:
@@ -541,7 +541,7 @@ Triage rules:
 
 - **Files**:
   - `package.json` — read-only for command reality unless validation scripts genuinely change.
-  - `.opencode/work-items/feature-943/tool-invocations.json` — runtime-produced only; do not hand-edit.
+  - `src/openkit-runtime/work-items/feature-943/tool-invocations.json` — runtime-produced only; do not hand-edit.
   - Managed workflow state / compatibility mirror — use workflow-state CLI or `tool.evidence-capture`, not manual JSON edits.
   - `docs/qa/2026-04-26-normalize-direct-scan-tools.md` — QA-created later, not Fullstack-created.
 - **Goal**: prove the full path from direct scan invocation to invocation log, structured evidence, gate policy, role output, and QA-readable summaries.
@@ -571,9 +571,9 @@ Triage rules:
 
 - `src/runtime/tools/audit/security-scan.js` depends on `createRuleScanTool`; shared scan evidence changes must be validated for both tools.
 - `src/runtime/tools/tool-registry.js` registers audit tools; MCP exposure additionally depends on `src/mcp-server/tool-schemas.js` and `src/mcp-server/index.js` filtering to exposed IDs.
-- `src/runtime/tools/wrap-tool-execution.js` and `.opencode/lib/invocation-log.js` determine whether direct calls are policy-visible.
-- `.opencode/lib/policy-engine.js` consumes invocation logs; `.opencode/lib/runtime-guidance.js` consumes structured evidence; both must agree on what can satisfy a gate.
-- `.opencode/lib/scan-evidence-summary.js`, `.opencode/workflow-state.js`, and runtime workflow tools expose evidence to Code Review, QA, and closeout.
+- `src/runtime/tools/wrap-tool-execution.js` and `src/openkit-runtime/lib/invocation-log.js` determine whether direct calls are policy-visible.
+- `src/openkit-runtime/lib/policy-engine.js` consumes invocation logs; `src/openkit-runtime/lib/runtime-guidance.js` consumes structured evidence; both must agree on what can satisfy a gate.
+- `src/openkit-runtime/lib/scan-evidence-summary.js`, `src/openkit-runtime/workflow-state.js`, and runtime workflow tools expose evidence to Code Review, QA, and closeout.
 - Role prompts/docs depend on the final runtime/evidence contract; update them after Slices 1-4.
 
 Critical path:
@@ -653,9 +653,9 @@ Before requesting Code Review, Fullstack should provide one concise evidence bun
 
 ## Rollback Notes
 
-- Roll back audit result/evidence helper changes together with `tests/runtime/audit-tools.test.js`.
-- Roll back wrapper/invocation-log/policy changes together with `tests/runtime/invocation-logging.test.js`, `.opencode/tests/workflow-state-controller.test.js`, and `.opencode/tests/workflow-state-cli.test.js`.
-- Roll back MCP exposure/diagnostic changes together with `tests/mcp-server/mcp-server.test.js`.
+- Roll back audit result/evidence helper changes together with `src/tests/runtime/audit-tools.test.js`.
+- Roll back wrapper/invocation-log/policy changes together with `src/tests/runtime/invocation-logging.test.js`, `src/openkit-runtime/tests/workflow-state-controller.test.js`, and `src/openkit-runtime/tests/workflow-state-cli.test.js`.
+- Roll back MCP exposure/diagnostic changes together with `src/tests/mcp-server/mcp-server.test.js`.
 - Roll back role prompt/docs changes together, then rerun `npm run sync:install-bundle` and `npm run verify:install-bundle` so derived install-bundle files do not drift.
 - Do not roll back by disabling scan gates, setting policy enforcement to `off`, hand-editing invocation logs, or converting substitute evidence into direct successes.
 - If global install/package surfaces are changed and must be rolled back, validate both checked-in runtime and `global_cli` surfaces separately and document restart/reinstall requirements.

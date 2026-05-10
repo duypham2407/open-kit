@@ -354,7 +354,7 @@ Files to modify:
 - `src/runtime/create-managers.js`
 - `src/runtime/tools/analysis/embedding-index.js`
 - `src/global/doctor.js`
-- `context/core/project-config.md`
+- `src/context/core/project-config.md`
 
 Expected work:
 - expose richer embedding diagnostics
@@ -363,8 +363,8 @@ Expected work:
 ### 6.5 Tests
 
 Files to modify or create:
-- `tests/runtime/embedding-pipeline.test.js`
-- `tests/runtime/semantic-memory.test.js`
+- `src/tests/runtime/embedding-pipeline.test.js`
+- `src/tests/runtime/semantic-memory.test.js`
 - new hybrid retrieval tests if needed
 
 Required test coverage:

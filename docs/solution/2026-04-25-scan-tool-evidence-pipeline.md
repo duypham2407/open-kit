@@ -27,7 +27,7 @@ This is enough because the repository already has:
 - Semgrep-backed runtime audit tools at `src/runtime/tools/audit/rule-scan.js` and `src/runtime/tools/audit/security-scan.js`.
 - A runtime tool registry and MCP server path.
 - Workflow-state verification evidence, invocation logs, Tier 2 tool evidence gates, and Tier 3 invocation policies.
-- Existing repo-native OpenKit validation commands in `package.json` and `.opencode/workflow-state.js`.
+- Existing repo-native OpenKit validation commands in `package.json` and `src/openkit-runtime/workflow-state.js`.
 
 The main gap is not scanner selection. The gap is an end-to-end evidence contract: direct tool exposure, structured availability states, evidence metadata, triage/classification, gate interpretation, manual-override caveats, and reporting surfaces.
 
@@ -55,21 +55,21 @@ The main gap is not scanner selection. The gap is an end-to-end evidence contrac
 
 - `src/runtime/tools/workflow/evidence-capture.js`
 - `src/runtime/tools/workflow/runtime-summary.js`
-- `.opencode/lib/runtime-guidance.js`
-- `.opencode/lib/workflow-state-controller.js`
-- `.opencode/lib/policy-engine.js`
-- `.opencode/lib/runtime-summary.js`
-- `.opencode/workflow-state.js`
-- `context/core/approval-gates.md`
-- `context/core/workflow-state-schema.md`
-- `context/core/project-config.md`
-- `context/core/runtime-surfaces.md`
+- `src/openkit-runtime/lib/runtime-guidance.js`
+- `src/openkit-runtime/lib/workflow-state-controller.js`
+- `src/openkit-runtime/lib/policy-engine.js`
+- `src/openkit-runtime/lib/runtime-summary.js`
+- `src/openkit-runtime/workflow-state.js`
+- `src/context/core/approval-gates.md`
+- `src/context/core/workflow-state-schema.md`
+- `src/context/core/project-config.md`
+- `src/context/core/runtime-surfaces.md`
 
 ### Role/report surfaces and docs
 
-- `agents/fullstack-agent.md`
-- `agents/code-reviewer.md`
-- `agents/qa-agent.md`
+- `src/agents/fullstack-agent.md`
+- `src/agents/code-reviewer.md`
+- `src/agents/qa-agent.md`
 - `assets/install-bundle/opencode/agents/FullstackAgent.md` (derived via `npm run sync:install-bundle`)
 - `assets/install-bundle/opencode/agents/CodeReviewer.md` (derived via `npm run sync:install-bundle`)
 - `assets/install-bundle/opencode/agents/QAAgent.md` (derived via `npm run sync:install-bundle`)
@@ -78,20 +78,20 @@ The main gap is not scanner selection. The gap is an end-to-end evidence contrac
 - `docs/operator/supported-surfaces.md`
 - `docs/maintainer/test-matrix.md`
 - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`
-- `context/core/tool-substitution-rules.md`
+- `src/context/core/tool-substitution-rules.md`
 - `AGENTS.md` (only for changed current-state/tooling facts)
 
 ### Tests
 
-- `tests/mcp-server/mcp-server.test.js`
-- `tests/runtime/audit-tools.test.js`
-- `tests/runtime/runtime-bootstrap.test.js`
-- `tests/runtime/runtime-platform.test.js`
-- `tests/runtime/governance-enforcement.test.js`
-- `tests/runtime/external-tools.test.js`
-- `.opencode/tests/workflow-state-controller.test.js`
-- `.opencode/tests/workflow-state-cli.test.js`
-- `.opencode/tests/workflow-contract-consistency.test.js`
+- `src/tests/mcp-server/mcp-server.test.js`
+- `src/tests/runtime/audit-tools.test.js`
+- `src/tests/runtime/runtime-bootstrap.test.js`
+- `src/tests/runtime/runtime-platform.test.js`
+- `src/tests/runtime/governance-enforcement.test.js`
+- `src/tests/runtime/external-tools.test.js`
+- `src/openkit-runtime/tests/workflow-state-controller.test.js`
+- `src/openkit-runtime/tests/workflow-state-cli.test.js`
+- `src/openkit-runtime/tests/workflow-contract-consistency.test.js`
 
 ## Boundaries And Components
 
@@ -216,7 +216,7 @@ verification_evidence[] = {
 Implementation guidance:
 
 - `tool.evidence-capture` should accept and preserve the optional `details` object.
-- `.opencode/workflow-state.js record-verification-evidence` may be extended with an optional `--details-json` or equivalent flag if CLI-based structured evidence is needed. Do not remove the existing positional command behavior.
+- `src/openkit-runtime/workflow-state.js record-verification-evidence` may be extended with an optional `--details-json` or equivalent flag if CLI-based structured evidence is needed. Do not remove the existing positional command behavior.
 - Runtime summaries should show a compact scan-evidence read model; they do not need to dump every raw finding in normal human output.
 
 ### Triage classification states
@@ -252,9 +252,9 @@ False-positive records must include rule/finding identity, file or area, relevan
   - `src/runtime/tools/audit/scan-evidence.js` (create)
   - `src/runtime/tools/wrap-tool-execution.js`
   - `src/runtime/create-tools.js`
-  - `tests/mcp-server/mcp-server.test.js`
-  - `tests/runtime/audit-tools.test.js`
-  - `tests/runtime/runtime-bootstrap.test.js`
+  - `src/tests/mcp-server/mcp-server.test.js`
+  - `src/tests/runtime/audit-tools.test.js`
+  - `src/tests/runtime/runtime-bootstrap.test.js`
 - **Goal**: make `tool.rule-scan` and `tool.security-scan` directly callable through the MCP namespace where agents receive tool surfaces, and make every direct scan response include a structured state.
 - **Dependencies**: none.
 - **Test-first expectations**:
@@ -279,14 +279,14 @@ False-positive records must include rule/finding identity, file or area, relevan
 - **Files**:
   - `src/runtime/tools/workflow/evidence-capture.js`
   - `src/runtime/tools/workflow/runtime-summary.js`
-  - `.opencode/lib/workflow-state-controller.js`
-  - `.opencode/lib/runtime-summary.js`
-  - `.opencode/workflow-state.js`
-  - `context/core/workflow-state-schema.md`
-  - `context/core/project-config.md`
-  - `context/core/runtime-surfaces.md`
-  - `tests/runtime/runtime-platform.test.js`
-  - `.opencode/tests/workflow-state-cli.test.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/openkit-runtime/lib/runtime-summary.js`
+  - `src/openkit-runtime/workflow-state.js`
+  - `src/context/core/workflow-state-schema.md`
+  - `src/context/core/project-config.md`
+  - `src/context/core/runtime-surfaces.md`
+  - `src/tests/runtime/runtime-platform.test.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
 - **Goal**: preserve direct scan, substitute scan, and manual override metadata in inspectable workflow evidence without blurring validation surfaces.
 - **Dependencies**: Slice 1 scan result/evidence-hint contract.
 - **Test-first expectations**:
@@ -308,15 +308,15 @@ False-positive records must include rule/finding identity, file or area, relevan
 
 - **Files**:
   - `src/runtime/tools/audit/scan-evidence.js`
-  - `.opencode/lib/runtime-guidance.js`
-  - `.opencode/lib/policy-engine.js`
-  - `.opencode/lib/workflow-state-controller.js`
-  - `.opencode/workflow-state.js`
-  - `context/core/approval-gates.md`
-  - `context/core/workflow-state-schema.md`
-  - `tests/runtime/audit-tools.test.js`
-  - `.opencode/tests/workflow-state-controller.test.js`
-  - `.opencode/tests/workflow-state-cli.test.js`
+  - `src/openkit-runtime/lib/runtime-guidance.js`
+  - `src/openkit-runtime/lib/policy-engine.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/openkit-runtime/workflow-state.js`
+  - `src/context/core/approval-gates.md`
+  - `src/context/core/workflow-state-schema.md`
+  - `src/tests/runtime/audit-tools.test.js`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
 - **Goal**: make gate behavior depend on classified scan outcomes rather than merely the existence of a source string or invocation entry.
 - **Dependencies**: Slice 2 structured evidence must exist before the gate can evaluate classifications safely.
 - **Test-first expectations**:
@@ -343,9 +343,9 @@ False-positive records must include rule/finding identity, file or area, relevan
 ### [ ] Slice 4: Role prompts, report templates, and operator/maintainer documentation
 
 - **Files**:
-  - `agents/fullstack-agent.md`
-  - `agents/code-reviewer.md`
-  - `agents/qa-agent.md`
+  - `src/agents/fullstack-agent.md`
+  - `src/agents/code-reviewer.md`
+  - `src/agents/qa-agent.md`
   - `assets/install-bundle/opencode/agents/FullstackAgent.md`
   - `assets/install-bundle/opencode/agents/CodeReviewer.md`
   - `assets/install-bundle/opencode/agents/QAAgent.md`
@@ -354,10 +354,10 @@ False-positive records must include rule/finding identity, file or area, relevan
   - `docs/operator/supported-surfaces.md`
   - `docs/maintainer/test-matrix.md`
   - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`
-  - `context/core/tool-substitution-rules.md`
-  - `context/core/approval-gates.md`
-  - `tests/runtime/governance-enforcement.test.js`
-  - `.opencode/tests/workflow-contract-consistency.test.js`
+  - `src/context/core/tool-substitution-rules.md`
+  - `src/context/core/approval-gates.md`
+  - `src/tests/runtime/governance-enforcement.test.js`
+  - `src/openkit-runtime/tests/workflow-contract-consistency.test.js`
 - **Goal**: make Fullstack, Code Reviewer, and QA outputs consistently report direct status, substitute status, finding counts, classification summary, false positives, overrides, and artifact refs.
 - **Dependencies**: Slices 1-3 contracts.
 - **Test-first expectations**:
@@ -380,8 +380,8 @@ False-positive records must include rule/finding identity, file or area, relevan
 - **Files**:
   - `package.json` (read-only for command reality; do not edit unless scripts genuinely change)
   - `docs/solution/2026-04-25-scan-tool-evidence-pipeline.md`
-  - `.opencode/work-items/<work_item_id>/tool-invocations.json` (runtime-produced, do not hand-edit)
-  - `.opencode/workflow-state.json` / managed active work-item state (use CLI/tooling only; do not hand-edit)
+  - `src/openkit-runtime/work-items/<work_item_id>/tool-invocations.json` (runtime-produced, do not hand-edit)
+  - `src/openkit-runtime/workflow-state.json` / managed active work-item state (use CLI/tooling only; do not hand-edit)
   - `docs/qa/2026-04-25-scan-tool-evidence-pipeline.md` (created by QA later, not Fullstack)
 - **Goal**: prove the whole pipeline works end-to-end and record the remaining validation split honestly.
 - **Dependencies**: Slices 1-4.
@@ -397,7 +397,7 @@ False-positive records must include rule/finding identity, file or area, relevan
   - `node .opencode/workflow-state.js show-invocations feature-939`
   - `node .opencode/workflow-state.js show-policy-status`
 - **Details**:
-  - Fullstack must record verification evidence through `tool.evidence-capture` or `.opencode/workflow-state.js record-verification-evidence` before requesting code review.
+  - Fullstack must record verification evidence through `tool.evidence-capture` or `src/openkit-runtime/workflow-state.js record-verification-evidence` before requesting code review.
   - Code Reviewer must run/attempt direct `tool.rule-scan` and `tool.security-scan`; direct unavailable must be recorded as unavailable and not as a successful direct scan.
   - QA must verify that any substitute/manual override caveat remains visible in the QA report and closeout/readiness surfaces.
   - If `npm run verify:all` is environmentally blocked, record the exact blocker and run the strongest targeted commands above. Do not claim app-native validation.
@@ -408,8 +408,8 @@ Observable dependency chain from current code:
 
 - `src/runtime/tools/audit/security-scan.js` wraps `src/runtime/tools/audit/rule-scan.js`; shared scan-result/triage helpers must be stable before security scan behavior is considered done.
 - `src/runtime/tools/tool-registry.js` registers both audit tools; MCP exposure additionally depends on `src/mcp-server/tool-schemas.js` listing those tool IDs.
-- `src/runtime/tools/wrap-tool-execution.js` records invocation success/failure; Tier 3 policy in `.opencode/lib/policy-engine.js` depends on accurate invocation status.
-- `tool.evidence-capture` records workflow evidence; Tier 2 gates in `.opencode/lib/runtime-guidance.js` and workflow-state readiness surfaces depend on that evidence shape.
+- `src/runtime/tools/wrap-tool-execution.js` records invocation success/failure; Tier 3 policy in `src/openkit-runtime/lib/policy-engine.js` depends on accurate invocation status.
+- `tool.evidence-capture` records workflow evidence; Tier 2 gates in `src/openkit-runtime/lib/runtime-guidance.js` and workflow-state readiness surfaces depend on that evidence shape.
 - Agent prompts and QA templates depend on the runtime/evidence/gate contract; they should not be finalized before Slices 1-3 settle.
 
 Slice sequencing:

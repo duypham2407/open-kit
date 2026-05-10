@@ -32,7 +32,7 @@ This is enough because the repository already has the necessary seams from the M
 - runtime capability inventory/router/skill-index tools under `src/runtime/tools/capability/`
 - `CapabilityRegistryManager` and `SkillMcpManager` joining skills to MCP inventory
 - install-bundle sync/verify scripts and `OPENKIT_ASSET_MANIFEST`
-- source skill files under `skills/` and derived install assets under `assets/install-bundle/opencode/skills/`
+- source skill files under `src/skills/` and derived install assets under `assets/install-bundle/opencode/skills/`
 - repo-native OpenKit validation commands in `package.json`
 
 Do **not** make `SKILL.md` prose the canonical metadata source. Skill markdown may receive minimal frontmatter/header corrections where needed for OpenCode-native display, but canonical machine-readable fields and validation must live in the shared catalog module so runtime and package validation do not parse long-form prose.
@@ -43,9 +43,9 @@ Observed at solution time:
 
 - `src/capabilities/skill-catalog.js` already defines a v1 catalog but uses `lifecycle`, `triggerHints`, `roleHints`, `modeHints`, `mcpRefs`, and `optionalMcpRefs`; it also uses `status` as computed runtime availability (`available`, `preview`, `unavailable`).
 - `src/capabilities/schema.js` validates only `skill.*` ids and standard runtime capability-state labels; it does not validate required skill metadata fields, status semantics, role/stage taxonomy, provenance, support level, or install-bundle sync.
-- `skills/` currently contains 20 source skill files.
+- `src/skills/` currently contains 20 source skill files.
 - `assets/install-bundle/opencode/skills/` currently contains 13 derived skill files.
-- The current catalog also declares additional unavailable skill records for frontend/Next/Rust/etc. skills whose `skills/<name>/SKILL.md` files are not present in this repository.
+- The current catalog also declares additional unavailable skill records for frontend/Next/Rust/etc. skills whose `src/skills/<name>/SKILL.md` files are not present in this repository.
 - Runtime tools already exist for `tool.capability-inventory`, `tool.capability-router`, `tool.capability-health`, `tool.mcp-doctor`, `tool.skill-index`, and `tool.skill-mcp-bindings`, but they expose the v1 skill shape and do not route by structured skill metadata.
 - `docs/maintainer/role-skill-matrix.md`, `docs/operator/mcp-configuration.md`, `docs/operator/supported-surfaces.md`, and `docs/kit-internals/04-tools-hooks-skills-and-mcps.md` mention skills but do not define the canonical metadata contract.
 - Validation commands exist for OpenKit runtime/package/docs surfaces. Target-project application build/lint/test validation is unavailable for this feature.
@@ -58,8 +58,8 @@ Observed at solution time:
 - `src/capabilities/schema.js`
 - `src/capabilities/status.js`
 - `src/runtime/capability-registry.js`
-- `tests/runtime/skill-catalog.test.js`
-- `tests/runtime/capability-registry.test.js`
+- `src/tests/runtime/skill-catalog.test.js`
+- `src/tests/runtime/capability-registry.test.js`
 
 ### Runtime managers and tools
 
@@ -73,8 +73,8 @@ Observed at solution time:
 - `src/runtime/create-runtime-interface.js`
 - `src/runtime/index.js` only if skill binding registration needs the normalized catalog shape
 - `src/mcp-server/tool-schemas.js`
-- `tests/runtime/capability-tools.test.js`
-- `tests/mcp-server/mcp-server.test.js` if schemas/read models change
+- `src/tests/runtime/capability-tools.test.js`
+- `src/tests/mcp-server/mcp-server.test.js` if schemas/read models change
 
 ### Install-bundle and package sync
 
@@ -83,8 +83,8 @@ Observed at solution time:
 - `scripts/verify-install-bundle.mjs`
 - `assets/install-bundle/opencode/skills/**`
 - `assets/install-bundle/opencode/skill-catalog.json` (create as a generated, non-canonical bundle read model)
-- `tests/install/materialize.test.js`
-- `tests/install/skill-bundle-sync.test.js` (create, or add equivalent assertions to an existing install test)
+- `src/tests/install/materialize.test.js`
+- `src/tests/install/skill-bundle-sync.test.js` (create, or add equivalent assertions to an existing install test)
 - `package.json` only if a new targeted script is added; otherwise keep existing `sync:install-bundle` and `verify:install-bundle`
 
 ### Docs, registry, and governance
@@ -96,17 +96,17 @@ Observed at solution time:
 - `docs/maintainer/role-skill-matrix.md`
 - `docs/maintainer/test-matrix.md`
 - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`
-- `context/core/project-config.md`
-- `context/core/runtime-surfaces.md`
-- `context/core/workflow-state-schema.md` only for validation-surface vocabulary updates; do not change workflow stages or approvals
+- `src/context/core/project-config.md`
+- `src/context/core/runtime-surfaces.md`
+- `src/context/core/workflow-state-schema.md` only for validation-surface vocabulary updates; do not change workflow stages or approvals
 - `registry.json`
-- `.opencode/install-manifest.json` only if it needs to reference the derived skill catalog artifact
-- `tests/runtime/governance-enforcement.test.js`
-- `tests/runtime/registry-metadata.test.js`
+- `src/openkit-runtime/install-manifest.json` only if it needs to reference the derived skill catalog artifact
+- `src/tests/runtime/governance-enforcement.test.js`
+- `src/tests/runtime/registry-metadata.test.js`
 
 ### Skill content files
 
-- `skills/*/SKILL.md` only for targeted metadata/frontmatter corrections.
+- `src/skills/*/SKILL.md` only for targeted metadata/frontmatter corrections.
 - Do not rewrite skill bodies broadly.
 - Do not add marketplace acquisition, capability-pack installer behavior, lane/stage semantics, or target-project app commands.
 
@@ -265,7 +265,7 @@ Stage labels:
 
 Packaging `source`:
 
-- `repo` — `skills/<name>/SKILL.md` exists in repository source.
+- `repo` — `src/skills/<name>/SKILL.md` exists in repository source.
 - `metadata_only` — no source skill file exists; record is a visible stub/placeholder.
 - `external_reference` — metadata points to an upstream/imported source without copying content into this repository.
 
@@ -276,7 +276,7 @@ Catalog validation must fail with the skill id, field, actual value, and allowed
 - a required field is missing or has the wrong type
 - `id` is not `skill.${name}`
 - `name` is not a normalized skill slug
-- `path` is absolute, contains `..`, contains `~`, or does not match `skills/<name>/SKILL.md` for repo-backed records
+- `path` is absolute, contains `..`, contains `~`, or does not match `src/skills/<name>/SKILL.md` for repo-backed records
 - `description` is empty
 - `status` is not `stable`, `preview`, or `experimental`
 - a `stub`, `metadata_only`, or `support_level: 'stub'` record is labeled `stable`
@@ -289,7 +289,7 @@ Catalog validation must fail with the skill id, field, actual value, and allowed
 - `source.kind` is unsupported or imported/adapted records omit enough provenance to audit origin
 - `support_level` is unsupported or conflicts with `source.kind`
 - `packaging.installBundle === true` but source or derived bundle files are missing
-- a source skill exists under `skills/*/SKILL.md` without exactly one catalog record
+- a source skill exists under `src/skills/*/SKILL.md` without exactly one catalog record
 - a derived install-bundle skill exists without exactly one catalog record and manifest entry
 - source and derived install-bundle content diverge without running `npm run sync:install-bundle`
 
@@ -301,7 +301,7 @@ Validation should return structured errors for tests and human-readable summarie
 
 For skills already present under `assets/install-bundle/opencode/skills/`, keep them discoverable as normal bundled skills after metadata is complete. Classify them as `stable` only when:
 
-- source file exists under `skills/<name>/SKILL.md`
+- source file exists under `src/skills/<name>/SKILL.md`
 - install-bundle asset manifest includes the file
 - support level is not `stub`
 - role/stage/trigger/provenance/MCP metadata is complete
@@ -311,7 +311,7 @@ If any of those are uncertain, use `preview` with an explicit `limitations` entr
 
 ### Existing source-only skills
 
-For source skill files present under `skills/` but absent from `assets/install-bundle/opencode/skills/` at solution time, prefer including them in the install bundle unless there is a concrete exclusion reason.
+For source skill files present under `src/skills/` but absent from `assets/install-bundle/opencode/skills/` at solution time, prefer including them in the install bundle unless there is a concrete exclusion reason.
 
 Current source-only candidates to reconcile include:
 
@@ -516,8 +516,8 @@ If workflow evidence records package/source sync results, add `package` to the v
   - `src/capabilities/schema.js`
   - `src/capabilities/status.js`
   - `src/runtime/capability-registry.js`
-  - `tests/runtime/skill-catalog.test.js`
-  - `tests/runtime/capability-registry.test.js`
+  - `src/tests/runtime/skill-catalog.test.js`
+  - `src/tests/runtime/capability-registry.test.js`
 - **Goal**: define v2 canonical skill metadata and separate skill maturity from runtime capability state.
 - **Dependencies**: none.
 - **Validation Command**:
@@ -538,9 +538,9 @@ If workflow evidence records package/source sync results, add `package` to the v
   - `scripts/verify-install-bundle.mjs`
   - `assets/install-bundle/opencode/skills/**`
   - `assets/install-bundle/opencode/skill-catalog.json` (create, generated)
-  - `skills/*/SKILL.md` only for targeted metadata header fixes
-  - `tests/install/skill-bundle-sync.test.js` (create, or equivalent install test)
-  - `tests/install/materialize.test.js` if install materialization expectations change
+  - `src/skills/*/SKILL.md` only for targeted metadata header fixes
+  - `src/tests/install/skill-bundle-sync.test.js` (create, or equivalent install test)
+  - `src/tests/install/materialize.test.js` if install materialization expectations change
 - **Goal**: make source skill files, asset manifest entries, derived bundle files, and derived bundle metadata agree.
 - **Dependencies**: `TASK-F947-SKILL-SCHEMA`.
 - **Validation Command**:
@@ -569,8 +569,8 @@ If workflow evidence records package/source sync results, add `package` to the v
   - `src/runtime/create-runtime-interface.js`
   - `src/runtime/index.js` if registration inputs need normalization
   - `src/mcp-server/tool-schemas.js`
-  - `tests/runtime/capability-tools.test.js`
-  - `tests/mcp-server/mcp-server.test.js` if schemas are changed
+  - `src/tests/runtime/capability-tools.test.js`
+  - `src/tests/mcp-server/mcp-server.test.js` if schemas are changed
 - **Goal**: expose canonical skill metadata consistently in runtime tooling and make router decisions explainable.
 - **Dependencies**: `TASK-F947-SKILL-SCHEMA`.
 - **Validation Command**:
@@ -596,13 +596,13 @@ If workflow evidence records package/source sync results, add `package` to the v
   - `docs/maintainer/role-skill-matrix.md`
   - `docs/maintainer/test-matrix.md`
   - `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`
-  - `context/core/project-config.md`
-  - `context/core/runtime-surfaces.md`
-  - `context/core/workflow-state-schema.md` only for validation-surface vocabulary updates
+  - `src/context/core/project-config.md`
+  - `src/context/core/runtime-surfaces.md`
+  - `src/context/core/workflow-state-schema.md` only for validation-surface vocabulary updates
   - `registry.json`
-  - `.opencode/install-manifest.json` only if it references the derived bundle metadata
-  - `tests/runtime/governance-enforcement.test.js`
-  - `tests/runtime/registry-metadata.test.js`
+  - `src/openkit-runtime/install-manifest.json` only if it references the derived bundle metadata
+  - `src/tests/runtime/governance-enforcement.test.js`
+  - `src/tests/runtime/registry-metadata.test.js`
 - **Goal**: make the contract discoverable for maintainers/operators and align machine-readable registry docs with canonical metadata.
 - **Dependencies**: `TASK-F947-SKILL-SCHEMA`.
 - **Validation Command**:
@@ -657,17 +657,17 @@ Critical path: schema/catalog normalization -> bundle/runtime/docs consumers -> 
   - `scripts/`
   - `assets/install-bundle/opencode/skills/`
   - `assets/install-bundle/opencode/skill-catalog.json`
-  - `tests/install/`
+  - `src/tests/install/`
   - `src/runtime/`
   - `src/mcp-server/`
-  - `tests/runtime/capability-`
+  - `src/tests/runtime/capability-`
   - `docs/`
-  - `context/core/project-config.md`
-  - `context/core/runtime-surfaces.md`
-  - `context/core/workflow-state-schema.md`
+  - `src/context/core/project-config.md`
+  - `src/context/core/runtime-surfaces.md`
+  - `src/context/core/workflow-state-schema.md`
   - `registry.json`
-  - `tests/runtime/governance-enforcement.test.js`
-  - `tests/runtime/registry-metadata.test.js`
+  - `src/tests/runtime/governance-enforcement.test.js`
+  - `src/tests/runtime/registry-metadata.test.js`
 - sequential_constraints:
   - `TASK-F947-SKILL-SCHEMA -> TASK-F947-BUNDLE-SYNC -> TASK-F947-INTEGRATION`
   - `TASK-F947-SKILL-SCHEMA -> TASK-F947-RUNTIME-EXPOSURE -> TASK-F947-INTEGRATION`
@@ -685,10 +685,10 @@ Recommended tasks:
 
 | Task ID | Title | Kind | Depends On | Primary artifact refs | Primary validation |
 | --- | --- | --- | --- | --- | --- |
-| `TASK-F947-SKILL-SCHEMA` | Define canonical bundled skill metadata schema | `implementation` | none | `src/capabilities/`, `tests/runtime/skill-catalog.test.js` | skill catalog and capability registry tests |
-| `TASK-F947-BUNDLE-SYNC` | Synchronize source skills with install-bundle metadata | `implementation` | `TASK-F947-SKILL-SCHEMA` | `src/install/`, `scripts/`, `assets/install-bundle/opencode/`, `tests/install/` | install-bundle sync/verify tests |
-| `TASK-F947-RUNTIME-EXPOSURE` | Expose skill metadata in runtime tools and router | `implementation` | `TASK-F947-SKILL-SCHEMA` | `src/runtime/`, `src/mcp-server/`, `tests/runtime/capability-*` | runtime capability tools tests |
-| `TASK-F947-DOCS-GOVERNANCE` | Document governance, role matrix, and registry expectations | `documentation` | `TASK-F947-SKILL-SCHEMA` | `docs/`, `context/core/`, `registry.json`, governance tests | governance and registry tests |
+| `TASK-F947-SKILL-SCHEMA` | Define canonical bundled skill metadata schema | `implementation` | none | `src/capabilities/`, `src/tests/runtime/skill-catalog.test.js` | skill catalog and capability registry tests |
+| `TASK-F947-BUNDLE-SYNC` | Synchronize source skills with install-bundle metadata | `implementation` | `TASK-F947-SKILL-SCHEMA` | `src/install/`, `scripts/`, `assets/install-bundle/opencode/`, `src/tests/install/` | install-bundle sync/verify tests |
+| `TASK-F947-RUNTIME-EXPOSURE` | Expose skill metadata in runtime tools and router | `implementation` | `TASK-F947-SKILL-SCHEMA` | `src/runtime/`, `src/mcp-server/`, `src/tests/runtime/capability-*` | runtime capability tools tests |
+| `TASK-F947-DOCS-GOVERNANCE` | Document governance, role matrix, and registry expectations | `documentation` | `TASK-F947-SKILL-SCHEMA` | `docs/`, `src/context/core/`, `registry.json`, governance tests | governance and registry tests |
 | `TASK-F947-INTEGRATION` | Run integrated validation and record handoff evidence | `verification` | bundle/runtime/docs tasks | workflow evidence and QA handoff refs | `verify:all`, workflow-state validation, manual runtime output spot checks |
 
 Do not create a task for broad skill-body rewriting. Any missing or incomplete skill content discovered during implementation should be represented as preview/experimental/stub metadata or raised as follow-up scope.
@@ -718,7 +718,7 @@ Before handoff to Code Reviewer:
 
 1. Confirm `src/capabilities/skill-catalog.js` is the only canonical metadata source.
 2. Confirm `assets/install-bundle/opencode/skill-catalog.json` is generated and matches canonical metadata.
-3. Confirm every `skills/*/SKILL.md` has exactly one canonical metadata record.
+3. Confirm every `src/skills/*/SKILL.md` has exactly one canonical metadata record.
 4. Confirm every install-bundle skill asset has exactly one canonical metadata record and manifest entry.
 5. Confirm runtime outputs expose `status`, `capabilityState`, `support_level`, `source`, `roles`, `stages`, `triggers`, and `recommended_mcps` without secrets.
 6. Confirm router output explains why a skill was selected or why no suitable match exists.

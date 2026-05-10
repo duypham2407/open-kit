@@ -1,11 +1,11 @@
 import { createRequire } from 'node:module';
 import { STANDARD_CAPABILITY_STATES, VALIDATION_SURFACES } from './capability-registry.js';
 import { createToolRegistry } from './tools/index.js';
-import { resolvePathContext } from '../../.opencode/lib/runtime-paths.js';
+import { resolvePathContext } from '../openkit-runtime/lib/runtime-paths.js';
 import { resolveSession } from './sessions/session-resolver.js';
 
 const require = createRequire(import.meta.url);
-const { createInvocationLogger } = require('../../.opencode/lib/invocation-log.js');
+const { createInvocationLogger } = require('../openkit-runtime/lib/invocation-log.js');
 
 function summarizeToolFamilies(toolList = []) {
   const families = new Map();

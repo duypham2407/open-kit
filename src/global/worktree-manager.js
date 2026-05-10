@@ -7,7 +7,7 @@ import {
   readWorkItemWorktree,
   removeWorkItemWorktree,
   writeWorkItemWorktree,
-} from '../../.opencode/lib/work-item-store.js';
+} from '../openkit-runtime/lib/work-item-store.js';
 
 const WORKTREE_SCHEMA = 'openkit/worktree@2';
 

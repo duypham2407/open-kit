@@ -31,7 +31,7 @@ npm run verify:semgrep-quality         # Verify Semgrep quality rules
 node --test <path-to-test-file>
 
 # Example: test workflow state CLI
-node --test .opencode/tests/workflow-state-cli.test.js
+node --test src/tests/workflow-state-cli.test.js
 ```
 
 ### Global CLI (End-User Product Surface)
@@ -60,11 +60,11 @@ openkit uninstall                      # Remove global install
 ### Runtime Inspection (Maintainer/Diagnostics)
 
 ```bash
-node .opencode/workflow-state.js ops-summary
-node .opencode/workflow-state.js resume-summary
-node .opencode/workflow-state.js status --short
-node .opencode/workflow-state.js workflow-metrics
-node .opencode/workflow-state.js release-readiness
+node src/openkit-runtime/workflow-state.js ops-summary
+node src/openkit-runtime/workflow-state.js resume-summary
+node src/openkit-runtime/workflow-state.js status --short
+node src/openkit-runtime/workflow-state.js workflow-metrics
+node src/openkit-runtime/workflow-state.js release-readiness
 ```
 
 These commands inspect workflow state. They do NOT validate target application build/lint/test behavior.
@@ -88,7 +88,7 @@ OpenKit uses a two-layer architecture defined in `docs/architecture/2026-03-hybr
 - Stage ownership and transitions
 - Approval gates and artifact readiness
 - Issue routing and verification evidence
-- Located in: `context/core/workflow.md`, `.opencode/workflow-state.js`, `.opencode/lib/*`
+- Located in: `src/context/core/workflow.md`, `src/openkit-runtime/workflow-state.js`, `src/openkit-runtime/lib/*`
 
 **2. Capability Runtime** (execution infrastructure)
 - Runtime config loading (project + user scopes)
@@ -138,28 +138,35 @@ Canonical lane choice is by **dominant uncertainty**, not size:
 ## Directory Structure
 
 ```
-agents/                    # Agent role definitions (master-orchestrator.md, product-lead-agent.md, etc.)
-commands/                  # User-facing slash commands (/quick-task, /migrate, /delivery, etc.)
-skills/                    # Composable workflow procedures (TDD, brainstorming, planning, debugging)
-context/                   # Shared intelligence (navigation, code quality, workflow)
-  core/workflow.md         # *** Canonical workflow contract (source of truth) ***
-  core/lane-selection.md   # Routing rubric with examples and anti-patterns
-hooks/                     # Session bootstrap integration (session-start)
-.opencode/                 # OpenCode runtime environment
-  workflow-state.js        # *** Workflow state CLI (mode-aware contract) ***
-  workflow-state.json      # Active external compatibility mirror
-  work-items/              # Per-item workflow backing store
-  lib/                     # Workflow kernel implementation
-src/runtime/               # *** Capability runtime foundation ***
-  index.js                 # Bootstrap entrypoint
-  runtime-config-loader.js # Project + user config loader (JSONC support)
-  capability-registry.js   # Current and planned runtime capability inventory
-  managers/                # Manager lifecycle (project-graph, embedding, context-assembly, etc.)
-  tools/                   # Runtime tool registry (graph tools, embedding index, comprehensive-context, etc.)
-  analysis/                # Static analysis (project-graph-db, data-flow-analyzer, etc.)
-  lib/                     # Shared library code (budget-manager, result-ranker)
-  mcp/                     # MCP bootstrap
-  sessions/                # Multi-session workflow isolation
+src/
+  agents/                  # Agent role definitions (master-orchestrator.md, product-lead-agent.md, etc.)
+  commands/                # User-facing slash commands (/quick-task, /migrate, /delivery, etc.)
+  skills/                  # Composable workflow procedures (TDD, brainstorming, planning, debugging)
+  context/                 # Shared intelligence (navigation, code quality, workflow)
+    core/workflow.md       # *** Canonical workflow contract (source of truth) ***
+    core/lane-selection.md # Routing rubric with examples and anti-patterns
+  hooks/                   # Session bootstrap integration (session-start)
+  openkit-runtime/         # OpenCode compatibility runtime
+    workflow-state.js      # *** Workflow state CLI (mode-aware contract) ***
+    workflow-state.json    # Active external compatibility mirror
+    work-items/            # Per-item workflow backing store
+    lib/                   # Workflow kernel implementation
+  runtime/                 # *** Capability runtime foundation ***
+    index.js               # Bootstrap entrypoint
+    runtime-config-loader.js # Project + user config loader (JSONC support)
+    capability-registry.js # Current and planned runtime capability inventory
+    managers/              # Manager lifecycle (project-graph, embedding, context-assembly, etc.)
+    tools/                 # Runtime tool registry (graph tools, embedding index, comprehensive-context, etc.)
+    analysis/              # Static analysis (project-graph-db, data-flow-analyzer, etc.)
+    lib/                   # Shared library code (budget-manager, result-ranker)
+    mcp/                   # MCP bootstrap
+    sessions/              # Multi-session workflow isolation
+  tests/                   # Test suites organized by surface
+    runtime/               # Runtime foundation tests
+    cli/                   # CLI tests
+    install/               # Installation tests
+  scripts/                 # Maintenance and verification scripts
+  bin/                     # CLI entrypoints (openkit.js)
 docs/
   architecture/            # Architecture RFCs (hybrid-runtime-rfc.md)
   configuration/           # Runtime config references (code-intelligence.md)
@@ -168,10 +175,6 @@ docs/
   maintainer/              # Maintainer-facing documentation
   governance/              # Naming, severity, ADR, definition-of-done policy
   templates/               # Workflow artifact templates
-tests/                     # Test suites organized by surface
-  runtime/                 # Runtime foundation tests
-  cli/                     # CLI tests
-  install/                 # Installation tests
 ```
 
 ## Key Technical Details
@@ -247,7 +250,7 @@ OpenKit includes a comprehensive 4-layer intelligence stack for codebase underst
 
 ## Workflow State Contract
 
-The workflow state schema (v3) is defined in `context/core/workflow-state-schema.md`:
+The workflow state schema (v3) is defined in `src/context/core/workflow-state-schema.md`:
 
 - Each work item has: `work_item_id`, `lane`, `stage`, `owner`, `linked_artifacts`, `approvals`, `issues`, `evidence`
 - Approvals track: `approved_by`, `timestamp`, `summary`, `link`
@@ -275,7 +278,7 @@ When target project defines app-native commands, those can prove app behavior. O
 
 ### Permissions and Security
 
-- Command permission policy: `assets/default-command-permission-policy.json` (canonical)
+- Command permission policy: `src/assets/default-command-permission-policy.json` (canonical)
 - Custom MCP config: placeholder-only, no raw secrets in arguments
 - MCP secrets: use `--stdin` or environment-backed placeholders
 
@@ -291,7 +294,7 @@ When deciding what is authoritative:
 
 1. Direct user instructions in current session
 2. Root `AGENTS.md`
-3. `context/core/workflow.md` (canonical workflow contract)
+3. `src/context/core/workflow.md` (canonical workflow contract)
 4. Companion core workflow docs for operational details
 
 ## Common Patterns
@@ -303,24 +306,24 @@ When deciding what is authoritative:
 3. Register tools in `src/runtime/create-tools.js`
 4. Add config schema to `src/runtime/runtime-config-defaults.js`
 5. Update `docs/architecture/` and `registry.json`
-6. Add tests in `tests/runtime/`
+6. Add tests in `src/tests/runtime/`
 
 ### Verifying Workflow State
 
 ```bash
 # Quick status check
-node .opencode/workflow-state.js status --short
+node src/openkit-runtime/workflow-state.js status --short
 
 # Detailed metrics
-node .opencode/workflow-state.js workflow-metrics
+node src/openkit-runtime/workflow-state.js workflow-metrics
 
 # Resume context after session interruption
-node .opencode/workflow-state.js resume-summary
+node src/openkit-runtime/workflow-state.js resume-summary
 ```
 
 ### Testing a New Agent or Skill
 
-1. Add agent definition to `agents/` or skill to `skills/`
+1. Add agent definition to `src/agents/` or skill to `src/skills/`
 2. Update registry.json with metadata
 3. Test via `openkit run` and appropriate lane command
 4. Verify workflow state transitions correctly
@@ -340,5 +343,5 @@ node .opencode/workflow-state.js resume-summary
 - docs/maintainer/README.md - maintainer path and command matrix
 - docs/configuration/code-intelligence.md - Multi-Layer Intelligence config reference
 - docs/features/multi-layer-intelligence.md - Multi-Layer Intelligence usage guide
-- context/core/workflow.md - canonical workflow contract
+- src/context/core/workflow.md - canonical workflow contract
 - docs/architecture/2026-03-hybrid-runtime-rfc.md - runtime architecture

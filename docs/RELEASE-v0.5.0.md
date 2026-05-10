@@ -322,8 +322,8 @@ try {
 ### Transition Period Limitations
 
 1. **Dual State Paths**
-   - V2 state: `.opencode/v2/work-items/<id>/state.json`
-   - Legacy: `.opencode/workflow-state.json`
+   - V2 state: `src/openkit-runtime/v2/work-items/<id>/state.json`
+   - Legacy: `src/openkit-runtime/workflow-state.json`
    - Both are written during transition
    - Will be unified in next release
 
@@ -399,7 +399,7 @@ https://github.com/duypham93/openkit/issues
    - `docs/superpowers/IMPLEMENTATION-COMPLETE-2026-05-08.md`
 
 2. **Check transaction log:**
-   - `.opencode/work-items/<workItemId>/state-transitions.log`
+   - `src/openkit-runtime/work-items/<workItemId>/state-transitions.log`
    - Shows exact sequence of state changes
 
 3. **Verify state:**

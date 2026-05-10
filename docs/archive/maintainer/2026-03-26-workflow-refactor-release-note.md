@@ -37,7 +37,7 @@ Date: 2026-03-26
 
 ## Documentation Changes
 
-- update canonical workflow docs under `context/core/`
+- update canonical workflow docs under `src/context/core/`
 - update runbooks and maintainer docs to the new role and stage model
 - add scope and solution package templates for the intended future artifact direction
 - add maintainer audit and migration notes for the refactor

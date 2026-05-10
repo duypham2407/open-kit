@@ -27,7 +27,7 @@ import { generateSessionId } from '../runtime/sessions/session-id.js';
 import { writeSessionMeta } from '../runtime/sessions/session-meta.js';
 import { addSessionEntry } from '../runtime/sessions/sessions-index.js';
 import { sessionMirrorPath } from '../runtime/sessions/session-paths.js';
-import { selectActiveWorkItem, showWorkItemState } from '../../.opencode/lib/workflow-state-controller.js';
+import { selectActiveWorkItem, showWorkItemState } from '../openkit-runtime/lib/workflow-state-controller.js';
 
 function formatMissingOpenCodeError() {
   return [

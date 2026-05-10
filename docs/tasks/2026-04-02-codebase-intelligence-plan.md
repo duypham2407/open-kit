@@ -142,7 +142,7 @@ All tools:
 
 **E. Background Indexing**
 
-- `hooks/session-start.js` spawns detached process `hooks/graph-indexer.js`
+- `src/hooks/session-start.js` spawns detached process `src/hooks/graph-indexer.js`
 - `graph-indexer.js` dynamically imports managers from the kit root
 - Fire-and-forget: does not block session startup, silently exits on error
 - Indexes up to 2000 files per run
@@ -159,7 +159,7 @@ All tools:
 |-----|-----------|-----|
 | `ast-grep-search.js` SyntaxError | Imported `isAstGrepAvailable` from `./ast-tooling-status.js` (not exported) | Changed import to `../../../global/tooling.js`; fixed call signature `{ env: process.env }` |
 | `ast-search.js` tests fail | `execute` became `async` when adding tree-sitter, tests called without `await` | Reverted `execute` to sync; tree-sitter branch uses `.then()` instead of `await` |
-| `runtime-bootstrap` read-only creates `.opencode/` | `ProjectGraphManager` always created DB file | Added `mode` param; skip DB when `mode === 'read-only'` |
+| `runtime-bootstrap` read-only creates `src/openkit-runtime/` | `ProjectGraphManager` always created DB file | Added `mode` param; skip DB when `mode === 'read-only'` |
 | `ensure-install` workspaces dir created | Doctor → bootstrap read-only → ProjectGraphManager created DB | Same `mode` fix as above |
 | `module-boundary.test.js` expects commonjs | Old test not updated after ESM migration | Changed expected value from `"commonjs"` to `"module"` |
 
@@ -167,8 +167,8 @@ All tools:
 
 - **256 tests passing, 0 failures** (runtime + install + global + cli + release)
 - 2 test files timeout due to pre-existing Node v24 process-isolation issue (not a regression):
-  - `tests/global/doctor.test.js` — passes with `--experimental-test-isolation=none` (~122s)
-  - `tests/cli/openkit-cli.test.js` — pre-existing hang, unrelated to Phase 2
+  - `src/tests/global/doctor.test.js` — passes with `--experimental-test-isolation=none` (~122s)
+  - `src/tests/cli/openkit-cli.test.js` — pre-existing hang, unrelated to Phase 2
 
 #### 2.2.6 How to run tests
 
@@ -253,8 +253,8 @@ node --experimental-test-isolation=none --test tests/global/doctor.test.js
 **Files to create:**
 - `src/runtime/analysis/reference-tracker.js` — identifier usage tracker
 - `src/runtime/analysis/call-graph-builder.js` — call graph extractor
-- `tests/runtime/reference-tracker.test.js`
-- `tests/runtime/call-graph.test.js`
+- `src/tests/runtime/reference-tracker.test.js`
+- `src/tests/runtime/call-graph.test.js`
 
 **Estimate:** 2-3 sessions
 
@@ -299,7 +299,7 @@ node --experimental-test-isolation=none --test tests/global/doctor.test.js
 - `src/runtime/tools/graph/find-references.js`
 - `src/runtime/tools/graph/call-hierarchy.js`
 - `src/runtime/tools/graph/rename-preview.js`
-- `tests/runtime/graph-navigation-tools.test.js`
+- `src/tests/runtime/graph-navigation-tools.test.js`
 
 **Dependencies:** Phase 3 (requires `references` table + call graph)
 
@@ -336,7 +336,7 @@ node --experimental-test-isolation=none --test tests/global/doctor.test.js
 - `src/runtime/analysis/lsp-formatters.js` (new)
 - `src/runtime/tools/lsp/*.js` (modify — add graph fallback)
 - `src/runtime/analysis/file-watcher.js` (new — incremental updates)
-- `tests/runtime/lsp-graph-integration.test.js` (new)
+- `src/tests/runtime/lsp-graph-integration.test.js` (new)
 
 **Dependencies:** Phase 4
 
@@ -505,8 +505,8 @@ All Phase 2 changes have NOT been committed. When continuing on another device:
 
 ### 6.2 Pre-existing issues (not regressions)
 
-- `tests/global/doctor.test.js` — timeout with Node v24 process isolation mode. Passes with `--experimental-test-isolation=none`. Root cause: 12 tests each calling `bootstrapRuntimeFoundation` take ~13s, totaling ~122s which exceeds the 120s timeout.
-- `tests/cli/openkit-cli.test.js` — hangs when run with `--experimental-test-isolation=none`, fails quickly with process isolation. Pre-existing issue.
+- `src/tests/global/doctor.test.js` — timeout with Node v24 process isolation mode. Passes with `--experimental-test-isolation=none`. Root cause: 12 tests each calling `bootstrapRuntimeFoundation` take ~13s, totaling ~122s which exceeds the 120s timeout.
+- `src/tests/cli/openkit-cli.test.js` — hangs when run with `--experimental-test-isolation=none`, fails quickly with process isolation. Pre-existing issue.
 
 ### 6.3 Native Dependencies
 

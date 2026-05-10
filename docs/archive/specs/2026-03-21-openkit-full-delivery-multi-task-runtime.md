@@ -8,7 +8,7 @@ owner: ProductLead
 approval_gate: product_to_solution
 ---
 
-> Historical design note: this document reflects the pre-Product-Lead / Solution-Lead workflow and is kept for audit/history only. Use `context/core/workflow.md` for the active workflow contract.
+> Historical design note: this document reflects the pre-Product-Lead / Solution-Lead workflow and is kept for audit/history only. Use `src/context/core/workflow.md` for the active workflow contract.
 
 # OpenKit Full-Delivery Multi-Task Runtime Specification
 
@@ -20,7 +20,7 @@ This specification does **not** expand the quick lane. `Quick Task` keeps the cu
 
 ## Problem Statement
 
-The current OpenKit runtime centers on one file-backed active work item in `.opencode/workflow-state.json`. That model works for a single worker progressing one item through the hard-split workflow, but it breaks down once a `Full Delivery` feature needs to be executed like a real team:
+The current OpenKit runtime centers on one file-backed active work item in `src/openkit-runtime/workflow-state.json`. That model works for a single worker progressing one item through the hard-split workflow, but it breaks down once a `Full Delivery` feature needs to be executed like a real team:
 
 - one feature may need multiple developers working in parallel on independent implementation tasks
 - one or more QA owners may need to verify different completed tasks without colliding with implementation ownership
@@ -78,7 +78,7 @@ Each work item remains the top-level workflow entity. A work item still owns:
 - `issues`
 - escalation metadata
 
-For phase 1 compatibility, `.opencode/workflow-state.json` remains the external canonical runtime interface referenced by current docs, commands, and resume behavior. The new per-item files are introduced behind that interface, with the active work item mirrored into `.opencode/workflow-state.json` until a later approved migration changes the external canonical contract.
+For phase 1 compatibility, `src/openkit-runtime/workflow-state.json` remains the external canonical runtime interface referenced by current docs, commands, and resume behavior. The new per-item files are introduced behind that interface, with the active work item mirrored into `src/openkit-runtime/workflow-state.json` until a later approved migration changes the external canonical contract.
 
 ### 2. Execution-task layer
 
@@ -333,9 +333,9 @@ Resume priority rules:
 
 Phase-1 target layout:
 
-- `.opencode/work-items/index.json`
-- `.opencode/work-items/<work-item-id>/state.json`
-- `.opencode/work-items/<work-item-id>/tasks.json`
+- `src/openkit-runtime/work-items/index.json`
+- `src/openkit-runtime/work-items/<work-item-id>/state.json`
+- `src/openkit-runtime/work-items/<work-item-id>/tasks.json`
 
 Recommended responsibilities:
 
@@ -358,7 +358,7 @@ The repository should migrate in phases, not in one breaking rewrite.
 
 ### Phase 1 migration rules
 
-- keep `.opencode/workflow-state.json` for compatibility during transition
+- keep `src/openkit-runtime/workflow-state.json` for compatibility during transition
 - introduce the new work-item directory structure alongside the current file
 - allow the current active state file to mirror the active work item while the new runtime becomes authoritative internally
 - update `status`, `doctor`, `show`, and resume behavior to understand the new layout incrementally
@@ -366,7 +366,7 @@ The repository should migrate in phases, not in one breaking rewrite.
 Mirror and sync invariants:
 
 - the active per-item `state.json` is written first
-- `.opencode/workflow-state.json` is then refreshed as the compatibility mirror for the active work item
+- `src/openkit-runtime/workflow-state.json` is then refreshed as the compatibility mirror for the active work item
 - if the mirror refresh fails, the runtime must report divergence clearly rather than silently claiming success
 - `doctor` must report active-item pointer errors, missing per-item state, stale `tasks.json` on quick items, and mirror divergence across active state surfaces
 
@@ -402,7 +402,7 @@ Aggregate and validation commands:
 - `validate-work-item-board <work_item_id>`
 - existing `status`, `show`, and `doctor` should become multi-item aware
 
-Commands such as `show-task`, `add-task-dependency`, and `summarize-work-item` remain future-facing ideas only until `.opencode/workflow-state.js` implements them. The runtime must stay additive and CLI-oriented rather than introducing a separate orchestration surface first.
+Commands such as `show-task`, `add-task-dependency`, and `summarize-work-item` remain future-facing ideas only until `src/openkit-runtime/workflow-state.js` implements them. The runtime must stay additive and CLI-oriented rather than introducing a separate orchestration surface first.
 
 ## Validation Requirements
 

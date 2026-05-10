@@ -27,25 +27,25 @@ This order is chosen because:
 ## Impacted Surfaces
 
 ### Slice 1 — Doctor contract-consistency
-- `.opencode/lib/contract-consistency.js` — the `getContractConsistencyReport` function
-- `.opencode/tests/workflow-contract-consistency.test.js` — existing test suite
+- `src/openkit-runtime/lib/contract-consistency.js` — the `getContractConsistencyReport` function
+- `src/openkit-runtime/tests/workflow-contract-consistency.test.js` — existing test suite
 
 ### Slice 2 — Path resolution
-- `.opencode/lib/runtime-paths.js` — `resolveProjectRoot`, `resolvePathContext`
-- `.opencode/lib/workflow-state-controller.js` — `ensureWorkItemStoreReady`, `readManagedState`, `persistManagedState`, `autoScaffoldPrimaryArtifactIfNeeded`, `validateManagedState`, `validatePrimaryArtifactContracts`, any function that passes `projectRoot` downstream
-- `.opencode/lib/artifact-scaffolder.js` — `scaffoldArtifact` (already correctly uses the `projectRoot` parameter it receives; the bug is upstream in what value the caller passes)
-- `.opencode/tests/runtime-paths.test.js` — existing path-resolution tests
-- `.opencode/tests/artifact-scaffolder.test.js` — existing scaffold tests
-- `.opencode/tests/workflow-state-controller.test.js` — existing controller tests
+- `src/openkit-runtime/lib/runtime-paths.js` — `resolveProjectRoot`, `resolvePathContext`
+- `src/openkit-runtime/lib/workflow-state-controller.js` — `ensureWorkItemStoreReady`, `readManagedState`, `persistManagedState`, `autoScaffoldPrimaryArtifactIfNeeded`, `validateManagedState`, `validatePrimaryArtifactContracts`, any function that passes `projectRoot` downstream
+- `src/openkit-runtime/lib/artifact-scaffolder.js` — `scaffoldArtifact` (already correctly uses the `projectRoot` parameter it receives; the bug is upstream in what value the caller passes)
+- `src/openkit-runtime/tests/runtime-paths.test.js` — existing path-resolution tests
+- `src/openkit-runtime/tests/artifact-scaffolder.test.js` — existing scaffold tests
+- `src/openkit-runtime/tests/workflow-state-controller.test.js` — existing controller tests
 
 ### Slice 3 — Enforcement wiring
-- `.opencode/plugins/tool-enforcement.js` — the OpenCode plugin (currently hardcoded `strict`)
+- `src/openkit-runtime/plugins/tool-enforcement.js` — the OpenCode plugin (currently hardcoded `strict`)
 - `src/runtime/hooks/tool-guards/bash-guard-hook.js` — the kit guard hook (already accepts `enforcementLevel` parameter)
 - `src/runtime/hooks/index.js` — `createToolGuardHooks` (wires enforcement level from config/env)
 - `src/runtime/doctor.js` or `src/runtime/doctor/workflow-doctor.js` — expose enforcement level in doctor output
-- `.opencode/tests/bash-guard-hook.test.js` — existing guard hook tests
-- `.opencode/tests/tool-enforcement-plugin.test.js` — existing plugin tests
-- `tests/runtime/bash-guard-hook.test.js` — existing runtime guard hook tests
+- `src/openkit-runtime/tests/bash-guard-hook.test.js` — existing guard hook tests
+- `src/openkit-runtime/tests/tool-enforcement-plugin.test.js` — existing plugin tests
+- `src/tests/runtime/bash-guard-hook.test.js` — existing runtime guard hook tests
 
 ## Boundaries And Components
 
@@ -57,7 +57,7 @@ The three-root path model is correct by design and must not change:
 
 ### Enforcement Model (unchanged architecture, new wiring)
 The two-layer enforcement architecture is already implemented:
-- **Layer 1 (OpenCode plugin):** `.opencode/plugins/tool-enforcement.js` runs inside the OpenCode Bun runtime. It intercepts `bash` tool calls and `grep`/`glob` default-tool calls before they reach the agent. This is the primary enforcement surface for agent-facing interception.
+- **Layer 1 (OpenCode plugin):** `src/openkit-runtime/plugins/tool-enforcement.js` runs inside the OpenCode Bun runtime. It intercepts `bash` tool calls and `grep`/`glob` default-tool calls before they reach the agent. This is the primary enforcement surface for agent-facing interception.
 - **Layer 2 (Kit guard hook):** `src/runtime/hooks/tool-guards/bash-guard-hook.js` runs inside the kit's own Node.js runtime. It guards kit-registered tools via `wrapToolExecution.guardHooks`. This is the secondary enforcement surface for kit-internal tools.
 
 The gap is that Layer 1 hardcodes `resolveEnforcementLevel()` to always return `'strict'` instead of consulting the active mode or `OPENKIT_ENFORCEMENT_LEVEL` env var.
@@ -121,8 +121,8 @@ The failing check `"workflow contract states full delivery owns execution task b
 **Goal:** Fix the one failing doctor check and remove stale file references.
 
 **Files:**
-- `.opencode/lib/contract-consistency.js` (lines 55–77, 157–166)
-- `.opencode/tests/workflow-contract-consistency.test.js`
+- `src/openkit-runtime/lib/contract-consistency.js` (lines 55–77, 157–166)
+- `src/openkit-runtime/tests/workflow-contract-consistency.test.js`
 
 **Changes:**
 1. Remove or guard the `fullDeliverySpecPath` and `fullDeliveryPlanPath` references (lines 55–66). These files (`docs/specs/2026-03-21-...` and `docs/plans/2026-03-21-...`) were pruned. The check should not silently weaken when these files are absent. Two options:
@@ -152,11 +152,11 @@ npm run verify:governance
 **Goal:** Ensure `readManagedState` and all downstream consumers resolve `projectRoot` correctly in global mode, so auto-scaffold writes artifacts to the operator's project tree.
 
 **Files:**
-- `.opencode/lib/runtime-paths.js` — `resolveProjectRoot` (lines 41–55)
-- `.opencode/lib/workflow-state-controller.js` — `ensureWorkItemStoreReady` (lines 296–322), `readManagedState` (lines 343–362), `persistManagedState` (lines 364–451), `validateManagedState` (lines 706–755), `autoScaffoldPrimaryArtifactIfNeeded` (lines 1681–1714)
-- `.opencode/tests/runtime-paths.test.js`
-- `.opencode/tests/artifact-scaffolder.test.js`
-- `.opencode/tests/workflow-state-controller.test.js`
+- `src/openkit-runtime/lib/runtime-paths.js` — `resolveProjectRoot` (lines 41–55)
+- `src/openkit-runtime/lib/workflow-state-controller.js` — `ensureWorkItemStoreReady` (lines 296–322), `readManagedState` (lines 343–362), `persistManagedState` (lines 364–451), `validateManagedState` (lines 706–755), `autoScaffoldPrimaryArtifactIfNeeded` (lines 1681–1714)
+- `src/openkit-runtime/tests/runtime-paths.test.js`
+- `src/openkit-runtime/tests/artifact-scaffolder.test.js`
+- `src/openkit-runtime/tests/workflow-state-controller.test.js`
 
 **Root Cause Analysis:**
 The current `resolveProjectRoot` at line 41 correctly uses `OPENKIT_PROJECT_ROOT` if set (line 42). When not set but global mode is detected (line 47), it falls back to `detectProjectRoot(process.cwd())`. The problem path is when `customStatePath` is set but global-mode env vars are absent — line 51 derives the project root as `path.dirname(path.dirname(path.resolve(customStatePath)))`, which computes the parent of the `.opencode` directory containing the state file. In managed mode, the state file lives under `OPENCODE_HOME/workspaces/<id>/openkit/.opencode/`, so this derivation returns the workspace root, not the actual project root.
@@ -201,17 +201,17 @@ openkit doctor
 **Goal:** Connect the enforcement level to mode and environment, add moderate/permissive support to the OpenCode plugin, and expose enforcement level in doctor output.
 
 **Files:**
-- `.opencode/plugins/tool-enforcement.js` — `resolveEnforcementLevel` (line 149–151)
+- `src/openkit-runtime/plugins/tool-enforcement.js` — `resolveEnforcementLevel` (line 149–151)
 - `src/runtime/hooks/tool-guards/bash-guard-hook.js` — already supports `enforcementLevel` parameter
 - `src/runtime/hooks/index.js` — `createToolGuardHooks` (ensure enforcement level flows from config/env)
 - `src/runtime/doctor.js` or `src/runtime/doctor/workflow-doctor.js` — new enforcement section
-- `.opencode/tests/tool-enforcement-plugin.test.js`
-- `.opencode/tests/bash-guard-hook.test.js`
-- `tests/runtime/bash-guard-hook.test.js`
+- `src/openkit-runtime/tests/tool-enforcement-plugin.test.js`
+- `src/openkit-runtime/tests/bash-guard-hook.test.js`
+- `src/tests/runtime/bash-guard-hook.test.js`
 
 **Changes:**
 
-1. **Plugin enforcement-level resolution** (`.opencode/plugins/tool-enforcement.js`):
+1. **Plugin enforcement-level resolution** (`src/openkit-runtime/plugins/tool-enforcement.js`):
    Replace the hardcoded `resolveEnforcementLevel()` at line 149–151 with mode-aware resolution:
    ```javascript
    function resolveEnforcementLevel() {
@@ -226,7 +226,7 @@ openkit doctor
    }
    ```
 
-2. **Plugin moderate/permissive behavior** (`.opencode/plugins/tool-enforcement.js`):
+2. **Plugin moderate/permissive behavior** (`src/openkit-runtime/plugins/tool-enforcement.js`):
    The `tool.execute.before` handler currently always throws on match. Update it to:
    - `strict`: throw (block) — current behavior, unchanged.
    - `moderate`: log a warning via `console.warn` but do not throw. The warning must include the suggestion text.
@@ -279,7 +279,7 @@ No parallel execution is blessed for this work item.
 ## Parallelization Assessment
 
 - parallel_mode: `none`
-- why: All three slices share the `.opencode/lib/` surface and the doctor validation path. Slice 2 modifies core path resolution used by the controller, which is imported by nearly every workflow command. Parallel execution would risk integration conflicts.
+- why: All three slices share the `src/openkit-runtime/lib/` surface and the doctor validation path. Slice 2 modifies core path resolution used by the controller, which is imported by nearly every workflow command. Parallel execution would risk integration conflicts.
 - safe_parallel_zones: []
 - sequential_constraints: [`SLICE-1-DOCTOR → SLICE-2-PATH → SLICE-3-ENFORCEMENT`]
 - integration_checkpoint: After each slice, run the slice-specific test commands plus `openkit doctor` to verify no regression.

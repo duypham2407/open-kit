@@ -13,14 +13,14 @@ No in-scope path causes an immediate bootstrap-breaking contract break. The thre
   - Evidence: `registry.json:6`: `"version": "0.3.36"`. `package.json:3`: `"version": "0.5.1"`. `RELEASES.md:3`: `npm latest: @duypham93/openkit@0.5.1`.
   - Suggested fix: update `registry.json:6` to `"0.5.1"` to match `package.json`.
 
-- [3-H-2] commands/configure-embedding.md exists on disk but is absent from registry.json — `commands/configure-embedding.md:1`
-  - Description: `registry.json` lists 14 commands under `components.commands`. `commands/configure-embedding.md` is present (15th file in `commands/`) but no registry entry. Operator/runtime tooling discovering commands via registry will not surface `/configure-embedding`, even though it is documented in README.md (lines 462-486) as active.
+- [3-H-2] commands/configure-embedding.md exists on disk but is absent from registry.json — `src/commands/configure-embedding.md:1`
+  - Description: `registry.json` lists 14 commands under `components.commands`. `src/commands/configure-embedding.md` is present (15th file in `src/commands/`) but no registry entry. Operator/runtime tooling discovering commands via registry will not surface `/configure-embedding`, even though it is documented in README.md (lines 462-486) as active.
   - Evidence: `ls commands/` shows `configure-embedding.md`; `grep "configure-embedding" registry.json` returns no path entry.
   - Suggested fix: add a registry entry for `command.configure-embedding` with `"path": "commands/configure-embedding.md"`.
 
-- [3-H-3] agents reference `tool.heuristic-lsp` which is not in registry.json or any runtimeTool — `agents/solution-lead-agent.md:51`, `agents/code-reviewer.md:76`
+- [3-H-3] agents reference `tool.heuristic-lsp` which is not in registry.json or any runtimeTool — `src/agents/solution-lead-agent.md:51`, `src/agents/code-reviewer.md:76`
   - Description: Both agents list `tool.heuristic-lsp` as a SHOULD or MAY tool. Registry `runtimeTools` contains `tool.lsp-diagnostics` and `tool.lsp-symbols`, no `tool.heuristic-lsp`. LSP source files in `src/runtime/tools/lsp/` implement `lsp-diagnostics`, `lsp-goto-definition`, `lsp-find-references`, `lsp-symbols` — none match `heuristic-lsp`. Agents directing models to invoke a non-existent tool will cause runtime errors or be silently ignored.
-  - Evidence: `agents/solution-lead-agent.md:51`: ``| `tool.heuristic-lsp` | Symbol references and rename impact ...``. `agents/code-reviewer.md:76`: same row. `grep -n "heuristic" registry.json` returns zero results.
+  - Evidence: `src/agents/solution-lead-agent.md:51`: ``| `tool.heuristic-lsp` | Symbol references and rename impact ...``. `src/agents/code-reviewer.md:76`: same row. `grep -n "heuristic" registry.json` returns zero results.
   - Suggested fix: replace `tool.heuristic-lsp` with correct registered IDs (`tool.lsp-symbols`, `tool.graph-find-references`, or `tool.graph-goto-definition`), or register the tool if intentionally unregistered.
 
 ### Medium
@@ -42,14 +42,14 @@ No in-scope path causes an immediate bootstrap-breaking contract break. The thre
   - Description: Solution package describes acceptance criterion explicitly naming `quick_brainstorm` as a "current stage name only" that skills must use.
   - Suggested fix: remove from line 263 (or annotate as archival).
 
-- [3-M-5] 7 of 20 bundled skills have SKILL.md with no YAML frontmatter (no name/description) — `skills/{browser-automation,codebase-exploration,deep-research,dev-browser,frontend-ui-ux,git-master,refactoring}/SKILL.md:1`
+- [3-M-5] 7 of 20 bundled skills have SKILL.md with no YAML frontmatter (no name/description) — `src/skills/{browser-automation,codebase-exploration,deep-research,dev-browser,frontend-ui-ux,git-master,refactoring}/SKILL.md:1`
   - Description: Governance doc states canonical machine-readable skill record must include `name` and `description`. While `src/capabilities/skill-catalog.js` is canonical (not SKILL.md), audit scope specifies SKILL.md must have valid frontmatter. 13 skills do; the 7 listed start directly with H1 (no `---`).
   - Evidence: all 7 begin with `# <skill-name>` (no `---` delimiter). 13 valid skills follow `---\nname: ...\ndescription: ...` pattern.
   - Suggested fix: add YAML frontmatter `---\nname: <directory-name>\ndescription: "..."\n---` to top of each affected file.
 
 ### Low
 
-- [3-L-1] `migration_baseline` stage has ambiguous ownership — `agents/master-orchestrator.md:41`, `commands/migrate.md:46`
+- [3-L-1] `migration_baseline` stage has ambiguous ownership — `src/agents/master-orchestrator.md:41`, `src/commands/migrate.md:46`
   - Description: master-orchestrator.md says "dispatches Solution Lead for baseline, then advances to migration_strategy". commands/migrate.md shows chain `migration_intake (MO) → migration_baseline → migration_strategy (Solution Lead)` with no owner label on baseline. workflow.md pipeline diagram shows `Solution Lead ← baseline...`. active-contract.json has no per-stage owner map. Ambiguity could lead an agent to skip baseline evidence.
   - Suggested fix: add explicit `(Solution Lead)` annotation on `migration_baseline` in commands/migrate.md:46.
 
@@ -66,10 +66,10 @@ No in-scope path causes an immediate bootstrap-breaking contract break. The thre
 ### Notes
 
 - Directories read:
-  - `agents/` (all 7 files)
-  - `commands/` (all 15 files)
-  - `skills/` (all 20 SKILL.md files)
-  - `registry.json`, `AGENTS.md`, `instructions/`, `context/`
+  - `src/agents/` (all 7 files)
+  - `src/commands/` (all 15 files)
+  - `src/skills/` (all 20 SKILL.md files)
+  - `registry.json`, `AGENTS.md`, `instructions/`, `src/context/`
   - `README.md`, `CHANGELOG.md`, `RELEASES.md`
   - Selected docs/governance/, docs/operations/, docs/maintainer/, docs/solution/ files for cross-checks
 - Directories skipped (with reason): src/, .opencode/lib/, hooks/, scripts/, tests/, bin/ — out of scope

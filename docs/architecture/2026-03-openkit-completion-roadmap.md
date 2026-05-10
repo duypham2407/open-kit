@@ -22,7 +22,7 @@ OpenKit is already strong in these areas:
 
 - mode-aware workflow kernel for `quick`, `migration`, and `full`
 - explicit stage, approval, issue, and evidence handling
-- file-backed work-item storage under `.opencode/work-items/`
+- file-backed work-item storage under `src/openkit-runtime/work-items/`
 - task-board-aware full-delivery execution
 - migration slice board support and readiness gating
 - release and hotfix governance
@@ -53,8 +53,8 @@ OpenKit is considered complete when it satisfies all of the following together:
 
 Every phase below must obey these rules:
 
-1. `.opencode/workflow-state.js` and `.opencode/lib/*` remain the workflow kernel.
-2. `context/core/workflow.md` remains the canonical semantics contract.
+1. `src/openkit-runtime/workflow-state.js` and `src/openkit-runtime/lib/*` remain the workflow kernel.
+2. `src/context/core/workflow.md` remains the canonical semantics contract.
 3. Runtime automation may not silently advance workflow stages, close issues, approve gates, or declare work complete.
 4. Categories, specialists, hooks, and continuation systems are additive execution aids, not substitutes for workflow modes.
 5. Read-only doctor and observability paths must remain non-mutating.

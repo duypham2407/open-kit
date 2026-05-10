@@ -19,10 +19,10 @@ approval_gate: solution_to_fullstack
 
 ## Dependencies
 
-- Current repository runtime contract in `AGENTS.md`, `context/core/workflow.md`, `context/core/lane-selection.md`, and `context/core/project-config.md`.
-- Current repository-local runtime surfaces under `.opencode/`, `agents/`, `skills/`, `commands/`, `context/`, `hooks/`, and `docs/`.
+- Current repository runtime contract in `AGENTS.md`, `src/context/core/workflow.md`, `src/context/core/lane-selection.md`, and `src/context/core/project-config.md`.
+- Current repository-local runtime surfaces under `src/openkit-runtime/`, `src/agents/`, `src/skills/`, `src/commands/`, `src/context/`, `src/hooks/`, and `docs/`.
 - Install-bundle authoring source under `assets/install-bundle/opencode/`.
-- Existing workflow-state runtime tests under `.opencode/tests/`.
+- Existing workflow-state runtime tests under `src/openkit-runtime/tests/`.
 - OpenCode global config and profile integration behavior must be confirmed during implementation because the repository does not yet contain a shipped global wrapper path.
 
 ## Non-Goals
@@ -38,7 +38,7 @@ approval_gate: solution_to_fullstack
   - `npx @duypham93/openkit@latest doctor`
 - Day-to-day usage in any repo:
   - `openkit run`
-- Existing repo should not need checked-in `agents/`, `skills/`, `commands/`, or `.opencode/` surfaces just to use the kit.
+- Existing repo should not need checked-in `src/agents/`, `src/skills/`, `src/commands/`, or `src/openkit-runtime/` surfaces just to use the kit.
 
 ## Proposed Runtime Shape
 
@@ -56,7 +56,7 @@ approval_gate: solution_to_fullstack
 ## Tasks
 
 ### [ ] Task 1: Define global install architecture and compatibility contract
-- Files: `AGENTS.md`, `README.md`, `context/core/project-config.md`, `docs/operations/README.md`, `docs/operations/runbooks/openkit-daily-usage.md`, `context/core/session-resume.md`
+- Files: `AGENTS.md`, `README.md`, `src/context/core/project-config.md`, `docs/operations/README.md`, `docs/operations/runbooks/openkit-daily-usage.md`, `src/context/core/session-resume.md`
 - Goal: document the new truth that OpenKit kit code and workspace state move to global OpenCode storage while project artifacts remain local.
 - Validation: docs are internally consistent; no file still claims the repository-local checked-in runtime is the only live path once the new architecture lands.
 - Notes:
@@ -82,7 +82,7 @@ approval_gate: solution_to_fullstack
 
 ### [ ] Task 4: Replace repository-local bootstrap assumptions with global workspace bootstrap
 - Files: workflow-state bootstrap utilities, session-start integration, workspace discovery logic, global state path helpers
-- Goal: make first use in a project create or locate workspace state in the global store instead of assuming `.opencode/workflow-state.json` already exists in the project.
+- Goal: make first use in a project create or locate workspace state in the global store instead of assuming `src/openkit-runtime/workflow-state.json` already exists in the project.
 - Validation: opening a fresh repo produces a valid empty workspace state with no active work item; `doctor` reports this as healthy.
 - Notes:
   - install state must be separate from active workflow state
@@ -90,8 +90,8 @@ approval_gate: solution_to_fullstack
   - workspace id should resolve deterministically from git root or absolute project path
 
 ### [ ] Task 5: Migrate workflow-state runtime to support global workspace storage
-- Files: workflow-state controller/store modules, path resolution helpers, runtime manifest lookup, tests under `.opencode/tests/`
-- Goal: move active state, work items, and backing-store logic from repo-local `.opencode/` assumptions into a workspace-aware global storage layer.
+- Files: workflow-state controller/store modules, path resolution helpers, runtime manifest lookup, tests under `src/openkit-runtime/tests/`
+- Goal: move active state, work items, and backing-store logic from repo-local `src/openkit-runtime/` assumptions into a workspace-aware global storage layer.
 - Validation: all existing runtime semantics still pass under the new store; tests cover workspace bootstrap, state reads/writes, mirror behavior, task boards, and routing profile validation.
 - Notes:
   - preserve lane semantics, routing profile checks, artifact signatures, and task-board restrictions
@@ -100,7 +100,7 @@ approval_gate: solution_to_fullstack
 ### [ ] Task 6: Add compatibility adoption path for existing repository-local installs
 - Files: installer/adoption logic, migration docs, doctor rules, possible state migration utilities
 - Goal: allow existing OpenKit repositories to adopt the new global model without losing work-item state or artifact references.
-- Validation: migration tests cover adopting a checked-in `.opencode/` runtime into the global store and preserving active work-item continuity.
+- Validation: migration tests cover adopting a checked-in `src/openkit-runtime/` runtime into the global store and preserving active work-item continuity.
 - Notes:
   - provide an explicit adoption mode rather than silently overwriting checked-in runtime surfaces
   - keep rollback straightforward by preserving a backup or export path for old state
@@ -140,7 +140,7 @@ approval_gate: solution_to_fullstack
 
 - OpenCode global profile integration details may differ from the current assumptions and require adapter logic.
 - Moving state out of the repository can break existing tests, docs, and resume flows if path resolution is incomplete.
-- Backward compatibility with repository-local `.opencode/` installs can become messy without a clear adoption contract.
+- Backward compatibility with repository-local `src/openkit-runtime/` installs can become messy without a clear adoption contract.
 - Users may expect project-local visibility into state; doctor and docs must explain where global state now lives.
 
 ## Rollback Notes

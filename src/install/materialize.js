@@ -79,7 +79,7 @@ function releaseExclusiveLock(lockPath) {
 }
 
 export function materializeInstall(projectRoot, { kitVersion = getOpenKitVersion(), now } = {}) {
-  const desiredRootManifest = readTemplate("assets/opencode.json.template")
+  const desiredRootManifest = readTemplate("src/assets/opencode.json.template")
   const rootManifestPath = path.join(projectRoot, ROOT_MANIFEST_PATH)
   const installStatePath = path.join(projectRoot, INSTALL_STATE_PATH)
 

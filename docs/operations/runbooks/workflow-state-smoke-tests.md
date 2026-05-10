@@ -119,7 +119,7 @@ node --test tests/cli/openkit-cli.test.js
 This covers:
 
 - first-run `openkit run` on a fresh machine or temp OpenCode home
-- `openkit doctor` after global install in a repository with an existing `.opencode/opencode.json`
+- `openkit doctor` after global install in a repository with an existing `src/openkit-runtime/opencode.json`
 - `openkit run` launching a mocked `opencode` through the managed layering path
 - workspace bootstrap and global profile wiring
 
@@ -143,7 +143,7 @@ Expected outcome:
 - `openkit doctor` reports global kit and workspace readiness
 - `openkit install-global` remains available when you want to force the manual setup path explicitly
 
-In a repository that already has `.opencode/opencode.json`:
+In a repository that already has `src/openkit-runtime/opencode.json`:
 
 ```bash
 openkit doctor
@@ -223,7 +223,7 @@ Expected outcome:
 
 ### Install-manifest sync
 
-Work on a throwaway branch, temporary project copy, or restore the checked-in manifest immediately after this check. `sync-install-manifest` rewrites the install manifest for the project root implied by the current `--state` path. If `--state` still points at this repository, the checked-in `.opencode/install-manifest.json` is what will change.
+Work on a throwaway branch, temporary project copy, or restore the checked-in manifest immediately after this check. `sync-install-manifest` rewrites the install manifest for the project root implied by the current `--state` path. If `--state` still points at this repository, the checked-in `src/openkit-runtime/install-manifest.json` is what will change.
 
 ```bash
 node .opencode/workflow-state.js sync-install-manifest runtime-docs-surface
@@ -234,7 +234,7 @@ Expected outcome:
 
 - `sync-install-manifest runtime-docs-surface` prints `Updated install manifest profile to 'runtime-docs-surface'`
 - the next `status` output shows `active profile: runtime-docs-surface`
-- `.opencode/install-manifest.json` records `installation.activeProfile = runtime-docs-surface`
+- `src/openkit-runtime/install-manifest.json` records `installation.activeProfile = runtime-docs-surface`
 - no agent, skill, command, or doc files are created or removed by this command; only local metadata changes
 
 To restore the repository-default manifest after the check:
@@ -246,7 +246,7 @@ node .opencode/workflow-state.js sync-install-manifest openkit-core
 Expected outcome:
 
 - the command prints `Updated install manifest profile to 'openkit-core'`
-- `.opencode/install-manifest.json` returns to `installation.activeProfile = openkit-core`
+- `src/openkit-runtime/install-manifest.json` returns to `installation.activeProfile = openkit-core`
 
 ### Quick Task happy path
 
@@ -394,9 +394,9 @@ Expected outcome:
 
 - Keep wrapper smoke coverage and the wrapper walkthrough example aligned with the actual `openkit` CLI behavior.
 - Keep `openkit doctor` guidance separate from `node .opencode/workflow-state.js doctor`; they validate different layers.
-- Prefer using a temporary state file when running manual smoke tests so the checked-in `.opencode/workflow-state.json` remains stable.
-- For task-aware smoke tests, prefer a temporary project copy rooted around `.opencode/workflow-state.json` so the compatibility mirror, work-item store, and install manifest can be exercised together.
-- Be deliberate when running `sync-install-manifest` because it updates the install manifest associated with the resolved project root, not the `--state` file itself. If that root is this repository, the checked-in `.opencode/install-manifest.json` will change.
+- Prefer using a temporary state file when running manual smoke tests so the checked-in `src/openkit-runtime/workflow-state.json` remains stable.
+- For task-aware smoke tests, prefer a temporary project copy rooted around `src/openkit-runtime/workflow-state.json` so the compatibility mirror, work-item store, and install manifest can be exercised together.
+- Be deliberate when running `sync-install-manifest` because it updates the install manifest associated with the resolved project root, not the `--state` file itself. If that root is this repository, the checked-in `src/openkit-runtime/install-manifest.json` will change.
 - If workflow rules change, update this file alongside the tests and the workflow-state CLI docs.
 - If session-start output changes, update this file, `README.md`, and any example docs that describe bootstrap behavior in the same change.
 - If registry categories, profile names, or manifest semantics change, update this file together with `README.md`, `docs/operations/README.md`, and the relevant governance notes.

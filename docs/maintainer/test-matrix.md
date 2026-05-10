@@ -150,8 +150,8 @@ Maintainer assertions for this surface:
 
 ## Validation Story Split
 
-- `tests/` covers product CLI, global install, install policy, and release/runtime adapter behavior
-- `.opencode/tests/` covers the checked-in workflow runtime, compatibility mirror, and session-start behavior
+- `src/tests/` covers product CLI, global install, install policy, and release/runtime adapter behavior
+- `src/openkit-runtime/tests/` covers the checked-in workflow runtime, compatibility mirror, and session-start behavior
 - this repository still does not define repo-native build/lint/test commands for arbitrary generated application code
 - `openkit doctor` and `node .opencode/workflow-state.js doctor` validate different OpenKit surfaces and are not target-project app test substitutes
 - use validation surface labels in reports: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, and `target_project_app`

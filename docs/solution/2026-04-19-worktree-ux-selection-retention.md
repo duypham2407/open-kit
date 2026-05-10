@@ -19,7 +19,7 @@ Worktree mode selection, retained reuse/reopen behavior, cleanup separation, and
 
 - No new npm or external package dependency is required. Keep implementation on existing Node built-ins (`fs`, `path`, `readline`) and the existing git CLI calls already concentrated in `src/global/worktree-manager.js`.
 - Preserve the current managed location and naming conventions unless a later feature explicitly re-scopes them:
-  - per-work-item metadata at `.opencode/work-items/<work_item_id>/worktree.json`
+  - per-work-item metadata at `src/openkit-runtime/work-items/<work_item_id>/worktree.json`
   - managed worktree directory at `.worktrees/<work_item_id>`
   - managed branch naming at `openkit/<workflow_mode>/<work_item_id>`
 - Validation must stay on targeted Node tests only. This repository does not define a repo-native build, lint, or umbrella test command for application code.
@@ -38,7 +38,7 @@ Worktree mode selection, retained reuse/reopen behavior, cleanup separation, and
 - Put operator prompting in the CLI command layer and keep the launcher layer non-interactive:
   - `src/cli/commands/run.js` and a small helper own parsing, prompt flow, and prompt minimization.
   - `src/global/launcher.js` owns selection resolution and returns structured outcomes such as `ready`, `prompt_required`, and `blocked`.
-- Remove automatic post-run merge/remove from `src/global/launcher.js`; expose cleanup as a separate explicit compatibility action in `.opencode/workflow-state.js`.
+- Remove automatic post-run merge/remove from `src/global/launcher.js`; expose cleanup as a separate explicit compatibility action in `src/openkit-runtime/workflow-state.js`.
 - Keep this feature bounded to one retained worktree per lineage. Because path and branch naming stay unchanged, explicit `new` is a valid requested mode but is **blocked** when a retained same-lineage worktree already exists; OpenKit must surface that condition and require the operator to choose reuse/reopen/none or run explicit cleanup first. It must not silently substitute another mode.
 
 This is enough because it fixes the unwanted automation and prompt behavior entirely inside the existing worktree store, launcher, and `openkit run` surfaces without inventing mid-session cwd switching, a generalized workspace catalog, or a branch/layout redesign.
@@ -46,12 +46,12 @@ This is enough because it fixes the unwanted automation and prompt behavior enti
 ## Impacted Surfaces
 
 ### Worktree metadata and read-models
-- `.opencode/lib/work-item-store.js`
-- `.opencode/lib/runtime-summary.js`
+- `src/openkit-runtime/lib/work-item-store.js`
+- `src/openkit-runtime/lib/runtime-summary.js`
 
 ### Workflow controller and explicit cleanup surface
-- `.opencode/lib/workflow-state-controller.js`
-- `.opencode/workflow-state.js`
+- `src/openkit-runtime/lib/workflow-state-controller.js`
+- `src/openkit-runtime/workflow-state.js`
 
 ### Launcher and worktree behavior
 - `src/global/worktree-manager.js`
@@ -63,27 +63,27 @@ This is enough because it fixes the unwanted automation and prompt behavior enti
 - `src/cli/commands/run-options.js` *(new)*
 
 ### Tests
-- `.opencode/tests/work-item-store.test.js`
-- `.opencode/tests/workflow-state-controller.test.js`
-- `.opencode/tests/workflow-state-cli.test.js`
-- `tests/global/worktree-manager.test.js`
-- `tests/global/worktree-env.test.js` *(new)*
-- `tests/runtime/launcher.test.js`
-- `tests/cli/run-options.test.js` *(new)*
-- `tests/cli/openkit-cli.test.js`
+- `src/openkit-runtime/tests/work-item-store.test.js`
+- `src/openkit-runtime/tests/workflow-state-controller.test.js`
+- `src/openkit-runtime/tests/workflow-state-cli.test.js`
+- `src/tests/global/worktree-manager.test.js`
+- `src/tests/global/worktree-env.test.js` *(new)*
+- `src/tests/runtime/launcher.test.js`
+- `src/tests/cli/run-options.test.js` *(new)*
+- `src/tests/cli/openkit-cli.test.js`
 
 ## Implementation Slices
 
 ### Slice 1: Upgrade retained worktree metadata and decouple work item creation from automatic provisioning
 - **Files**:
-  - `.opencode/lib/work-item-store.js`
-  - `.opencode/lib/runtime-summary.js`
-  - `.opencode/lib/workflow-state-controller.js`
-  - `.opencode/tests/work-item-store.test.js`
-  - `.opencode/tests/workflow-state-controller.test.js`
+  - `src/openkit-runtime/lib/work-item-store.js`
+  - `src/openkit-runtime/lib/runtime-summary.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/openkit-runtime/tests/work-item-store.test.js`
+  - `src/openkit-runtime/tests/workflow-state-controller.test.js`
 - **Goal**: make retained worktree data explicit and backward-compatible, and stop `startTask()` from creating worktrees before the operator has made a launcher choice.
 - **Details**:
-  - Keep storage in `.opencode/work-items/<work_item_id>/worktree.json`, but normalize reads to this v2 shape:
+  - Keep storage in `src/openkit-runtime/work-items/<work_item_id>/worktree.json`, but normalize reads to this v2 shape:
     - `schema: "openkit/worktree@2"`
     - `work_item_id`
     - `workflow_mode` (`quick` / `migration` / `full`)
@@ -96,9 +96,9 @@ This is enough because it fixes the unwanted automation and prompt behavior enti
     - `last_used_at`
     - `env_propagation: { mode, applied_at, source_files }`
   - In `readWorkItemWorktree()`, map legacy `openkit/worktree@1` records by translating `mode -> workflow_mode`, defaulting `lineage_key` to `work_item_id`, and defaulting `env_propagation.mode` to `none`.
-  - In `.opencode/lib/workflow-state-controller.js`, remove the unconditional `createManagedWorktree()` call from `startTask()` / `startFeature()`. These flows should create and select the work item state only.
+  - In `src/openkit-runtime/lib/workflow-state-controller.js`, remove the unconditional `createManagedWorktree()` call from `startTask()` / `startFeature()`. These flows should create and select the work item state only.
   - If compatibility return fields such as `worktree_status` and `worktree_reason` remain, they should report `not_requested` / `null` when no explicit launch selection happened; they must no longer imply automatic provisioning.
-  - Update `.opencode/lib/runtime-summary.js` to treat the stored record as a retained managed worktree read-model, not as proof that the current session is already inside that path.
+  - Update `src/openkit-runtime/lib/runtime-summary.js` to treat the stored record as a retained managed worktree read-model, not as proof that the current session is already inside that path.
 - **Validation Command**:
   - `node --test ".opencode/tests/work-item-store.test.js"`
   - `node --test ".opencode/tests/workflow-state-controller.test.js"`
@@ -108,9 +108,9 @@ This is enough because it fixes the unwanted automation and prompt behavior enti
   - `src/cli/commands/run-options.js` *(new)*
   - `src/cli/commands/run.js`
   - `src/global/launcher.js`
-  - `tests/cli/run-options.test.js` *(new)*
-  - `tests/runtime/launcher.test.js`
-  - `tests/cli/openkit-cli.test.js`
+  - `src/tests/cli/run-options.test.js` *(new)*
+  - `src/tests/runtime/launcher.test.js`
+  - `src/tests/cli/openkit-cli.test.js`
 - **Goal**: make `openkit run` the operator-visible decision point for worktree mode and avoid repeated prompts once the choice is supplied.
 - **Details**:
   - `src/cli/commands/run-options.js` should own parsing of OpenKit-specific flags and normalize them into one request object:
@@ -143,9 +143,9 @@ This is enough because it fixes the unwanted automation and prompt behavior enti
   - `src/global/worktree-env.js` *(new)*
   - `src/global/worktree-manager.js`
   - `src/global/launcher.js`
-  - `tests/global/worktree-env.test.js` *(new)*
-  - `tests/global/worktree-manager.test.js`
-  - `tests/runtime/launcher.test.js`
+  - `src/tests/global/worktree-env.test.js` *(new)*
+  - `src/tests/global/worktree-manager.test.js`
+  - `src/tests/runtime/launcher.test.js`
 - **Goal**: make `.env` propagation opt-in, conflict-aware, and launcher-visible without expanding this feature into a generalized secret-management system.
 - **Details**:
   - Put all `.env` propagation filesystem logic in `src/global/worktree-env.js`, not in `src/global/launcher.js`.
@@ -165,16 +165,16 @@ This is enough because it fixes the unwanted automation and prompt behavior enti
 - **Files**:
   - `src/global/launcher.js`
   - `src/global/worktree-manager.js`
-  - `.opencode/lib/workflow-state-controller.js`
-  - `.opencode/workflow-state.js`
-  - `.opencode/lib/runtime-summary.js`
-  - `.opencode/tests/workflow-state-cli.test.js`
-  - `tests/runtime/launcher.test.js`
+  - `src/openkit-runtime/lib/workflow-state-controller.js`
+  - `src/openkit-runtime/workflow-state.js`
+  - `src/openkit-runtime/lib/runtime-summary.js`
+  - `src/openkit-runtime/tests/workflow-state-cli.test.js`
+  - `src/tests/runtime/launcher.test.js`
 - **Goal**: stop automatic merge/remove on normal exit and expose an explicit cleanup path that uses the existing backend intentionally.
 - **Details**:
   - Remove the `finalizeCompletedWorktree()` automatic call path from `src/global/launcher.js`.
-  - Keep the existing merge/remove backend in `src/global/worktree-manager.js`, but expose it only through an explicit operator action such as `cleanup-worktree <work_item_id>` on `.opencode/workflow-state.js`.
-  - Add the corresponding controller entrypoint in `.opencode/lib/workflow-state-controller.js`; this should be the only path that calls the destructive merge/remove backend for this feature.
+  - Keep the existing merge/remove backend in `src/global/worktree-manager.js`, but expose it only through an explicit operator action such as `cleanup-worktree <work_item_id>` on `src/openkit-runtime/workflow-state.js`.
+  - Add the corresponding controller entrypoint in `src/openkit-runtime/lib/workflow-state-controller.js`; this should be the only path that calls the destructive merge/remove backend for this feature.
   - Change post-run launcher messaging to report retained context instead of cleanup completion. The message should include:
     - retained worktree path
     - recommended next mode (`reuse` or `reopen`)
@@ -190,13 +190,13 @@ This is enough because it fixes the unwanted automation and prompt behavior enti
 
 | Target | Primary files | Honest validation path |
 | --- | --- | --- |
-| `worktree.json` v2 normalization and legacy `@1` compatibility | `.opencode/lib/work-item-store.js` | `node --test ".opencode/tests/work-item-store.test.js"` |
-| No automatic worktree creation during `startTask()` / `startFeature()` | `.opencode/lib/workflow-state-controller.js` | `node --test ".opencode/tests/workflow-state-controller.test.js"` |
+| `worktree.json` v2 normalization and legacy `@1` compatibility | `src/openkit-runtime/lib/work-item-store.js` | `node --test ".opencode/tests/work-item-store.test.js"` |
+| No automatic worktree creation during `startTask()` / `startFeature()` | `src/openkit-runtime/lib/workflow-state-controller.js` | `node --test ".opencode/tests/workflow-state-controller.test.js"` |
 | Explicit `new` / `reuse` / `reopen` / `none` resolution and same-lineage defaulting | `src/global/launcher.js`, `src/cli/commands/run-options.js` | `node --test "tests/cli/run-options.test.js"` and `node --test "tests/runtime/launcher.test.js"` |
 | Operator-facing run help and non-interactive flag path | `src/cli/commands/run.js` | `node --test "tests/cli/openkit-cli.test.js"` |
 | Env propagation `none` / `symlink` / `copy`, no silent downgrade, no overwrite | `src/global/worktree-env.js`, `src/global/worktree-manager.js` | `node --test "tests/global/worktree-env.test.js"` and `node --test "tests/global/worktree-manager.test.js"` |
-| Cleanup separated from task completion and launcher exit | `src/global/launcher.js`, `.opencode/workflow-state.js` | `node --test ".opencode/tests/workflow-state-cli.test.js"` and `node --test "tests/runtime/launcher.test.js"` |
-| Runtime status/read-model wording stays truthful after retention change | `.opencode/lib/runtime-summary.js`, `.opencode/workflow-state.js` | `node --test ".opencode/tests/workflow-state-cli.test.js"` |
+| Cleanup separated from task completion and launcher exit | `src/global/launcher.js`, `src/openkit-runtime/workflow-state.js` | `node --test ".opencode/tests/workflow-state-cli.test.js"` and `node --test "tests/runtime/launcher.test.js"` |
+| Runtime status/read-model wording stays truthful after retention change | `src/openkit-runtime/lib/runtime-summary.js`, `src/openkit-runtime/workflow-state.js` | `node --test ".opencode/tests/workflow-state-cli.test.js"` |
 
 Validation note: there is no repo-native build/lint umbrella command for this repository. Fullstack should use the targeted Node test files above and report any uncovered manual edge explicitly instead of inventing a broader command.
 

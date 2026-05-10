@@ -67,23 +67,23 @@
 - `src/runtime/tools/graph/semantic-search.js` - Multi-source search
 - `src/runtime/create-managers.js` - Create new managers
 - `src/runtime/create-tools.js` - Create new tools
-- `.opencode/openkit.runtime.jsonc` - Add configuration schema
+- `src/openkit-runtime/openkit.runtime.jsonc` - Add configuration schema
 
 ### Test Files to Create
 
-- `tests/runtime/schema-migrations.test.js`
-- `tests/runtime/type-flow-extractor.test.js`
-- `tests/runtime/scope-tracker.test.js`
-- `tests/runtime/pattern-recognition.test.js`
-- `tests/runtime/data-flow-analyzer.test.js`
-- `tests/runtime/usage-pattern-miner.test.js`
-- `tests/runtime/intent-extraction.test.js`
-- `tests/runtime/intent-cache.test.js`
-- `tests/runtime/budget-manager.test.js`
-- `tests/runtime/result-ranker.test.js`
-- `tests/runtime/context-assembly.test.js`
-- `tests/runtime/session-memory.test.js`
-- `tests/runtime/context-integration.test.js`
+- `src/tests/runtime/schema-migrations.test.js`
+- `src/tests/runtime/type-flow-extractor.test.js`
+- `src/tests/runtime/scope-tracker.test.js`
+- `src/tests/runtime/pattern-recognition.test.js`
+- `src/tests/runtime/data-flow-analyzer.test.js`
+- `src/tests/runtime/usage-pattern-miner.test.js`
+- `src/tests/runtime/intent-extraction.test.js`
+- `src/tests/runtime/intent-cache.test.js`
+- `src/tests/runtime/budget-manager.test.js`
+- `src/tests/runtime/result-ranker.test.js`
+- `src/tests/runtime/context-assembly.test.js`
+- `src/tests/runtime/session-memory.test.js`
+- `src/tests/runtime/context-integration.test.js`
 
 ---
 
@@ -93,7 +93,7 @@
 
 **Files:**
 - Create: `src/runtime/analysis/schema-migrations.js`
-- Test: `tests/runtime/schema-migrations.test.js`
+- Test: `src/tests/runtime/schema-migrations.test.js`
 
 - [ ] **Step 1: Write failing test for schema version tracking**
 
@@ -234,7 +234,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `src/runtime/analysis/project-graph-db.js`
-- Test: `tests/runtime/project-graph-db.test.js` (existing, will add tests)
+- Test: `src/tests/runtime/project-graph-db.test.js` (existing, will add tests)
 
 - [ ] **Step 1: Write failing test for extended nodes table**
 
@@ -457,7 +457,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `src/runtime/analysis/project-graph-db.js`
-- Test: `tests/runtime/project-graph-db.test.js`
+- Test: `src/tests/runtime/project-graph-db.test.js`
 
 - [ ] **Step 1: Write failing test for type_flows table**
 
@@ -578,7 +578,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `src/runtime/analysis/project-graph-db.js`
-- Test: `tests/runtime/project-graph-db.test.js`
+- Test: `src/tests/runtime/project-graph-db.test.js`
 
 - [ ] **Step 1: Write failing test for scope_contexts table**
 
@@ -694,7 +694,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `src/runtime/analysis/project-graph-db.js`
-- Test: `tests/runtime/project-graph-db.test.js`
+- Test: `src/tests/runtime/project-graph-db.test.js`
 
 - [ ] **Step 1: Write failing test for code_patterns table**
 
@@ -832,7 +832,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/runtime/analysis/data-flow-analyzer.js`
-- Test: `tests/runtime/data-flow-analyzer.test.js`
+- Test: `src/tests/runtime/data-flow-analyzer.test.js`
 
 - [ ] **Step 1: Write failing test for basic data flow tracing**
 
@@ -1009,7 +1009,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Modify: `src/runtime/analysis/project-graph-db.js`
-- Test: `tests/runtime/project-graph-db.test.js`
+- Test: `src/tests/runtime/project-graph-db.test.js`
 
 - [ ] **Step 1: Write failing test for code_intents table**
 
@@ -1157,7 +1157,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/runtime/analysis/intent-cache-manager.js`
-- Test: `tests/runtime/intent-cache.test.js`
+- Test: `src/tests/runtime/intent-cache.test.js`
 
 - [ ] **Step 1: Write failing test for cache key generation**
 
@@ -1315,7 +1315,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/runtime/lib/budget-manager.js`
-- Test: `tests/runtime/budget-manager.test.js`
+- Test: `src/tests/runtime/budget-manager.test.js`
 
 - [ ] **Step 1: Write failing test for budget allocation**
 
@@ -1469,7 +1469,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/runtime/lib/result-ranker.js`
-- Test: `tests/runtime/result-ranker.test.js`
+- Test: `src/tests/runtime/result-ranker.test.js`
 
 - [ ] **Step 1: Write failing test for multi-layer ranking**
 
@@ -1569,7 +1569,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/runtime/managers/context-assembly-manager.js`
-- Test: `tests/runtime/context-assembly.test.js`
+- Test: `src/tests/runtime/context-assembly.test.js`
 
 - [ ] **Step 1: Write failing test for task-level context gathering**
 
@@ -1724,7 +1724,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 **Files:**
 - Create: `src/runtime/tools/context/comprehensive-context.js`
 - Modify: `src/runtime/tools/tool-registry.js`
-- Test: `tests/runtime/context-integration.test.js`
+- Test: `src/tests/runtime/context-integration.test.js`
 
 - [ ] **Step 1: Write failing test for context tool**
 
@@ -1902,7 +1902,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 ### Task 6.1: Runtime Configuration Schema
 
 **Files:**
-- Modify: `.opencode/openkit.runtime.jsonc`
+- Modify: `src/openkit-runtime/openkit.runtime.jsonc`
 - Create: `docs/configuration/code-intelligence.md`
 
 - [ ] **Step 1: Add configuration schema**
@@ -1988,7 +1988,7 @@ This document describes configuration options for the Multi-Layer Intelligence S
 
 ## Configuration Location
 
-`.opencode/openkit.runtime.jsonc` - `codeIntelligence` section
+`src/openkit-runtime/openkit.runtime.jsonc` - `codeIntelligence` section
 
 ## Layer 1: Structural
 
@@ -2119,7 +2119,7 @@ Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
 ### Task 7.1: End-to-End Integration Test
 
 **Files:**
-- Create: `tests/runtime/e2e-context-gathering.test.js`
+- Create: `src/tests/runtime/e2e-context-gathering.test.js`
 
 - [ ] **Step 1: Write comprehensive E2E test**
 

@@ -22,7 +22,7 @@ Current template set aligns to the live artifact directories:
 
 Use current runtime docs before assuming a template is backed by a live command.
 
-For the current command reality, use `context/core/project-config.md`.
+For the current command reality, use `src/context/core/project-config.md`.
 
 For navigation around related support surfaces, use:
 
@@ -33,5 +33,5 @@ For navigation around related support surfaces, use:
 Authority guardrail:
 
 - templates are source-of-truth shapes for artifacts
-- canonical workflow and runtime semantics still live under `context/core/` and `.opencode/`
+- canonical workflow and runtime semantics still live under `src/context/core/` and `src/openkit-runtime/`
 - the new audience and support indexes route readers to those sources; they do not replace them

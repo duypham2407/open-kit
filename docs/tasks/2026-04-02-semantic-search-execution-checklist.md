@@ -138,7 +138,7 @@ Do not implement these in the first pass unless explicitly re-approved.
 - [ ] `src/runtime/create-managers.js` if wiring changes are needed
 - [ ] `src/runtime/tools/analysis/embedding-index.js` if status/diagnostics expand
 - [ ] `src/global/doctor.js` if operator diagnostics need updates
-- [ ] `context/core/project-config.md` if config behavior changes
+- [ ] `src/context/core/project-config.md` if config behavior changes
 
 ## Test Coverage Checklist
 

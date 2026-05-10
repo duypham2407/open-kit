@@ -59,17 +59,17 @@ The main agent ran five drift checks the subagents could not run individually.
   - Suggested fix: add `"CHANGELOG.md"` and `"RELEASES.md"` (and consider `release-notes/`) to `package.json#files`.
 
 - **[X-2] Low** — There is no test that asserts the two FSM tables (`src/runtime/workflow/state-machine.js` and `src/runtime/state/transition-engine.js`) agree. A regression test of the form "for every mode, `state-machine[mode]` deep-equals `transition-engine[mode]`" would have caught `[1-C-1]`.
-  - Suggested fix: add `tests/runtime/fsm-table-consistency.test.js` that imports both modules and asserts deep-equal of their per-mode transition maps.
+  - Suggested fix: add `src/tests/runtime/fsm-table-consistency.test.js` that imports both modules and asserts deep-equal of their per-mode transition maps.
 
 The other three checks were clean: stages in `registry.json` match the FSM `STAGE_ORDER`; agents do not reference any `skill.<id>` that is missing from the registry; all 27 entries in `package.json#files` exist on disk and the install-manifest's `wrapperFacingMetadata` is a subset of `pkg.files`. Version drift between `package.json` and `registry.json`/`install-manifest.json` is captured under `[D-1]`.
 
 ## Critical
 
 ### [D-1] Version drift: package.json 0.5.1 vs registry.json/install-manifest.json 0.3.36
-- **Location:** `package.json:3`, `registry.json:6`, `.opencode/install-manifest.json:6`
+- **Location:** `package.json:3`, `registry.json:6`, `src/openkit-runtime/install-manifest.json:6`
 - **Source:** Subagent 2 [2-C-1] (Critical) + Subagent 3 [3-H-1] (High) + Subagent 2 [2-L-1]; merged.
-- **Description:** `package.json` declares `0.5.1`. Both `registry.json#kit.version` and `.opencode/install-manifest.json#kit.version` are still `0.3.36`. `verifyReleaseMetadata` in `src/release/workflow.js:178` throws "Version metadata is out of sync" if these disagree, blocking `openkit release verify`/`publish`. `updateVersionMetadata` (line 107) string-replaces the *current* value, so it cannot self-heal: it would replace `0.5.1` in files that contain `0.3.36`, leaving them unchanged.
-- **Evidence:** `package.json:3` "version": "0.5.1"; `registry.json:6` "version": "0.3.36"; `.opencode/install-manifest.json:6` "version": "0.3.36" — all three confirmed by `node -e "console.log(require(...).version)"`.
+- **Description:** `package.json` declares `0.5.1`. Both `registry.json#kit.version` and `src/openkit-runtime/install-manifest.json#kit.version` are still `0.3.36`. `verifyReleaseMetadata` in `src/release/workflow.js:178` throws "Version metadata is out of sync" if these disagree, blocking `openkit release verify`/`publish`. `updateVersionMetadata` (line 107) string-replaces the *current* value, so it cannot self-heal: it would replace `0.5.1` in files that contain `0.3.36`, leaving them unchanged.
+- **Evidence:** `package.json:3` "version": "0.5.1"; `registry.json:6` "version": "0.3.36"; `src/openkit-runtime/install-manifest.json:6` "version": "0.3.36" — all three confirmed by `node -e "console.log(require(...).version)"`.
 - **Suggested fix:** run `openkit release prepare 0.5.1`, or manually update the kit.version field in both files to `0.5.1`.
 
 ### [1-C-1] Two divergent FSM transition tables
@@ -136,23 +136,23 @@ The other three checks were clean: stages in `registry.json` match the FSM `STAG
 - **Suggested fix:** wrap `materializeGlobalInstall` in try/catch; emit a user-facing error via `io.stderr.write` before `return 1`.
 
 ### [3-H-2] commands/configure-embedding.md exists on disk but absent from registry.json
-- **Location:** `commands/configure-embedding.md:1`; `registry.json` (no entry)
+- **Location:** `src/commands/configure-embedding.md:1`; `registry.json` (no entry)
 - **Description:** `registry.json` lists 14 commands; the 15th file (`configure-embedding.md`) is documented in `README.md:462-486` and present on disk but has no registry entry. Tooling that discovers commands via the registry will not surface `/configure-embedding`.
 - **Suggested fix:** add an entry to `registry.json#components.commands` for `command.configure-embedding` with `"path": "commands/configure-embedding.md"`.
 
 ### [3-H-3] Agents reference tool.heuristic-lsp which is not registered
-- **Location:** `agents/solution-lead-agent.md:51`, `agents/code-reviewer.md:76`
+- **Location:** `src/agents/solution-lead-agent.md:51`, `src/agents/code-reviewer.md:76`
 - **Description:** Both agents list `tool.heuristic-lsp` as a SHOULD/MAY tool. `registry.json` registers `tool.lsp-diagnostics` and `tool.lsp-symbols` but no `tool.heuristic-lsp`. Implementations under `src/runtime/tools/lsp/` do not match this name. Agents directing models to invoke this tool will either error out or be silently ignored.
 - **Suggested fix:** replace `tool.heuristic-lsp` with the correct registered ID (`tool.lsp-symbols`, `tool.graph-find-references`, or `tool.graph-goto-definition`), or register it if intentionally implemented.
 
 ### [4-H-1] Config-driven RCE via supervisorDialogue.openclaw.command
 - **Location:** `src/runtime/supervisor/openclaw-adapter.js:40`
-- **Description:** The openclaw supervisor reads `command` and `args` from the user's runtime config (`.opencode/openkit.json`) and `spawn`s them with no allowlist or path validation. A target project repo with a crafted `.opencode/openkit.json` can execute arbitrary binaries when the operator runs OpenKit against it.
+- **Description:** The openclaw supervisor reads `command` and `args` from the user's runtime config (`src/openkit-runtime/openkit.json`) and `spawn`s them with no allowlist or path validation. A target project repo with a crafted `src/openkit-runtime/openkit.json` can execute arbitrary binaries when the operator runs OpenKit against it.
 - **Suggested fix:** apply the `SHELL_OPERATORS`/`SHELL_LAUNCHERS` checks from `custom-mcp-validation.js` to `openclaw.command`; require an absolute path; reject shell metacharacters.
 
 ### [4-H-2] Config-driven RCE via external MCP stdio command
 - **Location:** `src/runtime/mcp/dispatch.js:183`
-- **Description:** `invokeStdioExternal` spawns `server.command` with `server.args` taken verbatim from `.mcp.json`/`.opencode/mcp.json`. No validation. An attacker with write access to a target project's `.mcp.json` can achieve RCE when the operator runs `openkit run` against that project.
+- **Description:** `invokeStdioExternal` spawns `server.command` with `server.args` taken verbatim from `.mcp.json`/`src/openkit-runtime/mcp.json`. No validation. An attacker with write access to a target project's `.mcp.json` can achieve RCE when the operator runs `openkit run` against that project.
 - **Suggested fix:** apply the same `SHELL_OPERATORS`/`SHELL_LAUNCHERS`/`SHELL_EXEC_FLAGS` checks already in `custom-mcp-validation.js` to commands loaded from `.mcp.json`.
 
 ### [4-H-3] OPENKIT_SECURITY_CLI env var allows arbitrary binary
@@ -166,27 +166,27 @@ The other three checks were clean: stages in `registry.json` match the FSM `STAG
 - **Suggested fix:** apply `isInsideProjectRoot` after resolving; reject paths that escape the project root for relative/home-relative references.
 
 ### [4-H-5] No E2E test for hooks/graph-indexer.js
-- **Location:** `hooks/graph-indexer.js`
-- **Description:** The graph-indexer hook is spawned detached and fire-and-forget on every session start. It builds the in-memory project graph (critical for graph-tool accuracy), but no test in `tests/` or `.opencode/tests/` exercises the hook's binary entry point — only the DB layer is tested.
-- **Suggested fix:** add an integration test under `tests/runtime/` that spawns `graph-indexer.js` against a fixture project and asserts the DB is populated.
+- **Location:** `src/hooks/graph-indexer.js`
+- **Description:** The graph-indexer hook is spawned detached and fire-and-forget on every session start. It builds the in-memory project graph (critical for graph-tool accuracy), but no test in `src/tests/` or `src/openkit-runtime/tests/` exercises the hook's binary entry point — only the DB layer is tested.
+- **Suggested fix:** add an integration test under `src/tests/runtime/` that spawns `graph-indexer.js` against a fixture project and asserts the DB is populated.
 
 ### [N-1] switch-profiles CLI silently no-ops on macOS due to symlink-aware import.meta.url comparison (post-audit)
 - **Location:** `src/runtime/switch-profiles-cli.js:117`
-- **Source:** Discovered during Wave 1 baseline investigation when test `tests/cli/openkit-cli.test.js:709` failed with empty stdout.
+- **Source:** Discovered during Wave 1 baseline investigation when test `src/tests/cli/openkit-cli.test.js:709` failed with empty stdout.
 - **Description:** The entry-point guard reads `if (import.meta.url === \`file://${process.argv[1]}\`)`. Node.js resolves `import.meta.url` through symlinks (e.g., `file:///private/var/folders/...`), but `process.argv[1]` retains the raw path the shell passed (e.g., `/var/folders/...`). On macOS, the system temp directory `/var/folders/...` is a symlink to `/private/var/folders/...`, so the two strings disagree and the guard is false. The CLI body never runs. The process exits 0 with empty stdout — no error, no diagnostic. End users running `openkit switch-profiles` from any path under `/var/...` (or any other symlinked prefix) hit a silent no-op.
 - **Evidence/repro:**
   - Direct probe: `import.meta.url` = `file:///private/var/folders/.../switch-profiles-cli.js`, `process.argv[1]` = `/var/folders/.../switch-profiles-cli.js`. The string concatenation yields `file:///var/folders/...`, which does not equal `import.meta.url`.
-  - Test reproduction: `tests/cli/openkit-cli.test.js:698-710` spawns the materialized wrapper at `<tempProject>/.opencode/switch-profiles.js`, which spawns the CLI from `<tempHome>/kits/openkit/src/runtime/switch-profiles-cli.js`. Both paths live under `/var/folders/...` on macOS. Wrapper returns exit 0, but stdout is empty (line 709 assertion fails).
+  - Test reproduction: `src/tests/cli/openkit-cli.test.js:698-710` spawns the materialized wrapper at `<tempProject>/.opencode/switch-profiles.js`, which spawns the CLI from `<tempHome>/kits/openkit/src/runtime/switch-profiles-cli.js`. Both paths live under `/var/folders/...` on macOS. Wrapper returns exit 0, but stdout is empty (line 709 assertion fails).
   - The guard pattern works on Linux (no `/private` symlink prefix) and on macOS when invoked through real-paths only — masking the bug from many environments.
-- **Suggested fix:** Replace the URL-string comparison with a real-path comparison: `realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])`. This handles symlink resolution on both sides. (See https://github.com/nodejs/node/issues/41072 for the underlying Node.js behavior.) The same regression test (`tests/cli/openkit-cli.test.js:698-710`) will then pass, restoring full `verify:all` green status.
+- **Suggested fix:** Replace the URL-string comparison with a real-path comparison: `realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])`. This handles symlink resolution on both sides. (See https://github.com/nodejs/node/issues/41072 for the underlying Node.js behavior.) The same regression test (`src/tests/cli/openkit-cli.test.js:698-710`) will then pass, restoring full `verify:all` green status.
 - **Why audit missed:** The four audit subagents were `Explore` (read-only). They did not run tests or invoke CLIs, so could not observe stdout/exit-code behavior. The wrapper code itself is structurally fine and didn't pattern-match any of the issue categories the subagents looked for.
 
 ## Medium
 
 - **[1-M-1]** `gateOverrides` parameter accepted by handler but absent from MCP schema — `src/mcp-server/tool-schemas.js:338-361` vs `src/runtime/tools/workflow/advance-stage.js:8`
 - **[1-M-2]** `quick_intake → quick_plan` gate dead in persistence layer — `src/runtime/workflow/gate-requirements.js:10-12`
-- **[1-M-3]** Fresh-project bootstrap: write methods silently fail until `.opencode/` exists — `src/runtime/workflow-kernel.js:134-148, 349-360`
-- **[1-M-4]** Blocking sync `fs.readFileSync` in `session-start.js` (no size cap) — `hooks/session-start.js:321, 334`
+- **[1-M-3]** Fresh-project bootstrap: write methods silently fail until `src/openkit-runtime/` exists — `src/runtime/workflow-kernel.js:134-148, 349-360`
+- **[1-M-4]** Blocking sync `fs.readFileSync` in `session-start.js` (no size cap) — `src/hooks/session-start.js:321, 334`
 - **[1-M-5]** FSM asymmetry `migration_strategy → migration_baseline` allowed in transition-engine but not in state-machine — `src/runtime/state/transition-engine.js:59` vs `src/runtime/workflow/state-machine.js:52`
 - **[2-M-1]** `install` command prints "Installed OpenKit globally" before install runs — `src/cli/commands/install.js:71`
 - **[2-M-2]** `GLOBAL_KIT_ASSETS` has duplicate entries (`bin`, `src/mcp-server`) — `src/global/materialize.js:22, 25, 37, 42`
@@ -198,49 +198,49 @@ The other three checks were clean: stages in `registry.json` match the FSM `STAG
 - **[3-M-2]** Operator runbook uses `quick_brainstorm` in CLI example — `docs/operations/runbooks/workflow-state-smoke-tests.md:255`
 - **[3-M-3]** Role operating policy refers to `quick_brainstorm` as active — `docs/maintainer/2026-03-26-role-operating-policy.md:126`
 - **[3-M-4]** Solution doc lists `quick_brainstorm` as normative — `docs/solution/2026-04-27-standardize-bundled-skill-metadata.md:263`
-- **[3-M-5]** 7 of 20 skills have SKILL.md without YAML frontmatter — `skills/{browser-automation,codebase-exploration,deep-research,dev-browser,frontend-ui-ux,git-master,refactoring}/SKILL.md:1`
+- **[3-M-5]** 7 of 20 skills have SKILL.md without YAML frontmatter — `src/skills/{browser-automation,codebase-exploration,deep-research,dev-browser,frontend-ui-ux,git-master,refactoring}/SKILL.md:1`
 - **[4-M-1]** Workspace shim code-gen does not assert path components are well-formed — `src/global/workspace-shim.js:161-284`
 - **[4-M-2]** Caret-pinned dependencies allow unreviewed minor/patch upgrades — `package.json:9-16`
-- **[4-M-3]** `tool.invocation-log` records full tool result objects without redaction — `.opencode/lib/invocation-log.js:156`
+- **[4-M-3]** `tool.invocation-log` records full tool result objects without redaction — `src/openkit-runtime/lib/invocation-log.js:156`
 - **[4-M-4]** Semgrep rules missing patterns for command-injection / path-traversal — `assets/semgrep/packs/security-audit.yml`
-- **[4-M-5]** `quality-rules.test.js` security pack test only covers one rule — `tests/semgrep/quality-rules.test.js:232`
+- **[4-M-5]** `quality-rules.test.js` security pack test only covers one rule — `src/tests/semgrep/quality-rules.test.js:232`
 - **[X-1]** `CHANGELOG.md` and `RELEASES.md` are not in `package.json#files` and not shipped in the npm tarball — `package.json:18-44`
 
 ## Low
 
-- **[1-L-1]** No size/timeout guard on synchronous reads in `session-start.js` — `hooks/session-start.js:316-344`
+- **[1-L-1]** No size/timeout guard on synchronous reads in `session-start.js` — `src/hooks/session-start.js:316-344`
 - **[1-L-2]** `TransactionLog.query()` reads entire JSONL into memory, no cap — `src/runtime/state/transaction-log.js:87-108`
-- **[1-L-3]** `captureRevision` uses `JSON.stringify` (drops `undefined` keys) — `.opencode/lib/state-guard.js:10-28`
+- **[1-L-3]** `captureRevision` uses `JSON.stringify` (drops `undefined` keys) — `src/openkit-runtime/lib/state-guard.js:10-28`
 - **[1-L-4]** Dead gate `quick_intake→quick_plan` cannot be satisfied via EVIDENCE_TO_GATE — `src/runtime/tools/workflow/advance-stage.js:132`
 - **[2-L-2]** `runtime-profile-materializer.js` writes without project-root validation — `src/install/runtime-profile-materializer.js:4-8`
-- **[2-L-3]** `bin/openkit-mcp.js` has no error handling at startup — `bin/openkit-mcp.js:9`
-- **[3-L-1]** `migration_baseline` stage has ambiguous ownership in agent/command docs — `agents/master-orchestrator.md:41`, `commands/migrate.md:46`
+- **[2-L-3]** `src/bin/openkit-mcp.js` has no error handling at startup — `src/bin/openkit-mcp.js:9`
+- **[3-L-1]** `migration_baseline` stage has ambiguous ownership in agent/command docs — `src/agents/master-orchestrator.md:41`, `src/commands/migrate.md:46`
 - **[3-L-3]** Historical docs retain `quick_brainstorm` (archival, not active surface) — `docs/superpowers/plans/...`, `docs/scope/...`, `docs/qa/...`
 - **[3-L-4]** AGENTS.md does not enumerate `/configure-embedding` — `AGENTS.md:27`
 - **[4-L-1]** `prebuild-install` is a transitive dep that fetches binaries at install (no SRI) — transitive
-- **[4-L-2]** `session-start.js` prints absolute paths on every session start (filesystem layout disclosure to stdout) — `hooks/session-start.js:271-283`
-- **[4-L-3]** No real-dir E2E for upgrade flow — `tests/cli/openkit-cli.test.js:1325`
+- **[4-L-2]** `session-start.js` prints absolute paths on every session start (filesystem layout disclosure to stdout) — `src/hooks/session-start.js:271-283`
+- **[4-L-3]** No real-dir E2E for upgrade flow — `src/tests/cli/openkit-cli.test.js:1325`
 - **[X-2]** No test asserts the two FSM tables agree — would have caught `[1-C-1]`
 
 ## Coverage summary
 
 ### Subagent 1 — Runtime + Workflow Core
-- **Read:** `.opencode/lib/` (all 20 files), `src/runtime/state/`, `src/runtime/workflow/`, `src/runtime/workflow-kernel.js`, `src/runtime/project-root.js`, `src/runtime/tools/workflow/`, `src/runtime/tools/tool-registry.js`, `src/mcp-server/`, `hooks/` (4 files), `src/runtime/managers/project-graph-manager.js`, `src/runtime/analysis/file-watcher.js`, `src/runtime/tools/shared/project-file-utils.js`, `.opencode/lib/policy-engine.js`, `state-guard.js`, `runtime-paths.js`.
-- **Skipped (with reason):** `node_modules/`, `release-notes/` (out of scope); some `src/runtime/` subdirs (`hooks/*`, `mcp/*`, `specialists/*`, `recovery/*`) only partially read; `.opencode/lib/workflow-state-controller.js` too large (69K tokens) — only portions read by offset.
+- **Read:** `src/openkit-runtime/lib/` (all 20 files), `src/runtime/state/`, `src/runtime/workflow/`, `src/runtime/workflow-kernel.js`, `src/runtime/project-root.js`, `src/runtime/tools/workflow/`, `src/runtime/tools/tool-registry.js`, `src/mcp-server/`, `src/hooks/` (4 files), `src/runtime/managers/project-graph-manager.js`, `src/runtime/analysis/file-watcher.js`, `src/runtime/tools/shared/project-file-utils.js`, `src/openkit-runtime/lib/policy-engine.js`, `state-guard.js`, `runtime-paths.js`.
+- **Skipped (with reason):** `node_modules/`, `release-notes/` (out of scope); some `src/runtime/` subdirs (`src/hooks/*`, `mcp/*`, `specialists/*`, `recovery/*`) only partially read; `src/openkit-runtime/lib/workflow-state-controller.js` too large (69K tokens) — only portions read by offset.
 - **Open questions raised:** which FSM table is ground truth (1-C-1 motivates picking one); whether `gate-requirements.js` is meant to replace `gate-registry.js` or vice versa (1-H-2); whether `tool.bootstrap-workflow` MCP absence is intentional (1-H-3); whether `quick_intake → quick_plan` gate definition is leftover from `quick_brainstorm` removal (1-M-2, 1-L-4).
 
 ### Subagent 2 — Install / CLI / Distribution
-- **Read:** `src/install/` (all 8 files), `bin/` (both files), `scripts/` (all 4 files), `package.json`, `.opencode/install-manifest.json`, `registry.json` (version field only), `src/cli/commands/{doctor,upgrade,install,install-global}.js`, `src/global/{doctor,materialize,paths}.js`, `src/cli/index.js`, `src/release/workflow.js`, `src/opencode/config-schema.js`, `assets/opencode.json.template`.
-- **Skipped:** `.opencode/lib/`, `src/runtime/`, `src/mcp-server/`, `agents/`, `commands/`, `skills/`, registry.json body — out of scope per instructions.
+- **Read:** `src/install/` (all 8 files), `bin/` (both files), `scripts/` (all 4 files), `package.json`, `src/openkit-runtime/install-manifest.json`, `registry.json` (version field only), `src/cli/commands/{doctor,upgrade,install,install-global}.js`, `src/global/{doctor,materialize,paths}.js`, `src/cli/index.js`, `src/release/workflow.js`, `src/opencode/config-schema.js`, `assets/opencode.json.template`.
+- **Skipped:** `src/openkit-runtime/lib/`, `src/runtime/`, `src/mcp-server/`, `src/agents/`, `src/commands/`, `src/skills/`, registry.json body — out of scope per instructions.
 - **Open questions raised:** was the version drift (D-1) intentional or a process miss; should `runtimeDoctor` sub-check failures elevate `canRunCleanly: false` (2-H-2 is a policy call); is there a near-term plan to add array allowlists to the install template (2-H-3 is latent until then).
 
 ### Subagent 3 — Contract Layer
-- **Read:** `agents/` (all 7), `commands/` (all 15), `skills/` (all 20 SKILL.md), `registry.json`, `AGENTS.md`, `instructions/`, `context/`, `README.md`, `CHANGELOG.md`, `RELEASES.md`; selected docs/governance/, docs/operations/, docs/maintainer/, docs/solution/ for cross-checks.
-- **Skipped:** `src/`, `.opencode/lib/`, `hooks/`, `scripts/`, `tests/`, `bin/` — out of scope.
+- **Read:** `src/agents/` (all 7), `src/commands/` (all 15), `src/skills/` (all 20 SKILL.md), `registry.json`, `AGENTS.md`, `instructions/`, `src/context/`, `README.md`, `CHANGELOG.md`, `RELEASES.md`; selected docs/governance/, docs/operations/, docs/maintainer/, docs/solution/ for cross-checks.
+- **Skipped:** `src/`, `src/openkit-runtime/lib/`, `src/hooks/`, `scripts/`, `src/tests/`, `bin/` — out of scope.
 - **Open questions raised:** confirm whether `tool.heuristic-lsp` (3-H-3) was meant as `tool.lsp-symbols` or a separate heuristic tool; intended ownership for `migration_baseline` (3-L-1).
 
 ### Subagent 4 — Cross-cutting
-- **Read:** `src/`, `.opencode/lib/`, `hooks/`, `bin/`, `scripts/`, `package.json`, `package-lock.json` (selected), `tests/semgrep/`, `assets/semgrep/`, `src/runtime/tools/ast/`, `src/runtime/supervisor/`, `src/runtime/mcp/`, `src/global/mcp/secret-stores/`, `src/runtime/config/`, `src/global/workspace-shim.js`, `.opencode/lib/invocation-log.js`.
+- **Read:** `src/`, `src/openkit-runtime/lib/`, `src/hooks/`, `bin/`, `scripts/`, `package.json`, `package-lock.json` (selected), `src/tests/semgrep/`, `assets/semgrep/`, `src/runtime/tools/ast/`, `src/runtime/supervisor/`, `src/runtime/mcp/`, `src/global/mcp/secret-stores/`, `src/runtime/config/`, `src/global/workspace-shim.js`, `src/openkit-runtime/lib/invocation-log.js`.
 - **Skipped:** `node_modules/`, `release-notes/` — out of scope.
 - **Open questions raised:** severity of [4-H-1]/[4-H-2] depends on threat model — does OpenKit assume target project repos are trusted? If yes, downgrade these to Medium; if no (operator may run against untrusted repos), keep as High. The audit report keeps them as High pending product clarification.
 

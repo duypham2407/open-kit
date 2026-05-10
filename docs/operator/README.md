@@ -8,8 +8,8 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 
 - this directory is an index, not a moved source-of-truth surface
 - `README.md` remains the concise top-level repository entrypoint
-- `context/core/workflow.md` remains the canonical live workflow-semantics document
-- companion operational details remain canonical in `context/core/`
+- `src/context/core/workflow.md` remains the canonical live workflow-semantics document
+- companion operational details remain canonical in `src/context/core/`
 - governance and operations policies remain canonical in `docs/governance/` and `docs/operations/`
 
 ## Start Here
@@ -24,7 +24,7 @@ Use it to find the right live docs quickly. Do not treat it as a canonical repla
 - Once OpenCode is open, use `Ctrl+P` and choose `/quick-task`, `/migrate`, or `/delivery` to enter the right workflow lane
 - If you want different providers or models per agent, run `/configure-agent-models`, `openkit configure-agent-models --interactive`, or `openkit configure-agent-models --models` before starting the session you care about; if you want reusable global model mixes, manage them with `openkit profiles` before launch and switch the current running session with `openkit switch-profiles`, `openkit switch`, or the `/switch-profiles` prompt template
 - Pick the lane explicitly: `/quick-task` for daily bounded work, `/delivery` for feature work, `/migrate` for upgrades and modernization
-- Use `context/navigation.md` when you need to locate deeper workflow or standards references
+- Use `src/context/navigation.md` when you need to locate deeper workflow or standards references
 
 ## Minimal First Session
 
@@ -45,10 +45,10 @@ Then use the in-session path (`in_session`):
 
 ## Operator Routes
 
-- Workflow contract: `context/core/workflow.md`
-- Lane examples and tie-breakers: `context/core/workflow.md`
-- Session resume: `context/core/session-resume.md`
-- Command and runtime reality: `context/core/project-config.md`
+- Workflow contract: `src/context/core/workflow.md`
+- Lane examples and tie-breakers: `src/context/core/workflow.md`
+- Session resume: `src/context/core/session-resume.md`
+- Command and runtime reality: `src/context/core/project-config.md`
 - Surface contract: `docs/operator/surface-contract.md`
 - Supported product and compatibility surfaces: `docs/operator/supported-surfaces.md`
 - MCP and skills capability configuration: `docs/operator/mcp-configuration.md`
@@ -82,7 +82,7 @@ Then use the in-session path (`in_session`):
 
 ## Validation Story
 
-- OpenKit does have validation for its own runtime and CLI surfaces through `tests/` and `.opencode/tests/`
+- OpenKit does have validation for its own runtime and CLI surfaces through `src/tests/` and `src/openkit-runtime/tests/`
 - MCP secret backend release readiness has a package gate: `npm run verify:mcp-secret-package-readiness`. It validates the `package` surface, keeps output redacted, uses no real macOS Keychain mutation, and is separate from global CLI smoke checks.
 - This repository still does not define repo-native build, lint, or test commands for arbitrary generated application code
 - Treat `openkit doctor` and `node .opencode/workflow-state.js doctor` as OpenKit/runtime verification, not as substitutes for target-project app testing
@@ -93,7 +93,7 @@ Then use the in-session path (`in_session`):
 - The preferred user path is the global OpenKit install in the OpenCode home directory
 - `openkit install` and `openkit install-global` remain available as manual or compatibility setup commands, but neither is the preferred onboarding step
 - Repository-local workflow-state commands are supported for state inspection and maintainer diagnostics; do not present them as the normal install or launch path
-- `.opencode/opencode.json` remains the checked-in repository-local OpenCode config in this repository
+- `src/openkit-runtime/opencode.json` remains the checked-in repository-local OpenCode config in this repository
 - `src/runtime/` now adds a capability-runtime foundation without changing the canonical workflow path
 - `Quick Task+` remains the current semantics of the `quick` lane, not a third live mode
 - When role boundaries feel fuzzy, use `docs/maintainer/2026-03-26-role-operating-policy.md` as the short-form contract for who owns scope, solution, code review, and runtime verification

@@ -69,7 +69,7 @@ Use this sequence for normal product usage and new operator docs:
 - if the task is about launching, onboarding, install health, or global kit lifecycle, use `openkit ...`
 - if the task is about choosing or driving a workflow lane inside OpenCode, use slash commands
 - if the task is about workflow-state internals, compatibility mirrors, task boards, or maintainer diagnostics, use `node .opencode/workflow-state.js ...`
-- mark commands as current only when they exist in `package.json`, `bin/openkit.js`, `.opencode/workflow-state.js`, or checked-in runtime command surfaces
+- mark commands as current only when they exist in `package.json`, `src/bin/openkit.js`, `src/openkit-runtime/workflow-state.js`, or checked-in runtime command surfaces
 - label future commands as illustrative or planned until implemented
 - record evidence with the appropriate surface label: `global_cli`, `in_session`, `compatibility_runtime`, `runtime_tooling`, `documentation`, or `target_project_app`
 
@@ -99,4 +99,4 @@ Use these labels when documenting command or tool reality:
 
 ## Command-Reality Rule
 
-When adding a command to this matrix, verify it exists in `src/cli/index.js`, `.opencode/workflow-state.js`, checked-in command markdown, or package scripts before marking it current. If a command is only a future example, label it illustrative instead of adding it to the current matrix.
+When adding a command to this matrix, verify it exists in `src/cli/index.js`, `src/openkit-runtime/workflow-state.js`, checked-in command markdown, or package scripts before marking it current. If a command is only a future example, label it illustrative instead of adding it to the current matrix.

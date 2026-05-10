@@ -27,12 +27,12 @@ Add a shared OpenKit-owned capability catalog layer, then build the `openkit con
 
 This is enough because the repository already has the correct foundation seams:
 
-- global CLI dispatch through `src/cli/index.js` and `bin/openkit.js`
+- global CLI dispatch through `src/cli/index.js` and `src/bin/openkit.js`
 - global path model through `src/global/paths.js`, `src/global/materialize.js`, `src/global/launcher.js`, and `src/global/doctor.js`
 - OpenKit-managed profile generation through `src/global/materialize.js`
 - runtime bootstrap and summaries through `src/runtime/index.js`, `src/runtime/create-runtime-interface.js`, and `src/runtime/capability-registry.js`
 - MCP runtime foundation through `src/runtime/mcp/`, `src/runtime/tools/mcp/mcp-dispatch.js`, and `src/mcp-server/tool-schemas.js`
-- skill discovery through `src/runtime/skills/` and existing `skills/` package assets
+- skill discovery through `src/runtime/skills/` and existing `src/skills/` package assets
 - repo-native Node test and verification commands in `package.json`
 
 The feature should not introduce a marketplace, secret discovery, hosted account provisioning, or target-project app validation. All raw secrets remain local-only under the OpenCode home-derived OpenKit settings directory.
@@ -138,20 +138,20 @@ Key design decisions:
 
 ### Bundled skills and docs
 
-- Existing skill directories under `skills/` remain package-owned.
+- Existing skill directories under `src/skills/` remain package-owned.
 - Add missing package-owned skill directories only from approved OpenKit-owned sources; do **not** harvest or copy a user's global OpenCode config or machine-local secrets into the package.
 - Likely skill directory additions or catalog entries:
-  - `skills/building-components/`
-  - `skills/context7-mcp/`
-  - `skills/deploy-to-vercel/`
-  - `skills/mui/`
-  - `skills/nextjs/`, `skills/next-best-practices/`, `skills/next-cache-components/`, `skills/next-upgrade/`
-  - Rust suite: `skills/rust-router/`, `skills/rust-learner/`, `skills/coding-guidelines/`, `skills/unsafe-checker/`, `skills/m01-ownership/`, `skills/m02-resource/`, `skills/m03-mutability/`, `skills/m04-zero-cost/`, `skills/m05-type-driven/`, `skills/m06-error-handling/`, `skills/m07-concurrency/`, `skills/m09-domain/`, `skills/m10-performance/`, `skills/m11-ecosystem/`, `skills/m12-lifecycle/`, `skills/m13-domain-error/`, `skills/m14-mental-model/`, `skills/m15-anti-pattern/`
-  - Code intelligence/navigation suite where bundled: `skills/rust-code-navigator/`, `skills/rust-refactor-helper/`, `skills/rust-call-graph/`, `skills/rust-symbol-analyzer/`, `skills/rust-trait-explorer/`, `skills/rust-deps-visualizer/`
+  - `src/skills/building-components/`
+  - `src/skills/context7-mcp/`
+  - `src/skills/deploy-to-vercel/`
+  - `src/skills/mui/`
+  - `src/skills/nextjs/`, `src/skills/next-best-practices/`, `src/skills/next-cache-components/`, `src/skills/next-upgrade/`
+  - Rust suite: `src/skills/rust-router/`, `src/skills/rust-learner/`, `src/skills/coding-guidelines/`, `src/skills/unsafe-checker/`, `src/skills/m01-ownership/`, `src/skills/m02-resource/`, `src/skills/m03-mutability/`, `src/skills/m04-zero-cost/`, `src/skills/m05-type-driven/`, `src/skills/m06-error-handling/`, `src/skills/m07-concurrency/`, `src/skills/m09-domain/`, `src/skills/m10-performance/`, `src/skills/m11-ecosystem/`, `src/skills/m12-lifecycle/`, `src/skills/m13-domain-error/`, `src/skills/m14-mental-model/`, `src/skills/m15-anti-pattern/`
+  - Code intelligence/navigation suite where bundled: `src/skills/rust-code-navigator/`, `src/skills/rust-refactor-helper/`, `src/skills/rust-call-graph/`, `src/skills/rust-symbol-analyzer/`, `src/skills/rust-trait-explorer/`, `src/skills/rust-deps-visualizer/`
 - `README.md`
 - `AGENTS.md` only if current command/tool facts change
-- `context/core/project-config.md`
-- `context/core/runtime-surfaces.md`
+- `src/context/core/project-config.md`
+- `src/context/core/runtime-surfaces.md`
 - `docs/operator/README.md`
 - `docs/operator/supported-surfaces.md`
 - `docs/operator/mcp-configuration.md` (create)
@@ -161,22 +161,22 @@ Key design decisions:
 
 ### Tests
 
-- `tests/cli/configure-mcp.test.js` (create)
-- `tests/cli/openkit-cli.test.js`
-- `tests/global/mcp-config-store.test.js` (create)
-- `tests/global/mcp-secret-manager.test.js` (create)
-- `tests/global/mcp-profile-materializer.test.js` (create)
-- `tests/global/doctor.test.js`
-- `tests/install/materialize.test.js`
-- `tests/runtime/capability-registry.test.js`
-- `tests/runtime/runtime-bootstrap.test.js`
-- `tests/runtime/doctor.test.js`
-- `tests/runtime/mcp-dispatch.test.js`
-- `tests/runtime/capability-tools.test.js` (create)
-- `tests/runtime/skill-catalog.test.js` (create if catalog validation is non-trivial)
-- `tests/mcp-server/mcp-server.test.js`
-- `tests/runtime/registry-metadata.test.js`
-- `.opencode/tests/workflow-contract-consistency.test.js` only if workflow/docs contracts are touched
+- `src/tests/cli/configure-mcp.test.js` (create)
+- `src/tests/cli/openkit-cli.test.js`
+- `src/tests/global/mcp-config-store.test.js` (create)
+- `src/tests/global/mcp-secret-manager.test.js` (create)
+- `src/tests/global/mcp-profile-materializer.test.js` (create)
+- `src/tests/global/doctor.test.js`
+- `src/tests/install/materialize.test.js`
+- `src/tests/runtime/capability-registry.test.js`
+- `src/tests/runtime/runtime-bootstrap.test.js`
+- `src/tests/runtime/doctor.test.js`
+- `src/tests/runtime/mcp-dispatch.test.js`
+- `src/tests/runtime/capability-tools.test.js` (create)
+- `src/tests/runtime/skill-catalog.test.js` (create if catalog validation is non-trivial)
+- `src/tests/mcp-server/mcp-server.test.js`
+- `src/tests/runtime/registry-metadata.test.js`
+- `src/openkit-runtime/tests/workflow-contract-consistency.test.js` only if workflow/docs contracts are touched
 
 ## Boundaries And Components
 
@@ -762,9 +762,9 @@ Reasoning:
   - `src/runtime/mcp/builtin-mcps.js`
   - `src/runtime/skills/skill-registry.js`
   - `registry.json`
-  - `tests/runtime/capability-registry.test.js`
-  - `tests/runtime/skill-catalog.test.js` (create if useful)
-  - `tests/runtime/registry-metadata.test.js`
+  - `src/tests/runtime/capability-registry.test.js`
+  - `src/tests/runtime/skill-catalog.test.js` (create if useful)
+  - `src/tests/runtime/registry-metadata.test.js`
 - **Goal**: establish one package-owned MCP and skill catalog source with standard status vocabulary and no raw secret fields.
 - **Dependencies**: none.
 - **Validation Command**:
@@ -785,8 +785,8 @@ Reasoning:
   - `src/global/mcp/secret-manager.js` (create)
   - `src/global/mcp/redaction.js` (create)
   - `src/global/mcp/mcp-config-store.js` (create minimal secret-presence support if not in Slice 3)
-  - `tests/global/mcp-secret-manager.test.js` (create)
-  - `tests/cli/configure-mcp.test.js` (secret input/redaction cases may start here)
+  - `src/tests/global/mcp-secret-manager.test.js` (create)
+  - `src/tests/cli/configure-mcp.test.js` (secret input/redaction cases may start here)
 - **Goal**: make local-only secret storage safe, permission-checked, atomic, and redacted before any CLI/profile/runtime surface uses it.
 - **Dependencies**: `TASK-F941-CATALOGS`.
 - **Validation Command**:
@@ -807,9 +807,9 @@ Reasoning:
   - `src/global/materialize.js`
   - `src/global/ensure-install.js`
   - `src/install/merge-policy.js` if shared ownership merge helpers are needed
-  - `tests/global/mcp-config-store.test.js` (create)
-  - `tests/global/mcp-profile-materializer.test.js` (create)
-  - `tests/install/materialize.test.js`
+  - `src/tests/global/mcp-config-store.test.js` (create)
+  - `src/tests/global/mcp-profile-materializer.test.js` (create)
+  - `src/tests/install/materialize.test.js`
 - **Goal**: persist user enablement choices and materialize placeholder-only MCP entries into selected scopes while preserving user-managed global config.
 - **Dependencies**: `TASK-F941-SECRETS`.
 - **Validation Command**:
@@ -831,8 +831,8 @@ Reasoning:
   - `src/cli/commands/configure-mcp.js` (create)
   - `src/global/mcp/mcp-configurator.js` (create)
   - `src/global/mcp/health-checks.js` (create)
-  - `tests/cli/configure-mcp.test.js`
-  - `tests/cli/openkit-cli.test.js`
+  - `src/tests/cli/configure-mcp.test.js`
+  - `src/tests/cli/openkit-cli.test.js`
 - **Goal**: implement list/doctor/enable/disable/set-key/unset-key/test with the approved scope semantics and redacted output.
 - **Dependencies**: `TASK-F941-PROFILES`.
 - **Validation Command**:
@@ -851,8 +851,8 @@ Reasoning:
   - `src/global/paths.js`
   - `src/global/mcp/secret-manager.js`
   - `src/global/mcp/redaction.js`
-  - `tests/cli/openkit-cli.test.js`
-  - `tests/global/doctor.test.js`
+  - `src/tests/cli/openkit-cli.test.js`
+  - `src/tests/global/doctor.test.js`
 - **Goal**: load `secrets.env` into OpenKit-managed sessions and surface secret/profile readiness in global doctor without leaking values.
 - **Dependencies**: `TASK-F941-CONFIGURE-CLI`.
 - **Validation Command**:
@@ -881,11 +881,11 @@ Reasoning:
   - `src/runtime/tools/capability/skill-index.js` (create)
   - `src/runtime/tools/capability/skill-mcp-bindings.js` (create)
   - `src/mcp-server/tool-schemas.js`
-  - `tests/runtime/capability-tools.test.js` (create)
-  - `tests/runtime/runtime-bootstrap.test.js`
-  - `tests/runtime/doctor.test.js`
-  - `tests/runtime/mcp-dispatch.test.js`
-  - `tests/mcp-server/mcp-server.test.js`
+  - `src/tests/runtime/capability-tools.test.js` (create)
+  - `src/tests/runtime/runtime-bootstrap.test.js`
+  - `src/tests/runtime/doctor.test.js`
+  - `src/tests/runtime/mcp-dispatch.test.js`
+  - `src/tests/mcp-server/mcp-server.test.js`
 - **Goal**: expose in-session discovery, routing, and health without leaking secrets or inventing unavailable capabilities.
 - **Dependencies**: `TASK-F941-RUN-LOADER`.
 - **Validation Command**:
@@ -905,8 +905,8 @@ Reasoning:
 - **Files**:
   - `README.md`
   - `AGENTS.md` only if command/tool current-state facts change
-  - `context/core/project-config.md`
-  - `context/core/runtime-surfaces.md`
+  - `src/context/core/project-config.md`
+  - `src/context/core/runtime-surfaces.md`
   - `docs/operator/README.md`
   - `docs/operator/supported-surfaces.md`
   - `docs/operator/mcp-configuration.md` (create)
@@ -915,9 +915,9 @@ Reasoning:
   - `docs/operations/runbooks/openkit-daily-usage.md`
   - `package.json` only if scripts/files genuinely change
   - `registry.json`
-  - `.opencode/install-manifest.json` only if metadata needs catalog/package visibility
-  - `.opencode/tests/workflow-contract-consistency.test.js` if docs governance expectations change
-  - `tests/runtime/governance-enforcement.test.js`
+  - `src/openkit-runtime/install-manifest.json` only if metadata needs catalog/package visibility
+  - `src/openkit-runtime/tests/workflow-contract-consistency.test.js` if docs governance expectations change
+  - `src/tests/runtime/governance-enforcement.test.js`
 - **Goal**: document operator usage, maintainer validation, scope semantics, secret safety, default catalogs, direct OpenCode caveats, and validation boundaries.
 - **Dependencies**: `TASK-F941-RUNTIME-TOOLS`.
 - **Validation Command**:

@@ -166,10 +166,10 @@ function defaultSource(source = {}) {
 }
 
 function createEntry(name, options = {}) {
-  const relativePath = options.path ?? `skills/${name}/SKILL.md`;
+  const relativePath = options.path ?? `src/skills/${name}/SKILL.md`;
   const packagingSource = options.packaging?.source ?? (options.metadataOnly ? 'metadata_only' : 'repo');
   const installBundle = options.packaging?.installBundle ?? false;
-  const bundledPath = installBundle ? `assets/install-bundle/opencode/skills/${name}/SKILL.md` : null;
+  const bundledPath = installBundle ? `src/assets/install-bundle/opencode/skills/${name}/SKILL.md` : null;
   const modes = unique(options.modes ?? ALL_MODES);
   const stages = unique(options.stages ?? stagesForModes(modes));
   const supportLevel = options.support_level ?? (packagingSource === 'metadata_only' ? 'stub' : 'maintained');
@@ -647,8 +647,8 @@ function validateEntry(entry, { knownMcpIds }) {
   if (path.isAbsolute(entry.path ?? '') || String(entry.path ?? '').includes('..') || String(entry.path ?? '').includes('~')) {
     errors.push(validationError(entry, 'path', 'Skill path must be repo-relative and must not contain absolute, parent, or home references.'));
   }
-  if (entry.packaging?.source === 'repo' && entry.path !== `skills/${entry.name}/SKILL.md`) {
-    errors.push(validationError(entry, 'path', 'Repo-backed skill path must match skills/<name>/SKILL.md.'));
+  if (entry.packaging?.source === 'repo' && entry.path !== `src/skills/${entry.name}/SKILL.md`) {
+    errors.push(validationError(entry, 'path', 'Repo-backed skill path must match src/skills/<name>/SKILL.md.'));
   }
   if (!SKILL_MATURITY_STATUSES.includes(entry.status)) {
     errors.push(validationError(entry, 'status', `Unsupported skill maturity status '${entry.status}'.`, SKILL_MATURITY_STATUSES));

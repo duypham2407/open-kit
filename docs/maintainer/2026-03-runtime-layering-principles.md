@@ -6,7 +6,7 @@ The capability runtime exists to serve the workflow kernel, not replace it.
 
 ## Principle 2: Explicit State
 
-If a runtime capability affects delivery state, the effect must be visible through `.opencode/workflow-state.js` or `.opencode/lib/*`.
+If a runtime capability affects delivery state, the effect must be visible through `src/openkit-runtime/workflow-state.js` or `src/openkit-runtime/lib/*`.
 
 ## Principle 3: Additive Config
 

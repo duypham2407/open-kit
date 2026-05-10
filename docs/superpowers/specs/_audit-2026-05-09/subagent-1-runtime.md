@@ -23,7 +23,7 @@
 ### High
 
 - [1-H-1] `safeCall` in `workflow-kernel.js` silently swallows all throws from every controller call, making write failures invisible to callers — `src/runtime/workflow-kernel.js:150-155`
-  - Description: The `safeCall` wrapper returns `null` for any exception from the `.opencode/lib` controller. Functions like `startBackgroundRun`, `completeBackgroundRun`, `claimTask`, `setTaskStatus` all route through `safeCall` and return `null` on failure, with no error surfaced to the tool or to the model. A SQLite lock, disk full, or malformed JSON in the controller will produce a null return that callers treat as a no-op.
+  - Description: The `safeCall` wrapper returns `null` for any exception from the `src/openkit-runtime/lib` controller. Functions like `startBackgroundRun`, `completeBackgroundRun`, `claimTask`, `setTaskStatus` all route through `safeCall` and return `null` on failure, with no error surfaced to the tool or to the model. A SQLite lock, disk full, or malformed JSON in the controller will produce a null return that callers treat as a no-op.
   - Evidence/repro: `src/runtime/workflow-kernel.js:150-155`: `function safeCall(fn, fallback) { try { return fn(); } catch { return fallback; } }`. Lines 190–229 show all critical write operations routing through `safeCall(..., null)`.
   - Suggested fix: Log the swallowed exception at minimum and propagate a structured error object so tool handlers can surface the failure to the model.
 
@@ -47,11 +47,11 @@
   - Description: The `quick_intake→quick_plan` gate is defined only in `gate-requirements.js`, which is consulted by `advance-stage.js`. The `GateRegistry` has no corresponding gate for this transition. A model providing `evidence: { understanding_confirmed: true }` will pass `gate-requirements.js` but `WorkflowStateManager` will see no gate obstacle and advance freely — making the gate semantically dead in the persistence layer.
   - Evidence/repro: `gate-registry.js:19-25`: `'quick.understanding_confirmed': { stage: 'quick_plan', targetStage: 'quick_implement' }` — this is `plan→implement`, not `intake→plan`.
 
-- [1-M-3] Fresh-project bootstrap: write methods silently fail until bootstrap creates `.opencode/` — `src/runtime/workflow-kernel.js:134-148` and `349-360`
-  - Description: On a fresh project, `canWriteState` (line 139–148) returns `false` because `path.dirname(statePath)` is `.opencode/` which does not exist. `bootstrapWorkflow` itself bypasses this check (delegates to controller which creates the dir), but all other write-path functions (`startBackgroundRun`, `completeBackgroundRun`, etc.) call `canWriteState` and silently no-op until bootstrap completes.
+- [1-M-3] Fresh-project bootstrap: write methods silently fail until bootstrap creates `src/openkit-runtime/` — `src/runtime/workflow-kernel.js:134-148` and `349-360`
+  - Description: On a fresh project, `canWriteState` (line 139–148) returns `false` because `path.dirname(statePath)` is `src/openkit-runtime/` which does not exist. `bootstrapWorkflow` itself bypasses this check (delegates to controller which creates the dir), but all other write-path functions (`startBackgroundRun`, `completeBackgroundRun`, etc.) call `canWriteState` and silently no-op until bootstrap completes.
   - Evidence/repro: `workflow-kernel.js:147`: `return fs.existsSync(path.dirname(statePath));`. `startBackgroundRun:186-200`: `if (!canWriteState(customStatePath)) return null;`.
 
-- [1-M-4] `session-start.js` performs blocking synchronous file reads on skill and tool-rule files — `hooks/session-start.js:321` and `334`
+- [1-M-4] `session-start.js` performs blocking synchronous file reads on skill and tool-rule files — `src/hooks/session-start.js:321` and `334`
   - Description: Lines 321 and 334 read `metaSkillPath` and `toolSubstitutionRulesPath` with `fs.readFileSync(..., 'utf8')` synchronously. If the kit root is on a slow mount or the files are large, this adds latency to every session start. No size cap or timeout.
 
 - [1-M-5] FSM asymmetry: `migration_strategy → migration_baseline` allowed in `transition-engine.js` but not `state-machine.js` — `src/runtime/state/transition-engine.js:59` vs `src/runtime/workflow/state-machine.js:52`
@@ -59,11 +59,11 @@
 
 ### Low
 
-- [1-L-1] No size/timeout guard on synchronous reads in `session-start.js` — `hooks/session-start.js:316-344`
+- [1-L-1] No size/timeout guard on synchronous reads in `session-start.js` — `src/hooks/session-start.js:316-344`
 
 - [1-L-2] `TransactionLog.query()` reads entire JSONL into memory; no cap — `src/runtime/state/transaction-log.js:87-108`
 
-- [1-L-3] `captureRevision` uses `JSON.stringify` which drops `undefined` and may differ on float reps — `.opencode/lib/state-guard.js:10-28`
+- [1-L-3] `captureRevision` uses `JSON.stringify` which drops `undefined` and may differ on float reps — `src/openkit-runtime/lib/state-guard.js:10-28`
 
 - [1-L-4] Dead gate: `quick_intake→quick_plan` in `gate-requirements.js` cannot be satisfied via `EVIDENCE_TO_GATE` — `src/runtime/tools/workflow/advance-stage.js:132`
   - Description: `EVIDENCE_TO_GATE` maps `understanding_confirmed` to `quick.understanding_confirmed` (which is the `plan→implement` gate). The `quick_intake→quick_plan` gate definition is dead code that can never be satisfied via the normal evidence mechanism.
@@ -71,23 +71,23 @@
 ### Notes
 
 - Directories read:
-  - `.opencode/lib/` — all 20 files
+  - `src/openkit-runtime/lib/` — all 20 files
   - `src/runtime/state/` — all files
   - `src/runtime/workflow/` — state-machine, gate-requirements, role-permissions, instruction-loader
   - `src/runtime/workflow-kernel.js`, `project-root.js`
   - `src/runtime/tools/workflow/` — all workflow tools
   - `src/runtime/tools/tool-registry.js`
   - `src/mcp-server/` — index.js, tool-schemas.js, args.js
-  - `hooks/` — all 4 files
+  - `src/hooks/` — all 4 files
   - `src/runtime/managers/project-graph-manager.js`
   - `src/runtime/analysis/file-watcher.js`
   - `src/runtime/tools/shared/project-file-utils.js`
-  - `.opencode/lib/policy-engine.js`, `state-guard.js`, `runtime-paths.js`
+  - `src/openkit-runtime/lib/policy-engine.js`, `state-guard.js`, `runtime-paths.js`
 
 - Directories skipped (with reason):
   - `node_modules/`, `release-notes/` — out of scope
   - `src/runtime/hooks/*`, `mcp/*`, `specialists/*`, `recovery/*` — partially read; not exhaustive
-  - `.opencode/lib/workflow-state-controller.js` — too large (69K tokens); only portions read via offset/limit
+  - `src/openkit-runtime/lib/workflow-state-controller.js` — too large (69K tokens); only portions read via offset/limit
 
 - Open questions for main agent:
   1. Which FSM table is ground truth — `transition-engine.js` (persistence) or `state-machine.js` (MCP/UI)?

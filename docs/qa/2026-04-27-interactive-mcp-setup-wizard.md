@@ -51,7 +51,7 @@ approval_gate: qa_to_done
 | Disable and unset-key semantics remain unchanged. | PASS | CLI tests verify disable preserves stored key and unset-key removes key without disabling the MCP. |
 | Per-scope both health. | PASS | Rework validation plus QA smoke show `context7 [openkit]: skipped (disabled)` and `context7 [global]: not_configured (missing_key)` separately. |
 | Health test and repair paths. | PASS | Service/wizard tests cover disabled/missing-key health outcomes; secret-manager tests cover read-only inspection and scoped POSIX permission repair to `0700`/`0600`. |
-| Documentation updated. | PASS | Operator docs, supported surfaces, runbook, kit internals, `AGENTS.md`, and `context/core/project-config.md` describe the wizard, scope caveats, secret safety, non-TTY alternatives, and validation boundaries; governance passed. |
+| Documentation updated. | PASS | Operator docs, supported surfaces, runbook, kit internals, `AGENTS.md`, and `src/context/core/project-config.md` describe the wizard, scope caveats, secret safety, non-TTY alternatives, and validation boundaries; governance passed. |
 | No custom MCP add/import/edit path and no optional alias. | PASS | Code search found no JS implementation for `mcp setup`, `configure mcp add`, or `configure mcp import`; docs/solution explicitly keep custom MCP add/import/edit and `openkit mcp setup` out of this delivery. |
 | No `target_project_app` validation claim. | PASS | Report and evidence label OpenKit checks as `global_cli`, `runtime_tooling`, `documentation`, `package`, or `compatibility_runtime`; `target_project_app` remains unavailable. |
 

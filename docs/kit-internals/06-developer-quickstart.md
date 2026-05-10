@@ -139,17 +139,17 @@ console.log(results);
 
 | What they cover | Test file |
 |---|---|
-| Project graph DB schema & ops | `tests/runtime/graph-db.test.js` |
-| Import graph builder | `tests/runtime/import-graph-builder.test.js` |
-| Graph manager indexing & queries | `tests/runtime/project-graph-manager.test.js` |
-| Graph navigation tools | `tests/runtime/graph-navigation-tools.test.js` |
-| Chunk extraction & embedding pipeline | `tests/runtime/embedding-pipeline.test.js` |
-| Session memory & semantic search | `tests/runtime/semantic-memory.test.js` |
-| Capability registry | `tests/runtime/capability-registry.test.js` |
-| Runtime bootstrap | `tests/runtime/runtime-bootstrap.test.js` |
-| Tool enforcement plugin | `.opencode/tests/tool-enforcement.test.js` |
-| CLI configure-embedding | `tests/cli/configure-embedding.test.js` |
-| CLI install | `tests/cli/install.test.js` |
+| Project graph DB schema & ops | `src/tests/runtime/graph-db.test.js` |
+| Import graph builder | `src/tests/runtime/import-graph-builder.test.js` |
+| Graph manager indexing & queries | `src/tests/runtime/project-graph-manager.test.js` |
+| Graph navigation tools | `src/tests/runtime/graph-navigation-tools.test.js` |
+| Chunk extraction & embedding pipeline | `src/tests/runtime/embedding-pipeline.test.js` |
+| Session memory & semantic search | `src/tests/runtime/semantic-memory.test.js` |
+| Capability registry | `src/tests/runtime/capability-registry.test.js` |
+| Runtime bootstrap | `src/tests/runtime/runtime-bootstrap.test.js` |
+| Tool enforcement plugin | `src/openkit-runtime/tests/tool-enforcement.test.js` |
+| CLI configure-embedding | `src/tests/cli/configure-embedding.test.js` |
+| CLI install | `src/tests/cli/install.test.js` |
 
 ## Project Layout Refresher
 
@@ -181,7 +181,7 @@ tests/
 ## Next Steps For Contributors
 
 1. Read `05-semantic-search-and-code-intelligence.md` for the full pipeline design.
-2. Look at `tests/runtime/embedding-pipeline.test.js` for chunk-splitting and
+2. Look at `src/tests/runtime/embedding-pipeline.test.js` for chunk-splitting and
    embedding-reuse test patterns.
 3. If adding a new tool, follow the pattern in `src/runtime/tools/graph/` and
    register it in `src/runtime/tools/tool-registry.js`.

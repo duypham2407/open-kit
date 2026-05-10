@@ -37,9 +37,11 @@ function resolveToolEnforcementPluginPath(runtimeStatus) {
   const candidatePaths = [];
 
   if (runtimeStatus?.kitRoot) {
+    candidatePaths.push(path.join(runtimeStatus.kitRoot, 'src', 'openkit-runtime', 'plugins', 'tool-enforcement.js'));
     candidatePaths.push(path.join(runtimeStatus.kitRoot, '.opencode', 'plugins', 'tool-enforcement.js'));
   }
 
+  candidatePaths.push(path.join(PACKAGE_ROOT, 'src', 'openkit-runtime', 'plugins', 'tool-enforcement.js'));
   candidatePaths.push(path.join(PACKAGE_ROOT, '.opencode', 'plugins', 'tool-enforcement.js'));
 
   return candidatePaths.find((candidatePath) => fs.existsSync(candidatePath)) ?? null;

@@ -47,7 +47,7 @@ not silently re-pass on the next attempt.
 
 Confirms the first-class invariant: two tabs may hold two different
 work items in the same repo without colliding on `active_work_item_id`
-or on `.opencode/workflow-state.json`.
+or on `src/openkit-runtime/workflow-state.json`.
 
 ### Steps
 
@@ -70,7 +70,7 @@ or on `.opencode/workflow-state.json`.
 - `work-items/index.json` has `schema: "openkit/work-items-index@3"`.
   Two work items, each with a different `current_session_id` matching a
   live session.
-- The legacy stub at `.opencode/workflow-state.json` is the
+- The legacy stub at `src/openkit-runtime/workflow-state.json` is the
   `openkit/legacy-stub@1` shape (or absent / rotated). Crucially, no
   `active_work_item_id` field anywhere in v3 layout.
 - Stage advancement in tab A only mutates the per-session mirror under
@@ -223,9 +223,9 @@ Confirms spec §8.1–§8.3.
 
 1. Stand up a sacrificial repo on the **previous** OpenKit release
    (v0.6.0) with at least one in-flight work item and a managed
-   worktree. Verify `.opencode/workflow-state.json` has v2 shape and
-   `.opencode/work-items/index.json` lacks the v3 `schema` field.
-2. Copy `.opencode/` somewhere safe so you can compare before/after.
+   worktree. Verify `src/openkit-runtime/workflow-state.json` has v2 shape and
+   `src/openkit-runtime/work-items/index.json` lacks the v3 `schema` field.
+2. Copy `src/openkit-runtime/` somewhere safe so you can compare before/after.
 3. Upgrade to v0.7.0 (`openkit upgrade` or `npm install -g
    @duypham93/openkit@0.7.0`).
 4. Run `openkit run` once to trigger startup migration.
@@ -246,7 +246,7 @@ Confirms spec §8.1–§8.3.
   not add another synthetic orphan or another `.legacy.*` rotation.
 - No work item is lost. Each previously in-flight item maps to either
   a synthetic orphan (`s_orphan_<8hex>`) or a `done` item.
-- Legacy stub at `.opencode/workflow-state.json` has
+- Legacy stub at `src/openkit-runtime/workflow-state.json` has
   `schema: "openkit/legacy-stub@1"` (or is absent if rotation has not
   yet happened in this code path).
 - `active_work_item_id` is gone from the v3 index.
@@ -287,9 +287,9 @@ Confirms spec §7.5 — five new checks added to `openkit doctor`.
 1. Run `openkit doctor` on a healthy repo (no orphans, no extra
    `.legacy.*` files). Confirm all five session checks pass.
 2. Force each failure mode in turn and re-run doctor:
-   - Corrupt `.opencode/sessions/index.json` (e.g. truncate to invalid
+   - Corrupt `src/openkit-runtime/sessions/index.json` (e.g. truncate to invalid
      JSON). Doctor should report `sessions-index-readable` as fail.
-   - Generate 11+ `.opencode/workflow-state.json.legacy.*` files.
+   - Generate 11+ `src/openkit-runtime/workflow-state.json.legacy.*` files.
      Doctor should report `legacy-mirror-rotation` as warn/fail.
    - Manufacture six orphan entries. Doctor should report
      `orphan-sessions-count` as warn.

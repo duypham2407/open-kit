@@ -29,10 +29,10 @@ Use this document to understand which OpenKit surfaces are intended for end user
 | Command permission policy | degraded until OpenCode defaultAction exception support is verified | `global_cli` / `package` | operators/maintainers | default-allow intent for routine commands plus confirm-required dangerous-command projection | canonical source is `assets/default-command-permission-policy.json`; `openkit doctor` reports policy source, global kit/profile drift, dangerous-entry coverage, and upstream caveats |
 | Supervisor dialogue runtime manager | `not_configured` by default; `available` when enabled with a configured transport | `runtime_tooling` | maintainers/reviewers/QA | OpenClaw/OpenKit supervisor bridge health and non-authoritative delivery configuration | disabled/unconfigured is valid and non-fatal |
 | `node .opencode/workflow-state.js ...` | compatibility_only | `compatibility_runtime` | maintainers | lower-level runtime inspection and work-item/task-board operations | checked-in runtime path |
-| `.opencode/workflow-state.json` | compatibility_only | `compatibility_runtime` | maintainers/runtime tooling | active work-item mirror state | external mirror over managed backing store |
-| `.opencode/work-items/` | available | `compatibility_runtime` | maintainers/runtime tooling | per-item managed state and full-delivery task boards | not an operator onboarding surface |
+| `src/openkit-runtime/workflow-state.json` | compatibility_only | `compatibility_runtime` | maintainers/runtime tooling | active work-item mirror state | external mirror over managed backing store |
+| `src/openkit-runtime/work-items/` | available | `compatibility_runtime` | maintainers/runtime tooling | per-item managed state and full-delivery task boards | not an operator onboarding surface |
 | `registry.json` | available | `documentation` | maintainers | component and profile metadata | additive metadata, not an installer |
-| `.opencode/install-manifest.json` | available | `documentation` | maintainers | local install-profile metadata | additive metadata, not destructive install logic |
+| `src/openkit-runtime/install-manifest.json` | available | `documentation` | maintainers | local install-profile metadata | additive metadata, not destructive install logic |
 
 ## Default Operator Path
 
@@ -52,8 +52,8 @@ If workflow state already exists and you need the next safe action, use `node .o
 ## Boundary Rules
 
 - The preferred product path is the managed global OpenKit install under the OpenCode home directory.
-- The managed global kit root, the derived workspace runtime state root, and the project `.opencode/` compatibility shim are separate layers and should not be treated as interchangeable paths.
-- The checked-in `.opencode/` runtime remains live and important, but it is primarily the authoring and compatibility surface.
+- The managed global kit root, the derived workspace runtime state root, and the project `src/openkit-runtime/` compatibility shim are separate layers and should not be treated as interchangeable paths.
+- The checked-in `src/openkit-runtime/` runtime remains live and important, but it is primarily the authoring and compatibility surface.
 - Quick work stays task-board free; migration has no full-delivery task board and uses only strategy-enabled migration slice coordination when present.
 - Full-delivery work may carry task boards, but parallel support stays bounded by the runtime commands and validations that actually exist.
 - `openkit doctor` answers product/workspace readiness questions; `node .opencode/workflow-state.js doctor` answers workflow-runtime integrity questions.
@@ -146,7 +146,7 @@ Full-delivery `product_to_solution` requires the scope package before Solution L
 ## Confirmation Policy
 
 - OpenKit's product intent is default allow for routine non-dangerous commands, backed by the machine-readable policy at `assets/default-command-permission-policy.json`.
-- Global install materialization projects that policy into the OpenKit-managed kit config and profile config used by `openkit run`; the checked-in `.opencode/opencode.json` is an authoring/compatibility mirror, not the only product target.
+- Global install materialization projects that policy into the OpenKit-managed kit config and profile config used by `openkit run`; the checked-in `src/openkit-runtime/opencode.json` is an authoring/compatibility mirror, not the only product target.
 - OpenCode-validated `opencode.json` files contain only OpenCode schema-valid keys. OpenKit-only policy metadata such as `commandPermissionPolicy` stays in `assets/default-command-permission-policy.json` or OpenKit-owned sidecars rather than inline config.
 - Common routine examples include `openkit doctor`, `openkit onboard`, `openkit configure-agent-models --list`, `openkit profiles --list`, `/quick-task`, `/migrate`, `/delivery`, `/switch-profiles`, `node .opencode/workflow-state.js status`, `resume-summary`, `show`, `doctor`, `validate`, `git status`, `git log`, `git diff`, file edits, file writes, and normal non-delete `bash`/`npm` usage.
 - Dangerous policy-listed commands must require explicit confirmation before they run. This includes deletion (`rm`, `rmdir`, `unlink`), destructive git (`git reset --hard`, `git clean`, discard-style checkout/restore, force pushes), package/release/deploy publishing, database drop/truncate/reset/wipe forms, and privileged/system-impacting commands such as `sudo`, `chmod`, and `chown` where represented.

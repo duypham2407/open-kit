@@ -28,7 +28,7 @@ Add a separate OpenKit-managed **custom MCP registry/store** beside the bundled 
 
 This is enough for phase 1 because the repository already has a working MCP control plane:
 
-- CLI dispatch through `bin/openkit.js`, `src/cli/index.js`, and `src/cli/commands/configure.js`.
+- CLI dispatch through `src/bin/openkit.js`, `src/cli/index.js`, and `src/cli/commands/configure.js`.
 - Bundled MCP parser/service path in `src/global/mcp/mcp-configurator.js` and `src/global/mcp/mcp-config-service.js`.
 - Bundled MCP state in `<OPENCODE_HOME>/openkit/mcp-config.json` through `src/global/mcp/mcp-config-store.js`.
 - Profile ownership and global conflict tracking in `src/global/mcp/profile-materializer.js`.
@@ -74,9 +74,9 @@ Do **not** create a second top-level CLI family. Do **not** add full custom crea
 ### Documentation and tests
 
 - `docs/operator/mcp-configuration.md` — command reference, custom registry location, secret model, validation rules, import-global safety, disable/remove semantics, risk warnings, direct OpenCode caveat.
-- `docs/operator/supported-surfaces.md`, `docs/operator/README.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `context/core/project-config.md`, and `AGENTS.md` — update command-reality/current-state bullets only where new commands become real.
-- `tests/cli/configure-mcp.test.js`, `tests/cli/configure-mcp-interactive.test.js`, `tests/global/mcp-config-store.test.js`, `tests/global/mcp-profile-materializer.test.js`, `tests/global/mcp-interactive-wizard.test.js`, `tests/runtime/capability-tools.test.js`, `tests/runtime/mcp-catalog.test.js`, `tests/runtime/governance-enforcement.test.js`.
-- New focused tests are expected: `tests/global/custom-mcp-store.test.js`, `tests/global/custom-mcp-validation.test.js`, and optionally `tests/cli/configure-mcp-custom.test.js` if splitting the CLI suite keeps fixtures readable.
+- `docs/operator/supported-surfaces.md`, `docs/operator/README.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `src/context/core/project-config.md`, and `AGENTS.md` — update command-reality/current-state bullets only where new commands become real.
+- `src/tests/cli/configure-mcp.test.js`, `src/tests/cli/configure-mcp-interactive.test.js`, `src/tests/global/mcp-config-store.test.js`, `src/tests/global/mcp-profile-materializer.test.js`, `src/tests/global/mcp-interactive-wizard.test.js`, `src/tests/runtime/capability-tools.test.js`, `src/tests/runtime/mcp-catalog.test.js`, `src/tests/runtime/governance-enforcement.test.js`.
+- New focused tests are expected: `src/tests/global/custom-mcp-store.test.js`, `src/tests/global/custom-mcp-validation.test.js`, and optionally `src/tests/cli/configure-mcp-custom.test.js` if splitting the CLI suite keeps fixtures readable.
 
 ## Boundaries And Components
 
@@ -376,7 +376,7 @@ Required phase-1 wizard behavior:
 
 ### [ ] Slice 1: Custom registry/store and merged inventory contract
 
-- **Files**: `src/global/mcp/custom-mcp-store.js`, `src/global/mcp/mcp-inventory.js` if created, `src/global/mcp/mcp-config-service.js`, `tests/global/custom-mcp-store.test.js`, `tests/global/mcp-config-store.test.js` if compatibility assertions are needed.
+- **Files**: `src/global/mcp/custom-mcp-store.js`, `src/global/mcp/mcp-inventory.js` if created, `src/global/mcp/mcp-config-service.js`, `src/tests/global/custom-mcp-store.test.js`, `src/tests/global/mcp-config-store.test.js` if compatibility assertions are needed.
 - **Goal**: introduce a custom-only persistent store and read model that can list bundled and custom entries without blending sources of truth.
 - **Validation Command**: `node --test tests/global/custom-mcp-store.test.js tests/global/mcp-config-store.test.js`.
 - **Details**:
@@ -386,7 +386,7 @@ Required phase-1 wizard behavior:
 
 ### [ ] Slice 2: Validation engine for local, remote, import, conflicts, and redaction
 
-- **Files**: `src/global/mcp/custom-mcp-validation.js`, `src/global/mcp/redaction.js`, `src/global/mcp/mcp-config-service.js`, `tests/global/custom-mcp-validation.test.js`.
+- **Files**: `src/global/mcp/custom-mcp-validation.js`, `src/global/mcp/redaction.js`, `src/global/mcp/mcp-config-service.js`, `src/tests/global/custom-mcp-validation.test.js`.
 - **Goal**: centralize safety decisions before any CLI mutation can write custom config or profiles.
 - **Validation Command**: `node --test tests/global/custom-mcp-validation.test.js`.
 - **Details**:
@@ -396,7 +396,7 @@ Required phase-1 wizard behavior:
 
 ### [ ] Slice 3: CLI custom command parser and service lifecycle operations
 
-- **Files**: `src/global/mcp/mcp-configurator.js`, `src/global/mcp/mcp-config-service.js`, `src/global/mcp/custom-mcp-store.js`, `tests/cli/configure-mcp.test.js`, `tests/cli/configure-mcp-custom.test.js` if created.
+- **Files**: `src/global/mcp/mcp-configurator.js`, `src/global/mcp/mcp-config-service.js`, `src/global/mcp/custom-mcp-store.js`, `src/tests/cli/configure-mcp.test.js`, `src/tests/cli/configure-mcp-custom.test.js` if created.
 - **Goal**: implement `custom list`, `custom add-local`, `custom add-remote`, `custom import-global`, `custom disable`, `custom remove`, `custom doctor`, and `custom test` under the existing parser without regressing bundled commands.
 - **Validation Command**: `node --test tests/cli/configure-mcp.test.js tests/cli/configure-mcp-custom.test.js`.
 - **Details**:
@@ -407,7 +407,7 @@ Required phase-1 wizard behavior:
 
 ### [ ] Slice 4: Profile materialization, custom secret bindings, and health/test status
 
-- **Files**: `src/global/mcp/profile-materializer.js`, `src/global/mcp/health-checks.js`, `src/global/mcp/secret-manager.js` if custom binding support needs a helper, `src/global/mcp/mcp-config-service.js`, `tests/global/mcp-profile-materializer.test.js`, `tests/global/mcp-secret-manager.test.js`, `tests/cli/configure-mcp-custom.test.js`.
+- **Files**: `src/global/mcp/profile-materializer.js`, `src/global/mcp/health-checks.js`, `src/global/mcp/secret-manager.js` if custom binding support needs a helper, `src/global/mcp/mcp-config-service.js`, `src/tests/global/mcp-profile-materializer.test.js`, `src/tests/global/mcp-secret-manager.test.js`, `src/tests/cli/configure-mcp-custom.test.js`.
 - **Goal**: materialize custom profile entries safely, report custom health with standard status labels, and integrate placeholder-backed custom env vars with existing `set-key --stdin` when supported.
 - **Validation Command**: `node --test tests/global/mcp-profile-materializer.test.js tests/global/mcp-secret-manager.test.js tests/cli/configure-mcp-custom.test.js`.
 - **Details**:
@@ -419,7 +419,7 @@ Required phase-1 wizard behavior:
 
 ### [ ] Slice 5: Runtime read models and FEATURE-945 wizard visibility
 
-- **Files**: `src/runtime/managers/mcp-health-manager.js`, `src/runtime/managers/capability-registry-manager.js`, `src/runtime/tools/capability/mcp-doctor.js`, `src/runtime/capability-registry.js` if needed, `src/global/mcp/interactive-wizard.js`, `src/global/mcp/wizard-state-machine.js`, `tests/runtime/capability-tools.test.js`, `tests/runtime/mcp-catalog.test.js`, `tests/global/mcp-interactive-wizard.test.js`, `tests/cli/configure-mcp-interactive.test.js`.
+- **Files**: `src/runtime/managers/mcp-health-manager.js`, `src/runtime/managers/capability-registry-manager.js`, `src/runtime/tools/capability/mcp-doctor.js`, `src/runtime/capability-registry.js` if needed, `src/global/mcp/interactive-wizard.js`, `src/global/mcp/wizard-state-machine.js`, `src/tests/runtime/capability-tools.test.js`, `src/tests/runtime/mcp-catalog.test.js`, `src/tests/global/mcp-interactive-wizard.test.js`, `src/tests/cli/configure-mcp-interactive.test.js`.
 - **Goal**: make custom MCPs visible/testable in runtime and wizard status without creating a second source of truth or full custom creation wizard.
 - **Validation Command**: `node --test tests/runtime/capability-tools.test.js tests/runtime/mcp-catalog.test.js tests/global/mcp-interactive-wizard.test.js tests/cli/configure-mcp-interactive.test.js`.
 - **Details**:
@@ -429,7 +429,7 @@ Required phase-1 wizard behavior:
 
 ### [ ] Slice 6: Operator docs, help text, and governance/security evidence
 
-- **Files**: `docs/operator/mcp-configuration.md`, `docs/operator/supported-surfaces.md`, `docs/operator/README.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `context/core/project-config.md`, `AGENTS.md`, `tests/runtime/governance-enforcement.test.js`, `package.json` only if a new test script is needed.
+- **Files**: `docs/operator/mcp-configuration.md`, `docs/operator/supported-surfaces.md`, `docs/operator/README.md`, `docs/kit-internals/04-tools-hooks-skills-and-mcps.md`, `src/context/core/project-config.md`, `AGENTS.md`, `src/tests/runtime/governance-enforcement.test.js`, `package.json` only if a new test script is needed.
 - **Goal**: document custom MCP lifecycle commands, phase-1 limitations, validation behavior, risk warnings, secret placeholder model, import-global safety, conflict behavior, and validation surface boundaries.
 - **Validation Command**: `node --test tests/runtime/governance-enforcement.test.js && npm run verify:governance`.
 - **Details**:
@@ -445,7 +445,7 @@ Required phase-1 wizard behavior:
 - **Details**:
   - If `npm run verify:all` fails due to environment/tooling availability, record the exact failing surface and provide narrower passing commands above.
   - Include sentinel-secret assertions covering global config fixtures, custom store, generated profiles, command output, doctor/test output, runtime read models, docs examples, and workflow evidence if evidence is recorded.
-  - Code Review should run `tool.security-scan` when available or document direct-tool unavailability and substitute/manual evidence per `context/core/tool-substitution-rules.md`.
+  - Code Review should run `tool.security-scan` when available or document direct-tool unavailability and substitute/manual evidence per `src/context/core/tool-substitution-rules.md`.
   - Do not label any OpenKit CLI/runtime/docs result as `target_project_app` validation.
 
 ## Dependency Graph
@@ -493,7 +493,7 @@ Before requesting Code Review, Fullstack should provide evidence for:
 1. `node --test tests/global/custom-mcp-store.test.js`
 2. `node --test tests/global/custom-mcp-validation.test.js`
 3. `node --test tests/cli/configure-mcp.test.js`
-4. `node --test tests/cli/configure-mcp-custom.test.js` if created, otherwise the custom cases inside `tests/cli/configure-mcp.test.js`
+4. `node --test tests/cli/configure-mcp-custom.test.js` if created, otherwise the custom cases inside `src/tests/cli/configure-mcp.test.js`
 5. `node --test tests/global/mcp-config-store.test.js`
 6. `node --test tests/global/mcp-profile-materializer.test.js`
 7. `node --test tests/global/mcp-secret-manager.test.js`
