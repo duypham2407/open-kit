@@ -401,6 +401,29 @@ test("full migration lifecycle: start-task to migration_done", () => {
     "migration_upgrade",
     "Ran rule-scan on migrated sources; no violations detected",
     "rule-scan",
+    "--details-json",
+    JSON.stringify({
+      scan_evidence: {
+        direct_tool: {
+          tool_id: "tool.rule-scan",
+          availability_state: "available",
+          result_state: "succeeded",
+          namespace_status: "callable",
+        },
+        evidence_type: "direct_tool",
+        finding_counts: {
+          total: 0,
+          security: 0,
+          quality: 0,
+          style: 0,
+        },
+        classification_summary: {
+          group_count: 0,
+          groups: [],
+          unclassified_count: 0,
+        },
+      },
+    }),
   ])
   assertOk(r, "record rule-scan tool evidence")
 
@@ -412,6 +435,26 @@ test("full migration lifecycle: start-task to migration_done", () => {
     "tool-evidence-override:migration_code_review",
     "Test environment override: rule-scan evidence recorded above",
     "manual",
+    "--details-json",
+    JSON.stringify({
+      scan_evidence: {
+        evidence_type: "manual_override",
+        direct_tool: {
+          tool_id: "tool.rule-scan",
+          availability_state: "unavailable",
+          result_state: "not_run",
+        },
+        manual_override: {
+          target_stage: "migration_code_review",
+          unavailable_tool: "tool.rule-scan",
+          reason: "Test environment: no actual tool invocation log available",
+          substitute_evidence_ids: ["tool-rule-scan-001"],
+          substitute_limitations: "Test environment simulation; scan evidence structure provided manually without runtime invocation log",
+          actor: "test-runner",
+          caveat: "This override is valid only in test environments where invocation logging is not available",
+        },
+      },
+    }),
   ])
   assertOk(r, "record policy override for migration_code_review")
 

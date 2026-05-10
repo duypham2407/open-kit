@@ -62,6 +62,7 @@ import {
   validateHotfix,
   validateReleaseNotes,
   validateState,
+  validateStateObject,
   validateWorkItemBoard,
   _overrideWorkItemStore,
   _resetWorkItemStore,
@@ -513,10 +514,12 @@ function advanceFullWorkItemToPlan(statePath) {
 
 test("validateState accepts the shipped hard-split example state", () => {
   const statePath = path.resolve(__dirname, "../workflow-state.json")
-  const result = validateState(statePath)
+  const stateContent = fs.readFileSync(statePath, "utf8")
+  const state = JSON.parse(stateContent)
+  const result = validateStateObject(state)
 
-  assert.equal(result.state.mode, "full")
-  assert.equal(result.state.current_stage, "full_done")
+  assert.equal(result.mode, "full")
+  assert.equal(result.current_stage, "full_done")
 })
 
 test("startTask initializes quick mode with quick-only approvals", () => {
