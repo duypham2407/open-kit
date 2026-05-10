@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
+import { SchemaManager } from './schema-migrations.js';
+
 const require = createRequire(import.meta.url);
 
 // ---------------------------------------------------------------------------
@@ -197,15 +199,172 @@ function migrateSchema(db) {
 }
 
 // ---------------------------------------------------------------------------
+// L1 (Structural) schema extensions — managed via SchemaManager so that new
+// columns can be added safely on top of the base schema and the legacy
+// `migrateSchema` ALTER TABLE list.  Each migration is applied at most once,
+// tracked by version in the `schema_version` table.
+//
+// Note: `signature`, `scope`, `start_line`, `end_line` (added by the legacy
+// migration above) are intentionally NOT re-added here.  L1 introduces new
+// columns alongside them.
+// ---------------------------------------------------------------------------
+
+// L1_MIGRATIONS uses a local versioning sequence starting at 1.
+// Downstream tasks (1.3, 1.4, 2.x, 3.x) should continue with versions 3, 4, 5...
+// This is tracked independently in the schema_version table via SchemaManager.
+const L1_MIGRATIONS = [
+  {
+    version: 1,
+    name: 'add_l1_node_extensions',
+    up: (db) => {
+      db.exec(`
+        ALTER TABLE nodes ADD COLUMN module_type   TEXT;
+        ALTER TABLE nodes ADD COLUMN package_name  TEXT;
+        ALTER TABLE nodes ADD COLUMN is_test       INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE nodes ADD COLUMN is_config     INTEGER NOT NULL DEFAULT 0;
+      `);
+    },
+  },
+  {
+    version: 2,
+    name: 'add_l1_symbol_extensions',
+    up: (db) => {
+      db.exec(`
+        ALTER TABLE symbols ADD COLUMN return_type      TEXT;
+        ALTER TABLE symbols ADD COLUMN params_json      TEXT;
+        ALTER TABLE symbols ADD COLUMN decorators_json  TEXT;
+        ALTER TABLE symbols ADD COLUMN parent_symbol_id INTEGER;
+        ALTER TABLE symbols ADD COLUMN scope_chain      TEXT;
+        ALTER TABLE symbols ADD COLUMN start_col        INTEGER;
+        ALTER TABLE symbols ADD COLUMN end_col          INTEGER;
+
+        CREATE INDEX IF NOT EXISTS idx_symbols_parent ON symbols(parent_symbol_id);
+      `);
+    },
+  },
+  {
+    version: 3,
+    name: 'create_type_flows_table',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS type_flows (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          from_symbol_id  INTEGER NOT NULL,
+          to_symbol_id    INTEGER NOT NULL,
+          flow_type       TEXT    NOT NULL,
+          node_id         INTEGER NOT NULL,
+          line            INTEGER NOT NULL,
+          confidence      REAL    DEFAULT 1.0,
+          FOREIGN KEY (from_symbol_id) REFERENCES symbols(id) ON DELETE CASCADE,
+          FOREIGN KEY (to_symbol_id)   REFERENCES symbols(id) ON DELETE CASCADE,
+          FOREIGN KEY (node_id)        REFERENCES nodes(id)   ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_type_flows_from ON type_flows(from_symbol_id);
+        CREATE INDEX IF NOT EXISTS idx_type_flows_to   ON type_flows(to_symbol_id);
+      `);
+    },
+  },
+  {
+    version: 4,
+    name: 'create_scope_contexts_table',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS scope_contexts (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          node_id         INTEGER NOT NULL,
+          scope_type      TEXT    NOT NULL,
+          parent_scope_id INTEGER,
+          start_line      INTEGER NOT NULL,
+          end_line        INTEGER NOT NULL,
+          bindings_json   TEXT,
+          FOREIGN KEY (node_id)         REFERENCES nodes(id)          ON DELETE CASCADE,
+          FOREIGN KEY (parent_scope_id) REFERENCES scope_contexts(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_scope_contexts_node   ON scope_contexts(node_id);
+        CREATE INDEX IF NOT EXISTS idx_scope_contexts_parent ON scope_contexts(parent_scope_id);
+      `);
+    },
+  },
+  {
+    version: 6,
+    name: 'create_code_patterns_table',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS code_patterns (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          pattern_type TEXT NOT NULL,
+          primary_symbol_id INTEGER NOT NULL,
+          related_symbols_json TEXT,
+          node_id INTEGER NOT NULL,
+          example_code TEXT,
+          frequency INTEGER DEFAULT 1,
+          confidence REAL DEFAULT 1.0,
+          FOREIGN KEY (primary_symbol_id) REFERENCES symbols(id) ON DELETE CASCADE,
+          FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_code_patterns_type ON code_patterns(pattern_type);
+        CREATE INDEX IF NOT EXISTS idx_code_patterns_symbol ON code_patterns(primary_symbol_id);
+      `);
+    },
+  },
+  {
+    version: 7,
+    name: 'create_code_intents_table',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS code_intents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          node_id INTEGER,
+          symbol_id INTEGER,
+          intent_type TEXT NOT NULL,
+          description TEXT NOT NULL,
+          evidence_code TEXT,
+          confidence REAL DEFAULT 1.0,
+          model TEXT,
+          extracted_at REAL NOT NULL,
+          validated INTEGER DEFAULT 0,
+          FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE,
+          FOREIGN KEY (symbol_id) REFERENCES symbols(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_code_intents_type ON code_intents(intent_type);
+        CREATE INDEX IF NOT EXISTS idx_code_intents_node ON code_intents(node_id);
+        CREATE INDEX IF NOT EXISTS idx_code_intents_symbol ON code_intents(symbol_id);
+      `);
+    },
+  },
+];
+
+function applyL1Migrations(db) {
+  const manager = new SchemaManager(db);
+  manager.migrate(L1_MIGRATIONS);
+}
+
+// ---------------------------------------------------------------------------
 // ProjectGraphDb
 // ---------------------------------------------------------------------------
 
 export class ProjectGraphDb {
   /**
-   * @param {string} dbPath  Absolute path to the SQLite database file.
-   *                         Use ':memory:' for testing.
+   * @param {string|{ dbPath: string, readonly?: boolean }} dbPathOrOptions
+   *   Either an absolute path to the SQLite database file (use ':memory:' for
+   *   testing) or an options object with `dbPath` and optional `readonly`.
+   * @param {{ readonly?: boolean }} [options]
    */
-  constructor(dbPath, { readonly = false } = {}) {
+  constructor(dbPathOrOptions, { readonly = false } = {}) {
+    let dbPath;
+    if (typeof dbPathOrOptions === 'object' && dbPathOrOptions !== null) {
+      dbPath = dbPathOrOptions.dbPath;
+      if (typeof dbPathOrOptions.readonly === 'boolean') {
+        readonly = dbPathOrOptions.readonly;
+      }
+    } else {
+      dbPath = dbPathOrOptions;
+    }
+
     const Db = loadDatabase();
     this._readonly = readonly;
 
@@ -218,6 +377,7 @@ export class ProjectGraphDb {
       this._db = new Db(':memory:');
       this._db.exec(SCHEMA_SQL);
       migrateSchema(this._db);
+      applyL1Migrations(this._db);
     } else {
       // Read-write mode, or read-only mode where DB does not exist yet.
       // In the latter case we create the schema so the DB is queryable
@@ -229,6 +389,7 @@ export class ProjectGraphDb {
       this._db.pragma('journal_mode = WAL');
       this._db.exec(SCHEMA_SQL);
       migrateSchema(this._db);
+      applyL1Migrations(this._db);
     }
 
     this._db.pragma('foreign_keys = ON');
@@ -242,8 +403,15 @@ export class ProjectGraphDb {
   _prepareStatements() {
     this._stmts = {
       upsertNode: this._db.prepare(
-        `INSERT INTO nodes (path, kind, mtime) VALUES (@path, @kind, @mtime)
-         ON CONFLICT(path) DO UPDATE SET kind = @kind, mtime = @mtime`
+        `INSERT INTO nodes (path, kind, mtime, module_type, package_name, is_test, is_config)
+         VALUES (@path, @kind, @mtime, @module_type, @package_name, @is_test, @is_config)
+         ON CONFLICT(path) DO UPDATE SET
+           kind         = @kind,
+           mtime        = @mtime,
+           module_type  = @module_type,
+           package_name = @package_name,
+           is_test      = @is_test,
+           is_config    = @is_config`
       ),
       getNode: this._db.prepare('SELECT * FROM nodes WHERE path = @path'),
       getNodeById: this._db.prepare('SELECT * FROM nodes WHERE id = @id'),
@@ -253,8 +421,17 @@ export class ProjectGraphDb {
         'INSERT INTO edges (from_node, to_node, edge_type, line) VALUES (@fromNode, @toNode, @edgeType, @line)'
       ),
       insertSymbol: this._db.prepare(
-        `INSERT INTO symbols (node_id, name, kind, is_export, line, signature, doc_comment, scope, start_line, end_line)
-         VALUES (@nodeId, @name, @kind, @isExport, @line, @signature, @docComment, @scope, @startLine, @endLine)`
+        `INSERT INTO symbols (
+           node_id, name, kind, is_export, line,
+           signature, doc_comment, scope, start_line, end_line,
+           return_type, params_json, decorators_json,
+           parent_symbol_id, scope_chain, start_col, end_col
+         ) VALUES (
+           @nodeId, @name, @kind, @isExport, @line,
+           @signature, @docComment, @scope, @startLine, @endLine,
+           @returnType, @paramsJson, @decoratorsJson,
+           @parentSymbolId, @scopeChain, @startCol, @endCol
+         )`
       ),
       getDependencies: this._db.prepare(
         `SELECT n.path, e.edge_type, e.line
@@ -271,6 +448,7 @@ export class ProjectGraphDb {
       getSymbolsByNode: this._db.prepare(
         'SELECT * FROM symbols WHERE node_id = @nodeId ORDER BY line'
       ),
+      getSymbolById: this._db.prepare('SELECT * FROM symbols WHERE id = @id'),
       findSymbolByName: this._db.prepare(
         `SELECT s.*, n.path
          FROM symbols s
@@ -391,6 +569,61 @@ export class ProjectGraphDb {
          LIMIT @limit`
       ),
       sessionTouchCount: this._db.prepare('SELECT COUNT(*) as count FROM session_touches'),
+
+      // -- type_flows (L1: data flow between symbols) --
+      insertTypeFlow: this._db.prepare(
+        `INSERT INTO type_flows (from_symbol_id, to_symbol_id, flow_type, node_id, line, confidence)
+         VALUES (@from_symbol_id, @to_symbol_id, @flow_type, @node_id, @line, @confidence)`
+      ),
+      getTypeFlowsBySymbol: this._db.prepare(
+        `SELECT * FROM type_flows
+         WHERE from_symbol_id = @symbolId OR to_symbol_id = @symbolId
+         ORDER BY line`
+      ),
+
+      // -- scope_contexts (L1: lexical scope hierarchy and bindings) --
+      insertScopeContext: this._db.prepare(
+        `INSERT INTO scope_contexts (node_id, scope_type, parent_scope_id, start_line, end_line, bindings_json)
+         VALUES (@node_id, @scope_type, @parent_scope_id, @start_line, @end_line, @bindings_json)`
+      ),
+      getScopeContextsByNode: this._db.prepare(
+        `SELECT * FROM scope_contexts WHERE node_id = @nodeId ORDER BY start_line`
+      ),
+
+      // -- code_patterns (L2: recognized patterns from static analysis) --
+      insertCodePattern: this._db.prepare(
+        `INSERT INTO code_patterns (
+           pattern_type, primary_symbol_id, related_symbols_json, node_id,
+           example_code, frequency, confidence
+         ) VALUES (
+           @pattern_type, @primary_symbol_id, @related_symbols_json, @node_id,
+           @example_code, @frequency, @confidence
+         )`
+      ),
+      getCodePatternsByType: this._db.prepare(
+        `SELECT * FROM code_patterns WHERE pattern_type = ?`
+      ),
+      getCodePatternsBySymbol: this._db.prepare(
+        `SELECT * FROM code_patterns WHERE primary_symbol_id = ?`
+      ),
+
+      // -- code_intents (L3: LLM-extracted insights — business rules,
+      // constraints, edge cases, design patterns, data transformations) --
+      insertCodeIntent: this._db.prepare(
+        `INSERT INTO code_intents (
+           node_id, symbol_id, intent_type, description, evidence_code,
+           confidence, model, extracted_at, validated
+         ) VALUES (
+           @node_id, @symbol_id, @intent_type, @description, @evidence_code,
+           @confidence, @model, @extracted_at, @validated
+         )`
+      ),
+      getCodeIntentsBySymbol: this._db.prepare(
+        `SELECT * FROM code_intents WHERE symbol_id = ?`
+      ),
+      getCodeIntentsByType: this._db.prepare(
+        `SELECT * FROM code_intents WHERE intent_type = ?`
+      ),
     };
 
     try {
@@ -412,9 +645,40 @@ export class ProjectGraphDb {
   // Node operations
   // -----------------------------------------------------------------------
 
-  upsertNode({ filePath, kind = 'module', mtime = 0 }) {
-    this._stmts.upsertNode.run({ path: filePath, kind, mtime });
+  upsertNode({
+    filePath,
+    kind = 'module',
+    mtime = 0,
+    moduleType = null,
+    packageName = null,
+    isTest = false,
+    isConfig = false,
+  }) {
+    this._stmts.upsertNode.run({
+      path: filePath,
+      kind,
+      mtime,
+      module_type: moduleType,
+      package_name: packageName,
+      is_test: isTest ? 1 : 0,
+      is_config: isConfig ? 1 : 0,
+    });
     return this._stmts.getNode.get({ path: filePath });
+  }
+
+  /**
+   * Thin wrapper around upsertNode that accepts the downstream `path` field
+   * convention (rather than `filePath`) and returns the rowid as a number.
+   * Downstream tasks (1.3, 1.4, 2.x, 3.x) call this method.
+   *
+   * @param {{ path: string, kind?: string, mtime?: number, moduleType?: string|null,
+   *           packageName?: string|null, isTest?: boolean, isConfig?: boolean }} params
+   * @returns {number} The rowid of the inserted/updated node row.
+   */
+  insertNode(params) {
+    const { path: nodePath, ...rest } = params;
+    const row = this.upsertNode({ filePath: nodePath, ...rest });
+    return row.id;
   }
 
   getNode(filePath) {
@@ -486,6 +750,13 @@ export class ProjectGraphDb {
           scope: sym.scope ?? null,
           startLine: sym.startLine ?? null,
           endLine: sym.endLine ?? null,
+          returnType: sym.returnType ?? null,
+          paramsJson: sym.paramsJson ?? null,
+          decoratorsJson: sym.decoratorsJson ?? null,
+          parentSymbolId: sym.parentSymbolId ?? null,
+          scopeChain: sym.scopeChain ?? null,
+          startCol: sym.startCol ?? null,
+          endCol: sym.endCol ?? null,
         });
       }
     });
@@ -494,6 +765,63 @@ export class ProjectGraphDb {
 
   getSymbolsByNode(nodeId) {
     return this._stmts.getSymbolsByNode.all({ nodeId });
+  }
+
+  /**
+   * Alias for getSymbolsByNode for downstream task compatibility.
+   * @param {number} nodeId
+   * @returns {Array}
+   */
+  getSymbols(nodeId) {
+    return this.getSymbolsByNode(nodeId);
+  }
+
+  /**
+   * Fetch a single symbol row by its rowid.
+   * @param {number} symbolId
+   * @returns {object|null}
+   */
+  getSymbol(symbolId) {
+    return this._stmts.getSymbolById.get({ id: symbolId }) ?? null;
+  }
+
+  /**
+   * Insert a single symbol additively (does NOT delete existing symbols for
+   * the node) and return its rowid as a number. Downstream tasks (1.3, 1.4,
+   * 2.x, 3.x) rely on this method to build symbol-to-symbol relationships
+   * (type flow, call graph, parent hierarchy) where each returned rowid must
+   * remain stable for use as a foreign key.
+   *
+   * @param {{ nodeId: number, name: string, kind?: string, isExport?: boolean,
+   *           line?: number, signature?: string|null, docComment?: string|null,
+   *           scope?: string|null, startLine?: number|null, endLine?: number|null,
+   *           returnType?: string|null, paramsJson?: string|null,
+   *           decoratorsJson?: string|null, parentSymbolId?: number|null,
+   *           scopeChain?: string|null, startCol?: number|null,
+   *           endCol?: number|null }} params
+   * @returns {number} The rowid of the inserted symbol row.
+   */
+  insertSymbol(params) {
+    const result = this._stmts.insertSymbol.run({
+      nodeId: params.nodeId,
+      name: params.name,
+      kind: params.kind ?? 'unknown',
+      isExport: params.isExport ? 1 : 0,
+      line: params.line ?? 0,
+      signature: params.signature ?? null,
+      docComment: params.docComment ?? null,
+      scope: params.scope ?? null,
+      startLine: params.startLine ?? null,
+      endLine: params.endLine ?? null,
+      returnType: params.returnType ?? null,
+      paramsJson: params.paramsJson ?? null,
+      decoratorsJson: params.decoratorsJson ?? null,
+      parentSymbolId: params.parentSymbolId ?? null,
+      scopeChain: params.scopeChain ?? null,
+      startCol: params.startCol ?? null,
+      endCol: params.endCol ?? null,
+    });
+    return Number(result.lastInsertRowid);
   }
 
   findSymbolByName(name) {
@@ -573,6 +901,247 @@ export class ProjectGraphDb {
 
   getCallsTo(calleeName) {
     return this._stmts.getCallsTo.all({ calleeName });
+  }
+
+  // -----------------------------------------------------------------------
+  // Type flow operations (L1: data flow between symbols)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Insert a single type-flow edge between two symbols and return its rowid.
+   * A flow records that data moves from `fromSymbolId` to `toSymbolId` via
+   * the given `flowType` (e.g. 'assignment', 'parameter', 'return',
+   * 'property_access') at a specific source location.
+   *
+   * @param {{ fromSymbolId: number, toSymbolId: number, flowType: string,
+   *           nodeId: number, line: number, confidence?: number }} params
+   * @returns {number} The rowid of the inserted type_flows row.
+   */
+  insertTypeFlow({ fromSymbolId, toSymbolId, flowType, nodeId, line, confidence = 1.0 }) {
+    const result = this._stmts.insertTypeFlow.run({
+      from_symbol_id: fromSymbolId,
+      to_symbol_id: toSymbolId,
+      flow_type: flowType,
+      node_id: nodeId,
+      line,
+      confidence,
+    });
+    return Number(result.lastInsertRowid);
+  }
+
+  /**
+   * Fetch type-flow edges touching a given symbol. Provide either
+   * `fromSymbolId` or `toSymbolId` (or both — they are OR'd together so the
+   * caller can ask for "all flows involving this symbol" by passing either).
+   * Returns an empty array when neither id is supplied.
+   *
+   * @param {{ fromSymbolId?: number|null, toSymbolId?: number|null }} params
+   * @returns {Array<object>}
+   */
+  getTypeFlows({ fromSymbolId = null, toSymbolId = null } = {}) {
+    const hasFrom = fromSymbolId !== null && fromSymbolId !== undefined;
+    const hasTo = toSymbolId !== null && toSymbolId !== undefined;
+
+    // When both ids are supplied, union the per-symbol result sets and
+    // deduplicate by row id (a single flow row can match both lookups when
+    // it touches both symbols).
+    if (hasFrom && hasTo) {
+      const fromFlows = this._stmts.getTypeFlowsBySymbol.all({ symbolId: fromSymbolId });
+      const toFlows = this._stmts.getTypeFlowsBySymbol.all({ symbolId: toSymbolId });
+      const seen = new Set();
+      const merged = [];
+      for (const flow of fromFlows) {
+        if (!seen.has(flow.id)) {
+          seen.add(flow.id);
+          merged.push(flow);
+        }
+      }
+      for (const flow of toFlows) {
+        if (!seen.has(flow.id)) {
+          seen.add(flow.id);
+          merged.push(flow);
+        }
+      }
+      return merged;
+    }
+
+    if (hasFrom) {
+      return this._stmts.getTypeFlowsBySymbol.all({ symbolId: fromSymbolId });
+    }
+    if (hasTo) {
+      return this._stmts.getTypeFlowsBySymbol.all({ symbolId: toSymbolId });
+    }
+    return [];
+  }
+
+  // -----------------------------------------------------------------------
+  // Scope context operations (L1: lexical scope hierarchy and bindings)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Insert a single lexical scope context for a file node and return its
+   * rowid. A scope describes a lexical region (module, class, function,
+   * block, ...) with optional parent scope and an optional JSON map of
+   * variable bindings declared inside it (e.g. `{ a: 'parameter', b: 'let' }`).
+   *
+   * @param {{ nodeId: number, scopeType: string, parentScopeId?: number|null,
+   *           startLine: number, endLine: number,
+   *           bindingsJson?: string|null }} params
+   * @returns {number} The rowid of the inserted scope_contexts row.
+   */
+  insertScopeContext({
+    nodeId,
+    scopeType,
+    parentScopeId = null,
+    startLine,
+    endLine,
+    bindingsJson = null,
+  }) {
+    const result = this._stmts.insertScopeContext.run({
+      node_id: nodeId,
+      scope_type: scopeType,
+      parent_scope_id: parentScopeId,
+      start_line: startLine,
+      end_line: endLine,
+      bindings_json: bindingsJson,
+    });
+    return Number(result.lastInsertRowid);
+  }
+
+  /**
+   * Fetch all scope contexts for a given file node, ordered by `start_line`.
+   * The ordering yields the natural top-to-bottom scope sequence within a
+   * file, which is useful for callers that walk the scope tree to resolve
+   * symbol bindings.
+   *
+   * @param {{ nodeId: number }} params
+   * @returns {Array<object>}
+   */
+  getScopeContexts({ nodeId }) {
+    return this._stmts.getScopeContextsByNode.all({ nodeId });
+  }
+
+  // -----------------------------------------------------------------------
+  // Code pattern operations (L2: recognized patterns from static analysis)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Insert a single recognized code pattern and return its rowid.
+   *
+   * Pattern types include `api-usage`, `validation`, `error-handling`,
+   * `architectural`, `test-pattern`, etc.  `relatedSymbolsJson` is a free-form
+   * JSON string the caller may use to record secondary symbols that
+   * participate in the pattern.  `confidence` is a [0..1] score reflecting
+   * how confident the detector is that the example demonstrates the pattern.
+   *
+   * @param {{ patternType: string, primarySymbolId: number,
+   *           relatedSymbolsJson?: string|null, nodeId: number,
+   *           exampleCode?: string|null, frequency?: number,
+   *           confidence?: number }} params
+   * @returns {number} The rowid of the inserted code_patterns row.
+   */
+  insertCodePattern({
+    patternType,
+    primarySymbolId,
+    relatedSymbolsJson = null,
+    nodeId,
+    exampleCode = null,
+    frequency = 1,
+    confidence = 1.0,
+  }) {
+    const result = this._stmts.insertCodePattern.run({
+      pattern_type: patternType,
+      primary_symbol_id: primarySymbolId,
+      related_symbols_json: relatedSymbolsJson,
+      node_id: nodeId,
+      example_code: exampleCode,
+      frequency,
+      confidence,
+    });
+    return Number(result.lastInsertRowid);
+  }
+
+  /**
+   * Fetch code patterns by either `patternType` or `symbolId`.  Returns an
+   * empty array when neither filter is supplied.  When both are supplied,
+   * `patternType` takes precedence.
+   *
+   * @param {{ patternType?: string|null, symbolId?: number|null }} params
+   * @returns {Array<object>}
+   */
+  getCodePatterns({ patternType = null, symbolId = null } = {}) {
+    if (patternType) {
+      return this._stmts.getCodePatternsByType.all(patternType);
+    }
+    if (symbolId) {
+      return this._stmts.getCodePatternsBySymbol.all(symbolId);
+    }
+    return [];
+  }
+
+  // -----------------------------------------------------------------------
+  // Code intent operations (L3: LLM-extracted insights)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Insert a single LLM-extracted code intent and return its rowid.
+   *
+   * Intent types include `business-rule`, `constraint`, `edge-case`,
+   * `design-pattern`, `data-transformation`.  `nodeId` and/or `symbolId` may
+   * be supplied to anchor the intent to a file and/or a specific symbol.
+   * `evidenceCode` is an optional excerpt the LLM relied on; `confidence`
+   * is a [0..1] score; `model` records which LLM produced the intent.
+   * `extractedAt` is a unix timestamp (seconds).  `validated` records
+   * whether a human or downstream check has confirmed the intent.
+   *
+   * @param {{ nodeId?: number|null, symbolId?: number|null,
+   *           intentType: string, description: string,
+   *           evidenceCode?: string|null, confidence?: number,
+   *           model?: string|null, extractedAt: number,
+   *           validated?: boolean }} params
+   * @returns {number} The rowid of the inserted code_intents row.
+   */
+  insertCodeIntent({
+    nodeId = null,
+    symbolId = null,
+    intentType,
+    description,
+    evidenceCode = null,
+    confidence = 1.0,
+    model = null,
+    extractedAt,
+    validated = false,
+  }) {
+    const result = this._stmts.insertCodeIntent.run({
+      node_id: nodeId,
+      symbol_id: symbolId,
+      intent_type: intentType,
+      description,
+      evidence_code: evidenceCode,
+      confidence,
+      model,
+      extracted_at: extractedAt,
+      validated: validated ? 1 : 0,
+    });
+    return Number(result.lastInsertRowid);
+  }
+
+  /**
+   * Fetch code intents by either `symbolId` or `intentType`.  Returns an
+   * empty array when neither filter is supplied.  When both are supplied,
+   * `symbolId` takes precedence.
+   *
+   * @param {{ symbolId?: number|null, intentType?: string|null }} params
+   * @returns {Array<object>}
+   */
+  getCodeIntents({ symbolId = null, intentType = null } = {}) {
+    if (symbolId) {
+      return this._stmts.getCodeIntentsBySymbol.all(symbolId);
+    }
+    if (intentType) {
+      return this._stmts.getCodeIntentsByType.all(intentType);
+    }
+    return [];
   }
 
   // -----------------------------------------------------------------------
