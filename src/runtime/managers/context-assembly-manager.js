@@ -49,7 +49,9 @@ export class ContextAssemblyManager {
    *   primaryContext: Array,
    *   metadata: {
    *     layersQueried: string[],
-   *     budgetUsage: { used: number, total: number },
+   *     layerContributions: Record<string, number>,
+   *     coverageMetrics: { filesAnalyzed: number, symbolsIncluded: number, layersConsulted: number },
+   *     budgetUsage: { used: number, total: number, allocated: number },
    *     confidenceScore: number,
    *     depth: string
    *   }
@@ -109,12 +111,19 @@ export class ContextAssemblyManager {
     );
 
     const confidenceScore = this._computeConfidence(budgetBound);
+    const layerContributions = this._computeLayerContributions(budgetBound);
+    const coverageMetrics = this._computeCoverageMetrics({
+      items: budgetBound,
+      layersQueried,
+    });
 
     return {
       primaryContext: budgetBound,
       metadata: {
         layersQueried,
-        budgetUsage: { used, total: budget },
+        layerContributions,
+        coverageMetrics,
+        budgetUsage: { used, total: budget, allocated: budget },
         confidenceScore,
         depth,
       },
@@ -205,5 +214,51 @@ export class ContextAssemblyManager {
     if (scored.length === 0) return 0.5;
     const avg = scored.reduce((s, i) => s + i.score, 0) / scored.length;
     return Math.max(0, Math.min(1, avg));
+  }
+
+  /**
+   * Tally how many of the returned items appeared in each layer.  Items that
+   * appear in multiple layers are counted in each — the totals are not
+   * normalised.  Layers with zero hits are still reported as 0 so callers
+   * can render a stable shape.
+   *
+   * @param {Array} items
+   * @returns {Record<string, number>}
+   */
+  _computeLayerContributions(items) {
+    const counts = { structural: 0, semantic: 0, intent: 0 };
+    if (!items || items.length === 0) return counts;
+    for (const item of items) {
+      if (item.foundInLayers instanceof Set) {
+        for (const layer of item.foundInLayers) {
+          if (layer in counts) counts[layer] += 1;
+        }
+      } else if (typeof item.layer === 'string' && item.layer in counts) {
+        counts[item.layer] += 1;
+      }
+    }
+    return counts;
+  }
+
+  /**
+   * Compute coarse coverage statistics for the assembled package: number of
+   * unique files touched, symbols included, and how many layers ultimately
+   * contributed to the returned items.
+   *
+   * @param {{ items: Array, layersQueried: string[] }} params
+   * @returns {{ filesAnalyzed: number, symbolsIncluded: number, layersConsulted: number }}
+   */
+  _computeCoverageMetrics({ items = [], layersQueried = [] } = {}) {
+    const files = new Set();
+    let symbolsIncluded = 0;
+    for (const item of items) {
+      if (item.file) files.add(item.file);
+      if (item.symbol) symbolsIncluded += 1;
+    }
+    return {
+      filesAnalyzed: files.size,
+      symbolsIncluded,
+      layersConsulted: layersQueried.length,
+    };
   }
 }
