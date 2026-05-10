@@ -143,7 +143,7 @@ export function updateVersionMetadata(repoRoot = process.cwd(), nextVersion) {
       json.kit.version = version;
       return true;
     }],
-    ['.opencode/install-manifest.json', (json, version) => {
+    ['src/openkit-runtime/install-manifest.json', (json, version) => {
       if (json.kit.version === version) {
         return false;
       }
@@ -253,7 +253,7 @@ export function verifyReleaseMetadata(repoRoot = process.cwd(), version = readCu
     || registryVersion !== version
     || manifestVersion !== version
   ) {
-    throw new Error('Version metadata is out of sync between package.json, package-lock.json, registry.json, and .opencode/install-manifest.json.');
+    throw new Error('Version metadata is out of sync between package.json, package-lock.json, registry.json, and src/openkit-runtime/install-manifest.json.');
   }
 
   const releaseStatus = readReleaseSummaryStatus(repoRoot, version);
