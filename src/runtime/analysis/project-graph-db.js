@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 
+import { SchemaManager } from './schema-migrations.js';
+
 const require = createRequire(import.meta.url);
 
 // ---------------------------------------------------------------------------
@@ -197,15 +199,78 @@ function migrateSchema(db) {
 }
 
 // ---------------------------------------------------------------------------
+// L1 (Structural) schema extensions — managed via SchemaManager so that new
+// columns can be added safely on top of the base schema and the legacy
+// `migrateSchema` ALTER TABLE list.  Each migration is applied at most once,
+// tracked by version in the `schema_version` table.
+//
+// Note: `signature`, `scope`, `start_line`, `end_line` (added by the legacy
+// migration above) are intentionally NOT re-added here.  L1 introduces new
+// columns alongside them.
+// ---------------------------------------------------------------------------
+
+// L1_MIGRATIONS uses a local versioning sequence starting at 1.
+// Downstream tasks (1.3, 1.4, 2.x, 3.x) should continue with versions 3, 4, 5...
+// This is tracked independently in the schema_version table via SchemaManager.
+const L1_MIGRATIONS = [
+  {
+    version: 1,
+    name: 'add_l1_node_extensions',
+    up: (db) => {
+      db.exec(`
+        ALTER TABLE nodes ADD COLUMN module_type   TEXT;
+        ALTER TABLE nodes ADD COLUMN package_name  TEXT;
+        ALTER TABLE nodes ADD COLUMN is_test       INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE nodes ADD COLUMN is_config     INTEGER NOT NULL DEFAULT 0;
+      `);
+    },
+  },
+  {
+    version: 2,
+    name: 'add_l1_symbol_extensions',
+    up: (db) => {
+      db.exec(`
+        ALTER TABLE symbols ADD COLUMN return_type      TEXT;
+        ALTER TABLE symbols ADD COLUMN params_json      TEXT;
+        ALTER TABLE symbols ADD COLUMN decorators_json  TEXT;
+        ALTER TABLE symbols ADD COLUMN parent_symbol_id INTEGER;
+        ALTER TABLE symbols ADD COLUMN scope_chain      TEXT;
+        ALTER TABLE symbols ADD COLUMN start_col        INTEGER;
+        ALTER TABLE symbols ADD COLUMN end_col          INTEGER;
+
+        CREATE INDEX IF NOT EXISTS idx_symbols_parent ON symbols(parent_symbol_id);
+      `);
+    },
+  },
+];
+
+function applyL1Migrations(db) {
+  const manager = new SchemaManager(db);
+  manager.migrate(L1_MIGRATIONS);
+}
+
+// ---------------------------------------------------------------------------
 // ProjectGraphDb
 // ---------------------------------------------------------------------------
 
 export class ProjectGraphDb {
   /**
-   * @param {string} dbPath  Absolute path to the SQLite database file.
-   *                         Use ':memory:' for testing.
+   * @param {string|{ dbPath: string, readonly?: boolean }} dbPathOrOptions
+   *   Either an absolute path to the SQLite database file (use ':memory:' for
+   *   testing) or an options object with `dbPath` and optional `readonly`.
+   * @param {{ readonly?: boolean }} [options]
    */
-  constructor(dbPath, { readonly = false } = {}) {
+  constructor(dbPathOrOptions, { readonly = false } = {}) {
+    let dbPath;
+    if (typeof dbPathOrOptions === 'object' && dbPathOrOptions !== null) {
+      dbPath = dbPathOrOptions.dbPath;
+      if (typeof dbPathOrOptions.readonly === 'boolean') {
+        readonly = dbPathOrOptions.readonly;
+      }
+    } else {
+      dbPath = dbPathOrOptions;
+    }
+
     const Db = loadDatabase();
     this._readonly = readonly;
 
@@ -218,6 +283,7 @@ export class ProjectGraphDb {
       this._db = new Db(':memory:');
       this._db.exec(SCHEMA_SQL);
       migrateSchema(this._db);
+      applyL1Migrations(this._db);
     } else {
       // Read-write mode, or read-only mode where DB does not exist yet.
       // In the latter case we create the schema so the DB is queryable
@@ -229,6 +295,7 @@ export class ProjectGraphDb {
       this._db.pragma('journal_mode = WAL');
       this._db.exec(SCHEMA_SQL);
       migrateSchema(this._db);
+      applyL1Migrations(this._db);
     }
 
     this._db.pragma('foreign_keys = ON');
@@ -242,8 +309,15 @@ export class ProjectGraphDb {
   _prepareStatements() {
     this._stmts = {
       upsertNode: this._db.prepare(
-        `INSERT INTO nodes (path, kind, mtime) VALUES (@path, @kind, @mtime)
-         ON CONFLICT(path) DO UPDATE SET kind = @kind, mtime = @mtime`
+        `INSERT INTO nodes (path, kind, mtime, module_type, package_name, is_test, is_config)
+         VALUES (@path, @kind, @mtime, @module_type, @package_name, @is_test, @is_config)
+         ON CONFLICT(path) DO UPDATE SET
+           kind         = @kind,
+           mtime        = @mtime,
+           module_type  = @module_type,
+           package_name = @package_name,
+           is_test      = @is_test,
+           is_config    = @is_config`
       ),
       getNode: this._db.prepare('SELECT * FROM nodes WHERE path = @path'),
       getNodeById: this._db.prepare('SELECT * FROM nodes WHERE id = @id'),
@@ -253,8 +327,17 @@ export class ProjectGraphDb {
         'INSERT INTO edges (from_node, to_node, edge_type, line) VALUES (@fromNode, @toNode, @edgeType, @line)'
       ),
       insertSymbol: this._db.prepare(
-        `INSERT INTO symbols (node_id, name, kind, is_export, line, signature, doc_comment, scope, start_line, end_line)
-         VALUES (@nodeId, @name, @kind, @isExport, @line, @signature, @docComment, @scope, @startLine, @endLine)`
+        `INSERT INTO symbols (
+           node_id, name, kind, is_export, line,
+           signature, doc_comment, scope, start_line, end_line,
+           return_type, params_json, decorators_json,
+           parent_symbol_id, scope_chain, start_col, end_col
+         ) VALUES (
+           @nodeId, @name, @kind, @isExport, @line,
+           @signature, @docComment, @scope, @startLine, @endLine,
+           @returnType, @paramsJson, @decoratorsJson,
+           @parentSymbolId, @scopeChain, @startCol, @endCol
+         )`
       ),
       getDependencies: this._db.prepare(
         `SELECT n.path, e.edge_type, e.line
@@ -271,6 +354,7 @@ export class ProjectGraphDb {
       getSymbolsByNode: this._db.prepare(
         'SELECT * FROM symbols WHERE node_id = @nodeId ORDER BY line'
       ),
+      getSymbolById: this._db.prepare('SELECT * FROM symbols WHERE id = @id'),
       findSymbolByName: this._db.prepare(
         `SELECT s.*, n.path
          FROM symbols s
@@ -412,9 +496,40 @@ export class ProjectGraphDb {
   // Node operations
   // -----------------------------------------------------------------------
 
-  upsertNode({ filePath, kind = 'module', mtime = 0 }) {
-    this._stmts.upsertNode.run({ path: filePath, kind, mtime });
+  upsertNode({
+    filePath,
+    kind = 'module',
+    mtime = 0,
+    moduleType = null,
+    packageName = null,
+    isTest = false,
+    isConfig = false,
+  }) {
+    this._stmts.upsertNode.run({
+      path: filePath,
+      kind,
+      mtime,
+      module_type: moduleType,
+      package_name: packageName,
+      is_test: isTest ? 1 : 0,
+      is_config: isConfig ? 1 : 0,
+    });
     return this._stmts.getNode.get({ path: filePath });
+  }
+
+  /**
+   * Thin wrapper around upsertNode that accepts the downstream `path` field
+   * convention (rather than `filePath`) and returns the rowid as a number.
+   * Downstream tasks (1.3, 1.4, 2.x, 3.x) call this method.
+   *
+   * @param {{ path: string, kind?: string, mtime?: number, moduleType?: string|null,
+   *           packageName?: string|null, isTest?: boolean, isConfig?: boolean }} params
+   * @returns {number} The rowid of the inserted/updated node row.
+   */
+  insertNode(params) {
+    const { path: nodePath, ...rest } = params;
+    const row = this.upsertNode({ filePath: nodePath, ...rest });
+    return row.id;
   }
 
   getNode(filePath) {
@@ -486,6 +601,13 @@ export class ProjectGraphDb {
           scope: sym.scope ?? null,
           startLine: sym.startLine ?? null,
           endLine: sym.endLine ?? null,
+          returnType: sym.returnType ?? null,
+          paramsJson: sym.paramsJson ?? null,
+          decoratorsJson: sym.decoratorsJson ?? null,
+          parentSymbolId: sym.parentSymbolId ?? null,
+          scopeChain: sym.scopeChain ?? null,
+          startCol: sym.startCol ?? null,
+          endCol: sym.endCol ?? null,
         });
       }
     });
@@ -494,6 +616,63 @@ export class ProjectGraphDb {
 
   getSymbolsByNode(nodeId) {
     return this._stmts.getSymbolsByNode.all({ nodeId });
+  }
+
+  /**
+   * Alias for getSymbolsByNode for downstream task compatibility.
+   * @param {number} nodeId
+   * @returns {Array}
+   */
+  getSymbols(nodeId) {
+    return this.getSymbolsByNode(nodeId);
+  }
+
+  /**
+   * Fetch a single symbol row by its rowid.
+   * @param {number} symbolId
+   * @returns {object|null}
+   */
+  getSymbol(symbolId) {
+    return this._stmts.getSymbolById.get({ id: symbolId }) ?? null;
+  }
+
+  /**
+   * Insert a single symbol additively (does NOT delete existing symbols for
+   * the node) and return its rowid as a number. Downstream tasks (1.3, 1.4,
+   * 2.x, 3.x) rely on this method to build symbol-to-symbol relationships
+   * (type flow, call graph, parent hierarchy) where each returned rowid must
+   * remain stable for use as a foreign key.
+   *
+   * @param {{ nodeId: number, name: string, kind?: string, isExport?: boolean,
+   *           line?: number, signature?: string|null, docComment?: string|null,
+   *           scope?: string|null, startLine?: number|null, endLine?: number|null,
+   *           returnType?: string|null, paramsJson?: string|null,
+   *           decoratorsJson?: string|null, parentSymbolId?: number|null,
+   *           scopeChain?: string|null, startCol?: number|null,
+   *           endCol?: number|null }} params
+   * @returns {number} The rowid of the inserted symbol row.
+   */
+  insertSymbol(params) {
+    const result = this._stmts.insertSymbol.run({
+      nodeId: params.nodeId,
+      name: params.name,
+      kind: params.kind ?? 'unknown',
+      isExport: params.isExport ? 1 : 0,
+      line: params.line ?? 0,
+      signature: params.signature ?? null,
+      docComment: params.docComment ?? null,
+      scope: params.scope ?? null,
+      startLine: params.startLine ?? null,
+      endLine: params.endLine ?? null,
+      returnType: params.returnType ?? null,
+      paramsJson: params.paramsJson ?? null,
+      decoratorsJson: params.decoratorsJson ?? null,
+      parentSymbolId: params.parentSymbolId ?? null,
+      scopeChain: params.scopeChain ?? null,
+      startCol: params.startCol ?? null,
+      endCol: params.endCol ?? null,
+    });
+    return Number(result.lastInsertRowid);
   }
 
   findSymbolByName(name) {
