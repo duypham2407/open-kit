@@ -265,6 +265,28 @@ const L1_MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 4,
+    name: 'create_scope_contexts_table',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS scope_contexts (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          node_id         INTEGER NOT NULL,
+          scope_type      TEXT    NOT NULL,
+          parent_scope_id INTEGER,
+          start_line      INTEGER NOT NULL,
+          end_line        INTEGER NOT NULL,
+          bindings_json   TEXT,
+          FOREIGN KEY (node_id)         REFERENCES nodes(id)          ON DELETE CASCADE,
+          FOREIGN KEY (parent_scope_id) REFERENCES scope_contexts(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_scope_contexts_node   ON scope_contexts(node_id);
+        CREATE INDEX IF NOT EXISTS idx_scope_contexts_parent ON scope_contexts(parent_scope_id);
+      `);
+    },
+  },
 ];
 
 function applyL1Migrations(db) {
@@ -508,6 +530,15 @@ export class ProjectGraphDb {
         `SELECT * FROM type_flows
          WHERE from_symbol_id = @symbolId OR to_symbol_id = @symbolId
          ORDER BY line`
+      ),
+
+      // -- scope_contexts (L1: lexical scope hierarchy and bindings) --
+      insertScopeContext: this._db.prepare(
+        `INSERT INTO scope_contexts (node_id, scope_type, parent_scope_id, start_line, end_line, bindings_json)
+         VALUES (@node_id, @scope_type, @parent_scope_id, @start_line, @end_line, @bindings_json)`
+      ),
+      getScopeContextsByNode: this._db.prepare(
+        `SELECT * FROM scope_contexts WHERE node_id = @nodeId ORDER BY start_line`
       ),
     };
 
@@ -857,6 +888,53 @@ export class ProjectGraphDb {
       return this._stmts.getTypeFlowsBySymbol.all({ symbolId: toSymbolId });
     }
     return [];
+  }
+
+  // -----------------------------------------------------------------------
+  // Scope context operations (L1: lexical scope hierarchy and bindings)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Insert a single lexical scope context for a file node and return its
+   * rowid. A scope describes a lexical region (module, class, function,
+   * block, ...) with optional parent scope and an optional JSON map of
+   * variable bindings declared inside it (e.g. `{ a: 'parameter', b: 'let' }`).
+   *
+   * @param {{ nodeId: number, scopeType: string, parentScopeId?: number|null,
+   *           startLine: number, endLine: number,
+   *           bindingsJson?: string|null }} params
+   * @returns {number} The rowid of the inserted scope_contexts row.
+   */
+  insertScopeContext({
+    nodeId,
+    scopeType,
+    parentScopeId = null,
+    startLine,
+    endLine,
+    bindingsJson = null,
+  }) {
+    const result = this._stmts.insertScopeContext.run({
+      node_id: nodeId,
+      scope_type: scopeType,
+      parent_scope_id: parentScopeId,
+      start_line: startLine,
+      end_line: endLine,
+      bindings_json: bindingsJson,
+    });
+    return Number(result.lastInsertRowid);
+  }
+
+  /**
+   * Fetch all scope contexts for a given file node, ordered by `start_line`.
+   * The ordering yields the natural top-to-bottom scope sequence within a
+   * file, which is useful for callers that walk the scope tree to resolve
+   * symbol bindings.
+   *
+   * @param {{ nodeId: number }} params
+   * @returns {Array<object>}
+   */
+  getScopeContexts({ nodeId }) {
+    return this._stmts.getScopeContextsByNode.all({ nodeId });
   }
 
   // -----------------------------------------------------------------------

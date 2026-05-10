@@ -335,6 +335,102 @@ test('getTypeFlows unions results when both fromSymbolId and toSymbolId provided
   db.close();
 });
 
+// ---------------------------------------------------------------------------
+// scope_contexts table — tracks lexical scope hierarchy and bindings (Task 1.4)
+// ---------------------------------------------------------------------------
+
+test('can insert and query scope contexts', () => {
+  const db = new ProjectGraphDb({ dbPath: ':memory:' });
+  const nodeId = db.insertNode({ path: '/test/file.js' });
+
+  const scopeId = db.insertScopeContext({
+    nodeId,
+    scopeType: 'function',
+    parentScopeId: null,
+    startLine: 10,
+    endLine: 20,
+    bindingsJson: JSON.stringify({ a: 'parameter', b: 'variable' }),
+  });
+
+  assert.strictEqual(typeof scopeId, 'number');
+  assert.ok(scopeId > 0);
+
+  const scopes = db.getScopeContexts({ nodeId });
+  assert.strictEqual(scopes.length, 1);
+  assert.strictEqual(scopes[0].scope_type, 'function');
+  assert.strictEqual(scopes[0].start_line, 10);
+  assert.strictEqual(scopes[0].end_line, 20);
+  assert.strictEqual(scopes[0].parent_scope_id, null);
+  assert.strictEqual(
+    scopes[0].bindings_json,
+    JSON.stringify({ a: 'parameter', b: 'variable' })
+  );
+
+  db.close();
+});
+
+test('scope contexts support parent hierarchy', () => {
+  const db = new ProjectGraphDb({ dbPath: ':memory:' });
+  const nodeId = db.insertNode({ path: '/test/file.js' });
+
+  const moduleScope = db.insertScopeContext({
+    nodeId,
+    scopeType: 'module',
+    parentScopeId: null,
+    startLine: 1,
+    endLine: 100,
+  });
+
+  const classScope = db.insertScopeContext({
+    nodeId,
+    scopeType: 'class',
+    parentScopeId: moduleScope,
+    startLine: 5,
+    endLine: 80,
+  });
+
+  const methodScope = db.insertScopeContext({
+    nodeId,
+    scopeType: 'function',
+    parentScopeId: classScope,
+    startLine: 10,
+    endLine: 20,
+    bindingsJson: JSON.stringify({ self: 'parameter' }),
+  });
+
+  const scopes = db.getScopeContexts({ nodeId });
+  assert.strictEqual(scopes.length, 3);
+  // Ordered by start_line
+  assert.strictEqual(scopes[0].id, moduleScope);
+  assert.strictEqual(scopes[0].parent_scope_id, null);
+  assert.strictEqual(scopes[1].id, classScope);
+  assert.strictEqual(scopes[1].parent_scope_id, moduleScope);
+  assert.strictEqual(scopes[2].id, methodScope);
+  assert.strictEqual(scopes[2].parent_scope_id, classScope);
+
+  db.close();
+});
+
+test('scope contexts default optional fields to null', () => {
+  const db = new ProjectGraphDb({ dbPath: ':memory:' });
+  const nodeId = db.insertNode({ path: '/test/file.js' });
+
+  const scopeId = db.insertScopeContext({
+    nodeId,
+    scopeType: 'block',
+    startLine: 5,
+    endLine: 7,
+  });
+
+  const scopes = db.getScopeContexts({ nodeId });
+  assert.strictEqual(scopes.length, 1);
+  assert.strictEqual(scopes[0].id, scopeId);
+  assert.strictEqual(scopes[0].parent_scope_id, null);
+  assert.strictEqual(scopes[0].bindings_json, null);
+
+  db.close();
+});
+
 test('schema migrations are idempotent across re-opens', () => {
   const db = new ProjectGraphDb(':memory:');
   const node = db.upsertNode({
