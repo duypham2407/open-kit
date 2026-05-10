@@ -8,6 +8,80 @@ function normalizeWorkspaceSeed(projectRoot, platform = process.platform) {
   return platform === 'win32' ? resolved.toLowerCase() : resolved;
 }
 
+function canReadWrite(dirPath) {
+  try {
+    fs.accessSync(dirPath, fs.constants.R_OK | fs.constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getFailureReason(checks) {
+  if (!checks.exists) return 'path_does_not_exist';
+  if (!checks.isDirectory) return 'not_a_directory';
+  if (!checks.isAccessible) return 'permission_denied';
+  if (!checks.hasPackageJson) return 'no_package_json';
+  return null;
+}
+
+export function validateProjectRoot(candidatePath) {
+  const checks = {
+    exists: false,
+    isDirectory: false,
+    hasPackageJson: false,
+    isAccessible: false,
+  };
+
+  // Check exists
+  if (!fs.existsSync(candidatePath)) {
+    return {
+      valid: false,
+      checks,
+      reason: getFailureReason(checks),
+    };
+  }
+  checks.exists = true;
+
+  // Check is directory
+  try {
+    const stats = fs.statSync(candidatePath);
+    checks.isDirectory = stats.isDirectory();
+  } catch {
+    return {
+      valid: false,
+      checks,
+      reason: getFailureReason(checks),
+    };
+  }
+
+  if (!checks.isDirectory) {
+    return {
+      valid: false,
+      checks,
+      reason: getFailureReason(checks),
+    };
+  }
+
+  // Check accessible (must come before package.json check, since
+  // an unreadable directory makes package.json detection unreliable)
+  checks.isAccessible = canReadWrite(candidatePath);
+
+  // Check has package.json (only meaningful if directory is accessible)
+  checks.hasPackageJson = checks.isAccessible
+    ? fs.existsSync(path.join(candidatePath, 'package.json'))
+    : false;
+
+  const valid =
+    checks.exists && checks.isDirectory && checks.hasPackageJson && checks.isAccessible;
+
+  return {
+    valid,
+    checks,
+    reason: getFailureReason(checks),
+  };
+}
+
 export function getOpenCodeHome({ env = process.env, platform = process.platform, homedir = os.homedir() } = {}) {
   if (env.OPENCODE_HOME) {
     return path.resolve(env.OPENCODE_HOME);
