@@ -11,3 +11,7 @@ src/openkit-runtime/tool-invocations.json
 node_modules/
 *.tgz
 .DS_Store
+
+# Diagnostic logs (runtime-generated)
+.opencode/diagnostics.json
+src/openkit-runtime/diagnostics.json
