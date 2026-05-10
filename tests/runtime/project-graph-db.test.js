@@ -460,6 +460,98 @@ test('can insert and query code patterns', () => {
   db.close();
 });
 
+// ---------------------------------------------------------------------------
+// code_intents table — stores LLM-extracted insights (Task 3.1)
+// ---------------------------------------------------------------------------
+
+test('can insert and query code intents', () => {
+  const db = new ProjectGraphDb({ dbPath: ':memory:' });
+  const nodeId = db.insertNode({ path: '/test/file.js' });
+  const symbolId = db.insertSymbol({ nodeId, name: 'validateEmail', kind: 'function' });
+
+  const intentId = db.insertCodeIntent({
+    nodeId,
+    symbolId,
+    intentType: 'business-rule',
+    description: 'Email must be unique in the system',
+    evidenceCode: 'db.users.findOne({ email })',
+    confidence: 0.92,
+    model: 'claude-sonnet-4.5',
+    extractedAt: Date.now() / 1000,
+    validated: false,
+  });
+
+  assert.strictEqual(typeof intentId, 'number');
+  assert.ok(intentId > 0);
+
+  const intents = db.getCodeIntents({ symbolId });
+  assert.strictEqual(intents.length, 1);
+  assert.strictEqual(intents[0].intent_type, 'business-rule');
+  assert.strictEqual(intents[0].confidence, 0.92);
+
+  db.close();
+});
+
+test('can query code intents by intent_type', () => {
+  const db = new ProjectGraphDb({ dbPath: ':memory:' });
+  const nodeId = db.insertNode({ path: '/test/rules.js' });
+  const symbolA = db.insertSymbol({ nodeId, name: 'checkA', kind: 'function' });
+  const symbolB = db.insertSymbol({ nodeId, name: 'checkB', kind: 'function' });
+
+  db.insertCodeIntent({
+    nodeId,
+    symbolId: symbolA,
+    intentType: 'constraint',
+    description: 'Value must be positive',
+    extractedAt: Date.now() / 1000,
+  });
+
+  db.insertCodeIntent({
+    nodeId,
+    symbolId: symbolB,
+    intentType: 'edge-case',
+    description: 'Handles empty input',
+    extractedAt: Date.now() / 1000,
+  });
+
+  const constraints = db.getCodeIntents({ intentType: 'constraint' });
+  assert.strictEqual(constraints.length, 1);
+  assert.strictEqual(constraints[0].description, 'Value must be positive');
+
+  const edgeCases = db.getCodeIntents({ intentType: 'edge-case' });
+  assert.strictEqual(edgeCases.length, 1);
+  assert.strictEqual(edgeCases[0].description, 'Handles empty input');
+
+  // No filter returns empty array
+  const none = db.getCodeIntents({});
+  assert.strictEqual(none.length, 0);
+
+  db.close();
+});
+
+test('code_intents validated flag round-trips as integer', () => {
+  const db = new ProjectGraphDb({ dbPath: ':memory:' });
+  const nodeId = db.insertNode({ path: '/test/v.js' });
+  const symbolId = db.insertSymbol({ nodeId, name: 'fn', kind: 'function' });
+
+  db.insertCodeIntent({
+    symbolId,
+    intentType: 'design-pattern',
+    description: 'Singleton instance',
+    extractedAt: Date.now() / 1000,
+    validated: true,
+  });
+
+  const rows = db.getCodeIntents({ symbolId });
+  assert.strictEqual(rows.length, 1);
+  assert.strictEqual(rows[0].validated, 1);
+  // Defaults applied when omitted
+  assert.strictEqual(rows[0].confidence, 1.0);
+  assert.strictEqual(rows[0].node_id, null);
+
+  db.close();
+});
+
 test('schema migrations are idempotent across re-opens', () => {
   const db = new ProjectGraphDb(':memory:');
   const node = db.upsertNode({

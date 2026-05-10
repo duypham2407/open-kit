@@ -310,6 +310,32 @@ const L1_MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 7,
+    name: 'create_code_intents_table',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS code_intents (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          node_id INTEGER,
+          symbol_id INTEGER,
+          intent_type TEXT NOT NULL,
+          description TEXT NOT NULL,
+          evidence_code TEXT,
+          confidence REAL DEFAULT 1.0,
+          model TEXT,
+          extracted_at REAL NOT NULL,
+          validated INTEGER DEFAULT 0,
+          FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE,
+          FOREIGN KEY (symbol_id) REFERENCES symbols(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_code_intents_type ON code_intents(intent_type);
+        CREATE INDEX IF NOT EXISTS idx_code_intents_node ON code_intents(node_id);
+        CREATE INDEX IF NOT EXISTS idx_code_intents_symbol ON code_intents(symbol_id);
+      `);
+    },
+  },
 ];
 
 function applyL1Migrations(db) {
@@ -579,6 +605,24 @@ export class ProjectGraphDb {
       ),
       getCodePatternsBySymbol: this._db.prepare(
         `SELECT * FROM code_patterns WHERE primary_symbol_id = ?`
+      ),
+
+      // -- code_intents (L3: LLM-extracted insights — business rules,
+      // constraints, edge cases, design patterns, data transformations) --
+      insertCodeIntent: this._db.prepare(
+        `INSERT INTO code_intents (
+           node_id, symbol_id, intent_type, description, evidence_code,
+           confidence, model, extracted_at, validated
+         ) VALUES (
+           @node_id, @symbol_id, @intent_type, @description, @evidence_code,
+           @confidence, @model, @extracted_at, @validated
+         )`
+      ),
+      getCodeIntentsBySymbol: this._db.prepare(
+        `SELECT * FROM code_intents WHERE symbol_id = ?`
+      ),
+      getCodeIntentsByType: this._db.prepare(
+        `SELECT * FROM code_intents WHERE intent_type = ?`
       ),
     };
 
@@ -1031,6 +1075,71 @@ export class ProjectGraphDb {
     }
     if (symbolId) {
       return this._stmts.getCodePatternsBySymbol.all(symbolId);
+    }
+    return [];
+  }
+
+  // -----------------------------------------------------------------------
+  // Code intent operations (L3: LLM-extracted insights)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Insert a single LLM-extracted code intent and return its rowid.
+   *
+   * Intent types include `business-rule`, `constraint`, `edge-case`,
+   * `design-pattern`, `data-transformation`.  `nodeId` and/or `symbolId` may
+   * be supplied to anchor the intent to a file and/or a specific symbol.
+   * `evidenceCode` is an optional excerpt the LLM relied on; `confidence`
+   * is a [0..1] score; `model` records which LLM produced the intent.
+   * `extractedAt` is a unix timestamp (seconds).  `validated` records
+   * whether a human or downstream check has confirmed the intent.
+   *
+   * @param {{ nodeId?: number|null, symbolId?: number|null,
+   *           intentType: string, description: string,
+   *           evidenceCode?: string|null, confidence?: number,
+   *           model?: string|null, extractedAt: number,
+   *           validated?: boolean }} params
+   * @returns {number} The rowid of the inserted code_intents row.
+   */
+  insertCodeIntent({
+    nodeId = null,
+    symbolId = null,
+    intentType,
+    description,
+    evidenceCode = null,
+    confidence = 1.0,
+    model = null,
+    extractedAt,
+    validated = false,
+  }) {
+    const result = this._stmts.insertCodeIntent.run({
+      node_id: nodeId,
+      symbol_id: symbolId,
+      intent_type: intentType,
+      description,
+      evidence_code: evidenceCode,
+      confidence,
+      model,
+      extracted_at: extractedAt,
+      validated: validated ? 1 : 0,
+    });
+    return Number(result.lastInsertRowid);
+  }
+
+  /**
+   * Fetch code intents by either `symbolId` or `intentType`.  Returns an
+   * empty array when neither filter is supplied.  When both are supplied,
+   * `symbolId` takes precedence.
+   *
+   * @param {{ symbolId?: number|null, intentType?: string|null }} params
+   * @returns {Array<object>}
+   */
+  getCodeIntents({ symbolId = null, intentType = null } = {}) {
+    if (symbolId) {
+      return this._stmts.getCodeIntentsBySymbol.all(symbolId);
+    }
+    if (intentType) {
+      return this._stmts.getCodeIntentsByType.all(intentType);
     }
     return [];
   }
