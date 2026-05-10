@@ -3,6 +3,7 @@ import {
   readCurrentVersion,
   releasePrepare,
   releaseVerify,
+  syncVersionMetadata,
 } from '../../release/workflow.js';
 
 function releaseHelp() {
@@ -11,11 +12,13 @@ function releaseHelp() {
     '',
     'Subcommands:',
     '  prepare <version> [--summary <text>]  Bump version metadata, scaffold release notes, and update RELEASES.md',
+    '  sync-version                         Sync generated version metadata from package.json',
     '  verify [--skip-tests]                 Check release metadata and optionally run the full test suite',
     '  publish [--skip-tests] [--skip-gh]    Verify, tag, push, publish to npm, and optionally create a GitHub release',
     '',
     'Examples:',
     '  openkit release prepare 0.2.13 --summary "interactive release workflow"',
+    '  openkit release sync-version',
     '  openkit release verify',
     '  openkit release publish --skip-gh',
   ].join('\n');
@@ -49,6 +52,7 @@ export const releaseCommand = {
       releasePrepare,
       releaseVerify,
       publishRelease,
+      syncVersionMetadata,
     };
 
     if (!subcommand || subcommand === '--help' || subcommand === '-h') {
@@ -67,6 +71,17 @@ export const releaseCommand = {
         const result = deps.releasePrepare(process.cwd(), version, { summary });
         io.stdout.write(`Prepared release ${result.nextVersion}.\n`);
         io.stdout.write(`Release notes: ${result.notesPath}\n`);
+        io.stdout.write(`Changed files: ${result.changedFiles.length}\n`);
+        return 0;
+      }
+
+      if (subcommand === 'sync-version') {
+        if (rest.length > 0) {
+          throw new Error('`openkit release sync-version` does not accept positional arguments.');
+        }
+
+        const result = deps.syncVersionMetadata(process.cwd());
+        io.stdout.write(`Synced version metadata to ${result.nextVersion}.\n`);
         io.stdout.write(`Changed files: ${result.changedFiles.length}\n`);
         return 0;
       }
@@ -96,7 +111,7 @@ export const releaseCommand = {
       throw new Error(`Unknown release subcommand: ${subcommand}`);
     } catch (error) {
       io.stderr.write(`${error.message}\n`);
-      if (!(subcommand === 'prepare' || subcommand === 'verify' || subcommand === 'publish')) {
+      if (!(subcommand === 'prepare' || subcommand === 'sync-version' || subcommand === 'verify' || subcommand === 'publish')) {
         io.stderr.write('Run `openkit release --help` for usage.\n');
       }
       return 1;

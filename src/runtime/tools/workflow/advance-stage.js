@@ -14,6 +14,7 @@
 
 import { isValidTransition, getValidNextStages, getStageOwner } from '../../workflow/state-machine.js';
 import { checkGateRequirements, recordGateMet } from '../../workflow/gate-requirements.js';
+import { formatWorkflowStateError, unwrapWorkflowStateResult } from '../../workflow/state-result.js';
 
 export function createAdvanceStageTool({ workflowKernel }) {
   return {
@@ -36,7 +37,15 @@ export function createAdvanceStageTool({ workflowKernel }) {
 
       // Read current state
       const stateResult = workflowKernel?.showState?.() ?? null;
-      const state = stateResult?.state ?? stateResult ?? null;
+      const { state, error: workflowStateError } = unwrapWorkflowStateResult(stateResult);
+
+      if (workflowStateError) {
+        return {
+          status: 'error',
+          reason: formatWorkflowStateError(workflowStateError),
+          workflowStateError,
+        };
+      }
 
       if (!state) {
         return {

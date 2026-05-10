@@ -14,6 +14,7 @@
 
 import { isToolAllowed, getAllowedTools, suggestOwnerForTool } from '../../workflow/role-permissions.js';
 import { getValidNextStages, getStageOwner } from '../../workflow/state-machine.js';
+import { formatWorkflowStateError, unwrapWorkflowStateResult } from '../../workflow/state-result.js';
 
 const ACTION_TO_TOOLS = {
   edit_code: ['tool.hashline-edit', 'tool.codemod-apply'],
@@ -52,7 +53,16 @@ export function createActionGatewayTool({ workflowKernel }) {
 
       // Read current state
       const stateResult = workflowKernel?.showState?.() ?? null;
-      const state = stateResult?.state ?? stateResult ?? null;
+      const { state, error: workflowStateError } = unwrapWorkflowStateResult(stateResult);
+
+      if (workflowStateError) {
+        return {
+          status: 'error',
+          allowed: false,
+          reason: formatWorkflowStateError(workflowStateError),
+          workflowStateError,
+        };
+      }
 
       if (!state || !state.current_owner) {
         return {

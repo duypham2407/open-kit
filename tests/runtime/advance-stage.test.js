@@ -49,6 +49,19 @@ test('advance-stage errors when no workflow state', () => {
   assert.ok(result.reason.includes('No workflow state'));
 });
 
+test('advance-stage surfaces structured workflow state errors', () => {
+  const error = { reason: 'controller_exception', code: 'ERR_BAD_STATE', message: 'bad workflow json' };
+  const tool = createAdvanceStageTool({
+    workflowKernel: { showState: () => ({ statePath: null, state: null, error }) },
+  });
+
+  const result = tool.execute({ targetStage: 'quick_plan' });
+
+  assert.equal(result.status, 'error');
+  assert.match(result.reason, /Workflow state unavailable/);
+  assert.deepEqual(result.workflowStateError, error);
+});
+
 test('advance-stage errors when state is incomplete', () => {
   const tool = createAdvanceStageTool({
     workflowKernel: createMockKernel({ mode: null, current_stage: null }),

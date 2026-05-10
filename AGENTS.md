@@ -44,6 +44,7 @@ Current repository facts:
 - `npm install -g @duypham93/openkit`, `openkit doctor`, `openkit run`, `openkit profiles`, `openkit upgrade`, and `openkit uninstall` now define the preferred operator path for the global OpenKit kit and reusable global agent model profile management
 - `openkit configure mcp --interactive` is the current guided TTY setup path for bundled MCPs and custom MCP visibility/testing; it wraps existing MCP configure service logic and fails closed without mutation in non-TTY contexts
 - `openkit configure mcp custom list|add-local|add-remote|import-global|disable|remove|doctor|test` is the current custom MCP lifecycle surface; custom definitions live separately from the bundled catalog under `<OPENCODE_HOME>/openkit/custom-mcp-config.json`, carry origin/ownership metadata, and use placeholder-only config/profile materialization
+- `package.json#version` is the canonical authored OpenKit kit version; `npm run sync:version` and `openkit release sync-version` materialize required package metadata mirrors such as `package-lock.json`, `registry.json`, and `.opencode/install-manifest.json`
 - `assets/default-command-permission-policy.json` is the canonical machine-readable command permission policy; global kit/profile materialization and repo-local compatibility config project from it, and doctor reports degraded support where OpenCode default-allow exception semantics are unverified
 - Operator command surfaces stay split: `global_cli` handles install, doctor, launch, global profile management, upgrade, and uninstall; `in_session` slash commands handle lane selection, workflow execution, and current-session profile switching; `compatibility_runtime` handles lower-level workflow-state inspection and maintainer diagnostics
 - `.opencode/opencode.json` is present as the repository-local OpenCode config for this kit
@@ -175,6 +176,7 @@ Current state:
 - The repository-local OpenCode config still lives at `.opencode/opencode.json`; do not claim that a root `opencode.json` entrypoint already exists unless the file is added
 - `npm run verify:semgrep-quality` exists for OpenKit bundled Semgrep rule-pack regression checks; it validates OpenKit runtime/tooling governance, not target-project application behavior. Semgrep unavailability fails this gate by default, including in CI; `OPENKIT_ALLOW_SEMGREP_QUALITY_SKIP=1` is only a local non-CI convenience skip and is not valid gate evidence
 - `npm run verify:mcp-secret-package-readiness` exists for MCP secret backend package readiness. It uses `npm pack --dry-run --json`, validates the `package` surface, does not persist tarballs, must not print raw secrets, uses fake/no real macOS Keychain validation in CI, and does not provide `target_project_app` evidence
+- `npm run sync:version` exists to sync generated OpenKit package/version metadata from the canonical `package.json#version`; it is package metadata maintenance, not target-project application validation
 
 Rules for agents:
 

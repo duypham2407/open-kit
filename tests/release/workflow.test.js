@@ -10,7 +10,9 @@ import {
   publishRelease,
   releasePrepare,
   releaseVerify,
+  syncVersionMetadata,
   updateReleasesIndex,
+  updateVersionMetadata,
 } from '../../src/release/workflow.js';
 
 function makeTempDir() {
@@ -29,6 +31,7 @@ function read(filePath) {
 function createFixtureRepo(version = '0.2.12') {
   const repoRoot = makeTempDir();
   write(path.join(repoRoot, 'package.json'), JSON.stringify({ name: '@duypham93/openkit', version }, null, 2) + '\n');
+  write(path.join(repoRoot, 'package-lock.json'), JSON.stringify({ name: '@duypham93/openkit', version, lockfileVersion: 3, packages: { '': { name: '@duypham93/openkit', version } } }, null, 2) + '\n');
   write(path.join(repoRoot, 'registry.json'), JSON.stringify({ kit: { version } }, null, 2) + '\n');
   write(path.join(repoRoot, '.opencode', 'install-manifest.json'), JSON.stringify({ kit: { version } }, null, 2) + '\n');
   write(
@@ -69,6 +72,56 @@ test('releasePrepare updates version metadata and scaffolds release notes', () =
   assert.match(read(path.join(repoRoot, 'RELEASES.md')), /npm latest: `@duypham93\/openkit@0\.2\.13`/);
   assert.match(read(path.join(repoRoot, 'RELEASES.md')), /git tag: `v0\.2\.13`/);
   assert.match(read(path.join(repoRoot, 'package.json')), /0\.2\.13/);
+  assert.match(read(path.join(repoRoot, 'package-lock.json')), /0\.2\.13/);
+});
+
+test('updateVersionMetadata repairs partial drift when package.json already has target version', () => {
+  const repoRoot = createFixtureRepo('0.2.12');
+  write(path.join(repoRoot, 'package.json'), JSON.stringify({ name: '@duypham93/openkit', version: '0.2.13' }, null, 2) + '\n');
+
+  const result = updateVersionMetadata(repoRoot, '0.2.13');
+  const registry = JSON.parse(read(path.join(repoRoot, 'registry.json')));
+  const manifest = JSON.parse(read(path.join(repoRoot, '.opencode', 'install-manifest.json')));
+  const packageLock = JSON.parse(read(path.join(repoRoot, 'package-lock.json')));
+
+  assert.equal(result.currentVersion, '0.2.13');
+  assert.equal(registry.kit.version, '0.2.13');
+  assert.equal(manifest.kit.version, '0.2.13');
+  assert.equal(packageLock.version, '0.2.13');
+  assert.equal(packageLock.packages[''].version, '0.2.13');
+  assert.deepEqual(
+    result.changedFiles.sort(),
+    ['.opencode/install-manifest.json', 'package-lock.json', 'registry.json'].sort(),
+  );
+});
+
+test('syncVersionMetadata uses package.json as the canonical version source', () => {
+  const repoRoot = createFixtureRepo('0.2.12');
+  write(path.join(repoRoot, 'package.json'), JSON.stringify({ name: '@duypham93/openkit', version: '0.2.13' }, null, 2) + '\n');
+
+  const result = syncVersionMetadata(repoRoot);
+  const registry = JSON.parse(read(path.join(repoRoot, 'registry.json')));
+  const manifest = JSON.parse(read(path.join(repoRoot, '.opencode', 'install-manifest.json')));
+  const packageLock = JSON.parse(read(path.join(repoRoot, 'package-lock.json')));
+
+  assert.equal(result.currentVersion, '0.2.13');
+  assert.equal(result.nextVersion, '0.2.13');
+  assert.equal(registry.kit.version, '0.2.13');
+  assert.equal(manifest.kit.version, '0.2.13');
+  assert.equal(packageLock.version, '0.2.13');
+  assert.equal(packageLock.packages[''].version, '0.2.13');
+});
+
+test('syncVersionMetadata does not rewrite matching metadata formatting', () => {
+  const repoRoot = createFixtureRepo('0.2.12');
+  const registryPath = path.join(repoRoot, 'registry.json');
+  const originalRegistry = '{"kit":{"version":"0.2.12"},"items":[1,2]}\n';
+  write(registryPath, originalRegistry);
+
+  const result = syncVersionMetadata(repoRoot);
+
+  assert.deepEqual(result.changedFiles, []);
+  assert.equal(read(registryPath), originalRegistry);
 });
 
 test('releaseVerify checks metadata and can skip tests', () => {

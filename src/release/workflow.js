@@ -4,10 +4,7 @@ import path from 'node:path';
 
 const PACKAGE_NAME = '@duypham93/openkit';
 
-const VERSION_TARGETS = [
-  'package.json',
-  'registry.json',
-  '.opencode/install-manifest.json',
+const TEXT_VERSION_TARGETS = [
   '.opencode/tests/session-start-hook.test.js',
   '.opencode/tests/workflow-behavior.test.js',
   '.opencode/tests/workflow-contract-consistency.test.js',
@@ -42,6 +39,7 @@ export function getReleasePaths(repoRoot = process.cwd()) {
   return {
     repoRoot,
     packageJsonPath: path.join(repoRoot, 'package.json'),
+    packageLockPath: path.join(repoRoot, 'package-lock.json'),
     registryPath: path.join(repoRoot, 'registry.json'),
     installManifestPath: path.join(repoRoot, '.opencode', 'install-manifest.json'),
     releasesIndexPath: path.join(repoRoot, 'RELEASES.md'),
@@ -61,11 +59,32 @@ export function readCurrentVersion(repoRoot = process.cwd()) {
 
 export function ensureReleaseWorkspaceLooksValid(repoRoot = process.cwd()) {
   const paths = getReleasePaths(repoRoot);
-  for (const filePath of [paths.packageJsonPath, paths.registryPath, paths.installManifestPath, paths.releasesIndexPath, paths.releaseTemplatePath]) {
+  for (const filePath of [paths.packageJsonPath, paths.packageLockPath, paths.registryPath, paths.installManifestPath, paths.releasesIndexPath, paths.releaseTemplatePath]) {
     if (!fs.existsSync(filePath)) {
       throw new Error(`Missing required release file: ${path.relative(repoRoot, filePath)}`);
     }
   }
+}
+
+function updateJsonVersionFile(repoRoot, relativePath, nextVersion, update) {
+  const absolutePath = path.join(repoRoot, relativePath);
+  if (!fs.existsSync(absolutePath)) {
+    return false;
+  }
+
+  const original = readText(absolutePath);
+  const parsed = JSON.parse(original);
+  if (!update(parsed, nextVersion)) {
+    return false;
+  }
+
+  const updated = `${JSON.stringify(parsed, null, 2)}\n`;
+  if (updated === original) {
+    return false;
+  }
+
+  writeText(absolutePath, updated);
+  return true;
 }
 
 export function ensureGitWorktreeClean(repoRoot = process.cwd(), spawn = spawnSync) {
@@ -91,13 +110,60 @@ export function updateVersionMetadata(repoRoot = process.cwd(), nextVersion) {
   ensureReleaseWorkspaceLooksValid(repoRoot);
 
   const currentVersion = readCurrentVersion(repoRoot);
-  if (currentVersion === nextVersion) {
-    return { currentVersion, nextVersion, changedFiles: [] };
-  }
-
   const changedFiles = [];
 
-  for (const relativePath of VERSION_TARGETS) {
+  const jsonTargets = [
+    ['package.json', (json, version) => {
+      if (json.version === version) {
+        return false;
+      }
+
+      json.version = version;
+      return true;
+    }],
+    ['package-lock.json', (json, version) => {
+      let changed = false;
+      if (json.version !== version) {
+        json.version = version;
+        changed = true;
+      }
+
+      if (json.packages?.[''] && json.packages[''].version !== version) {
+        json.packages[''].version = version;
+        changed = true;
+      }
+
+      return changed;
+    }],
+    ['registry.json', (json, version) => {
+      if (json.kit.version === version) {
+        return false;
+      }
+
+      json.kit.version = version;
+      return true;
+    }],
+    ['.opencode/install-manifest.json', (json, version) => {
+      if (json.kit.version === version) {
+        return false;
+      }
+
+      json.kit.version = version;
+      return true;
+    }],
+  ];
+
+  for (const [relativePath, update] of jsonTargets) {
+    if (updateJsonVersionFile(repoRoot, relativePath, nextVersion, update)) {
+      changedFiles.push(relativePath);
+    }
+  }
+
+  if (currentVersion === nextVersion) {
+    return { currentVersion, nextVersion, changedFiles };
+  }
+
+  for (const relativePath of TEXT_VERSION_TARGETS) {
     const absolutePath = path.join(repoRoot, relativePath);
     if (!fs.existsSync(absolutePath)) {
       continue;
@@ -112,6 +178,10 @@ export function updateVersionMetadata(repoRoot = process.cwd(), nextVersion) {
   }
 
   return { currentVersion, nextVersion, changedFiles };
+}
+
+export function syncVersionMetadata(repoRoot = process.cwd()) {
+  return updateVersionMetadata(repoRoot, readCurrentVersion(repoRoot));
 }
 
 export function createReleaseNotes(repoRoot = process.cwd(), version) {
@@ -172,11 +242,18 @@ export function verifyReleaseMetadata(repoRoot = process.cwd(), version = readCu
   ensureReleaseWorkspaceLooksValid(repoRoot);
 
   const packageVersion = JSON.parse(readText(getReleasePaths(repoRoot).packageJsonPath)).version;
+  const packageLock = JSON.parse(readText(getReleasePaths(repoRoot).packageLockPath));
   const registryVersion = JSON.parse(readText(getReleasePaths(repoRoot).registryPath)).kit.version;
   const manifestVersion = JSON.parse(readText(getReleasePaths(repoRoot).installManifestPath)).kit.version;
 
-  if (packageVersion !== version || registryVersion !== version || manifestVersion !== version) {
-    throw new Error('Version metadata is out of sync between package.json, registry.json, and .opencode/install-manifest.json.');
+  if (
+    packageVersion !== version
+    || packageLock.version !== version
+    || packageLock.packages?.['']?.version !== version
+    || registryVersion !== version
+    || manifestVersion !== version
+  ) {
+    throw new Error('Version metadata is out of sync between package.json, package-lock.json, registry.json, and .opencode/install-manifest.json.');
   }
 
   const releaseStatus = readReleaseSummaryStatus(repoRoot, version);

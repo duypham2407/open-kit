@@ -14,6 +14,7 @@
  */
 
 import { isToolAllowed, getKnownRoles } from '../../workflow/role-permissions.js';
+import { formatWorkflowStateError, unwrapWorkflowStateResult } from '../../workflow/state-result.js';
 
 export function createRoleGuardHook({ workflowKernel }) {
   return {
@@ -27,7 +28,17 @@ export function createRoleGuardHook({ workflowKernel }) {
 
       // Read current workflow state
       const stateResult = workflowKernel?.showState?.() ?? null;
-      const state = stateResult?.state ?? stateResult ?? null;
+      const { state, error: workflowStateError } = unwrapWorkflowStateResult(stateResult);
+
+      if (workflowStateError) {
+        return {
+          allowed: false,
+          blocked: true,
+          blockedBy: ['workflow-state-error'],
+          reason: formatWorkflowStateError(workflowStateError),
+          workflowStateError,
+        };
+      }
 
       // No workflow state → permissive mode (don't block during setup)
       if (!state || !state.current_owner) {

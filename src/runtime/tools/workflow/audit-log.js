@@ -1,3 +1,5 @@
+import { unwrapWorkflowStateResult } from '../../workflow/state-result.js';
+
 /**
  * Audit Log Tool
  *
@@ -69,9 +71,11 @@ export function createAuditLogTool({ workflowKernel, invocationLogger }) {
 
       // Read workflow state for evidence and transitions
       const stateResult = workflowKernel?.showState?.() ?? null;
-      const state = stateResult?.state ?? stateResult ?? null;
+      const { state, error: workflowStateError } = unwrapWorkflowStateResult(stateResult);
 
-      if (state) {
+      if (workflowStateError) {
+        audit.workflowStateError = workflowStateError;
+      } else if (state) {
         audit.currentState = {
           mode: state.mode,
           stage: state.current_stage,

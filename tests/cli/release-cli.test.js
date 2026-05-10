@@ -43,6 +43,32 @@ test('release prepare delegates to release workflow deps', async () => {
   assert.match(capture.stdout, /Prepared release 0.2.13/);
 });
 
+test('release sync-version delegates to package-version sync workflow', async () => {
+  const capture = createIo();
+  let called = false;
+  const status = await releaseCommand.run(['sync-version'], capture.io, {
+    releaseDeps: {
+      syncVersionMetadata(_cwd) {
+        called = true;
+        return { nextVersion: '0.2.13', changedFiles: ['registry.json'] };
+      },
+    },
+  });
+
+  assert.equal(status, 0);
+  assert.equal(called, true);
+  assert.match(capture.stdout, /Synced version metadata to 0\.2\.13/);
+  assert.match(capture.stdout, /Changed files: 1/);
+});
+
+test('release help documents sync-version', async () => {
+  const capture = createIo();
+  const status = await releaseCommand.run([], capture.io, {});
+
+  assert.equal(status, 0);
+  assert.match(capture.stdout, /sync-version/);
+});
+
 test('release verify delegates to release workflow deps', async () => {
   const capture = createIo();
   let called = false;

@@ -31,6 +31,19 @@ test('audit returns empty summary when no state or logger', () => {
   assert.ok(result.loggerStatus);
 });
 
+test('audit surfaces structured workflow state errors without currentState', () => {
+  const error = { reason: 'controller_exception', code: 'ERR_BAD_STATE', message: 'bad workflow json' };
+  const tool = createAuditLogTool({
+    workflowKernel: { showState: () => ({ statePath: null, state: null, error }) },
+    invocationLogger: null,
+  });
+
+  const result = tool.execute();
+
+  assert.deepEqual(result.workflowStateError, error);
+  assert.equal(Object.hasOwn(result, 'currentState'), false);
+});
+
 // ── With invocation logger ──────────────────────────────────────────────
 
 test('audit counts total invocations from logger', () => {

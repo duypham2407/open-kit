@@ -19,6 +19,20 @@ test('check-action allows when no workflow state', () => {
   assert.equal(result.allowed, true);
 });
 
+test('check-action blocks permissive fallback when workflow state has a structured error', () => {
+  const error = { reason: 'controller_exception', code: 'ERR_BAD_STATE', message: 'bad workflow json' };
+  const tool = createActionGatewayTool({
+    workflowKernel: { showState: () => ({ statePath: null, state: null, error }) },
+  });
+
+  const result = tool.execute({ action: 'edit_code' });
+
+  assert.equal(result.status, 'error');
+  assert.equal(result.allowed, false);
+  assert.match(result.reason, /Workflow state unavailable/);
+  assert.deepEqual(result.workflowStateError, error);
+});
+
 // ── Missing action ──────────────────────────────────────────────────────
 
 test('check-action errors when action is missing', () => {

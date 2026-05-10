@@ -2,6 +2,7 @@ import { summarizeRuntimeCapabilities, summarizeSkillCatalog } from './capabilit
 import { inspectWorkflowDoctor } from './doctor/workflow-doctor.js';
 import { recoverSessionState } from './recovery/session-recovery.js';
 import { buildCapabilityGuidance } from './tools/capability/capability-router-summary.js';
+import { unwrapWorkflowStateResult } from './workflow/state-result.js';
 
 function getSupervisorManagerHealth(supervisorDialogueManager) {
   const description = supervisorDialogueManager?.describe?.() ?? null;
@@ -25,6 +26,15 @@ function getSupervisorManagerHealth(supervisorDialogueManager) {
   };
 }
 
+function getWorkflowStateForCapabilityGuidance(workflowKernel) {
+  const primary = unwrapWorkflowStateResult(workflowKernel?.showState?.() ?? null);
+  if (primary.error || primary.state) {
+    return primary;
+  }
+
+  return unwrapWorkflowStateResult(workflowKernel?.showRuntimeStatusRelaxed?.() ?? null);
+}
+
 export function createRuntimeInterface({
   projectRoot,
   projectRootResolution = null,
@@ -44,8 +54,9 @@ export function createRuntimeInterface({
   const capabilityIds = capabilities.map((capability) => capability.id);
   const capabilitySummary = summarizeRuntimeCapabilities(capabilities);
   const capabilityPackInventory = managers.capabilityRegistryManager?.listCapabilities?.({ scope: 'openkit' }) ?? { mcps: [], skills: [] };
+  const workflowStateResult = getWorkflowStateForCapabilityGuidance(managers.workflowKernel);
   const capabilityGuidance = buildCapabilityGuidance({
-    workflowState: managers.workflowKernel?.showState?.()?.state ?? managers.workflowKernel?.showRuntimeStatusRelaxed?.()?.state ?? null,
+    workflowState: workflowStateResult.state,
     capabilities: capabilityPackInventory,
     source: 'runtime_summary',
   });
@@ -55,6 +66,7 @@ export function createRuntimeInterface({
     skillSummary: summarizeSkillCatalog(capabilityPackInventory.skills),
     keySummary: summarizeKeyState(capabilityPackInventory.mcps),
     guidance: capabilityGuidance,
+    workflowStateError: workflowStateResult.error,
   };
   const latestSession = managers.sessionStateManager?.latest?.() ?? null;
   const workflowDoctor = inspectWorkflowDoctor(managers.workflowKernel);

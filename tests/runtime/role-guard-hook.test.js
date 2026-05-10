@@ -19,6 +19,21 @@ test('role guard allows when no workflow kernel', () => {
   assert.equal(result.allowed, true);
 });
 
+test('role guard blocks when workflow state has a structured error', () => {
+  const error = { reason: 'controller_exception', code: 'ERR_BAD_STATE', message: 'bad workflow json' };
+  const hook = createRoleGuardHook({
+    workflowKernel: { showState: () => ({ statePath: null, state: null, error }) },
+  });
+
+  const result = hook.run({ toolId: 'tool.hashline-edit' });
+
+  assert.equal(result.allowed, false);
+  assert.equal(result.blocked, true);
+  assert.deepEqual(result.blockedBy, ['workflow-state-error']);
+  assert.match(result.reason, /Workflow state unavailable/);
+  assert.deepEqual(result.workflowStateError, error);
+});
+
 test('role guard allows when no current_owner in state', () => {
   const hook = createRoleGuardHook({
     workflowKernel: createMockKernel({ mode: 'quick', current_stage: 'quick_intake' }),

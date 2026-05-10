@@ -101,6 +101,7 @@ Surface split for maintainers: `global_cli` owns product lifecycle commands, `in
 
 - Historical release notes live in `RELEASES.md`.
 - New release notes should start from `release-notes/TEMPLATE.md`.
+- `package.json#version` is the canonical authored version. If you edit it manually, run `npm run sync:version` or `openkit release sync-version` before verification so package metadata mirrors are regenerated.
 - Fastest maintainer path:
   1. `openkit release prepare <version> --summary "<short summary>"`
   2. Fill in `release-notes/<version>.md`

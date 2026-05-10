@@ -52,6 +52,7 @@
   },
   "scripts": {
     "sync:install-bundle": "node scripts/sync-install-bundle.mjs",
+    "sync:version": "node scripts/sync-version-metadata.mjs",
     "verify:install-bundle": "node scripts/verify-install-bundle.mjs",
     "verify:mcp-secret-package-readiness": "node scripts/verify-mcp-secret-package-readiness.mjs",
     "verify:runtime-foundation": "node --test tests/runtime/runtime-config-loader.test.js && node --test tests/runtime/capability-registry.test.js && node --test tests/runtime/runtime-bootstrap.test.js",

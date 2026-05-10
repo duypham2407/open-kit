@@ -28,6 +28,7 @@ import { startSessionLifecycle } from '../runtime/runtime-bootstrap.js';
 import { loadRoleInstructions } from '../runtime/workflow/instruction-loader.js';
 import { getValidNextStages, getStageOwner } from '../runtime/workflow/state-machine.js';
 import { getAllowedTools } from '../runtime/workflow/role-permissions.js';
+import { formatWorkflowStateError, unwrapWorkflowStateResult } from '../runtime/workflow/state-result.js';
 import { parseServerArgs } from './args.js';
 import { TOOL_SCHEMAS, getMcpExposedToolIds } from './tool-schemas.js';
 
@@ -220,9 +221,19 @@ async function main() {
     const { uri } = request.params;
     const workflowKernel = runtime.managers?.workflowKernel;
     const stateResult = workflowKernel?.showState?.() ?? null;
-    const state = stateResult?.state ?? stateResult ?? null;
+    const { state, error: workflowStateError } = unwrapWorkflowStateResult(stateResult);
 
     if (uri === 'openkit://active-role-instructions') {
+      if (workflowStateError) {
+        return {
+          contents: [{
+            uri,
+            mimeType: 'text/markdown',
+            text: `# Workflow State Error\n\n${formatWorkflowStateError(workflowStateError)}`,
+          }],
+        };
+      }
+
       if (!state || !state.current_stage || !state.current_owner) {
         return {
           contents: [{
@@ -250,6 +261,22 @@ async function main() {
     }
 
     if (uri === 'openkit://available-actions') {
+      if (workflowStateError) {
+        return {
+          contents: [{
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify({
+              status: 'error',
+              reason: formatWorkflowStateError(workflowStateError),
+              workflowStateError,
+              allowedTools: [],
+              nextStages: [],
+            }, null, 2),
+          }],
+        };
+      }
+
       if (!state || !state.current_owner) {
         return {
           contents: [{
@@ -280,6 +307,20 @@ async function main() {
     }
 
     if (uri === 'openkit://workflow-status') {
+      if (workflowStateError) {
+        return {
+          contents: [{
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify({
+              status: 'error',
+              message: formatWorkflowStateError(workflowStateError),
+              workflowStateError,
+            }, null, 2),
+          }],
+        };
+      }
+
       if (!state) {
         return {
           contents: [{
