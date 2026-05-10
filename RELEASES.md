@@ -2,9 +2,9 @@
 
 ## Latest
 
-- [`0.8.0`](release-notes/0.8.0.md) - Multi-Layer Intelligence Stack for comprehensive codebase understanding
-- npm latest: `@duypham93/openkit@0.8.0`
-- git tag: `v0.8.0`
+- [`0.9.0`](release-notes/0.9.0.md) - Structure reorganization: consolidated source under /src
+- npm latest: `@duypham93/openkit@0.9.0`
+- git tag: `v0.9.0`
 
 ## Previous
 
@@ -16,6 +16,7 @@
 
 Historical release notes tracked in-repo:
 
+- [`0.9.0`](release-notes/0.9.0.md) - Structure reorganization: consolidated source under /src
 - [`0.8.0`](release-notes/0.8.0.md) - Multi-Layer Intelligence Stack for comprehensive codebase understanding
 - [`0.7.0`](release-notes/0.7.0.md) - Multi-session workflow isolation
 - [`0.6.0`](release-notes/0.6.0.md) - Audit hardening release
