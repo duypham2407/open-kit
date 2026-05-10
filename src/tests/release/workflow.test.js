@@ -33,21 +33,21 @@ function createFixtureRepo(version = '0.2.12') {
   write(path.join(repoRoot, 'package.json'), JSON.stringify({ name: '@duypham93/openkit', version }, null, 2) + '\n');
   write(path.join(repoRoot, 'package-lock.json'), JSON.stringify({ name: '@duypham93/openkit', version, lockfileVersion: 3, packages: { '': { name: '@duypham93/openkit', version } } }, null, 2) + '\n');
   write(path.join(repoRoot, 'registry.json'), JSON.stringify({ kit: { version } }, null, 2) + '\n');
-  write(path.join(repoRoot, '.opencode', 'install-manifest.json'), JSON.stringify({ kit: { version } }, null, 2) + '\n');
+  write(path.join(repoRoot, 'src', 'openkit-runtime', 'install-manifest.json'), JSON.stringify({ kit: { version } }, null, 2) + '\n');
   write(
     path.join(repoRoot, 'RELEASES.md'),
     '# Releases\n\n## Latest\n\n- [`0.2.12`](release-notes/0.2.12.md) - latest release\n- npm latest: `@duypham93/openkit@0.2.12`\n- git tag: `v0.2.12`\n\n## History\n\nHistorical release notes tracked in-repo:\n\n- [`0.2.12`](release-notes/0.2.12.md) - latest release\n',
   );
   write(path.join(repoRoot, 'release-notes', 'TEMPLATE.md'), '## Published package\n\n- npm: `@duypham93/openkit@<version>`\n');
   for (const relativePath of [
-    '.opencode/tests/session-start-hook.test.js',
-    '.opencode/tests/workflow-behavior.test.js',
-    '.opencode/tests/workflow-contract-consistency.test.js',
-    '.opencode/tests/workflow-state-cli.test.js',
-    'tests/cli/openkit-cli.test.js',
-    'tests/global/doctor.test.js',
-    'tests/global/ensure-install.test.js',
-    'tests/runtime/doctor.test.js',
+    'src/openkit-runtime/tests/session-start-hook.test.js',
+    'src/openkit-runtime/tests/workflow-behavior.test.js',
+    'src/openkit-runtime/tests/workflow-contract-consistency.test.js',
+    'src/openkit-runtime/tests/workflow-state-cli.test.js',
+    'src/tests/cli/openkit-cli.test.js',
+    'src/tests/global/doctor.test.js',
+    'src/tests/global/ensure-install.test.js',
+    'src/tests/runtime/doctor.test.js',
   ]) {
     write(path.join(repoRoot, relativePath), `version fixture ${version}\n`);
   }
@@ -81,7 +81,7 @@ test('updateVersionMetadata repairs partial drift when package.json already has 
 
   const result = updateVersionMetadata(repoRoot, '0.2.13');
   const registry = JSON.parse(read(path.join(repoRoot, 'registry.json')));
-  const manifest = JSON.parse(read(path.join(repoRoot, '.opencode', 'install-manifest.json')));
+  const manifest = JSON.parse(read(path.join(repoRoot, 'src', 'openkit-runtime', 'install-manifest.json')));
   const packageLock = JSON.parse(read(path.join(repoRoot, 'package-lock.json')));
 
   assert.equal(result.currentVersion, '0.2.13');
@@ -91,7 +91,7 @@ test('updateVersionMetadata repairs partial drift when package.json already has 
   assert.equal(packageLock.packages[''].version, '0.2.13');
   assert.deepEqual(
     result.changedFiles.sort(),
-    ['.opencode/install-manifest.json', 'package-lock.json', 'registry.json'].sort(),
+    ['src/openkit-runtime/install-manifest.json', 'package-lock.json', 'registry.json'].sort(),
   );
 });
 
@@ -101,7 +101,7 @@ test('syncVersionMetadata uses package.json as the canonical version source', ()
 
   const result = syncVersionMetadata(repoRoot);
   const registry = JSON.parse(read(path.join(repoRoot, 'registry.json')));
-  const manifest = JSON.parse(read(path.join(repoRoot, '.opencode', 'install-manifest.json')));
+  const manifest = JSON.parse(read(path.join(repoRoot, 'src', 'openkit-runtime', 'install-manifest.json')));
   const packageLock = JSON.parse(read(path.join(repoRoot, 'package-lock.json')));
 
   assert.equal(result.currentVersion, '0.2.13');
