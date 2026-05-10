@@ -695,6 +695,31 @@ Review and QA flows also use structured scan/tool evidence:
 - High-volume scan output is summarized with artifact references instead of being treated as silent success.
 - Target-project application validation remains separate from OpenKit runtime, compatibility runtime, documentation, and global CLI validation.
 
+## Troubleshooting
+
+If OpenKit fails to start or behaves unexpectedly, use the diagnostic system:
+
+```bash
+# Check diagnostics
+openkit doctor --diagnostics
+```
+
+Common issues:
+
+**Config file not found:**
+- Expected: OpenKit uses safe defaults when no config file exists
+- Action: No action needed, or create `.opencode/openkit.runtime.jsonc` if you want custom configuration
+
+**Config parse error:**
+- Symptom: Diagnostic shows "parse_error" for config file
+- Action: Check `.opencode/openkit.runtime.jsonc` for JSON syntax errors (trailing commas, unclosed braces)
+
+**Project detection fallback:**
+- Symptom: Diagnostic shows "Could not detect project root, using fallback"
+- Action: Ensure your project has a `package.json` file, or OpenKit will use the current directory
+
+See [docs/operator/troubleshooting.md](docs/operator/troubleshooting.md) for detailed troubleshooting guide.
+
 ### Where to go next
 
 **Operator and workflow:**
