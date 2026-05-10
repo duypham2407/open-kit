@@ -39,6 +39,14 @@ function buildChunkMetadata({
     splitIndex,
     totalSplits,
     estimatedTokens,
+    // Multi-layer intelligence placeholders.  Populated by SemanticLayerEnhancer
+    // after extraction (L2 patterns, L3 intents) and ContextAssemblyManager
+    // (L1 graph distance).  `confidence` is an overall score that the
+    // enhancer recomputes once the layers have contributed metadata.
+    patterns: [],
+    intents: [],
+    graphDistance: 0,
+    confidence: 1.0,
   };
 }
 

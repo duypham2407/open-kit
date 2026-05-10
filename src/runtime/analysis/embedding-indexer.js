@@ -12,6 +12,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { extractCodeChunks } from './code-chunk-extractor.js';
+import { SemanticLayerEnhancer } from './semantic-layer-enhancer.js';
 
 export class EmbeddingIndexer {
   /**
@@ -21,12 +22,35 @@ export class EmbeddingIndexer {
    *   batchSize?: number,
    * }} opts
    */
-  constructor({ projectGraphManager, embeddingProvider, batchSize = 20 }) {
+  constructor({
+    projectGraphManager,
+    embeddingProvider,
+    batchSize = 20,
+    patternConfig,
+    intentConfig,
+  } = {}) {
     this._graphManager = projectGraphManager;
     this._provider = embeddingProvider;
     this._batchSize = batchSize;
     this._indexingInProgress = false;
     this._stats = { filesProcessed: 0, chunksEmbedded: 0, errors: 0, lastRunMs: 0 };
+
+    // Wire the multi-layer semantic enhancer when a project graph DB is
+    // available.  L2 patterns default to enabled (cheap, deterministic);
+    // L3 intents default to disabled (LLM-bound, runs as background pass).
+    this._semanticEnhancer = null;
+    const db = projectGraphManager?._db ?? null;
+    if (db) {
+      try {
+        this._semanticEnhancer = new SemanticLayerEnhancer({
+          db,
+          patternConfig: patternConfig || { enabled: true },
+          intentConfig: intentConfig || { enabled: false },
+        });
+      } catch {
+        this._semanticEnhancer = null;
+      }
+    }
   }
 
   get available() {
@@ -93,6 +117,17 @@ export class EmbeddingIndexer {
 
     if (chunks.length === 0) {
       return { status: 'no-chunks', filePath };
+    }
+
+    // Enhance chunks with L2 patterns and (optionally) L3 intents before
+    // we hash + embed.  Failures here are non-fatal: chunks fall back to
+    // their structural metadata if the enhancer throws.
+    if (this._semanticEnhancer && node) {
+      try {
+        await this._semanticEnhancer.enhanceChunks(chunks, node.id);
+      } catch {
+        // swallow — embedding indexing must remain robust to L2/L3 errors
+      }
     }
 
     const existingEmbeddings = new Map(

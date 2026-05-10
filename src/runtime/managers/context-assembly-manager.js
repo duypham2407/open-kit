@@ -166,9 +166,80 @@ export class ContextAssemblyManager {
     return items;
   }
 
-  async _querySemantic(/* { task, focus } */) {
-    // Stub — wired in a follow-up task.
-    return [];
+  /**
+   * L2 semantic query — combines embedding-search hits (when the configured
+   * semantic layer exposes a `search` method) with raw `code_patterns` rows
+   * pulled from the structural DB.  Each result is normalised into the same
+   * shape the ranker / budget manager expects (`{ file, ..., foundInLayers }`)
+   * and tagged with the `semantic` layer.
+   */
+  async _querySemantic({ task, focus = [] } = {}) {
+    const results = [];
+
+    // Embedding-side semantic search (optional — the layer may not expose
+    // a `search` method yet).
+    const semanticLayer = this.layers.semantic;
+    if (semanticLayer && semanticLayer.available && typeof semanticLayer.search === 'function') {
+      try {
+        const embeddingResults = (await semanticLayer.search(task ?? focus, { limit: 20 })) || [];
+        for (const item of embeddingResults) {
+          results.push({
+            ...item,
+            layer: item.layer ?? 'semantic',
+            foundInLayers: item.foundInLayers ?? new Set(['semantic']),
+          });
+        }
+      } catch {
+        // ignore search failures — fall back to pattern-only results
+      }
+    }
+
+    // Pattern-side: pull persisted L2 patterns for each focused file.  We
+    // reach through the structural layer's DB (the same project graph that
+    // pattern recognition writes to).  When the DB isn't reachable we just
+    // return whatever embedding hits we collected above.
+    const structural = this.layers.structural;
+    const db = structural?.db ?? structural ?? null;
+    const innerDb = db?._db ?? db?.db ?? db ?? null;
+
+    if (Array.isArray(focus) && focus.length > 0 && db && innerDb && typeof innerDb.prepare === 'function') {
+      let patternStmt = null;
+      try {
+        patternStmt = innerDb.prepare(
+          'SELECT * FROM code_patterns WHERE node_id = ?',
+        );
+      } catch {
+        patternStmt = null;
+      }
+
+      if (patternStmt) {
+        for (const file of focus) {
+          const node = typeof db.getNode === 'function' ? db.getNode(file) : null;
+          if (!node) continue;
+
+          let patterns = [];
+          try {
+            patterns = patternStmt.all(node.id) || [];
+          } catch {
+            patterns = [];
+          }
+
+          for (const p of patterns) {
+            results.push({
+              file,
+              pattern: p.pattern_type,
+              confidence: p.confidence,
+              layer: 'semantic',
+              category: 'important',
+              estimatedTokens: 50,
+              foundInLayers: new Set(['semantic']),
+            });
+          }
+        }
+      }
+    }
+
+    return results;
   }
 
   async _queryIntent(/* { task, intentType } */) {
