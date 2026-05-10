@@ -3892,7 +3892,7 @@ test("policy execution trace includes tool-invocation-policy-engine entry", () =
   const policyEntry = trace.policies.find((p) => p.id === "tool-invocation-policy-engine")
   assert.ok(policyEntry, "trace should include tool-invocation-policy-engine policy")
   assert.equal(policyEntry.level, "muc-3")
-  assert.ok(policyEntry.runtime.includes(".opencode/lib/policy-engine.js#enforcePolicy"))
+  assert.ok(policyEntry.runtime.includes("src/openkit-runtime/lib/policy-engine.js#enforcePolicy"))
 })
 
 // ---------------------------------------------------------------------------

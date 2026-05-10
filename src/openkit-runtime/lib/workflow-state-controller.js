@@ -2892,62 +2892,62 @@ function getPolicyExecutionTrace() {
       {
         id: "verification-before-completion",
         docs: [
-          "skills/verification-before-completion/SKILL.md",
-          "context/core/project-config.md",
-          "context/core/workflow-state-schema.md",
+          "src/skills/verification-before-completion/SKILL.md",
+          "src/context/core/project-config.md",
+          "src/context/core/workflow-state-schema.md",
         ],
         runtime: [
-          ".opencode/lib/runtime-guidance.js#getVerificationReadiness",
-          ".opencode/lib/workflow-state-controller.js#assertStageExitReadiness",
+          "src/openkit-runtime/lib/runtime-guidance.js#getVerificationReadiness",
+          "src/openkit-runtime/lib/workflow-state-controller.js#assertStageExitReadiness",
         ],
         tests: [
-          ".opencode/tests/workflow-state-controller.test.js",
-          "tests/runtime/governance-enforcement.test.js",
+          "src/openkit-runtime/tests/workflow-state-controller.test.js",
+          "src/tests/runtime/governance-enforcement.test.js",
         ],
       },
       {
         id: "issue-lifecycle-and-escalation",
         docs: [
-          "context/core/workflow-state-schema.md",
-          "context/core/session-resume.md",
+          "src/context/core/workflow-state-schema.md",
+          "src/context/core/session-resume.md",
         ],
         runtime: [
-          ".opencode/lib/workflow-state-controller.js#recordIssue",
-          ".opencode/lib/workflow-state-controller.js#updateIssueStatus",
-          ".opencode/lib/workflow-state-controller.js#routeRework",
+          "src/openkit-runtime/lib/workflow-state-controller.js#recordIssue",
+          "src/openkit-runtime/lib/workflow-state-controller.js#updateIssueStatus",
+          "src/openkit-runtime/lib/workflow-state-controller.js#routeRework",
         ],
         tests: [
-          ".opencode/tests/workflow-state-controller.test.js",
+          "src/openkit-runtime/tests/workflow-state-controller.test.js",
         ],
       },
       {
         id: "task-board-only-for-full",
         docs: [
-          "context/core/workflow.md",
+          "src/context/core/workflow.md",
           "docs/maintainer/parallel-execution-matrix.md",
         ],
         runtime: [
-          ".opencode/lib/workflow-state-controller.js#requireValidTaskBoard",
-          ".opencode/lib/task-board-rules.js",
+          "src/openkit-runtime/lib/workflow-state-controller.js#requireValidTaskBoard",
+          "src/openkit-runtime/lib/task-board-rules.js",
         ],
         tests: [
-          ".opencode/tests/workflow-state-controller.test.js",
-          ".opencode/tests/workflow-contract-consistency.test.js",
+          "src/openkit-runtime/tests/workflow-state-controller.test.js",
+          "src/openkit-runtime/tests/workflow-contract-consistency.test.js",
         ],
       },
       {
         id: "tool-invocation-policy-engine",
         level: "muc-3",
         docs: [
-          "context/core/approval-gates.md",
+          "src/context/core/approval-gates.md",
         ],
         runtime: [
-          ".opencode/lib/policy-engine.js#enforcePolicy",
-          ".opencode/lib/invocation-log.js#readInvocationLog",
-          ".opencode/lib/workflow-state-controller.js#advanceStage",
+          "src/openkit-runtime/lib/policy-engine.js#enforcePolicy",
+          "src/openkit-runtime/lib/invocation-log.js#readInvocationLog",
+          "src/openkit-runtime/lib/workflow-state-controller.js#advanceStage",
         ],
         tests: [
-          ".opencode/tests/workflow-state-controller.test.js",
+          "src/openkit-runtime/tests/workflow-state-controller.test.js",
         ],
       },
     ],
