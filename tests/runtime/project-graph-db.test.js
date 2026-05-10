@@ -254,6 +254,87 @@ test('insertSymbol is additive, not destructive', () => {
   db.close();
 });
 
+// ---------------------------------------------------------------------------
+// type_flows table — tracks data flow between symbols (Task 1.3)
+// ---------------------------------------------------------------------------
+
+test('can insert and query type flows', () => {
+  const db = new ProjectGraphDb({ dbPath: ':memory:' });
+  const nodeId = db.insertNode({ path: '/test/file.js' });
+  const fromSymbolId = db.insertSymbol({ nodeId, name: 'input', kind: 'variable' });
+  const toSymbolId = db.insertSymbol({ nodeId, name: 'output', kind: 'variable' });
+
+  const flowId = db.insertTypeFlow({
+    fromSymbolId,
+    toSymbolId,
+    flowType: 'assignment',
+    nodeId,
+    line: 15,
+    confidence: 1.0,
+  });
+
+  assert.strictEqual(typeof flowId, 'number');
+  assert.ok(flowId > 0);
+
+  const flows = db.getTypeFlows({ fromSymbolId });
+  assert.strictEqual(flows.length, 1);
+  assert.strictEqual(flows[0].flow_type, 'assignment');
+  assert.strictEqual(flows[0].confidence, 1.0);
+
+  db.close();
+});
+
+test('getTypeFlows unions results when both fromSymbolId and toSymbolId provided', () => {
+  const db = new ProjectGraphDb({ dbPath: ':memory:' });
+  const nodeId = db.insertNode({ path: '/test/file.js' });
+  const symbolA = db.insertSymbol({ nodeId, name: 'a', kind: 'variable' });
+  const symbolB = db.insertSymbol({ nodeId, name: 'b', kind: 'variable' });
+  const symbolC = db.insertSymbol({ nodeId, name: 'c', kind: 'variable' });
+  const symbolD = db.insertSymbol({ nodeId, name: 'd', kind: 'variable' });
+
+  // Flow 1: A -> B (touches A, not C)
+  const flowAB = db.insertTypeFlow({
+    fromSymbolId: symbolA,
+    toSymbolId: symbolB,
+    flowType: 'assignment',
+    nodeId,
+    line: 1,
+  });
+  // Flow 2: B -> C (touches C, not A)
+  const flowBC = db.insertTypeFlow({
+    fromSymbolId: symbolB,
+    toSymbolId: symbolC,
+    flowType: 'assignment',
+    nodeId,
+    line: 2,
+  });
+  // Flow 3: A -> C (touches BOTH A and C — must not be duplicated)
+  const flowAC = db.insertTypeFlow({
+    fromSymbolId: symbolA,
+    toSymbolId: symbolC,
+    flowType: 'assignment',
+    nodeId,
+    line: 3,
+  });
+  // Flow 4: B -> D (touches neither A nor C — must not appear)
+  db.insertTypeFlow({
+    fromSymbolId: symbolB,
+    toSymbolId: symbolD,
+    flowType: 'assignment',
+    nodeId,
+    line: 4,
+  });
+
+  // Query for flows involving either A or C — expect the union of both
+  // result sets, deduplicated where a single row matches both.
+  const flows = db.getTypeFlows({ fromSymbolId: symbolA, toSymbolId: symbolC });
+  const ids = flows.map((f) => f.id).sort((a, b) => a - b);
+  assert.deepStrictEqual(ids, [flowAB, flowBC, flowAC].sort((a, b) => a - b));
+  assert.strictEqual(flows.length, 3);
+
+  db.close();
+});
+
 test('schema migrations are idempotent across re-opens', () => {
   const db = new ProjectGraphDb(':memory:');
   const node = db.upsertNode({

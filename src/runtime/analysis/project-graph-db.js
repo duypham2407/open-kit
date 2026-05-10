@@ -242,6 +242,29 @@ const L1_MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 3,
+    name: 'create_type_flows_table',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS type_flows (
+          id              INTEGER PRIMARY KEY AUTOINCREMENT,
+          from_symbol_id  INTEGER NOT NULL,
+          to_symbol_id    INTEGER NOT NULL,
+          flow_type       TEXT    NOT NULL,
+          node_id         INTEGER NOT NULL,
+          line            INTEGER NOT NULL,
+          confidence      REAL    DEFAULT 1.0,
+          FOREIGN KEY (from_symbol_id) REFERENCES symbols(id) ON DELETE CASCADE,
+          FOREIGN KEY (to_symbol_id)   REFERENCES symbols(id) ON DELETE CASCADE,
+          FOREIGN KEY (node_id)        REFERENCES nodes(id)   ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_type_flows_from ON type_flows(from_symbol_id);
+        CREATE INDEX IF NOT EXISTS idx_type_flows_to   ON type_flows(to_symbol_id);
+      `);
+    },
+  },
 ];
 
 function applyL1Migrations(db) {
@@ -475,6 +498,17 @@ export class ProjectGraphDb {
          LIMIT @limit`
       ),
       sessionTouchCount: this._db.prepare('SELECT COUNT(*) as count FROM session_touches'),
+
+      // -- type_flows (L1: data flow between symbols) --
+      insertTypeFlow: this._db.prepare(
+        `INSERT INTO type_flows (from_symbol_id, to_symbol_id, flow_type, node_id, line, confidence)
+         VALUES (@from_symbol_id, @to_symbol_id, @flow_type, @node_id, @line, @confidence)`
+      ),
+      getTypeFlowsBySymbol: this._db.prepare(
+        `SELECT * FROM type_flows
+         WHERE from_symbol_id = @symbolId OR to_symbol_id = @symbolId
+         ORDER BY line`
+      ),
     };
 
     try {
@@ -752,6 +786,77 @@ export class ProjectGraphDb {
 
   getCallsTo(calleeName) {
     return this._stmts.getCallsTo.all({ calleeName });
+  }
+
+  // -----------------------------------------------------------------------
+  // Type flow operations (L1: data flow between symbols)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Insert a single type-flow edge between two symbols and return its rowid.
+   * A flow records that data moves from `fromSymbolId` to `toSymbolId` via
+   * the given `flowType` (e.g. 'assignment', 'parameter', 'return',
+   * 'property_access') at a specific source location.
+   *
+   * @param {{ fromSymbolId: number, toSymbolId: number, flowType: string,
+   *           nodeId: number, line: number, confidence?: number }} params
+   * @returns {number} The rowid of the inserted type_flows row.
+   */
+  insertTypeFlow({ fromSymbolId, toSymbolId, flowType, nodeId, line, confidence = 1.0 }) {
+    const result = this._stmts.insertTypeFlow.run({
+      from_symbol_id: fromSymbolId,
+      to_symbol_id: toSymbolId,
+      flow_type: flowType,
+      node_id: nodeId,
+      line,
+      confidence,
+    });
+    return Number(result.lastInsertRowid);
+  }
+
+  /**
+   * Fetch type-flow edges touching a given symbol. Provide either
+   * `fromSymbolId` or `toSymbolId` (or both — they are OR'd together so the
+   * caller can ask for "all flows involving this symbol" by passing either).
+   * Returns an empty array when neither id is supplied.
+   *
+   * @param {{ fromSymbolId?: number|null, toSymbolId?: number|null }} params
+   * @returns {Array<object>}
+   */
+  getTypeFlows({ fromSymbolId = null, toSymbolId = null } = {}) {
+    const hasFrom = fromSymbolId !== null && fromSymbolId !== undefined;
+    const hasTo = toSymbolId !== null && toSymbolId !== undefined;
+
+    // When both ids are supplied, union the per-symbol result sets and
+    // deduplicate by row id (a single flow row can match both lookups when
+    // it touches both symbols).
+    if (hasFrom && hasTo) {
+      const fromFlows = this._stmts.getTypeFlowsBySymbol.all({ symbolId: fromSymbolId });
+      const toFlows = this._stmts.getTypeFlowsBySymbol.all({ symbolId: toSymbolId });
+      const seen = new Set();
+      const merged = [];
+      for (const flow of fromFlows) {
+        if (!seen.has(flow.id)) {
+          seen.add(flow.id);
+          merged.push(flow);
+        }
+      }
+      for (const flow of toFlows) {
+        if (!seen.has(flow.id)) {
+          seen.add(flow.id);
+          merged.push(flow);
+        }
+      }
+      return merged;
+    }
+
+    if (hasFrom) {
+      return this._stmts.getTypeFlowsBySymbol.all({ symbolId: fromSymbolId });
+    }
+    if (hasTo) {
+      return this._stmts.getTypeFlowsBySymbol.all({ symbolId: toSymbolId });
+    }
+    return [];
   }
 
   // -----------------------------------------------------------------------
