@@ -8,6 +8,7 @@ It helps OpenCode behave more like a real software team instead of a single chat
 - split responsibilities across specialized agents
 - keep workflow state, approvals, issues, and evidence explicit
 - reduce hallucinated completion claims through runtime checks and verification gates
+- understand codebases comprehensively through Multi-Layer Intelligence (structural, semantic, intent, context assembly)
 
 If you are new, start here: install the global CLI, run the doctor check, launch OpenKit, then pick a lane with `/quick-task`, `/delivery`, or `/migrate` inside OpenCode.
 
@@ -312,8 +313,9 @@ OpenKit exists to solve common failure modes in AI-assisted software work:
 - everything gets treated like the same kind of task
 - agents jump into code without enough planning or validation
 - completion is declared without enough evidence
-- context is lost between sessions
+- critical context is missed or lost between sessions
 - multi-step work has no shared state, no ownership, and no audit trail
+- codebases are read shallowly, missing dependencies, patterns, and business logic
 
 It addresses that with:
 
@@ -322,6 +324,7 @@ It addresses that with:
 - file-backed workflow state and per-item storage
 - approvals, issue routing, and verification evidence
 - operator and maintainer tooling for diagnostics, resume, and governance
+- Multi-Layer Intelligence Stack for comprehensive codebase understanding (structural graph + semantic patterns + intent extraction + smart context assembly)
 
 It is now also evolving a hybrid runtime foundation under `src/runtime/` that adds:
 
@@ -331,6 +334,7 @@ It is now also evolving a hybrid runtime foundation under `src/runtime/` that ad
 - structured scan/tool evidence for review and QA gates
 - supervisor dialogue primitives for OpenClaw/OpenKit advisory exchange
 - a clean-room path toward MCP, background execution, categories, specialists, and recovery
+- **Multi-Layer Intelligence Stack** for comprehensive codebase understanding (L1 structural, L2 semantic, L3 intent, L4 context assembly)
 
 ## Core modes
 
@@ -489,6 +493,101 @@ Recommended flow:
 
 Config is written to `.opencode/openkit.runtime.jsonc` in the project root. Restart `openkit run` to pick up changes. When embedding is disabled, the semantic search tool falls back to keyword search automatically.
 
+### Multi-Layer Intelligence Stack
+
+OpenKit 0.8.0 introduces a comprehensive 4-layer intelligence stack that enables agents to read codebases **broadly** (find all relevant context), **deeply** (understand how code works), and **reliably** (never miss critical context).
+
+**Layer 1 — Structural Intelligence:**
+- Enhanced project graph with type flow tracking (assignment, parameter, return, property flows)
+- Lexical scope context tracking with variable bindings
+- Query capabilities: trace type flows, scope chains, decorator searches
+- Storage: `type_flows` and `scope_contexts` tables, extended `nodes` and `symbols` schema
+
+**Layer 2 — Semantic Intelligence:**
+- Pattern recognition for api-usage, validation, error-handling, and architectural patterns
+- Data flow analysis with BFS traversal for tracing values through transformations
+- Usage pattern mining for actual code usage fingerprints
+- Multi-source semantic search combining embeddings + patterns + usage + graph
+- Storage: `code_patterns` table with FTS index
+
+**Layer 3 — Intent Intelligence:**
+- LLM-augmented business logic extraction
+- Extractors for business rules, edge cases, design patterns, constraints, data transformations
+- SHA256-based intent caching with code-change invalidation
+- Confidence scoring via cross-validation with structural data
+- Storage: `code_intents` table
+
+**Layer 4 — Context Assembly:**
+- Smart orchestration querying L1 + L2 + L3 in parallel
+- Budget management: 40% critical, 30% important, 20% supplementary, 10% buffer
+- Multi-layer result ranking combining structural, semantic, and intent signals
+- Session memory maintaining working set across tasks
+- Three modes: task (focused), session (working set), project (broad exploration)
+
+**Available tools:**
+- `tool.comprehensive-context` — main context gathering (task/session/project modes)
+- `tool.data-flow-trace` — trace data flows through code
+- `tool.type-flow-trace` — trace type flows
+- `tool.pattern-search` — search by code patterns
+- `tool.business-rule-query` — query business rules
+- `tool.constraint-query` — query constraints
+- `tool.embedding-index` — index codebase for semantic search (action: `index-project`)
+
+**Configuration:**
+
+Configure the intelligence stack via `.opencode/openkit.runtime.jsonc`:
+
+```jsonc
+{
+  "codeIntelligence": {
+    "structural": {
+      "enabled": true,  // L1 always enabled
+      "typeFlowTracking": true,
+      "scopeContextTracking": true
+    },
+    "semantic": {
+      "enabled": true,
+      "patternRecognition": {
+        "enabled": true,
+        "patterns": ["api-usage", "validation", "error-handling", "architectural"]
+      },
+      "dataFlowAnalysis": {
+        "enabled": true,
+        "maxDepth": 10
+      }
+    },
+    "intent": {
+      "enabled": false,  // LLM-bound, enable for deeper analysis
+      "llmModel": "anthropic/claude-sonnet-4",
+      "cacheEnabled": true,
+      "extractors": ["business-rules", "edge-cases", "constraints"]
+    },
+    "contextAssembly": {
+      "enabled": true,
+      "budgetTokens": 8000,
+      "budgetAllocation": {
+        "critical": 0.4,
+        "important": 0.3,
+        "supplementary": 0.2,
+        "buffer": 0.1
+      }
+    }
+  }
+}
+```
+
+**Performance expectations:**
+- Initial indexing: 1-3 minutes for medium codebases
+- Storage overhead: 2-3x graph DB size
+- Query latency: 2-5 seconds for comprehensive context assembly
+
+**Documentation:**
+- Configuration reference: `docs/configuration/code-intelligence.md`
+- Feature guide: `docs/features/multi-layer-intelligence.md`
+- Architecture: `docs/architecture/2026-03-hybrid-runtime-rfc.md`
+
+The Multi-Layer Intelligence Stack integrates with the existing embedding-based semantic search, enhancing it with pattern recognition, intent extraction, and smart context assembly.
+
 ### Hybrid runtime foundation
 
 OpenKit now includes the first phase of a hybrid runtime foundation:
@@ -598,12 +697,22 @@ Review and QA flows also use structured scan/tool evidence:
 
 ### Where to go next
 
+**Operator and workflow:**
 - operator path: `docs/operator/README.md`
 - surface selection: `docs/operator/surface-contract.md`
-- maintainer path: `docs/maintainer/README.md`
-- command map: `docs/maintainer/command-matrix.md`
 - workflow contract: `context/core/workflow.md`
-- runtime command reality: `context/core/project-config.md`
 - session resume: `context/core/session-resume.md`
 - workflow-state schema: `context/core/workflow-state-schema.md`
+
+**Multi-Layer Intelligence:**
+- configuration reference: `docs/configuration/code-intelligence.md`
+- feature guide: `docs/features/multi-layer-intelligence.md`
+
+**Maintainer and operations:**
+- maintainer path: `docs/maintainer/README.md`
+- command map: `docs/maintainer/command-matrix.md`
+- runtime command reality: `context/core/project-config.md`
 - operations runbooks: `docs/operations/README.md`
+
+**Architecture:**
+- hybrid runtime: `docs/architecture/2026-03-hybrid-runtime-rfc.md`
