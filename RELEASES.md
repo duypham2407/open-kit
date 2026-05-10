@@ -2,9 +2,9 @@
 
 ## Latest
 
-- [`0.7.0`](release-notes/0.7.0.md) - Multi-session workflow isolation — per-session `s_<id>` sessions, schema v3 cutover, new `openkit sessions ...`, `openkit dashboard`, and `openkit finish` surfaces, legacy mirror deprecation, five new doctor checks
-- npm latest: `@duypham93/openkit@0.7.0`
-- git tag: `v0.7.0`
+- [`0.8.0`](release-notes/0.8.0.md) - Multi-Layer Intelligence Stack for comprehensive codebase understanding
+- npm latest: `@duypham93/openkit@0.8.0`
+- git tag: `v0.8.0`
 
 ## Previous
 
@@ -16,6 +16,7 @@
 
 Historical release notes tracked in-repo:
 
+- [`0.8.0`](release-notes/0.8.0.md) - Multi-Layer Intelligence Stack for comprehensive codebase understanding
 - [`0.7.0`](release-notes/0.7.0.md) - Multi-session workflow isolation
 - [`0.6.0`](release-notes/0.6.0.md) - Audit hardening release
 - [`0.5.1`](release-notes/0.5.1.md) - Lane bootstrap & brainstorm redesign — fixes 'no workflow' on fresh installs, removes /task and /brainstorm, MO becomes procedural conductor
