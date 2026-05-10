@@ -26,8 +26,8 @@ function captureStderr(fn) {
 test('safeCall logs to stderr when an internal controller call throws', () => {
   // Trigger a controller throw by passing a state path with a corrupt JSON file:
   // showState will read+parse it, JSON.parse throws, controller surfaces the
-  // throw, and safeCall is supposed to log+swallow rather than silently
-  // returning null. The test asserts the log appears.
+  // throw, and safeCallWithStructuredError returns a result with .error property
+  // while maintaining backward compatibility (.state === null).
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'wk-err-prop-'));
   const corruptStatePath = path.join(tempDir, 'workflow-state.json');
   fs.writeFileSync(corruptStatePath, '{ this is not valid json');
@@ -39,7 +39,14 @@ test('safeCall logs to stderr when an internal controller call throws', () => {
 
   const stderr = captureStderr(() => {
     const result = kernel.showState();
-    assert.equal(result, null, 'showState still returns null fallback on failure');
+
+    // Audit fix [2026-05-10 Finding 3]: Result now contains structured error
+    assert.ok(result !== null, 'showState returns an object, not null');
+    assert.equal(result.state, null, 'state field is null on failure (backward compat)');
+    assert.equal(result.statePath, null, 'statePath field is null on failure');
+    assert.ok(result.error, 'result includes error property for inspection');
+    assert.equal(result.error.reason, 'controller_exception', 'error reason is controller_exception');
+    assert.ok(result.error.message, 'error includes message');
   });
 
   // The log line must clearly identify (a) the kernel surface and (b) the

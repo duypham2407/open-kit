@@ -162,25 +162,56 @@ export function createWorkflowKernelAdapter({ projectRoot, env = process.env, st
     }
   }
 
+  // Audit fix [2026-05-10 Finding 3]: Return structured error results so
+  // callers can distinguish "no value" from "controller failed". The result
+  // preserves the original shape ({ statePath, state }) on success and adds
+  // an .error property on failure, maintaining backward compatibility with
+  // existing null-checking code while exposing error details for inspection.
+  function safeCallWithStructuredError(fn, nullShape) {
+    try {
+      return fn();
+    } catch (err) {
+      const message = err?.message ?? String(err);
+      process.stderr.write(`[workflow-kernel] controller exception: ${message}\n`);
+      return {
+        ...nullShape,
+        error: {
+          reason: 'controller_exception',
+          code: err?.code ?? 'unknown',
+          message,
+        },
+      };
+    }
+  }
+
   function showState(customStatePath = null) {
     if (!canReadState(customStatePath)) {
       return null;
     }
-    return safeCall(() => controller.showState(withStatePath(customStatePath)), null);
+    return safeCallWithStructuredError(
+      () => controller.showState(withStatePath(customStatePath)),
+      { statePath: null, state: null }
+    );
   }
 
   function showRuntimeStatus(customStatePath = null) {
     if (!canReadState(customStatePath)) {
       return null;
     }
-    return safeCall(() => controller.getRuntimeStatus(withStatePath(customStatePath)), null);
+    return safeCallWithStructuredError(
+      () => controller.getRuntimeStatus(withStatePath(customStatePath)),
+      { state: null }
+    );
   }
 
   function showRuntimeStatusRelaxed(customStatePath = null) {
     if (!canReadState(customStatePath)) {
       return null;
     }
-    return safeCall(() => controller.getRuntimeStatus(withStatePath(customStatePath), { relaxed: true }), null);
+    return safeCallWithStructuredError(
+      () => controller.getRuntimeStatus(withStatePath(customStatePath), { relaxed: true }),
+      { state: null }
+    );
   }
 
   function listBackgroundRuns(customStatePath = null) {
