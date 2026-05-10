@@ -4,8 +4,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { inspectGlobalDoctor, renderGlobalDoctorSummary } from '../../global/doctor.js';
+import { inspectGlobalDoctor, renderGlobalDoctorSummary, showDiagnostics } from '../../global/doctor.js';
 import { materializeGlobalInstall } from '../../global/materialize.js';
+import { logDiagnostic } from '../../runtime/lib/diagnostics.js';
 
 function makeTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-global-doctor-'));
@@ -1175,4 +1176,92 @@ test('global doctor reports missing semgrep tooling explicitly', () => {
   });
 
   assert.match(result.issues.join('\n'), /semgrep executable is not available/i);
+});
+
+function createTempDir() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-doctor-test-'));
+}
+
+test('showDiagnostics displays recent events', () => {
+  const tempDir = createTempDir();
+
+  // Log some events
+  logDiagnostic('config_loading', 'warning', 'Config not found', { path: '/foo' }, tempDir);
+  logDiagnostic('project_detection', 'info', 'Project detected', { path: tempDir }, tempDir);
+
+  // Capture output
+  let output = '';
+  const mockConsole = {
+    log: (msg) => { output += msg + '\n'; }
+  };
+
+  showDiagnostics({ projectRoot: tempDir, console: mockConsole });
+
+  assert.match(output, /Recent Diagnostics/);
+  assert.match(output, /config_loading.*Config not found/);
+  assert.match(output, /project_detection.*Project detected/);
+  assert.match(output, /Full diagnostic log:/);
+
+  // Cleanup
+  fs.rmSync(tempDir, { recursive: true });
+});
+
+test('showDiagnostics handles missing diagnostic file', () => {
+  const tempDir = createTempDir();
+
+  let output = '';
+  const mockConsole = {
+    log: (msg) => { output += msg + '\n'; }
+  };
+
+  showDiagnostics({ projectRoot: tempDir, console: mockConsole });
+
+  assert.match(output, /No diagnostics recorded yet/);
+
+  // Cleanup
+  fs.rmSync(tempDir, { recursive: true });
+});
+
+test('showDiagnostics does not throw on corrupt JSON', () => {
+  const tempDir = createTempDir();
+  const diagnosticsPath = path.join(tempDir, '.opencode', 'diagnostics.json');
+  fs.mkdirSync(path.dirname(diagnosticsPath), { recursive: true });
+  fs.writeFileSync(diagnosticsPath, '{invalid json', 'utf8');
+
+  let output = '';
+  const mockConsole = {
+    log: (msg) => { output += msg + '\n'; }
+  };
+
+  assert.doesNotThrow(() => {
+    showDiagnostics({ projectRoot: tempDir, console: mockConsole });
+  });
+
+  assert.match(output, /Could not read diagnostics file/);
+  assert.match(output, /diagnostics\.json/);
+
+  // Cleanup
+  fs.rmSync(tempDir, { recursive: true });
+});
+
+test('showDiagnostics handles diagnostics file without events array', () => {
+  const tempDir = createTempDir();
+  const diagnosticsPath = path.join(tempDir, '.opencode', 'diagnostics.json');
+  fs.mkdirSync(path.dirname(diagnosticsPath), { recursive: true });
+  fs.writeFileSync(diagnosticsPath, JSON.stringify({ version: '1.0' }), 'utf8');
+
+  let output = '';
+  const mockConsole = {
+    log: (msg) => { output += msg + '\n'; }
+  };
+
+  assert.doesNotThrow(() => {
+    showDiagnostics({ projectRoot: tempDir, console: mockConsole });
+  });
+
+  assert.match(output, /No diagnostics recorded yet/);
+  assert.doesNotMatch(output, /Recent Diagnostics/);
+
+  // Cleanup
+  fs.rmSync(tempDir, { recursive: true });
 });

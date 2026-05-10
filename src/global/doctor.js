@@ -21,6 +21,7 @@ import {
   tryLoadDefaultCommandPermissionPolicy,
 } from '../permissions/command-permission-policy.js';
 import { getOpenKitVersion } from '../version.js';
+import { getDiagnosticsPath } from '../runtime/lib/diagnostics.js';
 
 function isOpenCodeAvailable(env = process.env) {
   return isCommandAvailable('opencode', { env });
@@ -485,4 +486,52 @@ export function renderGlobalDoctorSummary(result) {
   }
 
   return `${lines.join('\n')}\n`;
+}
+
+export function showDiagnostics({ projectRoot = process.cwd(), console: consoleObj = console } = {}) {
+  const diagnosticsPath = getDiagnosticsPath(projectRoot);
+
+  if (!fs.existsSync(diagnosticsPath)) {
+    consoleObj.log('No diagnostics recorded yet');
+    return;
+  }
+
+  // Defensive read + parse: corrupt JSON, permission errors, or race conditions
+  // must not crash a function whose entire purpose is surfacing prior failures.
+  let diagnostics;
+  try {
+    const raw = fs.readFileSync(diagnosticsPath, 'utf8');
+    diagnostics = JSON.parse(raw);
+  } catch (err) {
+    consoleObj.log(`Could not read diagnostics file (${err.code || err.name}): ${diagnosticsPath}`);
+    return;
+  }
+
+  // Validate structure: tolerate missing/malformed events without throwing.
+  const events = Array.isArray(diagnostics?.events) ? diagnostics.events : [];
+  if (events.length === 0) {
+    consoleObj.log('No diagnostics recorded yet');
+    return;
+  }
+
+  const recentEvents = events.slice(-10); // Last 10 events
+
+  consoleObj.log('\n## Recent Diagnostics\n');
+
+  for (const event of recentEvents) {
+    const icon = {
+      error: '✗',
+      warning: '⚠',
+      info: '✓',
+      debug: '○'
+    }[event.level] || '•';
+
+    consoleObj.log(`${icon} [${event.category}] ${event.message}`);
+
+    if (event.level === 'error' || event.level === 'warning') {
+      consoleObj.log(`  Details: ${JSON.stringify(event.details)}`);
+    }
+  }
+
+  consoleObj.log(`\nFull diagnostic log: ${diagnosticsPath}`);
 }
