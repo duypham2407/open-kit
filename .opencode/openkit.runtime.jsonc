@@ -1,0 +1,82 @@
+// OpenKit runtime configuration (project scope)
+//
+// This file is read by the capability runtime alongside the user-scope file
+// at $OPENCODE_HOME/openkit/openkit.runtime.jsonc. Both files are JSONC, so
+// // and /* */ comments are supported.
+//
+// The Multi-Layer Intelligence Stack is configured under `codeIntelligence`.
+// See docs/configuration/code-intelligence.md for the full reference.
+{
+  "codeIntelligence": {
+    // ------------------------------------------------------------------
+    // L1 Structural — pure static analysis (graph + types + scopes)
+    // ------------------------------------------------------------------
+    "structural": {
+      "maxGraphDepth": 5,
+      "enableTypeFlow": true,
+      "enableScopeTracking": true,
+      "extractDecorators": true
+    },
+
+    // ------------------------------------------------------------------
+    // L2 Semantic — pattern recognition, data-flow tracing, usage mining
+    // ------------------------------------------------------------------
+    "semantic": {
+      "enablePatternRecognition": true,
+      "patternTypes": [
+        "api-usage",
+        "error-handling",
+        "validation",
+        "architectural"
+      ],
+      "enableDataFlowAnalysis": true,
+      "dataFlowMaxDepth": 10,
+      "enableUsageMining": true,
+      "embeddingProvider": "openai",
+      "embeddingModel": "text-embedding-3-small"
+    },
+
+    // ------------------------------------------------------------------
+    // L3 Intent — LLM-augmented business-logic understanding
+    // ------------------------------------------------------------------
+    "intent": {
+      "enable": true,
+      "extractors": [
+        "business-rule",
+        "edge-case",
+        "design-pattern",
+        "data-transformation",
+        "constraint"
+      ],
+      "llmProvider": "anthropic",
+      "llmModel": "claude-sonnet-4.5",
+      "batchSize": 5,
+      "cacheEnabled": true,
+      "minConfidence": 0.6,
+      "backgroundExtraction": true
+    },
+
+    // ------------------------------------------------------------------
+    // L4 Context Assembly — orchestrates L1+L2+L3 into a budget-bound
+    // context package suitable for downstream LLM reasoning.
+    // ------------------------------------------------------------------
+    "contextAssembly": {
+      "defaultMode": "task",
+      "defaultDepth": "medium",
+      "budgets": {
+        "task": 8000,
+        "session": 15000,
+        "project": 30000
+      },
+      "budgetAllocation": {
+        "critical": 0.40,
+        "important": 0.30,
+        "supplementary": 0.20,
+        "buffer": 0.10
+      },
+      "enableSessionMemory": true,
+      "validateContext": true,
+      "minQualityScore": 0.7
+    }
+  }
+}
