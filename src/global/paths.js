@@ -3,6 +3,19 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { logDiagnostic } from '../runtime/lib/diagnostics.js';
+
+const PROJECT_MARKER_FILES = [
+  'package.json',
+  'next.config.js',
+  'tsconfig.json',
+  '.git',
+  'pnpm-workspace.yaml',
+  'turbo.json',
+];
+
+const MAX_WALK_UP_LEVELS = 10;
+
 function normalizeWorkspaceSeed(projectRoot, platform = process.platform) {
   const resolved = path.resolve(projectRoot);
   return platform === 'win32' ? resolved.toLowerCase() : resolved;
@@ -96,20 +109,172 @@ export function getOpenCodeHome({ env = process.env, platform = process.platform
   return path.join(base, 'opencode');
 }
 
-export function detectProjectRoot(startDir = process.cwd()) {
-  let current = path.resolve(startDir);
+/**
+ * Strategy 1: Detect project root at the starting directory itself.
+ * Considered a high-confidence hit if a package.json exists at startDir.
+ *
+ * @param {string} startDir - Directory to inspect
+ * @returns {{valid: boolean, path: string, confidence: string, strategy: string}}
+ */
+export function detectFromCwd(startDir) {
+  const resolved = path.resolve(startDir);
+  const hasPackageJson = fs.existsSync(path.join(resolved, 'package.json'));
 
-  while (true) {
-    if (fs.existsSync(path.join(current, '.git')) || fs.existsSync(path.join(current, 'package.json'))) {
-      return current;
+  return {
+    valid: hasPackageJson,
+    path: resolved,
+    confidence: hasPackageJson ? 'high' : 'fallback',
+    strategy: 'cwd',
+  };
+}
+
+/**
+ * Strategy 2: Walk up the directory tree (max 10 levels) looking for package.json.
+ *
+ * @param {string} startDir - Directory to start walking from
+ * @returns {{valid: boolean, path: string, confidence: string, strategy: string}}
+ */
+export function detectByWalkingUp(startDir) {
+  let current = path.resolve(startDir);
+  let levels = 0;
+
+  while (levels < MAX_WALK_UP_LEVELS) {
+    if (fs.existsSync(path.join(current, 'package.json'))) {
+      return {
+        valid: true,
+        path: current,
+        confidence: 'high',
+        strategy: 'walk_up',
+      };
     }
 
     const parent = path.dirname(current);
     if (parent === current) {
-      return path.resolve(startDir);
+      break;
     }
     current = parent;
+    levels += 1;
   }
+
+  return {
+    valid: false,
+    path: path.resolve(startDir),
+    confidence: 'fallback',
+    strategy: 'walk_up',
+  };
+}
+
+/**
+ * Strategy 3: Walk up the directory tree (max 10 levels) looking for any
+ * recognised project marker (next.config.js, tsconfig.json, .git,
+ * pnpm-workspace.yaml, turbo.json) when package.json is missing.
+ *
+ * @param {string} startDir - Directory to start from
+ * @returns {{valid: boolean, path: string, confidence: string, strategy: string}}
+ */
+export function detectByProjectMarkers(startDir) {
+  let current = path.resolve(startDir);
+  let levels = 0;
+
+  while (levels < MAX_WALK_UP_LEVELS) {
+    for (const marker of PROJECT_MARKER_FILES) {
+      if (fs.existsSync(path.join(current, marker))) {
+        return {
+          valid: true,
+          path: current,
+          confidence: 'high',
+          strategy: 'project_markers',
+        };
+      }
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+    levels += 1;
+  }
+
+  return {
+    valid: false,
+    path: path.resolve(startDir),
+    confidence: 'fallback',
+    strategy: 'project_markers',
+  };
+}
+
+function runDetectionStrategies(startDir) {
+  const resolvedStart = path.resolve(startDir);
+  const strategies = [detectFromCwd, detectByWalkingUp, detectByProjectMarkers];
+
+  for (const strategy of strategies) {
+    const result = strategy(resolvedStart);
+    if (result.valid) {
+      return result;
+    }
+  }
+
+  return {
+    valid: false,
+    path: resolvedStart,
+    confidence: 'fallback',
+    strategy: 'fallback',
+  };
+}
+
+/**
+ * Detect a project root by trying multiple strategies in order:
+ * 1. cwd (package.json directly at startDir)
+ * 2. walk_up (find package.json by walking parents, max 10 levels)
+ * 3. project_markers (find any known marker file by walking parents)
+ *
+ * Falls back to startDir when no strategy succeeds. Each step is logged via
+ * {@link logDiagnostic} under the `project_detection` category — successful
+ * detections at `info` level, fallbacks at `warning` level.
+ *
+ * Note: diagnostic logging materializes `<projectRoot>/.opencode/diagnostics.json`,
+ * so callers that must not write to the project tree (e.g. read-only runtime
+ * bootstrap) should use the silent {@link detectProjectRoot} variant instead.
+ *
+ * @param {string} [startDir=process.cwd()] - Directory to start detection from
+ * @returns {{valid: boolean, path: string, confidence: string, strategy: string}}
+ */
+export function detectProjectRootWithDiagnostics(startDir = process.cwd()) {
+  const result = runDetectionStrategies(startDir);
+  const resolvedStart = path.resolve(startDir);
+
+  if (result.valid) {
+    logDiagnostic(
+      'project_detection',
+      'info',
+      `Project root detected via ${result.strategy}`,
+      { path: result.path, strategy: result.strategy, startDir: resolvedStart },
+      result.path
+    );
+  } else {
+    logDiagnostic(
+      'project_detection',
+      'warning',
+      'No project root detected; falling back to startDir',
+      { path: result.path, startDir: resolvedStart },
+      result.path
+    );
+  }
+
+  return result;
+}
+
+/**
+ * Backwards-compatible silent variant. Runs the same multi-strategy detection
+ * as {@link detectProjectRootWithDiagnostics} but does not write diagnostic
+ * events — safe for read-only contexts.
+ *
+ * @param {string} [startDir=process.cwd()] - Directory to start detection from
+ * @returns {string} Resolved project root (or startDir on fallback)
+ */
+export function detectProjectRoot(startDir = process.cwd()) {
+  return runDetectionStrategies(startDir).path;
 }
 
 export function createWorkspaceId(projectRoot, { platform = process.platform } = {}) {
