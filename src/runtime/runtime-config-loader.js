@@ -118,6 +118,48 @@ export function parseRuntimeConfigContent(content, sourceLabel = 'runtime config
   }
 }
 
+function isPlainObject(value) {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function validateConfigSchema(config) {
+  const errors = [];
+
+  // Top-level must be a plain object
+  if (!isPlainObject(config)) {
+    errors.push('config must be an object');
+    return { valid: false, errors };
+  }
+
+  // profiles must be an object and profiles.default is required
+  if (config.profiles === undefined) {
+    errors.push('profiles.default is required');
+  } else if (!isPlainObject(config.profiles)) {
+    errors.push('profiles must be an object');
+  } else if (typeof config.profiles.default !== 'string' || config.profiles.default.length === 0) {
+    errors.push('profiles.default is required and must be a non-empty string');
+  }
+
+  // mcps is optional but must be an object if present; mcps.servers must be array if present
+  if (config.mcps !== undefined) {
+    if (!isPlainObject(config.mcps)) {
+      errors.push('mcps must be an object');
+    } else if (config.mcps.servers !== undefined && !Array.isArray(config.mcps.servers)) {
+      errors.push('mcps.servers must be an array');
+    }
+  }
+
+  // Optional object fields: disabled, backgroundTask, codeIntelligence, categories, specialists
+  const optionalObjectFields = ['disabled', 'backgroundTask', 'codeIntelligence', 'categories', 'specialists'];
+  for (const field of optionalObjectFields) {
+    if (config[field] !== undefined && !isPlainObject(config[field])) {
+      errors.push(`${field} must be an object`);
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
 export function validateConfigFile(configPath) {
   // Check file exists
   if (!fs.existsSync(configPath)) {
@@ -153,7 +195,17 @@ export function validateConfigFile(configPath) {
     };
   }
 
-  // For now, accept any valid JSON - schema validation comes next
+  // Validate schema
+  const schemaResult = validateConfigSchema(parsed);
+  if (!schemaResult.valid) {
+    return {
+      valid: false,
+      reason: 'schema_invalid',
+      errors: schemaResult.errors,
+      data: parsed,
+    };
+  }
+
   return { valid: true, data: parsed };
 }
 
