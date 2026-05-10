@@ -4,7 +4,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { validateConfigFile, validateConfigSchema } from '../../runtime/runtime-config-loader.js';
+import {
+  validateConfigFile,
+  validateConfigSchema,
+  loadRuntimeConfigWithDiagnostics,
+  getDefaultRuntimeConfig,
+} from '../../runtime/runtime-config-loader.js';
 
 function createTempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'openkit-config-test-'));
@@ -123,4 +128,90 @@ test('validateConfigFile rejects invalid schema', () => {
 
   // Cleanup
   fs.rmSync(tempDir, { recursive: true });
+});
+
+test('loadRuntimeConfigWithDiagnostics falls back to defaults when config missing', () => {
+  const tempDir = createTempDir();
+  // No project config, no user config (via overridden home)
+  const fakeHome = path.join(tempDir, 'home');
+  fs.mkdirSync(fakeHome, { recursive: true });
+
+  const result = loadRuntimeConfigWithDiagnostics(tempDir, { home: fakeHome });
+
+  assert.equal(result.success, true);
+  assert.equal(result.source, 'defaults');
+  assert.equal(result.error, null);
+  assert.ok(result.data && typeof result.data === 'object');
+  // Defaults must satisfy the schema
+  const schemaResult = validateConfigSchema(result.data);
+  assert.equal(schemaResult.valid, true, `defaults must be schema-valid: ${schemaResult.errors.join(', ')}`);
+
+  // Cleanup
+  fs.rmSync(tempDir, { recursive: true });
+});
+
+test('loadRuntimeConfigWithDiagnostics tries project config first', () => {
+  const tempDir = createTempDir();
+  const projectConfigDir = path.join(tempDir, '.opencode');
+  fs.mkdirSync(projectConfigDir, { recursive: true });
+  const projectConfigPath = path.join(projectConfigDir, 'openkit.runtime.jsonc');
+  fs.writeFileSync(projectConfigPath, '{"profiles": {"default": "project-profile"}}');
+
+  // Build a user config that should be ignored when project config is found
+  const fakeHome = path.join(tempDir, 'home');
+  const userConfigDir = path.join(fakeHome, '.config', 'openkit');
+  fs.mkdirSync(userConfigDir, { recursive: true });
+  fs.writeFileSync(path.join(userConfigDir, 'config.jsonc'), '{"profiles": {"default": "user-profile"}}');
+
+  const result = loadRuntimeConfigWithDiagnostics(tempDir, { home: fakeHome });
+
+  assert.equal(result.success, true);
+  assert.equal(result.source, 'project');
+  assert.equal(result.error, null);
+  assert.equal(result.data.profiles.default, 'project-profile');
+
+  // Cleanup
+  fs.rmSync(tempDir, { recursive: true });
+});
+
+test('loadRuntimeConfigWithDiagnostics logs diagnostic on parse error and falls back', () => {
+  const tempDir = createTempDir();
+  const projectConfigDir = path.join(tempDir, '.opencode');
+  fs.mkdirSync(projectConfigDir, { recursive: true });
+  const projectConfigPath = path.join(projectConfigDir, 'openkit.runtime.jsonc');
+  // Write invalid JSON
+  fs.writeFileSync(projectConfigPath, '{ invalid json content !!!');
+
+  const fakeHome = path.join(tempDir, 'home');
+  fs.mkdirSync(fakeHome, { recursive: true });
+
+  const result = loadRuntimeConfigWithDiagnostics(tempDir, { home: fakeHome });
+
+  // Loader should not throw; should fall back to defaults.
+  assert.equal(result.success, true);
+  assert.equal(result.source, 'defaults');
+  assert.ok(result.data && typeof result.data === 'object');
+
+  // Diagnostics file should now exist with a parse_error event recorded
+  const diagnosticsPath = path.join(tempDir, '.opencode', 'diagnostics.json');
+  assert.equal(fs.existsSync(diagnosticsPath), true, 'diagnostics file should be created');
+  const diagnostics = JSON.parse(fs.readFileSync(diagnosticsPath, 'utf8'));
+  assert.ok(Array.isArray(diagnostics.events));
+  const parseEvent = diagnostics.events.find((event) => event.category === 'config_loading' && /parse/i.test(event.message));
+  assert.ok(parseEvent, `expected a config_loading parse-error event, got: ${JSON.stringify(diagnostics.events)}`);
+  assert.ok(['warning', 'error'].includes(parseEvent.level), `expected warning or error level, got: ${parseEvent.level}`);
+
+  // Cleanup
+  fs.rmSync(tempDir, { recursive: true });
+});
+
+test('getDefaultRuntimeConfig returns a fresh, schema-valid object', () => {
+  const a = getDefaultRuntimeConfig();
+  const b = getDefaultRuntimeConfig();
+
+  assert.ok(a && typeof a === 'object');
+  assert.notEqual(a, b, 'should return a fresh copy each call');
+
+  const schemaResult = validateConfigSchema(a);
+  assert.equal(schemaResult.valid, true, `defaults must be schema-valid: ${schemaResult.errors.join(', ')}`);
 });

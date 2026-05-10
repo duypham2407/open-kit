@@ -5,6 +5,7 @@ import path from 'node:path';
 import { deepMergeConfig } from '../global/config-merge.js';
 import { materializePromptFileReferences } from './config/prompt-file-loader.js';
 import { validateRuntimeConfig } from './config/schema.js';
+import { logDiagnostic } from './lib/diagnostics.js';
 import { createDefaultRuntimeConfig } from './runtime-config-defaults.js';
 import { PROJECT_RUNTIME_CONFIG_FILES, USER_RUNTIME_CONFIG_FILES } from './types.js';
 
@@ -301,4 +302,186 @@ export function loadRuntimeConfig({
     projectConfig,
     warnings,
   };
+}
+
+/**
+ * Return a fresh, schema-valid default runtime config object.
+ *
+ * Used as the final fallback in {@link loadRuntimeConfigWithDiagnostics} when
+ * neither a project nor user config can be loaded.
+ *
+ * @returns {object} Minimal safe runtime config (always satisfies validateConfigSchema)
+ */
+export function getDefaultRuntimeConfig() {
+  return {
+    profiles: {
+      default: 'sonnet',
+    },
+  };
+}
+
+/**
+ * Load runtime config with a fallback chain and structured diagnostics.
+ *
+ * Resolution order:
+ *   1. Project config: <projectRoot>/.opencode/openkit.runtime.jsonc
+ *   2. User config:    ~/.config/openkit/config.jsonc
+ *   3. Built-in defaults from {@link getDefaultRuntimeConfig}
+ *
+ * Each step is recorded via {@link logDiagnostic}:
+ *   - 'debug' when a candidate file is simply not present
+ *   - 'warning' when a candidate file is present but cannot be parsed/validated,
+ *     or when the loader is forced to fall back to defaults
+ *   - 'info' when a config is successfully loaded
+ *
+ * This function never throws: failures are converted to diagnostic events and
+ * the loader continues down the chain. The returned object always has the
+ * shape `{ success, data, source, error }`.
+ *
+ * @param {string} [projectRoot=process.cwd()] - Project root used to locate
+ *   the project config and to anchor the diagnostics file.
+ * @param {object} [options] - Test seam.
+ * @param {string} [options.home] - Override home directory used to resolve the
+ *   user config path. Defaults to `os.homedir()`.
+ * @returns {{ success: boolean, data: object, source: 'project'|'user'|'defaults', error: null|string }}
+ */
+export function loadRuntimeConfigWithDiagnostics(projectRoot = process.cwd(), options = {}) {
+  const home = options.home ?? os.homedir();
+  const projectConfigPath = path.join(projectRoot, '.opencode', 'openkit.runtime.jsonc');
+  const userConfigPath = home ? path.join(home, '.config', 'openkit', 'config.jsonc') : null;
+
+  // 1. Project config
+  const projectAttempt = tryLoadConfigPath(projectConfigPath, 'project', projectRoot);
+  if (projectAttempt.success) {
+    logDiagnostic(
+      'config_loading',
+      'info',
+      `Loaded project config from ${projectConfigPath}`,
+      { path: projectConfigPath, source: 'project' },
+      projectRoot
+    );
+    return { success: true, data: projectAttempt.data, source: 'project', error: null };
+  }
+
+  // 2. User config
+  if (userConfigPath) {
+    const userAttempt = tryLoadConfigPath(userConfigPath, 'user', projectRoot);
+    if (userAttempt.success) {
+      logDiagnostic(
+        'config_loading',
+        'info',
+        `Loaded user config from ${userConfigPath}`,
+        { path: userConfigPath, source: 'user' },
+        projectRoot
+      );
+      return { success: true, data: userAttempt.data, source: 'user', error: null };
+    }
+  } else {
+    logDiagnostic(
+      'config_loading',
+      'debug',
+      'User config skipped: no home directory available',
+      {},
+      projectRoot
+    );
+  }
+
+  // 3. Defaults
+  logDiagnostic(
+    'config_loading',
+    'warning',
+    'Falling back to built-in default runtime config',
+    {
+      reason: 'no_usable_config_found',
+      projectConfigPath,
+      userConfigPath,
+    },
+    projectRoot
+  );
+
+  return {
+    success: true,
+    data: getDefaultRuntimeConfig(),
+    source: 'defaults',
+    error: null,
+  };
+}
+
+function tryLoadConfigPath(configPath, sourceLabel, projectRoot) {
+  if (!fs.existsSync(configPath)) {
+    logDiagnostic(
+      'config_loading',
+      'debug',
+      `${sourceLabel} config not found at ${configPath}`,
+      { path: configPath, source: sourceLabel, reason: 'file_not_found' },
+      projectRoot
+    );
+    return { success: false };
+  }
+
+  const result = validateConfigFile(configPath);
+  if (result.valid) {
+    return { success: true, data: result.data };
+  }
+
+  // Map validateConfigFile failure reasons to diagnostic messages.
+  if (result.reason === 'file_not_found') {
+    // Race: file existed during existsSync but disappeared. Treat as missing.
+    logDiagnostic(
+      'config_loading',
+      'debug',
+      `${sourceLabel} config not found at ${configPath}`,
+      { path: configPath, source: sourceLabel, reason: 'file_not_found' },
+      projectRoot
+    );
+    return { success: false };
+  }
+
+  if (result.reason === 'permission_denied') {
+    logDiagnostic(
+      'config_loading',
+      'warning',
+      `Cannot read ${sourceLabel} config at ${configPath}: permission denied`,
+      { path: configPath, source: sourceLabel, reason: 'permission_denied' },
+      projectRoot
+    );
+    return { success: false };
+  }
+
+  if (result.reason === 'parse_error') {
+    logDiagnostic(
+      'config_loading',
+      'warning',
+      `Failed to parse ${sourceLabel} config at ${configPath}`,
+      { path: configPath, source: sourceLabel, reason: 'parse_error', error: result.error },
+      projectRoot
+    );
+    return { success: false };
+  }
+
+  if (result.reason === 'schema_invalid') {
+    logDiagnostic(
+      'config_loading',
+      'warning',
+      `Schema validation failed for ${sourceLabel} config at ${configPath}`,
+      {
+        path: configPath,
+        source: sourceLabel,
+        reason: 'schema_invalid',
+        errors: result.errors ?? [],
+      },
+      projectRoot
+    );
+    return { success: false };
+  }
+
+  // Unknown failure shape: still don't throw.
+  logDiagnostic(
+    'config_loading',
+    'warning',
+    `Unable to load ${sourceLabel} config at ${configPath}`,
+    { path: configPath, source: sourceLabel, reason: result.reason ?? 'unknown' },
+    projectRoot
+  );
+  return { success: false };
 }
