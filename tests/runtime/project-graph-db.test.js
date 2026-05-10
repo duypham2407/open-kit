@@ -431,6 +431,35 @@ test('scope contexts default optional fields to null', () => {
   db.close();
 });
 
+// ---------------------------------------------------------------------------
+// code_patterns table — stores recognized patterns from static analysis (Task 2.1)
+// ---------------------------------------------------------------------------
+
+test('can insert and query code patterns', () => {
+  const db = new ProjectGraphDb({ dbPath: ':memory:' });
+  const nodeId = db.insertNode({ path: '/test/file.js' });
+  const symbolId = db.insertSymbol({ nodeId, name: 'validate', kind: 'function' });
+
+  const patternId = db.insertCodePattern({
+    patternType: 'validation',
+    primarySymbolId: symbolId,
+    relatedSymbolsJson: JSON.stringify([]),
+    nodeId,
+    exampleCode: 'if (!email) throw new Error()',
+    frequency: 1,
+    confidence: 0.95,
+  });
+
+  assert.strictEqual(typeof patternId, 'number');
+  assert.ok(patternId > 0);
+
+  const patterns = db.getCodePatterns({ patternType: 'validation' });
+  assert.strictEqual(patterns.length, 1);
+  assert.strictEqual(patterns[0].confidence, 0.95);
+
+  db.close();
+});
+
 test('schema migrations are idempotent across re-opens', () => {
   const db = new ProjectGraphDb(':memory:');
   const node = db.upsertNode({

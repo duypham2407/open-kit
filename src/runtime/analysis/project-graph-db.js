@@ -287,6 +287,29 @@ const L1_MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 6,
+    name: 'create_code_patterns_table',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS code_patterns (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          pattern_type TEXT NOT NULL,
+          primary_symbol_id INTEGER NOT NULL,
+          related_symbols_json TEXT,
+          node_id INTEGER NOT NULL,
+          example_code TEXT,
+          frequency INTEGER DEFAULT 1,
+          confidence REAL DEFAULT 1.0,
+          FOREIGN KEY (primary_symbol_id) REFERENCES symbols(id) ON DELETE CASCADE,
+          FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_code_patterns_type ON code_patterns(pattern_type);
+        CREATE INDEX IF NOT EXISTS idx_code_patterns_symbol ON code_patterns(primary_symbol_id);
+      `);
+    },
+  },
 ];
 
 function applyL1Migrations(db) {
@@ -539,6 +562,23 @@ export class ProjectGraphDb {
       ),
       getScopeContextsByNode: this._db.prepare(
         `SELECT * FROM scope_contexts WHERE node_id = @nodeId ORDER BY start_line`
+      ),
+
+      // -- code_patterns (L2: recognized patterns from static analysis) --
+      insertCodePattern: this._db.prepare(
+        `INSERT INTO code_patterns (
+           pattern_type, primary_symbol_id, related_symbols_json, node_id,
+           example_code, frequency, confidence
+         ) VALUES (
+           @pattern_type, @primary_symbol_id, @related_symbols_json, @node_id,
+           @example_code, @frequency, @confidence
+         )`
+      ),
+      getCodePatternsByType: this._db.prepare(
+        `SELECT * FROM code_patterns WHERE pattern_type = ?`
+      ),
+      getCodePatternsBySymbol: this._db.prepare(
+        `SELECT * FROM code_patterns WHERE primary_symbol_id = ?`
       ),
     };
 
@@ -935,6 +975,64 @@ export class ProjectGraphDb {
    */
   getScopeContexts({ nodeId }) {
     return this._stmts.getScopeContextsByNode.all({ nodeId });
+  }
+
+  // -----------------------------------------------------------------------
+  // Code pattern operations (L2: recognized patterns from static analysis)
+  // -----------------------------------------------------------------------
+
+  /**
+   * Insert a single recognized code pattern and return its rowid.
+   *
+   * Pattern types include `api-usage`, `validation`, `error-handling`,
+   * `architectural`, `test-pattern`, etc.  `relatedSymbolsJson` is a free-form
+   * JSON string the caller may use to record secondary symbols that
+   * participate in the pattern.  `confidence` is a [0..1] score reflecting
+   * how confident the detector is that the example demonstrates the pattern.
+   *
+   * @param {{ patternType: string, primarySymbolId: number,
+   *           relatedSymbolsJson?: string|null, nodeId: number,
+   *           exampleCode?: string|null, frequency?: number,
+   *           confidence?: number }} params
+   * @returns {number} The rowid of the inserted code_patterns row.
+   */
+  insertCodePattern({
+    patternType,
+    primarySymbolId,
+    relatedSymbolsJson = null,
+    nodeId,
+    exampleCode = null,
+    frequency = 1,
+    confidence = 1.0,
+  }) {
+    const result = this._stmts.insertCodePattern.run({
+      pattern_type: patternType,
+      primary_symbol_id: primarySymbolId,
+      related_symbols_json: relatedSymbolsJson,
+      node_id: nodeId,
+      example_code: exampleCode,
+      frequency,
+      confidence,
+    });
+    return Number(result.lastInsertRowid);
+  }
+
+  /**
+   * Fetch code patterns by either `patternType` or `symbolId`.  Returns an
+   * empty array when neither filter is supplied.  When both are supplied,
+   * `patternType` takes precedence.
+   *
+   * @param {{ patternType?: string|null, symbolId?: number|null }} params
+   * @returns {Array<object>}
+   */
+  getCodePatterns({ patternType = null, symbolId = null } = {}) {
+    if (patternType) {
+      return this._stmts.getCodePatternsByType.all(patternType);
+    }
+    if (symbolId) {
+      return this._stmts.getCodePatternsBySymbol.all(symbolId);
+    }
+    return [];
   }
 
   // -----------------------------------------------------------------------
