@@ -41,7 +41,7 @@ export function getReleasePaths(repoRoot = process.cwd()) {
     packageJsonPath: path.join(repoRoot, 'package.json'),
     packageLockPath: path.join(repoRoot, 'package-lock.json'),
     registryPath: path.join(repoRoot, 'registry.json'),
-    installManifestPath: path.join(repoRoot, '.opencode', 'install-manifest.json'),
+    installManifestPath: path.join(repoRoot, 'src', 'openkit-runtime', 'install-manifest.json'),
     releasesIndexPath: path.join(repoRoot, 'RELEASES.md'),
     releaseNotesDir: path.join(repoRoot, 'release-notes'),
     releaseTemplatePath: path.join(repoRoot, 'release-notes', 'TEMPLATE.md'),
