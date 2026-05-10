@@ -7,6 +7,7 @@ import { createCodemodApplyTool } from './codemod/codemod-apply.js';
 import { createCodemodPreviewTool } from './codemod/codemod-preview.js';
 import { createLookAtTool } from './analysis/look-at.js';
 import { createEmbeddingIndexTool } from './analysis/embedding-index.js';
+import { createComprehensiveContextTool } from './context/comprehensive-context.js';
 import { createBrowserVerifyTool } from './browser/browser-verify.js';
 import { createCapabilityHealthTool } from './capability/capability-health.js';
 import { createCapabilityInventoryTool } from './capability/capability-inventory.js';
@@ -138,6 +139,13 @@ export function createToolRegistry({ projectRoot, managers, config, mcpPlatform,
     // External tooling — gated by project-local config detection
     ...createExternalTools({ projectRoot, env }),
   ];
+
+  // Comprehensive Context Tool (L4) — Multi-Layer Intelligence Stack
+  if (managers.contextAssemblyManager) {
+    definitions.push(createComprehensiveContextTool({
+      contextAssemblyManager: managers.contextAssemblyManager,
+    }));
+  }
 
   const enabledTools = definitions
     .filter((tool) => !disabledTools.has(tool.id))

@@ -19,6 +19,9 @@ import { SessionMemoryManager } from './managers/session-memory-manager.js';
 import { SupervisorDialogueManager } from './managers/supervisor-dialogue-manager.js';
 import { TmuxSessionManager } from './managers/tmux-session-manager.js';
 import { ToolMetadataStore } from './managers/tool-metadata-store.js';
+import { ContextAssemblyManager } from './managers/context-assembly-manager.js';
+import { BudgetManager } from './lib/budget-manager.js';
+import { ResultRanker } from './lib/result-ranker.js';
 import { EmbeddingIndexer } from './analysis/embedding-indexer.js';
 import { createEmbeddingProvider, NoOpEmbeddingProvider } from './analysis/embedding-provider.js';
 import { FileWatcher } from './analysis/file-watcher.js';
@@ -41,6 +44,7 @@ function createManagerList({
   delegationSupervisor,
   continuationStateManager,
   fileWatcher,
+  contextAssemblyManager,
 }) {
   const supervisorDescription = supervisorDialogueManager?.describe?.() ?? null;
   const supervisorConfigured = supervisorDescription?.adapter?.configured === true;
@@ -133,6 +137,14 @@ function createManagerList({
       description: 'Config-driven embedding generation pipeline for semantic code search.',
       enabled: embeddingIndexer?.available === true,
       lifecycle: 'foundation',
+      dispose() {},
+    },
+    {
+      id: 'manager.context-assembly',
+      name: 'Context Assembly Manager',
+      description: 'Multi-layer intelligence orchestrator combining structural, semantic, and intent analysis',
+      enabled: contextAssemblyManager !== null,
+      lifecycle: 'integration',
       dispose() {},
     },
     {
@@ -229,6 +241,21 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
   const sessionMemoryManager = new SessionMemoryManager({ projectGraphManager, embeddingProvider });
   const supervisorDialogueManager = new SupervisorDialogueManager({ runtimeRoot, config, mode });
 
+  // Create Context Assembly components (Multi-Layer Intelligence Stack — L4)
+  const budgetManager = new BudgetManager();
+  const ranker = new ResultRanker();
+
+  const contextAssemblyManager = new ContextAssemblyManager({
+    layers: {
+      structural: { db: projectGraphManager },
+      semantic: embeddingIndexer || null,
+      intent: null, // TODO: wire when intent extraction service is ready
+    },
+    budgetManager,
+    ranker,
+    sessionMemory: sessionMemoryManager,
+  });
+
   // Wire automatic per-file embedding generation: when a file is indexed,
   // immediately queue embedding extraction for that file (best-effort).
   if (embeddingIndexer) {
@@ -282,6 +309,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     notificationManager,
     tmuxSessionManager,
     fileWatcher,
+    contextAssemblyManager,
   }).map((entry) => ({
     ...entry,
     capabilityStatus: capabilityIndex['capability.manager-layer']?.status ?? 'missing',
@@ -300,6 +328,7 @@ export function createManagers({ config, capabilityIndex, projectRoot, configRes
     sessionMemoryManager,
     supervisorDialogueManager,
     embeddingIndexer,
+    contextAssemblyManager,
     delegationSupervisor,
     continuationStateManager,
     notificationManager,
