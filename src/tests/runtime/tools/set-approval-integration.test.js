@@ -156,6 +156,30 @@ test('set-approval returns error for unknown gate name', () => {
   }
 });
 
+test('set-approval accepts canonical quick gate and role names from workflow docs', () => {
+  const tmpDir = makeTempDir();
+  try {
+    const stateManager = new WorkflowStateManager({ workItemId: 'sa-docs', baseDir: tmpDir });
+    stateManager.initialize({ mode: 'quick', owner: 'QuickAgent' });
+
+    const kernel = createRealKernel(stateManager);
+    const tool = createSetApprovalTool({ workflowKernel: kernel });
+
+    const result = tool.execute({
+      gateName: 'quick_verified',
+      approved: true,
+      approver: 'QuickAgent',
+    });
+
+    assert.equal(result.status, 'ok', `Expected ok but got: ${JSON.stringify(result)}`);
+    assert.equal(result.gateName, 'quick.verified');
+    const onDisk = readStateFromDisk(tmpDir);
+    assert.equal(onDisk.gates['quick.verified'], true);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 // ── Error handling — authority violation ──────────────────────────────────────
 
 test('set-approval returns error when approver lacks authority for gate', () => {

@@ -157,11 +157,8 @@ test('getValidNextStages returns empty for unknown mode', () => {
 
 // ── getStageOwner ───────────────────────────────────────────────────────
 
-test('getStageOwner returns MasterOrchestrator for quick_intake', () => {
-  assert.equal(getStageOwner('quick', 'quick_intake'), 'MasterOrchestrator');
-});
-
-test('getStageOwner returns QuickAgent for quick_plan, implement, test, done', () => {
+test('getStageOwner returns QuickAgent for every quick stage', () => {
+  assert.equal(getStageOwner('quick', 'quick_intake'), 'QuickAgent');
   assert.equal(getStageOwner('quick', 'quick_plan'), 'QuickAgent');
   assert.equal(getStageOwner('quick', 'quick_implement'), 'QuickAgent');
   assert.equal(getStageOwner('quick', 'quick_test'), 'QuickAgent');

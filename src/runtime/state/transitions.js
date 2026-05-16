@@ -50,7 +50,7 @@ export const TRANSITIONS = {
 
 export const STAGE_OWNERS = {
   quick: {
-    quick_intake: 'MasterOrchestrator',
+    quick_intake: 'QuickAgent',
     quick_plan: 'QuickAgent',
     quick_implement: 'QuickAgent',
     quick_test: 'QuickAgent',

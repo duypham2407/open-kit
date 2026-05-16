@@ -549,7 +549,16 @@ function readState(customStatePath) {
 }
 
 function writeState(statePath, state) {
+  fs.mkdirSync(path.dirname(statePath), { recursive: true })
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8")
+}
+
+function writeActiveMirror(runtimeRoot, statePath, state) {
+  _store.writeCompatibilityMirror(runtimeRoot, state)
+  const canonicalMirror = resolveWorkItemPaths(runtimeRoot, "__mirror__").workflowStatePath
+  if (path.resolve(statePath) !== path.resolve(canonicalMirror)) {
+    writeState(statePath, state)
+  }
 }
 
 function createEmptyWorkItemIndex() {
@@ -669,7 +678,7 @@ function persistManagedState(customStatePath, state, options = {}) {
         })
       }
 
-      _store.writeCompatibilityMirror(runtimeRoot, persistedState)
+      writeActiveMirror(runtimeRoot, statePath, persistedState)
 
       const mirrorState = readState(statePath).state
       const mirrorRevision = captureRevision(mirrorState)
@@ -692,7 +701,7 @@ function persistManagedState(customStatePath, state, options = {}) {
     }
 
     if (previousMirrorState) {
-      _store.writeCompatibilityMirror(runtimeRoot, previousMirrorState)
+      writeActiveMirror(runtimeRoot, statePath, previousMirrorState)
     } else if (!hadMirrorState && fs.existsSync(statePath)) {
       fs.rmSync(statePath)
     }
@@ -3799,7 +3808,7 @@ function selectActiveWorkItem(workItemId, customStatePath) {
       state,
     }
   } catch (error) {
-    if (previousActiveWorkItemId !== null && previousActiveWorkItemId !== workItemId) {
+    if (previousActiveWorkItemId != null && previousActiveWorkItemId !== workItemId) {
       setActiveWorkItem(runtimeRoot, previousActiveWorkItemId)
     }
     throw error

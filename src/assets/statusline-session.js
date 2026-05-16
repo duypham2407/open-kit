@@ -134,9 +134,15 @@ export function readSessionContext(baseDir, sessionId) {
  * @returns {string}
  */
 export function resolveBaseDir({ env, cwd }) {
-  const root = env?.OPENKIT_PROJECT_ROOT && env.OPENKIT_PROJECT_ROOT.length > 0
-    ? env.OPENKIT_PROJECT_ROOT
-    : (cwd ?? process.cwd());
+  if (env?.OPENKIT_SESSION_BASE_DIR && env.OPENKIT_SESSION_BASE_DIR.length > 0) {
+    return path.resolve(env.OPENKIT_SESSION_BASE_DIR);
+  }
+
+  const root = env?.OPENKIT_REPOSITORY_ROOT && env.OPENKIT_REPOSITORY_ROOT.length > 0
+    ? env.OPENKIT_REPOSITORY_ROOT
+    : (env?.OPENKIT_PROJECT_ROOT && env.OPENKIT_PROJECT_ROOT.length > 0
+      ? env.OPENKIT_PROJECT_ROOT
+      : (cwd ?? process.cwd()));
   return path.join(root, '.opencode');
 }
 

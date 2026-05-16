@@ -2,20 +2,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import { spawnSync } from 'node:child_process';
+import { resolveSessionBaseDir } from '../../../runtime/sessions/session-base-dir.js';
 
 /**
  * Resolve the sessions baseDir for CLI commands.
  *
  * Order of precedence:
  *   1. explicit `--base-dir` flag (already extracted by the caller)
- *   2. OPENKIT_PROJECT_ROOT env var → <projectRoot>/.opencode
- *   3. ctx.cwd → <cwd>/.opencode (defaults to process.cwd())
+ *   2. OPENKIT_REPOSITORY_ROOT env var → <repoRoot>/.opencode
+ *   3. OPENKIT_PROJECT_ROOT env var → <projectRoot>/.opencode
+ *   4. ctx.cwd → <cwd>/.opencode (defaults to process.cwd())
  */
 export function resolveBaseDir({ baseDirFlag, env = process.env, cwd = process.cwd() } = {}) {
-  if (baseDirFlag) return path.resolve(baseDirFlag);
-  const projectRoot = env?.OPENKIT_PROJECT_ROOT;
-  if (projectRoot) return path.join(projectRoot, '.opencode');
-  return path.join(cwd, '.opencode');
+  return resolveSessionBaseDir({ baseDir: baseDirFlag, env, cwd });
 }
 
 /**

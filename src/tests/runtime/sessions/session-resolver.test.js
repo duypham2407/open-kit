@@ -38,21 +38,28 @@ describe('session-resolver', () => {
     assert.match(r.mirrorPath, /sessions\/s_abcdef\/workflow-state\.json$/);
   });
 
-  it('resolves full session pointing at worktree .opencode', async () => {
+  it('resolves full worktree session from repo root .opencode', async () => {
     const wt = path.join(repo, '.claude/worktrees/full-x');
-    fs.mkdirSync(path.join(wt, '.opencode/work-items'), { recursive: true });
-    writeSessionMeta(path.join(wt, '.opencode'), {
+    fs.mkdirSync(wt, { recursive: true });
+    writeSessionMeta(baseFor(repo), {
       sessionId: 's_aaaaaa', workItemId: null, lane: null,
-      repoRoot: repo, worktreePath: null,
+      repoRoot: repo, worktreePath: wt,
       targetBranch: null, featureBranch: null, startedAt: '2026-05-09T10:00:00Z',
     });
-    bindSessionMeta(path.join(wt, '.opencode'), 's_aaaaaa', {
+    bindSessionMeta(baseFor(repo), 's_aaaaaa', {
       workItemId: 'full-x', lane: 'full',
       worktreePath: wt, targetBranch: 'main', featureBranch: 'openkit/full-x',
     });
-    await addWorkItem(path.join(wt, '.opencode'), { workItemId: 'full-x', featureSlug: 'x', lane: 'full', currentSessionId: 's_aaaaaa', statePath: 'p' });
-    const r = resolveSession({ env: { OPENKIT_SESSION_ID: 's_aaaaaa', OPENKIT_PROJECT_ROOT: wt }, repoRoot: repo });
-    assert.equal(r.baseDir, path.join(wt, '.opencode'));
+    await addWorkItem(baseFor(repo), { workItemId: 'full-x', featureSlug: 'x', lane: 'full', currentSessionId: 's_aaaaaa', statePath: 'p' });
+    const r = resolveSession({
+      env: {
+        OPENKIT_SESSION_ID: 's_aaaaaa',
+        OPENKIT_PROJECT_ROOT: wt,
+        OPENKIT_REPOSITORY_ROOT: repo,
+      },
+      repoRoot: repo,
+    });
+    assert.equal(r.baseDir, baseFor(repo));
     assert.equal(r.worktreePath, wt);
     assert.equal(r.featureBranch, 'openkit/full-x');
     assert.equal(r.targetBranch, 'main');

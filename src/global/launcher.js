@@ -666,6 +666,7 @@ export async function launchGlobalOpenKit(args = [], { projectRoot = process.cwd
     OPENKIT_GLOBAL_MODE: '1',
     OPENKIT_PROJECT_ROOT: launchProjectRoot,
     OPENKIT_REPOSITORY_ROOT: paths.projectRoot,
+    OPENKIT_SESSION_BASE_DIR: sessionBaseDir,
     OPENKIT_SESSION_ID: openKitSessionId,
     OPENKIT_KIT_ROOT: paths.kitRoot,
     OPENKIT_HOME: paths.openCodeHome,

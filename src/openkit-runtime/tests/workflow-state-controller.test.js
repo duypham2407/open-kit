@@ -529,7 +529,7 @@ test("startTask initializes quick mode with quick-only approvals", () => {
   assert.equal(result.state.mode, "quick")
   assert.equal(result.state.mode_reason, "Scoped text change")
   assert.equal(result.state.current_stage, "quick_intake")
-  assert.equal(result.state.current_owner, "MasterOrchestrator")
+  assert.equal(result.state.current_owner, "QuickAgent")
   assert.deepEqual(result.state.routing_profile, {
     work_intent: "maintenance",
     behavior_delta: "preserve",
@@ -4196,7 +4196,7 @@ test("bootstrapWorkflow creates fresh quick state with intake_payload", () => {
   const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
   assert.equal(state.mode, "quick")
   assert.equal(state.current_stage, "quick_intake")
-  assert.equal(state.current_owner, "MasterOrchestrator")
+  assert.equal(state.current_owner, "QuickAgent")
   assert.equal(state.intake_payload?.description, "fix the broken header")
   assert.equal(state.lane_source, "user_explicit")
 })
@@ -4219,6 +4219,33 @@ test("bootstrapWorkflow creates fresh full state with intake_payload", () => {
   assert.equal(state.current_stage, "full_intake")
   assert.equal(state.intake_payload?.description, "build a dashboard v2")
   assert.equal(state.lane_source, "user_explicit")
+})
+
+test("bootstrapWorkflow writes per-session mirror without changing runtime root", () => {
+  const dir = makeTempDir()
+  const statePath = path.join(dir, ".opencode", "sessions", "s_aaaaaa", "workflow-state.json")
+  fs.mkdirSync(path.dirname(statePath), { recursive: true })
+
+  const result = bootstrapWorkflow({
+    lane: "quick",
+    description: "fix session mirror",
+    featureSlug: "fix-session-mirror",
+    statePath,
+  })
+
+  assert.equal(result.status, "created")
+  assert.ok(fs.existsSync(statePath), "per-session mirror should be written")
+  assert.ok(
+    fs.existsSync(path.join(dir, ".opencode", "work-items", result.feature_id.toLowerCase(), "state.json")),
+    "work-item state should stay under repo-root .opencode",
+  )
+  assert.equal(
+    fs.existsSync(path.join(dir, ".opencode", "sessions", ".opencode", "workflow-state.json")),
+    false,
+    "session path must not be treated as the runtime root",
+  )
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"))
+  assert.equal(state.current_stage, "quick_intake")
 })
 
 test("bootstrapWorkflow returns conflict when active workflow exists", () => {

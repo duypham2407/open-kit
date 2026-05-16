@@ -31,6 +31,7 @@ import { getAllowedTools } from '../runtime/workflow/role-permissions.js';
 import { formatWorkflowStateError, unwrapWorkflowStateResult } from '../runtime/workflow/state-result.js';
 import { parseServerArgs } from './args.js';
 import { TOOL_SCHEMAS, getMcpExposedToolIds } from './tool-schemas.js';
+import { resolveSessionBaseDir } from '../runtime/sessions/session-base-dir.js';
 
 function isDirectScanToolName(name) {
   return name === 'tool.rule-scan' || name === 'tool.security-scan';
@@ -148,7 +149,11 @@ async function main() {
   // sets OPENKIT_SESSION_ID and pre-registers the sessions/index entry; we just
   // keep it alive (heartbeat) and mark it closed on shutdown.
   const sessionId = process.env.OPENKIT_SESSION_ID;
-  const sessionBaseDir = path.join(runtime.projectRoot, '.opencode');
+  const sessionBaseDir = resolveSessionBaseDir({
+    env: process.env,
+    repoRoot: process.env.OPENKIT_REPOSITORY_ROOT ?? null,
+    projectRoot: runtime.projectRoot,
+  });
   startSessionLifecycle({
     baseDir: sessionBaseDir,
     sessionId,

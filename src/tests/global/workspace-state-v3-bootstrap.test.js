@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
-import { ensureWorkspaceBootstrap } from '../../global/workspace-state.js';
+import { createInitialWorkflowState, ensureWorkspaceBootstrap } from '../../global/workspace-state.js';
 import { WORK_ITEMS_INDEX_SCHEMA_V3 } from '../../runtime/sessions/constants.js';
 
 function makeFreshHome() {
@@ -43,6 +43,16 @@ test('ensureWorkspaceBootstrap writes work-items/index.json with v3 schema', () 
     false,
     'v3 bootstrap must not write active_work_item_id',
   );
+});
+
+test('createInitialWorkflowState assigns QuickAgent to quick_intake', () => {
+  const state = createInitialWorkflowState({
+    mode: 'quick',
+    selectionReason: 'Bounded quick task',
+  });
+
+  assert.equal(state.current_stage, 'quick_intake');
+  assert.equal(state.current_owner, 'QuickAgent');
 });
 
 test('shouldHydrateWorkspaceFromProject treats v3 work_items: [] as empty regardless of active_work_item_id', () => {

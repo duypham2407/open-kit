@@ -126,7 +126,7 @@ Allowed values:
 
 | Stage | Default Owner |
 | --- | --- |
-| `quick_intake` | `Master Orchestrator` |
+| `quick_intake` | `Quick Agent` |
 | `quick_plan` | `Quick Agent` |
 | `quick_implement` | `Quick Agent` |
 | `quick_test` | `Quick Agent` |

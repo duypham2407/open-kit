@@ -29,7 +29,7 @@ export const MIGRATION_STAGE_SEQUENCE = [
 export const STAGE_SEQUENCE = [...QUICK_STAGE_SEQUENCE, ...MIGRATION_STAGE_SEQUENCE, ...FULL_STAGE_SEQUENCE]
 
 export const STAGE_OWNERS = {
-  quick_intake: "MasterOrchestrator",
+  quick_intake: "QuickAgent",
   quick_plan: "QuickAgent",
   quick_implement: "QuickAgent",
   quick_test: "QuickAgent",

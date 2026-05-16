@@ -71,6 +71,45 @@ test('bootstrap-workflow binds the session to the new work item when OPENKIT_SES
   assert.equal(entry.current_session_id, sessionId);
 });
 
+test('bootstrap-workflow binds repo-root session when launched from a managed worktree', () => {
+  const { projectRoot, baseDir, statePath } = makeProject();
+  const sessionId = 's_abcd12';
+  const worktreeRoot = path.join(projectRoot, '.worktrees', 'full-x');
+  fs.mkdirSync(worktreeRoot, { recursive: true });
+  writeSessionMeta(baseDir, {
+    sessionId,
+    workItemId: null,
+    lane: null,
+    repoRoot: projectRoot,
+    worktreePath: worktreeRoot,
+    targetBranch: null,
+    featureBranch: null,
+    startedAt: new Date().toISOString(),
+  });
+
+  const tool = createBootstrapWorkflowTool({
+    workflowKernel: makeKernel(statePath),
+    env: {
+      OPENKIT_SESSION_ID: sessionId,
+      OPENKIT_PROJECT_ROOT: worktreeRoot,
+      OPENKIT_REPOSITORY_ROOT: projectRoot,
+    },
+    projectRoot,
+  });
+
+  const result = tool.execute({ lane: 'full', description: 'build full flow' });
+
+  assert.equal(result.status, 'created');
+  const meta = readSessionMeta(baseDir, sessionId);
+  assert.equal(meta.lane, 'full');
+  assert.ok(meta.work_item_id, 'repo-root session meta should be bound');
+  assert.equal(
+    fs.existsSync(path.join(worktreeRoot, '.opencode', 'sessions', sessionId, 'meta.json')),
+    false,
+    'bootstrap must not create a second session tree under the worktree',
+  );
+});
+
 test('bootstrap-workflow refuses with session_already_bound when meta already has work_item_id', () => {
   const { projectRoot, baseDir, statePath } = makeProject();
   const sessionId = 's_ddeeff';

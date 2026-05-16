@@ -282,3 +282,30 @@ test('advance-stage multiple transitions each persist to disk', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
+
+test('advance-stage records quick verification evidence before entering quick_done', () => {
+  const tmpDir = makeTempDir();
+  try {
+    const stateManager = new WorkflowStateManager({ workItemId: 'wi-verify', baseDir: tmpDir });
+    stateManager.initialize({ mode: 'quick', owner: 'QuickAgent' });
+    stateManager.setApproval('quick.understanding_confirmed', true, 'user', {});
+    stateManager.advanceStage('quick_plan', 'QuickAgent', {});
+    stateManager.advanceStage('quick_implement', 'QuickAgent', {});
+    stateManager.advanceStage('quick_test', 'QuickAgent', {});
+
+    const kernel = createRealKernel(stateManager);
+    const tool = createAdvanceStageTool({ workflowKernel: kernel });
+
+    const result = tool.execute({
+      targetStage: 'quick_done',
+      evidence: { evidence_recorded: true },
+    });
+
+    assert.equal(result.status, 'ok', `Expected ok but got: ${JSON.stringify(result)}`);
+    const onDisk = readStateFromDisk(tmpDir);
+    assert.equal(onDisk.stage, 'quick_done');
+    assert.equal(onDisk.gates['quick.verified'], true);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});

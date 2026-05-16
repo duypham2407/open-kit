@@ -12,6 +12,39 @@
  *   On error:   { status: 'error', reason }
  */
 
+const GATE_ALIASES = {
+  quick_verified: 'quick.verified',
+  product_to_solution: 'full.product_to_solution',
+  solution_to_fullstack: 'full.solution_to_implementation',
+  fullstack_to_code_review: 'full.code_review_passed',
+  code_review_to_qa: 'full.qa_passed',
+  qa_to_done: 'full.qa_passed',
+  baseline_to_strategy: 'migration.baseline_verified',
+  strategy_to_upgrade: 'migration.strategy_approved',
+  upgrade_to_code_review: 'migration.code_review_passed',
+  code_review_to_verify: 'migration.parity_verified',
+  migration_verified: 'migration.parity_verified',
+};
+
+const APPROVER_ALIASES = {
+  QuickAgent: 'quick-agent',
+  'Quick Agent': 'quick-agent',
+  CodeReviewer: 'code-reviewer',
+  'Code Reviewer': 'code-reviewer',
+  QAAgent: 'qa-agent',
+  'QA Agent': 'qa-agent',
+  SolutionLead: 'solution-lead-agent',
+  'Solution Lead': 'solution-lead-agent',
+};
+
+function normalizeGateName(gateName) {
+  return GATE_ALIASES[gateName] ?? gateName;
+}
+
+function normalizeApprover(approver) {
+  return APPROVER_ALIASES[approver] ?? approver;
+}
+
 export function createSetApprovalTool({ workflowKernel }) {
   return {
     id: 'tool.set-approval',
@@ -46,15 +79,20 @@ export function createSetApprovalTool({ workflowKernel }) {
         };
       }
 
+      const normalizedGateName = normalizeGateName(gateName);
+      const normalizedApprover = normalizeApprover(approver);
+
       // Call workflowKernel.setApproval()
       try {
-        workflowKernel.setApproval(gateName, approved, approver, {
+        workflowKernel.setApproval(normalizedGateName, approved, normalizedApprover, {
           setBy: 'tool.set-approval',
+          requestedGateName: gateName,
+          requestedApprover: approver,
         });
 
         return {
           status: 'ok',
-          gateName,
+          gateName: normalizedGateName,
           approved,
         };
       } catch (err) {

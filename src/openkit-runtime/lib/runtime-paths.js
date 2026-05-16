@@ -63,6 +63,23 @@ function tryReadWorkspaceProjectRootFromStatePath(customStatePath) {
   return null
 }
 
+function resolveRuntimeRootFromStatePath(statePath) {
+  const resolvedStatePath = path.resolve(statePath)
+  const sessionDir = path.dirname(resolvedStatePath)
+  const sessionsDir = path.dirname(sessionDir)
+  const opencodeDir = path.dirname(sessionsDir)
+
+  if (
+    path.basename(resolvedStatePath) === "workflow-state.json" &&
+    path.basename(sessionsDir) === "sessions" &&
+    path.basename(opencodeDir) === ".opencode"
+  ) {
+    return path.dirname(opencodeDir)
+  }
+
+  return path.dirname(path.dirname(resolvedStatePath))
+}
+
 function isGlobalPathMode(env) {
   return env.OPENKIT_GLOBAL_MODE === "1" || env.OPENKIT_KIT_ROOT || env.OPENCODE_HOME
 }
@@ -129,7 +146,7 @@ export function resolveStatePath(customStatePath, env = process.env) {
 }
 
 export function resolveRuntimeRoot(customStatePath, env = process.env) {
-  return path.dirname(path.dirname(resolveStatePath(customStatePath, env)))
+  return resolveRuntimeRootFromStatePath(resolveStatePath(customStatePath, env))
 }
 
 export function resolvePathContext(customStatePath, env = process.env) {

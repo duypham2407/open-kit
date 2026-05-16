@@ -38,7 +38,7 @@ test('tool.bootstrap-workflow creates state on empty project', () => {
   const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
   assert.equal(state.mode, 'quick');
   assert.equal(state.current_stage, 'quick_intake');
-  assert.equal(state.current_owner, 'MasterOrchestrator');
+  assert.equal(state.current_owner, 'QuickAgent');
   assert.equal(state.intake_payload?.description, 'fix bug in CSV export');
 });
 

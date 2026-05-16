@@ -1,14 +1,13 @@
-import path from 'node:path';
 import { readSessionMeta } from './session-meta.js';
 import { readWorkItemsIndex } from './work-items-index.js';
 import { sessionMirrorPath } from './session-paths.js';
 import { SessionRequiredError, SessionStateMismatchError } from './errors.js';
+import { resolveSessionBaseDir } from './session-base-dir.js';
 
 export function resolveSession({ env, repoRoot }) {
   const sessionId = env?.OPENKIT_SESSION_ID;
   if (!sessionId) throw new SessionRequiredError();
-  const projectRoot = env?.OPENKIT_PROJECT_ROOT ?? repoRoot;
-  const baseDir = path.join(projectRoot, '.opencode');
+  const baseDir = resolveSessionBaseDir({ env, repoRoot });
   const meta = readSessionMeta(baseDir, sessionId);
   const idx = readWorkItemsIndex(baseDir);
   const wi = idx.work_items.find((w) => w.work_item_id === meta.work_item_id);

@@ -30,6 +30,7 @@ import { bindSessionMeta, readSessionMeta } from '../../sessions/session-meta.js
 import { workItemsIndexPath } from '../../sessions/session-paths.js';
 import { WORK_ITEMS_INDEX_SCHEMA_V3 } from '../../sessions/constants.js';
 import { SessionAlreadyBoundError, SessionNotFoundError } from '../../sessions/errors.js';
+import { resolveSessionBaseDir } from '../../sessions/session-base-dir.js';
 
 // Synchronous variant of setCurrentSessionId (work-items-index.js exports the
 // async, lockfile-protected one). Bootstrap runs once per session at startup
@@ -89,8 +90,7 @@ export function createBootstrapWorkflowTool({ workflowKernel, env = process.env,
       // If we're inside a session and that session is already bound to a
       // different work item, refuse before doing anything destructive.
       const sessionId = env?.OPENKIT_SESSION_ID ?? null;
-      const sessionProjectRoot = env?.OPENKIT_PROJECT_ROOT ?? projectRoot;
-      const baseDir = path.join(sessionProjectRoot, '.opencode');
+      const baseDir = resolveSessionBaseDir({ env, repoRoot: projectRoot, projectRoot });
       let sessionMeta = null;
       if (sessionId) {
         try {

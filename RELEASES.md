@@ -2,9 +2,9 @@
 
 ## Latest
 
-- [`0.9.1`](release-notes/0.9.1.md) - Defensive Error Handling & Diagnostic System
-- npm latest: `@duypham93/openkit@0.9.1`
-- git tag: `v0.9.1`
+- [`0.9.2`](release-notes/0.9.2.md) - Session path, quick lane, and launcher release hardening
+- npm latest: `@duypham93/openkit@0.9.2`
+- git tag: `v0.9.2`
 
 ## Previous
 
@@ -16,6 +16,7 @@
 
 Historical release notes tracked in-repo:
 
+- [`0.9.2`](release-notes/0.9.2.md) - Session path, quick lane, and launcher release hardening
 - [`0.9.1`](release-notes/0.9.1.md) - Defensive Error Handling & Diagnostic System
 - [`0.9.0`](release-notes/0.9.0.md) - Structure reorganization: consolidated source under /src
 - [`0.8.0`](release-notes/0.8.0.md) - Multi-Layer Intelligence Stack for comprehensive codebase understanding

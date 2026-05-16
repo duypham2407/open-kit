@@ -230,6 +230,29 @@ describe('resolveBaseDir', () => {
     assert.equal(out, path.join('/proj', '.opencode'));
   });
 
+  it('prefers OPENKIT_REPOSITORY_ROOT over worktree OPENKIT_PROJECT_ROOT', () => {
+    const out = resolveBaseDir({
+      env: {
+        OPENKIT_PROJECT_ROOT: '/repo/.worktrees/full-x',
+        OPENKIT_REPOSITORY_ROOT: '/repo',
+      },
+      cwd: '/repo/.worktrees/full-x',
+    });
+    assert.equal(out, path.join('/repo', '.opencode'));
+  });
+
+  it('prefers OPENKIT_SESSION_BASE_DIR over repository and project roots', () => {
+    const out = resolveBaseDir({
+      env: {
+        OPENKIT_SESSION_BASE_DIR: '/managed/.opencode',
+        OPENKIT_REPOSITORY_ROOT: '/repo',
+        OPENKIT_PROJECT_ROOT: '/repo/.worktrees/full-x',
+      },
+      cwd: '/repo/.worktrees/full-x',
+    });
+    assert.equal(out, path.resolve('/managed/.opencode'));
+  });
+
   it('falls back to cwd when env var is unset', () => {
     const out = resolveBaseDir({ env: {}, cwd: '/cwd' });
     assert.equal(out, path.join('/cwd', '.opencode'));
@@ -321,6 +344,35 @@ describe('buildStatusLine', () => {
       input: 'up',
     });
     assert.equal(out, 'up [s_root00 · full · plan]');
+  });
+
+  it('reads repo-root session context when launched inside a worktree', () => {
+    const sid = 's_aaaaaa';
+    const repo = path.join(tmp, 'repo');
+    const wt = path.join(repo, '.worktrees', 'full-x');
+    const base = path.join(repo, '.opencode');
+    fs.mkdirSync(wt, { recursive: true });
+    writeJson(path.join(base, 'sessions', sid, 'meta.json'), {
+      schema: 'openkit/session-meta@1',
+      session_id: sid,
+      work_item_id: 'full-x',
+      lane: 'full',
+    });
+    writeJson(path.join(base, 'sessions', sid, 'workflow-state.json'), {
+      current_stage: 'full_solution',
+    });
+
+    const out = buildStatusLine({
+      env: {
+        OPENKIT_SESSION_ID: sid,
+        OPENKIT_PROJECT_ROOT: wt,
+        OPENKIT_REPOSITORY_ROOT: repo,
+      },
+      cwd: wt,
+      input: 'branch',
+    });
+
+    assert.equal(out, 'branch [s_aaaaaa · full · full_solution]');
   });
 });
 

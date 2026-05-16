@@ -150,6 +150,7 @@ const EVIDENCE_TO_GATE = {
   baseline_captured:       { gate: 'migration.baseline_verified',  authority: 'solution-lead-agent' },
   strategy_approved:       { gate: 'migration.strategy_approved',  authority: 'user' },
   verification_passed:     { gate: 'migration.parity_verified',    authority: 'qa-agent' },
+  evidence_recorded:       { gate: 'quick.verified',               authority: 'quick-agent' },
 };
 
 function updateWorkflowState(workflowKernel, currentState, targetStage, newOwner, transition, evidence = {}) {

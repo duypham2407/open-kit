@@ -58,6 +58,16 @@ describe('resolveBaseDir', () => {
     );
   });
 
+  it('prefers OPENKIT_REPOSITORY_ROOT over worktree OPENKIT_PROJECT_ROOT', () => {
+    assert.equal(
+      resolveBaseDir({
+        OPENKIT_PROJECT_ROOT: '/work/repo/.worktrees/full-x',
+        OPENKIT_REPOSITORY_ROOT: '/work/repo',
+      }, '/work/repo/.worktrees/full-x'),
+      path.join('/work/repo', '.opencode'),
+    );
+  });
+
   it('uses cwd/.opencode as last resort', () => {
     assert.equal(resolveBaseDir({}, '/cwd'), path.join('/cwd', '.opencode'));
   });

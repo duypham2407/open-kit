@@ -17,12 +17,20 @@ import path from 'node:path';
  * Resolve the .opencode base directory from environment variables.
  * Order of precedence:
  *   1. OPENKIT_BASE_DIR (explicit override, used by tests)
- *   2. OPENKIT_PROJECT_ROOT + '/.opencode' (set by launcher)
- *   3. process.cwd() + '/.opencode' (fallback when invoked manually)
+ *   2. OPENKIT_SESSION_BASE_DIR (set by launcher)
+ *   3. OPENKIT_REPOSITORY_ROOT + '/.opencode' (repo-level session store)
+ *   4. OPENKIT_PROJECT_ROOT + '/.opencode' (fallback when not in worktree mode)
+ *   5. process.cwd() + '/.opencode' (fallback when invoked manually)
  */
 export function resolveBaseDir(env = process.env, cwd = process.cwd()) {
   if (env.OPENKIT_BASE_DIR) {
     return path.resolve(env.OPENKIT_BASE_DIR);
+  }
+  if (env.OPENKIT_SESSION_BASE_DIR) {
+    return path.resolve(env.OPENKIT_SESSION_BASE_DIR);
+  }
+  if (env.OPENKIT_REPOSITORY_ROOT) {
+    return path.join(path.resolve(env.OPENKIT_REPOSITORY_ROOT), '.opencode');
   }
   if (env.OPENKIT_PROJECT_ROOT) {
     return path.join(path.resolve(env.OPENKIT_PROJECT_ROOT), '.opencode');

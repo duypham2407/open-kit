@@ -86,6 +86,7 @@ function createEmptyApprovals(mode) {
 
 export function createInitialWorkflowState({ mode = 'quick', selectionReason = 'Initialized by OpenKit global workspace bootstrap.' } = {}) {
   const currentStage = mode === 'migration' ? 'migration_intake' : mode === 'full' ? 'full_intake' : 'quick_intake';
+  const currentOwner = mode === 'quick' ? 'QuickAgent' : 'MasterOrchestrator';
   return {
     feature_id: null,
     feature_slug: null,
@@ -94,7 +95,7 @@ export function createInitialWorkflowState({ mode = 'quick', selectionReason = '
     routing_profile: createDefaultRoutingProfile(mode, selectionReason),
     current_stage: currentStage,
     status: 'idle',
-    current_owner: 'MasterOrchestrator',
+    current_owner: currentOwner,
     artifacts: createEmptyArtifacts(),
     approvals: createEmptyApprovals(mode),
     issues: [],
