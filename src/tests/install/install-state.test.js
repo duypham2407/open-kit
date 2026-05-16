@@ -90,6 +90,9 @@ test("asset manifest defines the explicit OpenCode-native phase 1 bundle", () =>
     "opencode.command.migrate",
     "opencode.command.quick-task",
     "opencode.command.write-solution",
+    "opencode.command.finish",
+    "opencode.command.handoff",
+    "opencode.command.start-work",
     "opencode.context.lane-selection",
     "opencode.skill-catalog",
     "opencode.skill.codebase-exploration",
@@ -348,7 +351,7 @@ test("bundled asset manifest matches the derived asset bundle on disk", () => {
   assert.deepEqual(validation.missingSourceSkillCatalogEntries, [])
   assert.deepEqual(validation.repoBackedSkillCatalogEntriesMissingSourceFiles, [])
   assert.deepEqual(validation.sourceSkillsMissingInstallBundleDecision, [])
-  assert.equal(validation.bundleFileCount, 38)
+  assert.equal(validation.bundleFileCount, 41)
   assert.deepEqual(validation.extraBundledFiles, [])
 })
 
