@@ -111,6 +111,24 @@ const OPENKIT_OPENCODE_BUNDLED_ASSETS = [
     bundledPath: "src/assets/install-bundle/opencode/commands/write-solution.md",
   },
   {
+    id: "opencode.command.finish",
+    assetClass: "commands",
+    sourcePath: "src/commands/finish.md",
+    bundledPath: "src/assets/install-bundle/opencode/commands/finish.md",
+  },
+  {
+    id: "opencode.command.handoff",
+    assetClass: "commands",
+    sourcePath: "src/commands/handoff.md",
+    bundledPath: "src/assets/install-bundle/opencode/commands/handoff.md",
+  },
+  {
+    id: "opencode.command.start-work",
+    assetClass: "commands",
+    sourcePath: "src/commands/start-work.md",
+    bundledPath: "src/assets/install-bundle/opencode/commands/start-work.md",
+  },
+  {
     id: "opencode.context.lane-selection",
     assetClass: "context",
     sourcePath: "src/context/core/lane-selection.md",
@@ -262,6 +280,13 @@ export const OPENKIT_ASSET_MANIFEST = {
         "Phase 1 ships an explicit namespaced bundle instead of overwriting unrelated OpenCode-native assets.",
     },
     assets: OPENKIT_OPENCODE_BUNDLED_ASSETS,
+    internalOnlyCommands: [
+      { sourcePath: "src/commands/browser-verify.md", reason: "Internal verification helper invoked by Quick/Migration lanes; not for direct user invocation." },
+      { sourcePath: "src/commands/configure-embedding.md", reason: "Embedding config flow surfaced via `openkit configure-embedding` CLI; in-session counterpart is not yet curated for general use." },
+      { sourcePath: "src/commands/init-deep.md", reason: "Maintainer-only deep-context init; gated to avoid accidental restructure." },
+      { sourcePath: "src/commands/refactor.md", reason: "Experimental in-session refactor scaffolding; not yet contract-stable." },
+      { sourcePath: "src/commands/stop-continuation.md", reason: "Continuation control surface; usually invoked indirectly by agents, not as a user-facing slash." },
+    ],
   },
   assets: [
     {
@@ -465,6 +490,29 @@ export function validateBundledAssetFiles(projectRoot) {
 
   const extraBundledFiles = bundledFiles.filter((filePath) => !expectedBundledFiles.has(filePath))
 
+  const sourceCommandsDir = path.join(projectRoot, "src", "commands")
+  const sourceCommandsOnDisk = fs.existsSync(sourceCommandsDir)
+    ? fs.readdirSync(sourceCommandsDir)
+        .filter((name) => name.endsWith(".md"))
+        .map((name) => `src/commands/${name}`)
+    : []
+
+  const bundledCommandSourcePaths = new Set(
+    OPENKIT_ASSET_MANIFEST.bundle.assets
+      .filter((asset) => asset.assetClass === "commands")
+      .map((asset) => asset.sourcePath)
+  )
+
+  const internalOnlyCommandSourcePaths = new Set(
+    (OPENKIT_ASSET_MANIFEST.bundle.internalOnlyCommands ?? []).map((entry) => entry.sourcePath)
+  )
+
+  const sourceCommandsMissingFromBundle = sourceCommandsOnDisk.filter(
+    (sourcePath) =>
+      !bundledCommandSourcePaths.has(sourcePath) &&
+      !internalOnlyCommandSourcePaths.has(sourcePath)
+  )
+
   return {
     missingFiles,
     mismatchedFiles,
@@ -483,6 +531,7 @@ export function validateBundledAssetFiles(projectRoot) {
     expectedBundledFiles: [...expectedBundledFiles],
     actualBundledFiles: bundledFiles,
     extraBundledFiles,
+    sourceCommandsMissingFromBundle,
   }
 }
 
