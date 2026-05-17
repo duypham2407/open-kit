@@ -269,6 +269,12 @@ export function validateMaterializedKitLayout(kitRoot) {
   };
 }
 
+export function repairKitLayout({ kitRoot, packageRoot = PACKAGE_ROOT } = {}) {
+  const stageSummary = stageOpenCodeDiscoveryLayer({ kitRoot, packageRoot });
+  const validation = validateMaterializedKitLayout(kitRoot);
+  return { stageSummary, validation };
+}
+
 export function materializeGlobalInstall({
   env = process.env,
   kitVersion = getOpenKitVersion(),
