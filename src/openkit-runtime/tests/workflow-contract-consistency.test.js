@@ -25,8 +25,9 @@ function makeTempProject() {
 
 function setupTempRuntime(projectRoot) {
   const opencodeDir = path.join(projectRoot, ".opencode")
-  const hooksDir = path.join(projectRoot, "hooks")
-  const skillsDir = path.join(projectRoot, "skills", "using-skills")
+  const hooksDir = path.join(projectRoot, "src", "hooks")
+  const skillsDir = path.join(projectRoot, "src", "skills", "using-skills")
+  const runtimeCliDir = path.join(projectRoot, "src", "openkit-runtime")
   const contextCoreDir = path.join(projectRoot, "context", "core")
   const commandsDir = path.join(projectRoot, "commands")
   const agentsDir = path.join(projectRoot, "agents")
@@ -34,6 +35,7 @@ function setupTempRuntime(projectRoot) {
   fs.mkdirSync(opencodeDir, { recursive: true })
   fs.mkdirSync(hooksDir, { recursive: true })
   fs.mkdirSync(skillsDir, { recursive: true })
+  fs.mkdirSync(runtimeCliDir, { recursive: true })
   fs.mkdirSync(contextCoreDir, { recursive: true })
   fs.mkdirSync(commandsDir, { recursive: true })
   fs.mkdirSync(agentsDir, { recursive: true })
@@ -48,7 +50,7 @@ function setupTempRuntime(projectRoot) {
     "utf8",
   )
   fs.writeFileSync(
-    path.join(opencodeDir, "opencode.json"),
+    path.join(projectRoot, "opencode.json"),
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
@@ -115,9 +117,9 @@ function setupTempRuntime(projectRoot) {
     "utf8",
   )
   fs.writeFileSync(path.join(hooksDir, "hooks.json"), '{"hooks":{}}\n', "utf8")
-  fs.writeFileSync(path.join(hooksDir, "session-start"), "#!/usr/bin/env bash\n", "utf8")
+  fs.writeFileSync(path.join(hooksDir, "session-start.js"), "#!/usr/bin/env bash\n", "utf8")
   fs.writeFileSync(path.join(skillsDir, "SKILL.md"), "# using-skills\n", "utf8")
-  fs.writeFileSync(path.join(opencodeDir, "workflow-state.js"), "#!/usr/bin/env node\n", "utf8")
+  fs.writeFileSync(path.join(runtimeCliDir, "workflow-state.js"), "#!/usr/bin/env node\n", "utf8")
 
   fs.writeFileSync(
     path.join(contextCoreDir, "workflow.md"),

@@ -3839,13 +3839,13 @@ function getRuntimeStatus(customStatePath, options = {}) {
     validateManagedState(runtimeState, projectRoot, workItemId, { storeRoot: runtimeRoot })
   }
 
-  const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
+  const manifestPath = path.join(kitRoot, "opencode.json")
   const manifest = readJsonIfExists(manifestPath)
   const { registryPath, installManifestPath } = getManifestPaths(kitRoot, manifest)
   const installManifest = readJsonIfExists(installManifestPath)
-  const hooksConfigPath = path.join(kitRoot, "hooks", "hooks.json")
-  const sessionStartPath = path.join(kitRoot, "hooks", "session-start")
-  const metaSkillPath = path.join(kitRoot, "skills", "using-skills", "SKILL.md")
+  const hooksConfigPath = path.join(kitRoot, "src", "hooks", "hooks.json")
+  const sessionStartPath = path.join(kitRoot, "src", "hooks", "session-start.js")
+  const metaSkillPath = path.join(kitRoot, "src", "skills", "using-skills", "SKILL.md")
   const kit = manifest?.kit ?? {}
 
   runtimeContext = getRuntimeContext(runtimeRoot, runtimeState)
@@ -3889,17 +3889,17 @@ function runDoctor(customStatePath) {
   } catch (_error) {
     runtimeStatus = null
   }
-  const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
+  const manifestPath = path.join(kitRoot, "opencode.json")
   const manifestInfo = tryReadJson(manifestPath)
   const manifest = manifestInfo.data
   const { registryPath, installManifestPath } = getManifestPaths(kitRoot, manifest)
   const registryInfo = tryReadJson(registryPath)
   const installManifestInfo = tryReadJson(installManifestPath)
   const installManifest = installManifestInfo.data
-  const hooksConfigPath = path.join(kitRoot, "hooks", "hooks.json")
-  const sessionStartPath = path.join(kitRoot, "hooks", "session-start")
-  const metaSkillPath = path.join(kitRoot, "skills", "using-skills", "SKILL.md")
-  const workflowStateCliPath = path.join(kitRoot, ".opencode", "workflow-state.js")
+  const hooksConfigPath = path.join(kitRoot, "src", "hooks", "hooks.json")
+  const sessionStartPath = path.join(kitRoot, "src", "hooks", "session-start.js")
+  const metaSkillPath = path.join(kitRoot, "src", "skills", "using-skills", "SKILL.md")
+  const workflowStateCliPath = path.join(kitRoot, "src", "openkit-runtime", "workflow-state.js")
 
   let stateValid = false
   let state = null
