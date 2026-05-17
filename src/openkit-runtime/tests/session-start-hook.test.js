@@ -62,10 +62,9 @@ function makeQuickState(overrides = {}) {
 }
 
 function writeManifest(projectRoot, version = "0.3.12") {
-  const opencodeDir = path.join(projectRoot, ".opencode")
-  fs.mkdirSync(opencodeDir, { recursive: true })
+  fs.mkdirSync(projectRoot, { recursive: true })
   fs.writeFileSync(
-    path.join(opencodeDir, "opencode.json"),
+    path.join(projectRoot, "opencode.json"),
     `${JSON.stringify({
       kit: {
         name: "OpenKit AI Software Factory",
@@ -125,7 +124,7 @@ function makeFullState(overrides = {}) {
 }
 
 function writeMetaSkill(projectRoot) {
-  const skillDir = path.join(projectRoot, "skills", "using-skills")
+  const skillDir = path.join(projectRoot, "src", "skills", "using-skills")
   fs.mkdirSync(skillDir, { recursive: true })
   fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# using-skills\n", "utf8")
 }
@@ -369,7 +368,7 @@ test("session-start prints canonical resume guidance and inspection commands", (
 test("session-start degrades gracefully when the JSON helper fails", () => {
   const projectRoot = makeTempProject()
 
-  const manifestPath = path.join(projectRoot, ".opencode", "opencode.json")
+  const manifestPath = path.join(projectRoot, "opencode.json")
   writeManifest(projectRoot)
   writeState(projectRoot, makeQuickState())
   fs.writeFileSync(manifestPath, '{"kit":', 'utf8')

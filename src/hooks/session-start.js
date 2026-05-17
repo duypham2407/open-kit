@@ -23,7 +23,7 @@ function resolveKitRoot(projectRoot, statePath) {
   ];
 
   for (const candidate of candidates) {
-    const manifestPath = path.join(candidate, '.opencode', 'opencode.json');
+    const manifestPath = path.join(candidate, 'opencode.json');
     if (fs.existsSync(manifestPath)) {
       return candidate;
     }

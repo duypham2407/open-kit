@@ -1157,7 +1157,7 @@ function tryReadJson(filePath) {
 
 function getRegistry(customStatePath) {
   const { projectRoot, kitRoot } = resolvePathContext(customStatePath)
-  const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
+  const manifestPath = path.join(kitRoot, "opencode.json")
   const manifest = readJsonIfExists(manifestPath)
   const { registryPath } = getManifestPaths(kitRoot, manifest)
   const registry = readJsonIfExists(registryPath)
@@ -1177,7 +1177,7 @@ function getRegistry(customStatePath) {
 
 function getInstallManifest(customStatePath) {
   const { projectRoot, kitRoot } = resolvePathContext(customStatePath)
-  const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
+  const manifestPath = path.join(kitRoot, "opencode.json")
   const manifest = readJsonIfExists(manifestPath)
   const { installManifestPath } = getManifestPaths(kitRoot, manifest)
   const installManifest = readJsonIfExists(installManifestPath)
@@ -4006,7 +4006,7 @@ function runDoctor(customStatePath) {
 
 function getContractConsistencyReport(customStatePath) {
   const { kitRoot } = resolvePathContext(customStatePath)
-  const manifestPath = path.join(kitRoot, ".opencode", "opencode.json")
+  const manifestPath = path.join(kitRoot, "opencode.json")
   const manifest = readJsonIfExists(manifestPath)
 
   return buildContractConsistencyReport({ projectRoot: kitRoot, manifest })
