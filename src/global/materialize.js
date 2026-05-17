@@ -25,29 +25,29 @@ const PACKAGE_ROOT = path.resolve(MODULE_DIR, '../..');
 // src/ — the install bundle now ships from `src/...` paths instead of
 // repo-root paths.
 const GLOBAL_KIT_ASSETS = [
-  'src/openkit-runtime',
-  'src/bin',
-  'src/agents',
-  'src/assets',
-  'src/skills',
-  'src/commands',
-  'src/context',
-  'src/hooks',
-  'docs',
-  'registry.json',
-  'AGENTS.md',
-  'README.md',
-  'src/cli',
-  'src/capabilities',
-  'src/runtime',
-  'src/mcp-server',
-  'src/global',
-  'src/install',
-  'src/opencode',
-  'src/permissions',
-  'src/command-detection.js',
-  'src/version.js',
-  'package.json',
+  { source: 'src/openkit-runtime', target: 'src/openkit-runtime' },
+  { source: 'src/bin',             target: 'src/bin' },
+  { source: 'src/agents',          target: 'src/agents' },
+  { source: 'src/assets',          target: 'src/assets' },
+  { source: 'src/skills',          target: 'src/skills' },
+  { source: 'src/commands',        target: 'src/commands' },
+  { source: 'src/context',         target: 'src/context' },
+  { source: 'src/hooks',           target: 'src/hooks' },
+  { source: 'docs',                target: 'docs' },
+  { source: 'registry.json',       target: 'registry.json' },
+  { source: 'AGENTS.md',           target: 'AGENTS.md' },
+  { source: 'README.md',           target: 'README.md' },
+  { source: 'src/cli',             target: 'src/cli' },
+  { source: 'src/capabilities',    target: 'src/capabilities' },
+  { source: 'src/runtime',         target: 'src/runtime' },
+  { source: 'src/mcp-server',      target: 'src/mcp-server' },
+  { source: 'src/global',          target: 'src/global' },
+  { source: 'src/install',         target: 'src/install' },
+  { source: 'src/opencode',        target: 'src/opencode' },
+  { source: 'src/permissions',     target: 'src/permissions' },
+  { source: 'src/command-detection.js', target: 'src/command-detection.js' },
+  { source: 'src/version.js',      target: 'src/version.js' },
+  { source: 'package.json',        target: 'package.json' },
 ];
 
 function removePathIfPresent(targetPath) {
@@ -209,8 +209,8 @@ export function materializeGlobalInstall({
 
   try {
 
-  for (const relativeAsset of GLOBAL_KIT_ASSETS) {
-    copyAsset(path.join(PACKAGE_ROOT, relativeAsset), path.join(paths.kitRoot, relativeAsset));
+  for (const { source, target } of GLOBAL_KIT_ASSETS) {
+    copyAsset(path.join(PACKAGE_ROOT, source), path.join(paths.kitRoot, target));
   }
 
   const runtimeDependencies = provisionManagedNodeModules(paths.kitRoot);
