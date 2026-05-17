@@ -2,20 +2,21 @@
 
 ## Latest
 
-- [`0.9.2`](release-notes/0.9.2.md) - Session path, quick lane, and launcher release hardening
-- npm latest: `@duypham93/openkit@0.9.2`
-- git tag: `v0.9.2`
+- [`0.9.3`](release-notes/0.9.3.md) - Restore OpenCode slash-command discovery after v0.9.0 reorg; Layer A staging + fail-closed validator + drift auto-repair
+- npm latest: `@duypham93/openkit@0.9.3`
+- git tag: `v0.9.3`
 
 ## Previous
 
-- [`0.6.0`](release-notes/0.6.0.md) - Audit hardening release — 4 Critical, 15 High, and most Medium/Low audit findings fixed; 5 security boundaries closed; FSM and gate systems consolidated; atomic global upgrade
-- npm: `@duypham93/openkit@0.6.0`
-- git tag: `v0.6.0`
+- [`0.9.2`](release-notes/0.9.2.md) - Session path, quick lane, and launcher release hardening
+- npm: `@duypham93/openkit@0.9.2`
+- git tag: `v0.9.2`
 
 ## History
 
 Historical release notes tracked in-repo:
 
+- [`0.9.3`](release-notes/0.9.3.md) - Restore OpenCode slash-command discovery after v0.9.0 reorg
 - [`0.9.2`](release-notes/0.9.2.md) - Session path, quick lane, and launcher release hardening
 - [`0.9.1`](release-notes/0.9.1.md) - Defensive Error Handling & Diagnostic System
 - [`0.9.0`](release-notes/0.9.0.md) - Structure reorganization: consolidated source under /src
