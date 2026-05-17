@@ -126,6 +126,18 @@ export const runCommand = {
       }
     }
 
+    if (ensured.action === 'repaired-layout' || ensured.action === 'repaired-tooling-and-layout') {
+      io.stdout.write('OpenKit detected missing OpenCode discovery layer and repaired it automatically.\n');
+      const staged = ensured.repair?.stageSummary?.staged ?? [];
+      if (staged.length > 0) {
+        io.stdout.write(`Staged: ${staged.join(', ')}\n`);
+      }
+      const v = ensured.repair?.validation;
+      if (v?.ok) {
+        io.stdout.write(`Layout: ${v.commandCount} commands, ${v.agentCount} agents, ${v.skillCount} skills.\n`);
+      }
+    }
+
     if (ensured.action === 'blocked' || (!ensured.doctor.canRunCleanly && ensured.doctor.status !== 'workspace-ready-with-issues')) {
       for (const issue of ensured.doctor.issues ?? []) {
         io.stderr.write(`${issue}\n`);
