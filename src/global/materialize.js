@@ -300,6 +300,9 @@ export function materializeGlobalInstall({
 
   const runtimeDependencies = provisionManagedNodeModules(paths.kitRoot);
 
+  // Stage Layer A (OpenCode discovery surface) from install-bundle
+  stageOpenCodeDiscoveryLayer({ kitRoot: paths.kitRoot, packageRoot: PACKAGE_ROOT });
+
   const installState = createGlobalInstallState({ kitVersion, profile: 'openkit' });
   const openCodeConfig = createOpenCodeConfig(paths.kitRoot);
 
@@ -336,6 +339,9 @@ export function materializeGlobalInstall({
 
   const tooling = ensureAstGrep({ env });
   const semgrepTooling = ensureSemgrep({ env });
+
+    // Validate fail-closed before committing backups
+    validateMaterializedKitLayout(paths.kitRoot);
 
     // Materialize succeeded — discard backups.
     commitBackup(kitRootBackup);
