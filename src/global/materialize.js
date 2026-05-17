@@ -184,6 +184,31 @@ function createOpenCodeConfig(kitRoot) {
   }).config;
 }
 
+const OPENCODE_DISCOVERY_CLASSES = ['commands', 'agents', 'skills', 'context'];
+
+export function stageOpenCodeDiscoveryLayer({ kitRoot, packageRoot }) {
+  const bundleRoot = path.join(packageRoot, 'src', 'assets', 'install-bundle', 'opencode');
+  if (!fs.existsSync(bundleRoot)) {
+    return { staged: [], skipped: OPENCODE_DISCOVERY_CLASSES };
+  }
+
+  const staged = [];
+  const skipped = [];
+
+  for (const assetClass of OPENCODE_DISCOVERY_CLASSES) {
+    const sourceDir = path.join(bundleRoot, assetClass);
+    if (!fs.existsSync(sourceDir)) {
+      skipped.push(assetClass);
+      continue;
+    }
+    const targetDir = path.join(kitRoot, assetClass);
+    fs.cpSync(sourceDir, targetDir, { recursive: true });
+    staged.push(assetClass);
+  }
+
+  return { staged, skipped };
+}
+
 export function materializeGlobalInstall({
   env = process.env,
   kitVersion = getOpenKitVersion(),
