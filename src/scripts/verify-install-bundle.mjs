@@ -47,7 +47,8 @@ if (
   validation.missingSkillManifestEntries.length > 0 ||
   validation.extraSkillManifestEntries.length > 0 ||
   validation.missingSkillBundleFiles.length > 0 ||
-  validation.skillCatalogMismatches.length > 0
+  validation.skillCatalogMismatches.length > 0 ||
+  validation.sourceCommandsMissingFromBundle.length > 0
 ) {
   process.stderr.write('Derived install bundle drift detected.\n');
 
@@ -99,6 +100,10 @@ if (
 
   if (validation.skillCatalogMismatches.length > 0) {
     process.stderr.write(`Skill catalog mismatches:\n- ${validation.skillCatalogMismatches.map((item) => `${item.id}: ${item.reason}`).join('\n- ')}\n`);
+  }
+
+  if (validation.sourceCommandsMissingFromBundle.length > 0) {
+    process.stderr.write(`Source commands missing from bundle (and not in internalOnlyCommands):\n- ${validation.sourceCommandsMissingFromBundle.join('\n- ')}\n`);
   }
 
   process.stderr.write('Run `npm run sync:install-bundle` to refresh derived assets.\n');
