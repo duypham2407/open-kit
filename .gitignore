@@ -2,6 +2,15 @@
 .opencode/background-runs/
 .opencode/work-items/**/tool-invocations.json
 .opencode/tool-invocations.json
+.opencode/sessions/
+.opencode/openkit/
+.opencode/workflow-state.json
+.opencode/workflow-state.json.legacy.*
+.opencode/workflow-state.js
+.opencode/profile-switch.js
+.opencode/switch-profiles.js
+.opencode/.opencode/
+src/.opencode/
 src/.opencode/background-runs/
 src/.opencode/work-items/
 src/.opencode/tool-invocations.json
