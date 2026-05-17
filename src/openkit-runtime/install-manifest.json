@@ -18,15 +18,15 @@
     "mode": "additive-non-destructive",
     "installReadiness": "emerging",
     "notes": "This manifest describes additive metadata checked into this repository. It does not fetch remote components, remove the repository-local runtime, or replace the preferred global OpenKit install path.",
-    "repositoryInternalRuntime": ".opencode/opencode.json",
+    "repositoryInternalRuntime": "src/openkit-runtime/opencode.json",
     "wrapperFacingMetadata": [
       "registry.json",
-      ".opencode/install-manifest.json",
-      "assets/install-bundle/opencode/skill-catalog.json"
+      "src/openkit-runtime/install-manifest.json",
+      "src/assets/install-bundle/opencode/skill-catalog.json"
     ]
   },
   "migration": {
-    "currentRuntimeManifest": ".opencode/opencode.json",
+    "currentRuntimeManifest": "src/openkit-runtime/opencode.json",
     "status": "staged-not-complete",
     "notes": "The checked-in repository runtime remains the authoring and compatibility surface. Everyday operator usage should prefer the global OpenKit install path."
   },

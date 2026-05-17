@@ -68,7 +68,7 @@ test('registry docs include runtime surfaces reference', () => {
 });
 
 test('install manifest advertises generated bundled skill catalog metadata', () => {
-  assert.ok(installManifest.installation.wrapperFacingMetadata.includes('assets/install-bundle/opencode/skill-catalog.json'));
+  assert.ok(installManifest.installation.wrapperFacingMetadata.includes('src/assets/install-bundle/opencode/skill-catalog.json'));
   assert.equal(installManifest.components.skillCatalog, 'generated-package-metadata');
 });
 
