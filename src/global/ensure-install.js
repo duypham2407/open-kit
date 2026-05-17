@@ -18,6 +18,23 @@ function hasManagedAstGrepShims(env) {
 
 const LAYER_A_REQUIRED_DIRS = ['commands', 'agents', 'skills'];
 
+/**
+ * Cheap heuristic to detect Layer A drift on an existing kit root.
+ * Returns `true` if any of `<kitRoot>/{commands,agents,skills}/` is
+ * missing or empty (ignoring dotfiles). Returns `false` only when all
+ * three are present and contain at least one non-dot entry.
+ *
+ * Used by `ensureGlobalInstall` to decide whether to auto-run
+ * `repairKitLayout` without triggering the full materialize+rollback
+ * pipeline.
+ *
+ * Note: `context/` is intentionally not included in the drift check.
+ * It is staged by `stageOpenCodeDiscoveryLayer` but is not required for
+ * OpenCode slash-command discovery; its absence does not warrant a repair.
+ *
+ * @param {string} kitRoot Absolute path to the kit root.
+ * @returns {boolean} `true` when at least one required dir is missing or empty.
+ */
 export function detectKitLayoutDrift(kitRoot) {
   for (const cls of LAYER_A_REQUIRED_DIRS) {
     const dir = path.join(kitRoot, cls);

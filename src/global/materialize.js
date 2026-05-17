@@ -196,6 +196,22 @@ function createOpenCodeConfig(kitRoot) {
 
 const OPENCODE_DISCOVERY_CLASSES = ['commands', 'agents', 'skills', 'context'];
 
+/**
+ * Stage Layer A (OpenCode discovery surface) by copying the install-bundle
+ * directories into the kit root at the locations OpenCode auto-discovers
+ * by directory convention.
+ *
+ * Reads `<packageRoot>/src/assets/install-bundle/opencode/<class>/` for
+ * each of: commands, agents, skills, context. Writes to
+ * `<kitRoot>/<class>/`. Idempotent: a second call overwrites without
+ * duplicating entries. Fail-soft when bundle source is missing.
+ *
+ * @param {object} options
+ * @param {string} options.kitRoot      Absolute path to the materialized kit root.
+ * @param {string} options.packageRoot  Absolute path to the OpenKit npm package root.
+ * @returns {{ staged: string[], skipped: string[] }} Summary of which classes were
+ *          staged successfully and which were skipped (e.g. bundle source missing).
+ */
 export function stageOpenCodeDiscoveryLayer({ kitRoot, packageRoot }) {
   const bundleRoot = path.join(packageRoot, 'src', 'assets', 'install-bundle', 'opencode');
   if (!fs.existsSync(bundleRoot)) {
@@ -231,6 +247,26 @@ const REQUIRED_LAYER_B = [
   { kind: 'file', path: 'src/hooks/session-start.js' },
 ];
 
+/**
+ * Fail-closed validation gate that asserts both Layer A (OpenCode public
+ * discovery surface) and Layer B (kit-internal mirror) are present after
+ * materialize. Called inside `materializeGlobalInstall` after staging,
+ * before `commitBackup`, so any failure rolls back the install.
+ *
+ * Layer A requirements: `opencode.json`, plus non-empty `commands/`
+ * (>=8 entries), `agents/` (>=7), `skills/` (>=1) — magic numbers chosen
+ * to match the curated bundle and detect accidental truncation.
+ *
+ * Layer B requirements: `src/openkit-runtime/workflow-state.js` and
+ * `src/hooks/session-start.js` (kit-internal entrypoints both present).
+ *
+ * @param {string} kitRoot Absolute path to the materialized kit root.
+ * @returns {{ ok: true, commandCount: number, agentCount: number, skillCount: number }}
+ *          Summary counts on success.
+ * @throws {MaterializationError} When any required asset is missing or
+ *         underpopulated. Error carries `{ layer, missing, hint }` metadata
+ *         for callers wiring remediation UX.
+ */
 export function validateMaterializedKitLayout(kitRoot) {
   const errors = [];
 
@@ -238,23 +274,42 @@ export function validateMaterializedKitLayout(kitRoot) {
     const abs = path.join(kitRoot, rel);
     return fs.existsSync(abs) && fs.statSync(abs).isFile();
   }
-  function checkDirNonEmpty(rel, minCount) {
+  function countDirEntries(rel) {
     const abs = path.join(kitRoot, rel);
-    if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) return false;
-    const entries = fs.readdirSync(abs).filter((name) => !name.startsWith('.'));
-    return entries.length >= minCount;
+    if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) return null;
+    return fs.readdirSync(abs).filter((name) => !name.startsWith('.')).length;
   }
 
   for (const req of REQUIRED_LAYER_A) {
-    const ok = req.kind === 'file' ? checkFile(req.path) : checkDirNonEmpty(req.path, req.minCount);
-    if (!ok) errors.push({ layer: 'A', path: req.path });
+    if (req.kind === 'file') {
+      if (!checkFile(req.path)) {
+        errors.push({ layer: 'A', kind: 'file', path: req.path });
+      }
+    } else {
+      const actualCount = countDirEntries(req.path);
+      const ok = actualCount !== null && actualCount >= req.minCount;
+      if (!ok) {
+        errors.push({
+          layer: 'A',
+          kind: 'dir-non-empty',
+          path: req.path,
+          minCount: req.minCount,
+          actualCount: actualCount ?? 0,
+        });
+      }
+    }
   }
   for (const req of REQUIRED_LAYER_B) {
-    if (!checkFile(req.path)) errors.push({ layer: 'B', path: req.path });
+    if (!checkFile(req.path)) errors.push({ layer: 'B', kind: 'file', path: req.path });
   }
 
   if (errors.length > 0) {
-    const summary = errors.map((e) => `Layer ${e.layer}: ${e.path}`).join('; ');
+    const summary = errors.map((e) => {
+      if (e.kind === 'dir-non-empty' && typeof e.minCount === 'number') {
+        return `Layer ${e.layer}: ${e.path} (have ${e.actualCount ?? 0}, need ≥ ${e.minCount})`;
+      }
+      return `Layer ${e.layer}: ${e.path}`;
+    }).join('; ');
     throw new MaterializationError(
       `Materialized kit layout invalid: ${summary}. Run \`npm run sync:install-bundle\` or call stageOpenCodeDiscoveryLayer before validation.`,
       { layer: errors[0].layer, missing: errors, hint: 'sync:install-bundle' }
@@ -269,6 +324,21 @@ export function validateMaterializedKitLayout(kitRoot) {
   };
 }
 
+/**
+ * Re-stage Layer A and re-validate. Used by `ensureGlobalInstall` to
+ * auto-heal an existing kit whose Layer A directories were emptied or
+ * never created (typical for v0.9.0/.1/.2 → v0.9.3 upgrades).
+ *
+ * Unlike `materializeGlobalInstall`, this does NOT re-copy Layer B
+ * (`<kitRoot>/src/...`), making the repair cheap.
+ *
+ * @param {object} options
+ * @param {string} options.kitRoot         Absolute path to the kit root.
+ * @param {string} [options.packageRoot]   Optional package-root override; defaults to PACKAGE_ROOT.
+ * @returns {{ stageSummary: object, validation: object }} Combined report
+ *          from the underlying stage + validate calls.
+ * @throws {MaterializationError} If validation fails post-stage.
+ */
 export function repairKitLayout({ kitRoot, packageRoot = PACKAGE_ROOT } = {}) {
   const stageSummary = stageOpenCodeDiscoveryLayer({ kitRoot, packageRoot });
   const validation = validateMaterializedKitLayout(kitRoot);
