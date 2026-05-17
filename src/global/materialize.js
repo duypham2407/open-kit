@@ -17,6 +17,16 @@ import { getOpenKitVersion } from '../version.js';
 const MODULE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(MODULE_DIR, '../..');
 
+export class MaterializationError extends Error {
+  constructor(message, { layer, missing, hint } = {}) {
+    super(message);
+    this.name = 'MaterializationError';
+    this.layer = layer;
+    this.missing = missing;
+    this.hint = hint;
+  }
+}
+
 // Audit fix [2-M-2]: this list previously contained 'bin' and
 // 'src/mcp-server' twice each. fs.cpSync tolerated the duplicates by
 // re-overwriting, but it was wasted work and a copy/paste bug.
@@ -207,6 +217,56 @@ export function stageOpenCodeDiscoveryLayer({ kitRoot, packageRoot }) {
   }
 
   return { staged, skipped };
+}
+
+const REQUIRED_LAYER_A = [
+  { kind: 'file',          path: 'opencode.json' },
+  { kind: 'dir-non-empty', path: 'commands', minCount: 8 },
+  { kind: 'dir-non-empty', path: 'agents',   minCount: 7 },
+  { kind: 'dir-non-empty', path: 'skills',   minCount: 1 },
+];
+
+const REQUIRED_LAYER_B = [
+  { kind: 'file', path: 'src/openkit-runtime/workflow-state.js' },
+  { kind: 'file', path: 'src/hooks/session-start.js' },
+];
+
+export function validateMaterializedKitLayout(kitRoot) {
+  const errors = [];
+
+  function checkFile(rel) {
+    const abs = path.join(kitRoot, rel);
+    return fs.existsSync(abs) && fs.statSync(abs).isFile();
+  }
+  function checkDirNonEmpty(rel, minCount) {
+    const abs = path.join(kitRoot, rel);
+    if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) return false;
+    const entries = fs.readdirSync(abs).filter((name) => !name.startsWith('.'));
+    return entries.length >= minCount;
+  }
+
+  for (const req of REQUIRED_LAYER_A) {
+    const ok = req.kind === 'file' ? checkFile(req.path) : checkDirNonEmpty(req.path, req.minCount);
+    if (!ok) errors.push({ layer: 'A', path: req.path });
+  }
+  for (const req of REQUIRED_LAYER_B) {
+    if (!checkFile(req.path)) errors.push({ layer: 'B', path: req.path });
+  }
+
+  if (errors.length > 0) {
+    const summary = errors.map((e) => `Layer ${e.layer}: ${e.path}`).join('; ');
+    throw new MaterializationError(
+      `Materialized kit layout invalid: ${summary}. Run \`npm run sync:install-bundle\` or call stageOpenCodeDiscoveryLayer before validation.`,
+      { layer: errors[0].layer, missing: errors, hint: 'sync:install-bundle' }
+    );
+  }
+
+  return {
+    ok: true,
+    commandCount: fs.readdirSync(path.join(kitRoot, 'commands')).filter((n) => n.endsWith('.md')).length,
+    agentCount:   fs.readdirSync(path.join(kitRoot, 'agents')).filter((n) => n.endsWith('.md')).length,
+    skillCount:   fs.readdirSync(path.join(kitRoot, 'skills')).filter((n) => !n.startsWith('.')).length,
+  };
 }
 
 export function materializeGlobalInstall({
